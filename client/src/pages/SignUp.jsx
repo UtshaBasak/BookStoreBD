@@ -34,7 +34,7 @@ export default function SignUp() {
             alert(JSON.stringify(data));
         } catch (error) {
             console.error('Error submitting form:', error);
-            alert('Error submitting form: ' + err.message);
+            alert('Error submitting form: ' + error.message);
         }
     };
     
