@@ -4,7 +4,7 @@ import mongoose from 'mongoose';
 const BookSchema = mongoose.Schema(
     {
         title:{
-            type:String,
+            type:String, required:true,
         },
 
         author:{

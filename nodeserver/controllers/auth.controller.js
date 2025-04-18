@@ -1,4 +1,3 @@
-
 import User from '../models/user.model.js';
 import bcryptjs from 'bcryptjs'
 import {errorHandler} from '../uits/error.js';

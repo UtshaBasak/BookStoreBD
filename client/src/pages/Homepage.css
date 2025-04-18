@@ -1,0 +1,144 @@
+/* Ensure the root and body take full height */
+html, body, #root {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  color: black;
+}
+
+body, html, .homepage {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  width: 100%;
+  font-family: Arial, sans-serif;
+  background: #f8f8f8;
+}
+
+/* Make homepage fill the viewport */
+.homepage {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  padding: 1rem 2rem;
+  background: #333;
+  color: white;
+}
+
+/* Make main content grow to fill space between header/nav and footer */
+.main-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.store-name {
+  font-size: 1.5rem;
+}
+
+.search-bar input {
+  padding: 0.5rem;
+  width: 250px;
+
+}
+
+.search-bar button {
+  padding: 0.5rem;
+  background: #555;
+  color: white;
+  border: none;
+}
+
+.user-options a {
+  color: white;
+  margin-left: 1rem;
+  text-decoration: none;
+}
+
+.nav-bar {
+  display: flex;
+  background: #444;
+  padding: 1rem;
+  gap: 1rem;
+  color: black;
+}
+
+.nav-bar a {
+  color: rgb(0, 0, 0);
+  text-decoration: none;
+  position: relative;
+}
+
+.dropdown {
+  position: relative;
+}
+
+.dropdown-content {
+  display: none;
+  position: absolute;
+  background: white;
+  color: black;
+  padding: 0.5rem;
+  top: 100%;
+  left: 0;
+  z-index: 1;
+  min-width: 150px;
+  box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+}
+
+.dropdown:hover .dropdown-content {
+  display: block;
+}
+
+.banner img {
+  width: 100%;
+  height: auto;
+}
+
+.section {
+  padding: 2rem;
+}
+
+.book-list, .writer-list {
+  display: flex;
+  gap: 1.5rem;
+  flex-wrap: wrap;
+  padding-top: 1rem;
+}
+
+.book, .writer {
+  text-align: center;
+}
+
+.book img {
+  width: 100px;
+  height: auto;
+}
+
+.footer {
+  background: #ddd;
+  padding: 2rem;
+  display: flex;
+  justify-content: space-around;
+  flex-wrap: wrap;
+}
+
+.footer-section {
+  min-width: 200px;
+}
+
+.footer-section h4 {
+  margin-bottom: 0.5rem;
+}
+
+.footer-bottom {
+  text-align: center;
+  width: 100%;
+  margin-top: 1rem;
+  font-style: italic;
+}
