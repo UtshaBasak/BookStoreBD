@@ -1,9 +1,9 @@
-// import React from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import React, { useState } from 'react';
 
 
 export default function SignIn() {
+    const navigate = useNavigate();
     const [formData,setFormData] = useState({}) 
         // for track the changes..object and based on function and keep empty obj
         const handleChange =(e) => {
@@ -27,8 +27,12 @@ export default function SignIn() {
                 });
     
                 const data = await res.json();
-                console.log(data);
-                alert(JSON.stringify(data));
+                if (res.ok) {
+                    localStorage.setItem('userEmail', formData.email);
+                    navigate('/profile');
+                } else {
+                    alert(JSON.stringify(data));
+                }
             } catch (err) {
                 console.error('Error submitting form:', err);
                 alert('Error submitting form: ' + err.message);

@@ -1,25 +1,43 @@
 import express from 'express';
 import { MongoServerClosedError } from 'mongodb';
-import Bookdetails from './bookdetails.model.js';
 import cors from 'cors';
+import dotenv from 'dotenv';
+import bodyParser from 'body-parser';
+dotenv.config();
 
+// MongoDB connection
+import mongoose from 'mongoose';
 
+mongoose.connect(process.env.MONGO, {
+  useNewUrlParser: true,
+  useUnifiedTopology: true,
+})
+.then(() => {
+  console.log('MongoDB connected');
+})
+.catch((err) => {
+  console.error('MongoDB connection error:', err);
+});
+
+// Configure CORS
+const corsOptions = {
+    origin: 'http://localhost:5173', // Allow requests from this origin
+    methods: ['GET', 'POST', 'PUT', 'DELETE'], // Allowed HTTP methods
+    credentials: true, // Allow cookies if needed
+};
 
 const app = express();
-import mongoose from 'mongoose';
 import userRouter from './routes/user.route.js';
-
 import authRouter from './routes/auth.route.js';
+import bookRouter from './routes/book.route.js';
 
-
+app.use(bodyParser.json());
 
 app.use(express.json());
-app.use(cors());
+app.use(cors(corsOptions));
 app.use('/user',userRouter);
 app.use('/auth',authRouter);
-
-
-    
+app.use('/book', bookRouter);
 
 app.use((err,req,res,next) => {
     const statusCode = err.statusCode || 500;
@@ -28,54 +46,7 @@ app.use((err,req,res,next) => {
         success:false,
         statusCode,
         message,
-
     });
-});
- 
-
-app.get('/booklist',async(req,res) => {
-    try{
-        const bookdetails = await Bookdetails.find({});
-        //const bookdetails = await db.BookListTable.find({});
-        console.log("Books fetched:", bookdetails);
-        res.status(200).json(bookdetails);
-    } catch (error) {
-        res.status(500).json({message: error.message});
-    }
-
-});
-
-
-app.post('/booklist/filter', async (req, res) => {
-    const { filter_key, filter_input } = req.body;
-
-    try {
-        const filter = {};
-        filter[filter_key] = filter_input;
-
-        const filteredBooks = await Bookdetails.find(filter);
-        console.log(filteredBooks);
-        res.status(200).json(filteredBooks);
-    } catch (error) {
-        res.status(500).json({ message: error.message });
-    }
-});
-
-
-
-app.post('/booklist/search', async (req, res) => {
-    const { search_input } = req.body;
-
-    try {
-        const searchedBooks = await Bookdetails.find({
-            title: { $regex: search_input, $options: 'i' } // 'i' for case-insensitive
-        });
-
-        console.log(searchedBooks);
-        res.status(200).json(searchedBooks);
-    } catch (error) {
-        res.status(500).json({ message: error.message });
-    }
 });
 
 app.get('/wishlist', async (req, res) => {
@@ -114,12 +85,3 @@ app.get('/wishlist/delete/:id', async (req, res) => {
 
 const port = process.env.PORT || 1015;
 app.listen(port,()=> console.log(`Listening on port ${port}...`));
-
-mongoose.connect("***REMOVED***")
-.then(() =>{
-    console.log("Connected to database!");
-})
-.catch(() =>{
-    console.log("Connection failed!");
-});
-

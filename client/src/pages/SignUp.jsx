@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 
 export default function SignUp() {
     const [formData,setFormData] = useState({}) 
+    const navigate = useNavigate();
     // for track the changes..object and based on function and keep empty obj
     const handleChange =(e) => {
         setFormData({
@@ -24,14 +25,13 @@ export default function SignUp() {
                 body: JSON.stringify(formData),
             });
     
-            if (!res.ok) {
-                // Optional: handle non-200 responses
-                throw new Error(`HTTP error! status: ${res.status}`);
-            }
-    
             const data = await res.json();
-            console.log(data); 
-            alert(JSON.stringify(data));
+            if (res.ok) {
+                localStorage.setItem('userEmail', formData.email);
+                navigate('/profile');
+            } else {
+                alert(JSON.stringify(data));
+            }
         } catch (error) {
             console.error('Error submitting form:', error);
             alert('Error submitting form: ' + error.message);

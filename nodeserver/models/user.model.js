@@ -7,33 +7,34 @@ const UserSchema = new mongoose.Schema(
             required: true,
             unique: true,
         },
-
         email: {
             type: String,
             required: true,
             unique: true,
         },
-
         password: {
             type: String,
             required: true,
-            unique: true,
         },
-
-        phone: {
+        dateOfBirth: {
+            type: Date,
+        },
+        gender: {
             type: String,
-            required: false, 
+            enum: ['male', 'female'],
         },
-
         address: {
             type: String,
-            required: false, 
         },
-
-    }, { timestamps: true }
+        phone: {
+            type: String,
+        },
+        profilePicture: {
+            type: String,
+        }
+    }, 
+    { timestamps: true }
 );
 
 const User = mongoose.model("UserTable", UserSchema);
-
-
 export default User;
