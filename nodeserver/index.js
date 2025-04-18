@@ -39,7 +39,6 @@ app.use('/user',userRouter);
 app.use('/auth',authRouter);
 app.use('/book', bookRouter);
 
-
 app.use((err,req,res,next) => {
     const statusCode = err.statusCode || 500;
     const message = err.message || 'Internet Server Error';
@@ -47,10 +46,8 @@ app.use((err,req,res,next) => {
         success:false,
         statusCode,
         message,
-
     });
 });
- 
 
 app.get('/wishlist', async (req, res) => {
     try {
@@ -88,12 +85,3 @@ app.get('/wishlist/delete/:id', async (req, res) => {
 
 const port = process.env.PORT || 1015;
 app.listen(port,()=> console.log(`Listening on port ${port}...`));
-
-// Extra mongoose connection as in provided code
-mongoose.connect(process.env.MONGO)
-.then(() =>{
-    console.log("Connected to database!");
-})
-.catch(() =>{
-    console.log("Connection failed!");
-});
