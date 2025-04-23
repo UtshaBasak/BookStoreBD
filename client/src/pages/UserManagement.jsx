@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import './UserManagement.css';
 
+const ADMIN_EMAIL = 'utsha23basak@gmail.com';
+
 export default function UserManagement() {
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -13,7 +15,9 @@ export default function UserManagement() {
         return res.json();
       })
       .then((data) => {
-        setUsers(data);
+        // Filter out admin user by email
+        const filtered = data.filter(user => user.email !== ADMIN_EMAIL);
+        setUsers(filtered);
         setLoading(false);
       })
       .catch((err) => {

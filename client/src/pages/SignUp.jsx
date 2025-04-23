@@ -1,16 +1,24 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 
 export default function SignUp() {
-    const [formData,setFormData] = useState({}) 
+    const [formData,setFormData] = useState({});
+    const [errorMsg, setErrorMsg] = useState('');
     const navigate = useNavigate();
-    // for track the changes..object and based on function and keep empty obj
+
+    useEffect(() => {
+        const userEmail = localStorage.getItem('userEmail');
+        if (userEmail) {
+            if (userEmail === 'utsha23basak@gmail.com') navigate('/admin/users', { replace: true });
+            else navigate('/profile', { replace: true });
+        }
+    }, [navigate]);
+
     const handleChange =(e) => {
         setFormData({
             ...formData,
             [e.target.id]:e.target.value,
         });
-
     };
 
     const handleSubmit = async (e) => {
@@ -25,16 +33,20 @@ export default function SignUp() {
                 body: JSON.stringify(formData),
             });
     
-            const data = await res.json();
             if (res.ok) {
                 localStorage.setItem('userEmail', formData.email);
-                navigate('/profile');
+                navigate('/'); // Redirect to homepage after sign up
             } else {
-                alert(JSON.stringify(data));
+                const data = await res.json();
+                if (data.message === "Username already exists" || data.message === "Email already exists") {
+                    setErrorMsg(data.message);
+                } else {
+                    setErrorMsg(JSON.stringify(data));
+                }
             }
         } catch (error) {
             console.error('Error submitting form:', error);
-            alert('Error submitting form: ' + error.message);
+            setErrorMsg('Error submitting form: ' + error.message);
         }
     };
     
@@ -84,6 +96,9 @@ export default function SignUp() {
         }}
       >
         <h2 style={{ fontSize: '1.5rem', marginBottom: '1.5rem' }}>Sign Up</h2>
+        {errorMsg && (
+          <div style={{ color: 'red', marginBottom: '1rem' }}>{errorMsg}</div>
+        )}
         <form onSubmit = {handleSubmit}>
           <div style={{ marginBottom: '1rem' }}>
             <input
