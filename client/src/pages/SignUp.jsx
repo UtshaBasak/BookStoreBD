@@ -71,7 +71,6 @@ export default function SignUp() {
         boxSizing: 'border-box',
       }}
     >
-      {/* Header */}
       <h1
         style={{
           fontSize: '2.5rem',
@@ -84,7 +83,6 @@ export default function SignUp() {
         WELCOME TO OUR BOOKSTORE
       </h1>
 
-      {/* Sign-Up Form */}
       <div
         style={{
           backgroundColor: 'rgba(0, 0, 0, 0.7)',
@@ -92,7 +90,6 @@ export default function SignUp() {
           borderRadius: '8px',
           width: '300px',
           textAlign: 'center',
-          
         }}
       >
         <h2 style={{ fontSize: '1.5rem', marginBottom: '1.5rem' }}>Sign Up</h2>
@@ -133,7 +130,6 @@ export default function SignUp() {
                 color: 'white',
                 fontSize: '1rem',
                 outline: 'none',
-                
               }}
             />
           </div>
@@ -155,6 +151,7 @@ export default function SignUp() {
               }}
             />
           </div>
+
           <button
             type="submit"
             style={{
@@ -174,7 +171,15 @@ export default function SignUp() {
             Sign Up
           </button>
         </form>
+
+        {/* Forgot Password Link */}
         <p style={{ marginTop: '1rem', fontSize: '0.9rem' }}>
+          <Link to="/forgot-password" style={{ color: '#00f', textDecoration: 'underline' }}>
+            Forgot Password?
+          </Link>
+        </p>
+
+        <p style={{ marginTop: '0.5rem', fontSize: '0.9rem' }}>
           Already registered?{' '}
           <Link to="/sign-in" style={{ color: '#00f', textDecoration: 'underline' }}>
             SIGN IN

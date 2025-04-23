@@ -19,6 +19,5 @@ const AddBookSchema = new mongoose.Schema({
   sellerEmail: { type: String, required: true }, // NEW: track seller
   stock: { type: Number, default: 1, min: 0 }    // allow zero
 });
-
 const AddBook = mongoose.model('AddBook', AddBookSchema);
 export default AddBook;
