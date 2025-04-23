@@ -19,6 +19,10 @@ const BookSchema = mongoose.Schema(
             type:String,
         },
 
+        isinwishlist:{
+            type:Number,
+        },
+
     }
 );
 
