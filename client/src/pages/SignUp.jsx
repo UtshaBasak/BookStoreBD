@@ -2,43 +2,40 @@ import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 
 export default function SignUp() {
-    const [formData,setFormData] = useState({}) 
-    const navigate = useNavigate();
-    // for track the changes..object and based on function and keep empty obj
-    const handleChange =(e) => {
-        setFormData({
-            ...formData,
-            [e.target.id]:e.target.value,
-        });
+  const [formData, setFormData] = useState({});
+  const navigate = useNavigate();
 
-    };
+  const handleChange = (e) => {
+    setFormData({
+      ...formData,
+      [e.target.id]: e.target.value,
+    });
+  };
 
-    const handleSubmit = async (e) => {
-        e.preventDefault(); // Prevents page refresh on form submit
-    
-        try {
-            const res = await fetch('http://localhost:1015/auth/signup', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json', // Correct header key
-                },
-                body: JSON.stringify(formData),
-            });
-    
-            const data = await res.json();
-            if (res.ok) {
-                localStorage.setItem('userEmail', formData.email);
-                navigate('/profile');
-            } else {
-                alert(JSON.stringify(data));
-            }
-        } catch (error) {
-            console.error('Error submitting form:', error);
-            alert('Error submitting form: ' + error.message);
-        }
-    };
-    
-    console.log(formData);
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+
+    try {
+      const res = await fetch('http://localhost:1015/auth/signup', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(formData),
+      });
+
+      const data = await res.json();
+      if (res.ok) {
+        localStorage.setItem('userEmail', formData.email);
+        navigate('/profile');
+      } else {
+        alert(JSON.stringify(data));
+      }
+    } catch (error) {
+      console.error('Error submitting form:', error);
+      alert('Error submitting form: ' + error.message);
+    }
+  };
 
   return (
     <div
@@ -59,7 +56,6 @@ export default function SignUp() {
         boxSizing: 'border-box',
       }}
     >
-      {/* Header */}
       <h1
         style={{
           fontSize: '2.5rem',
@@ -72,7 +68,6 @@ export default function SignUp() {
         WELCOME TO OUR BOOKSTORE
       </h1>
 
-      {/* Sign-Up Form */}
       <div
         style={{
           backgroundColor: 'rgba(0, 0, 0, 0.7)',
@@ -80,11 +75,10 @@ export default function SignUp() {
           borderRadius: '8px',
           width: '300px',
           textAlign: 'center',
-          
         }}
       >
         <h2 style={{ fontSize: '1.5rem', marginBottom: '1.5rem' }}>Sign Up</h2>
-        <form onSubmit = {handleSubmit}>
+        <form onSubmit={handleSubmit}>
           <div style={{ marginBottom: '1rem' }}>
             <input
               type="text"
@@ -118,7 +112,6 @@ export default function SignUp() {
                 color: 'white',
                 fontSize: '1rem',
                 outline: 'none',
-                
               }}
             />
           </div>
@@ -140,6 +133,7 @@ export default function SignUp() {
               }}
             />
           </div>
+
           <button
             type="submit"
             style={{
@@ -159,7 +153,15 @@ export default function SignUp() {
             Sign Up
           </button>
         </form>
+
+        {/* Forgot Password Link */}
         <p style={{ marginTop: '1rem', fontSize: '0.9rem' }}>
+          <Link to="/forgot-password" style={{ color: '#00f', textDecoration: 'underline' }}>
+            Forgot Password?
+          </Link>
+        </p>
+
+        <p style={{ marginTop: '0.5rem', fontSize: '0.9rem' }}>
           Already registered?{' '}
           <Link to="/sign-in" style={{ color: '#00f', textDecoration: 'underline' }}>
             SIGN IN
