@@ -30,6 +30,11 @@ export default function Profile() {
         fetchProfile();
     }, [navigate]);
 
+    const handleLogout = () => {
+        localStorage.removeItem('userEmail'); // Clear user data
+        navigate('/'); // Redirect to home page
+    };
+
     return (
         <div
             style={{
@@ -38,13 +43,89 @@ export default function Profile() {
                 backgroundPosition: 'center',
                 minHeight: '100vh',
                 display: 'flex',
-                justifyContent: 'center',
+                flexDirection: 'column',
                 alignItems: 'center',
                 padding: '2rem',
                 color: '#fff',
                 width: '100vw',
             }}
         >
+            {/* Header */}
+            <header
+                style={{
+                    width: '100%',
+                    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+                    padding: '1rem',
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    position: 'fixed',
+                    top: 0,
+                    zIndex: 1000,
+                }}
+            >
+                <h2 style={{ margin: 0, color: '#fff' }}>Bookstore</h2>
+                <div style={{ display: 'flex', gap: '1rem' }}>
+                    <button
+                        onClick={() => navigate('/')}
+                        style={{
+                            backgroundColor: '#2196F3',
+                            color: 'white',
+                            padding: '0.5rem 1rem',
+                            border: 'none',
+                            borderRadius: '4px',
+                            cursor: 'pointer',
+                            transition: 'background-color 0.3s',
+                        }}
+                    >
+                        Home
+                    </button>
+                    <button
+                        onClick={() => navigate('/cart')}
+                        style={{
+                            backgroundColor: '#FF9800',
+                            color: 'white',
+                            padding: '0.5rem 1rem',
+                            border: 'none',
+                            borderRadius: '4px',
+                            cursor: 'pointer',
+                            transition: 'background-color 0.3s',
+                        }}
+                    >
+                        Cart
+                    </button>
+                    <button
+                        onClick={() => navigate('/add-book')}
+                        style={{
+                            backgroundColor: '#4CAF50',
+                            color: 'white',
+                            padding: '0.5rem 1rem',
+                            border: 'none',
+                            borderRadius: '4px',
+                            cursor: 'pointer',
+                            transition: 'background-color 0.3s',
+                        }}
+                    >
+                        Add Book
+                    </button>
+                    <button
+                        onClick={handleLogout}
+                        style={{
+                            backgroundColor: '#f44336',
+                            color: 'white',
+                            padding: '0.5rem 1rem',
+                            border: 'none',
+                            borderRadius: '4px',
+                            cursor: 'pointer',
+                            transition: 'background-color 0.3s',
+                        }}
+                    >
+                        Log Out
+                    </button>
+                </div>
+            </header>
+
+            {/* Main Content */}
             <div
                 style={{
                     background: 'rgba(0, 0, 0, 0.5)',
@@ -53,6 +134,7 @@ export default function Profile() {
                     width: '100%',
                     maxWidth: '400px',
                     boxShadow: '0 4px 8px rgba(0, 0, 0, 0.2)',
+                    marginTop: '5rem',
                 }}
             >
                 <h1 style={{ textAlign: 'center', marginBottom: '2rem' }}>Profile</h1>
@@ -102,8 +184,8 @@ export default function Profile() {
                     </div>
                 )}
                 
-                {/* Add buttons container */}
-                <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center' }}>
+                {/* Update Profile Button */}
+                <div style={{ textAlign: 'center' }}>
                     <button
                         onClick={() => navigate('/update-profile')}
                         style={{
@@ -113,24 +195,10 @@ export default function Profile() {
                             border: 'none',
                             borderRadius: '4px',
                             cursor: 'pointer',
-                            transition: 'background-color 0.3s'
+                            transition: 'background-color 0.3s',
                         }}
                     >
                         Update Profile
-                    </button>
-                    <button
-                        onClick={() => navigate('/add-book')}
-                        style={{
-                            backgroundColor: '#2196F3',
-                            color: 'white',
-                            padding: '0.5rem 1rem',
-                            border: 'none',
-                            borderRadius: '4px',
-                            cursor: 'pointer',
-                            transition: 'background-color 0.3s'
-                        }}
-                    >
-                        Add Book
                     </button>
                 </div>
             </div>
