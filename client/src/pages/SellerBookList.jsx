@@ -90,7 +90,7 @@ export default function SellerBookList() {
             marginBottom: '1rem'
           }}
         >
-          ← Return to Seller Profile
+          ← Return to Profile
         </button>
       </div>
       <h2>Your Books</h2>

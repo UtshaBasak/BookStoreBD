@@ -41,6 +41,7 @@ import authRouter from './routes/auth.route.js';
 import bookRouter from './routes/book.route.js';
 import filterRouter from './routes/filter.route.js';
 import wishlistRouter from './routes/wishlist.route.js';
+import cartRouter from './routes/cart.route.js';
 
 app.use(bodyParser.json());
 
@@ -51,6 +52,7 @@ app.use('/auth',authRouter);
 app.use('/book', bookRouter);
 app.use('/filter', filterRouter);
 app.use('/wishlist', wishlistRouter);
+app.use('/cart', cartRouter);
 
 app.use((err,req,res,next) => {
     const statusCode = err.statusCode || 500;

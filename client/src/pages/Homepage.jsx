@@ -23,12 +23,14 @@ const genres = [
 export default function Homepage() {
   const [user, setUser] = useState(null);
   const [profilePic, setProfilePic] = useState(null);
+  const [username, setUsername] = useState(''); // Add username state
   const [showDropdown, setShowDropdown] = useState(false);
   const [popularBooks, setPopularBooks] = useState([]);
   const [wishlist, setWishlist] = useState({});
   const [cart, setCart] = useState({});
   const scrollRef = React.useRef();
   const navigate = useNavigate();
+  const userEmail = localStorage.getItem('userEmail');
 
   useEffect(() => {
     const email = localStorage.getItem('userEmail');
@@ -37,7 +39,10 @@ export default function Homepage() {
       fetch(`http://localhost:1015/user/profile?email=${email}`)
         .then(res => res.ok ? res.json() : null)
         .then(data => {
-          if (data && data.profilePicture) setProfilePic(data.profilePicture);
+          if (data) {
+            if (data.profilePicture) setProfilePic(data.profilePicture);
+            if (data.username) setUsername(data.username); // Save username
+          }
         });
     }
   }, []);
@@ -61,6 +66,19 @@ export default function Homepage() {
       });
   }, []);
 
+  // Fetch user's wishlist on mount
+  useEffect(() => {
+    if (!userEmail) return;
+    fetch(`http://localhost:1015/wishlist?email=${encodeURIComponent(userEmail)}`)
+      .then(res => res.json())
+      .then(data => {
+        // Build a map of bookId -> true for quick lookup
+        const wishMap = {};
+        data.forEach(book => { wishMap[book._id] = true; });
+        setWishlist(wishMap);
+      });
+  }, [userEmail]);
+
   const handleSignOut = () => {
     localStorage.removeItem('userEmail');
     setUser(null);
@@ -76,21 +94,57 @@ export default function Homepage() {
 
   // Toggle wishlist for a book (by _id)
   const toggleWishlist = (bookId) => {
-    setWishlist(prev => ({
-      ...prev,
-      [bookId]: !prev[bookId]
-    }));
-    // Optionally: send to backend here
+    if (!userEmail) {
+      alert('Please sign in to use wishlist.');
+      return;
+    }
+    const isInWishlist = !!wishlist[bookId];
+    fetch(`http://localhost:1015/wishlist/${isInWishlist ? 'remove' : 'add'}/${bookId}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: userEmail })
+    })
+      .then(res => res.json())
+      .then(data => {
+        // Update wishlist state
+        const wishMap = {};
+        data.forEach(book => { wishMap[book._id] = true; });
+        setWishlist(wishMap);
+      });
   };
 
   // Toggle add to cart for a book (by _id)
   const toggleCart = (bookId) => {
-    setCart(prev => ({
-      ...prev,
-      [bookId]: !prev[bookId]
-    }));
-    // Optionally: send to backend here
+    if (!userEmail) {
+      alert('Please sign in to use cart.');
+      return;
+    }
+    const isInCart = !!cart[bookId];
+    fetch(`http://localhost:1015/cart/${isInCart ? 'remove' : 'add'}/${bookId}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: userEmail })
+    })
+      .then(res => res.json())
+      .then(data => {
+        // Update cart state
+        const cartMap = {};
+        data.forEach(book => { cartMap[book._id] = true; });
+        setCart(cartMap);
+      });
   };
+
+  // On mount, load cart from backend
+  useEffect(() => {
+    if (!userEmail) return;
+    fetch(`http://localhost:1015/cart?email=${encodeURIComponent(userEmail)}`)
+      .then(res => res.json())
+      .then(data => {
+        const cartObj = {};
+        data.forEach(book => { cartObj[book._id] = true; });
+        setCart(cartObj);
+      });
+  }, [userEmail]);
 
   // Scroll handlers
   const scrollAmount = 320; // px to scroll per click (adjust as needed)
@@ -128,13 +182,17 @@ export default function Homepage() {
         </div>
         <div className="user-options" style={{ position: 'relative' }}>
           <Link to="/cart">
-            <span className="cart-icon">🛒 View Cart</span>
+            <span className="cart-icon">🛒 Cart</span>
           </Link>
           {user ? (
             <>
-              <Link to="/wishlist">
-                <span className="wishlist-icon" style={{ marginLeft: '1rem' }}>❤️ Wishlist</span>
-              </Link>
+              <span
+                className="wishlist-icon"
+                style={{ marginLeft: '1rem', cursor: 'pointer' }}
+                onClick={() => navigate('/wishlist')}
+              >
+                ❤️ Wishlist
+              </span>
               <div
                 style={{ display: 'inline-block', marginLeft: '1rem', cursor: 'pointer', position: 'relative' }}
                 tabIndex={0}
@@ -144,7 +202,10 @@ export default function Homepage() {
                 onBlur={() => setShowDropdown(false)}
               >
                 <img
-                  src={profilePic || 'https://ui-avatars.com/api/?name=U'}
+                  src={
+                    profilePic ||
+                    `https://ui-avatars.com/api/?name=${encodeURIComponent(username ? username[0] : 'U')}`
+                  }
                   alt="Profile"
                   style={{
                     width: 36,
@@ -159,7 +220,7 @@ export default function Homepage() {
                   <div
                     style={{
                       position: 'absolute',
-                      top: '110%',
+                      top: '100%', // changed from '110%' to remove the gap
                       right: 0,
                       background: '#fff',
                       color: '#333',
@@ -171,6 +232,7 @@ export default function Homepage() {
                       display: 'flex',
                       flexDirection: 'column',
                       padding: 0,
+                      pointerEvents: 'auto', // ensure dropdown is interactive
                     }}
                   >
                     <button
@@ -404,7 +466,7 @@ export default function Homepage() {
                         textShadow: '0 1px 4px rgba(0,0,0,0.18)',
                         zIndex: 1 // Lower than dropdown
                       }}
-                      title="Add to Wishlist"
+                      title={wishlist[book._id] ? 'Remove from wishlist' : 'Add to wishlist'}
                     >
                       {wishlist[book._id] ? <FaHeart /> : <FaRegHeart />}
                     </span>

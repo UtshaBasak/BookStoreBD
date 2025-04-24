@@ -1,5 +1,5 @@
 import React from 'react';
-import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import SignIn from './pages/SignIn';
 import SignUp from './pages/SignUp';
 import Payment from './pages/Payment';
@@ -9,6 +9,8 @@ import Homepage from './pages/Homepage';
 import Profile from './pages/Profile';
 import UpdateProfile from './pages/UpdateProfile';
 import SellerBookList from './pages/SellerBookList';
+import Wishlist from './pages/Wishlist';
+import Cart from './pages/Cart';
 
 // Helper: get current user email from localStorage
 const getUserEmail = () => localStorage.getItem('userEmail');
@@ -68,6 +70,9 @@ export default function App() {
         <Route path="/profile" element={<Profile />} />
         <Route path="/update-profile" element={<UpdateProfile />} />
         <Route path="/seller-books" element={<SellerBookList />} />
+        <Route path="/wishlist" element={<Wishlist />} />
+        <Route path="/cart" element={<Cart />} />
+        {/* Always keep the 404 route last */}
         <Route path="*" element={<h1>404 Not Found</h1>} />
       </Routes>
     </BrowserRouter>

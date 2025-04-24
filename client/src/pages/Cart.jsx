@@ -1,85 +1,77 @@
 import React, { useEffect, useState } from 'react';
-import { FaTrash, FaHome, FaShoppingCart } from 'react-icons/fa';
+import { FaTrash, FaHome, FaHeart, FaRegHeart } from 'react-icons/fa';
 import { useNavigate, Link } from 'react-router-dom';
 
-export default function Wishlist() {
-  const [wishlist, setWishlist] = useState([]);
-  const [cart, setCart] = useState({});
+export default function Cart() {
+  const [cartBooks, setCartBooks] = useState([]);
+  const [wishlist, setWishlist] = useState({});
   const navigate = useNavigate();
   const userEmail = localStorage.getItem('userEmail');
 
-  // Fetch wishlist from backend for the specific user
-  useEffect(() => {
-    if (!userEmail) return;
-    fetch(`http://localhost:1015/wishlist?email=${encodeURIComponent(userEmail)}`)
-      .then((res) => res.json())
-      .then((data) => {
-        setWishlist(data);
-      })
-      .catch((err) => console.error('Error fetching wishlist:', err));
-  }, [userEmail]);
-
-  // Load cart state from backend
+  // Load cart from backend
   useEffect(() => {
     if (!userEmail) return;
     fetch(`http://localhost:1015/cart?email=${encodeURIComponent(userEmail)}`)
       .then(res => res.json())
+      .then(data => setCartBooks(data));
+  }, [userEmail]);
+
+  // Load wishlist for icon state
+  useEffect(() => {
+    if (!userEmail) return;
+    fetch(`http://localhost:1015/wishlist?email=${encodeURIComponent(userEmail)}`)
+      .then(res => res.json())
       .then(data => {
-        const cartObj = {};
-        data.forEach(book => { cartObj[book._id] = true; });
-        setCart(cartObj);
+        const wishMap = {};
+        data.forEach(book => { wishMap[book._id] = true; });
+        setWishlist(wishMap);
       });
   }, [userEmail]);
 
-  // Toggle cart for a book
-  const handleToggleCart = (id) => {
+  // Remove from cart
+  const handleRemoveFromCart = (id) => {
+    fetch(`http://localhost:1015/cart/remove/${id}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: userEmail })
+    })
+      .then(res => res.json())
+      .then(data => setCartBooks(data));
+  };
+
+  // Toggle wishlist
+  const handleToggleWishlist = (id) => {
     if (!userEmail) {
-      alert('Please sign in to use cart.');
+      alert('Please sign in to use wishlist.');
       return;
     }
-    const isInCart = !!cart[id];
-    fetch(`http://localhost:1015/cart/${isInCart ? 'remove' : 'add'}/${id}`, {
+    const inWishlist = !!wishlist[id];
+    fetch(`http://localhost:1015/wishlist/${inWishlist ? 'remove' : 'add'}/${id}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email: userEmail })
     })
       .then(res => res.json())
       .then(data => {
-        const cartObj = {};
-        data.forEach(book => { cartObj[book._id] = true; });
-        setCart(cartObj);
+        const wishMap = {};
+        data.forEach(book => { wishMap[book._id] = true; });
+        setWishlist(wishMap);
       });
-  };
-
-  // Remove a book from wishlist for the specific user
-  const handleDelete = async (id) => {
-    try {
-      // Use /wishlist/remove/:id for consistency with homepage logic
-      const res = await fetch(`http://localhost:1015/wishlist/remove/${id}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: userEmail })
-      });
-      const updatedWishlist = await res.json();
-      setWishlist(updatedWishlist);
-    } catch (err) {
-      console.error('Error deleting from wishlist:', err);
-    }
   };
 
   // Helper to resolve image src
   const getBookImageSrc = (book) => {
     const img = book.images?.[0];
     if (!img) return 'https://via.placeholder.com/80x120?text=No+Image';
-    if (img.startsWith('data:image/')) return img; // base64
-    if (/^https?:\/\//.test(img)) return img; // full URL
-    return `http://localhost:1015/uploads/${img}`; // filename
+    if (img.startsWith('data:image/')) return img;
+    if (/^https?:\/\//.test(img)) return img;
+    return `http://localhost:1015/uploads/${img}`;
   };
 
   if (!userEmail) {
     return (
       <div style={{ color: 'white', padding: '2rem', textAlign: 'center', background: '#222', minHeight: '100vh' }}>
-        Please sign in to view your wishlist.
+        Please sign in to view your cart.
       </div>
     );
   }
@@ -114,14 +106,14 @@ export default function Wishlist() {
         title="Go to Homepage"
       />
 
-      {/* Cart Button in Top Right */}
+      {/* Wishlist Button in Top Right */}
       <Link
-        to="/cart"
+        to="/wishlist"
         style={{
           position: 'absolute',
           top: 24,
           right: 24,
-          color: '#8B6F6F',
+          color: '#e65100',
           background: '#fff',
           borderRadius: '50%',
           width: 44,
@@ -133,12 +125,12 @@ export default function Wishlist() {
           zIndex: 10,
           textDecoration: 'none'
         }}
-        title="Go to Cart"
+        title="Go to Wishlist"
       >
-        <FaShoppingCart size={22} />
+        <FaHeart size={22} />
       </Link>
 
-      {/* Wishlist Heading at Top Center */}
+      {/* Cart Heading at Top Center */}
       <div
         style={{
           width: '100%',
@@ -159,11 +151,11 @@ export default function Wishlist() {
             letterSpacing: 1,
           }}
         >
-          Wishlist
+          Cart
         </h3>
       </div>
 
-      {/* Wishlist Items Centered Vertically */}
+      {/* Cart Items Centered Vertically */}
       <div
         style={{
           display: 'flex',
@@ -174,10 +166,10 @@ export default function Wishlist() {
         }}
       >
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', alignItems: 'center' }}>
-          {wishlist.length === 0 ? (
-            <p>No books in wishlist.</p>
+          {cartBooks.length === 0 ? (
+            <p>No books in cart.</p>
           ) : (
-            wishlist.map((book) => (
+            cartBooks.map((book) => (
               <div
                 key={book._id}
                 style={{
@@ -213,36 +205,61 @@ export default function Wishlist() {
                   </div>
                 </div>
 
-                {/* Cart icon toggle */}
-                <FaShoppingCart
+                {/* Wishlist icon */}
+                <span
                   style={{
                     cursor: 'pointer',
-                    color: cart[book._id] ? '#e65100' : '#ccc',
+                    color: wishlist[book._id] ? '#e65100' : '#ccc',
                     marginLeft: 12,
+                    fontSize: 20
                   }}
-                  onClick={() => handleToggleCart(book._id)}
-                  title={cart[book._id] ? 'Remove from cart' : 'Add to cart'}
+                  onClick={() => handleToggleWishlist(book._id)}
+                  title={wishlist[book._id] ? 'Remove from wishlist' : 'Add to wishlist'}
                   tabIndex={0}
                   role="button"
-                  aria-label="Toggle cart"
-                />
+                  aria-label="Toggle wishlist"
+                >
+                  {wishlist[book._id] ? <FaHeart /> : <FaRegHeart />}
+                </span>
 
+                {/* Remove from cart */}
                 <FaTrash
                   style={{
                     cursor: 'pointer',
                     color: '#e74c3c',
                     marginLeft: 12,
                   }}
-                  onClick={() => handleDelete(book._id)}
-                  title="Remove from wishlist"
+                  onClick={() => handleRemoveFromCart(book._id)}
+                  title="Remove from cart"
                   tabIndex={0}
                   role="button"
-                  aria-label="Remove from wishlist"
+                  aria-label="Remove from cart"
                 />
               </div>
             ))
           )}
         </div>
+
+        {/* Proceed to Checkout Button */}
+        {cartBooks.length > 0 && (
+          <button
+            style={{
+              marginTop: '2rem',
+              padding: '0.75rem 2rem',
+              background: '#8B6F6F',
+              color: '#fff',
+              border: 'none',
+              borderRadius: 6,
+              fontWeight: 600,
+              fontSize: 18,
+              cursor: 'pointer',
+              boxShadow: '0 2px 8px rgba(0,0,0,0.12)'
+            }}
+            onClick={() => navigate('/payment')}
+          >
+            Proceed to Checkout
+          </button>
+        )}
       </div>
     </div>
   );

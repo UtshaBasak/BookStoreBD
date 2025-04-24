@@ -221,9 +221,18 @@ export default function UpdateProfile() {
                             height: '100px',
                             borderRadius: '50%',
                             background: '#bbb',
-                            display: 'inline-block',
-                            border: '3px solid white'
-                        }} />
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            fontSize: '2.5rem',
+                            color: '#fff',
+                            border: '3px solid white',
+                            margin: '0 auto'
+                        }}>
+                            {formData.username && formData.username.length > 0
+                              ? formData.username[0].toUpperCase()
+                              : 'U'}
+                        </div>
                     )}
                 </div>
 

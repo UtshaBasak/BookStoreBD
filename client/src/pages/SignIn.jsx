@@ -147,6 +147,11 @@ export default function SignIn() {
                     </button>
                 </form>
                 <p style={{ marginTop: '1rem', fontSize: '0.9rem' }}>
+                    <Link to="/forgot-password" style={{ color: '#00f', textDecoration: 'underline' }}>
+                        Forgot Password?
+                    </Link>
+                </p>
+                <p style={{ marginTop: '1rem', fontSize: '0.9rem' }}>
                     Not registered?{' '}
                     <Link to="/sign-up" style={{ color: '#00f', textDecoration: 'underline' }}>
                         SIGN UP

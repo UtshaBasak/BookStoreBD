@@ -118,22 +118,35 @@ const AddBooks = () => {
       return;
     }
 
+    // Fill optional fields with 'N/A' if blank
+    const optionalFields = ['publisher', 'country', 'language', 'isbn', 'desc', 'conditionDetails'];
+    const filledData = { ...Data };
+    optionalFields.forEach(field => {
+      if (
+        filledData[field] === undefined ||
+        filledData[field] === null ||
+        filledData[field].toString().trim() === ''
+      ) {
+        filledData[field] = 'N/A';
+      }
+    });
+
     const formData = new FormData();
     // Only append required fields and optional fields if they are non-empty
-    Object.keys(Data).forEach(key => {
+    Object.keys(filledData).forEach(key => {
       if (requiredFields.includes(key)) {
-        formData.append(key, Data[key]);
-      } else if (key === 'category' && Data.category.length > 0) {
-        Data.category.forEach(cat => formData.append('category', cat));
+        formData.append(key, filledData[key]);
+      } else if (key === 'category' && filledData.category.length > 0) {
+        filledData.category.forEach(cat => formData.append('category', cat));
       } else if (
         // Only append optional fields if not empty
         !requiredFields.includes(key) &&
         key !== 'category' &&
-        Data[key] !== undefined &&
-        Data[key] !== null &&
-        Data[key].toString().trim() !== ''
+        filledData[key] !== undefined &&
+        filledData[key] !== null &&
+        filledData[key].toString().trim() !== ''
       ) {
-        formData.append(key, Data[key]);
+        formData.append(key, filledData[key]);
       }
       // If optional field is empty, do not append at all
     });
@@ -233,8 +246,8 @@ const AddBooks = () => {
           </div>
 
           <div className='bg-zinc-800 p-6 rounded-xl shadow-xl space-y-4'>
-            <InputField label="Title" name="title" value={Data.title} onChange={change} />
-            <InputField label="Author" name="author" value={Data.author} onChange={change} />
+            <InputField label="Title *" name="title" value={Data.title} onChange={change} />
+            <InputField label="Author *" name="author" value={Data.author} onChange={change} />
             <InputField label="Publisher" name="publisher" value={Data.publisher} onChange={change} />
             <InputField label="Country" name="country" value={Data.country} onChange={change} />
             <InputField label="Language" name="language" value={Data.language} onChange={change} />
@@ -256,7 +269,7 @@ const AddBooks = () => {
 
           <div className='bg-zinc-800 p-6 rounded-xl shadow-xl space-y-4'>
             <InputField 
-              label="Price (Taka)" 
+              label="Price (Taka) *" 
               name="price" 
               value={Data.price} 
               onChange={e => {
@@ -282,14 +295,14 @@ const AddBooks = () => {
                 <label className='block text-sm text-zinc-400 mb-1'>Details About Book Condition</label>
                 <textarea
                   name="conditionDetails" value={Data.conditionDetails} onChange={change} rows="4"
-                  placeholder="Describe the book condition in detail (optional)"
+                  placeholder="Describe the book condition in detail"
                   className='w-full p-3 rounded bg-zinc-700 text-white outline-none focus:ring-2 focus:ring-blue-500 resize-none'
                 ></textarea>
               </div>
             )}
 
             <div>
-              <label className='block text-sm text-zinc-400 mb-1'>Category *</label>
+              <label className='block text-sm text-zinc-400 mb-1'>Category <span style={{color:'red'}}>*</span></label>
               <div className='grid grid-cols-2 gap-2 max-h-52 overflow-y-auto p-2 border border-zinc-700 rounded'>
                 {categoriesList.map(cat => (
                   <label key={cat} className='flex items-center gap-2 text-sm hover:bg-zinc-700 p-1 rounded'>

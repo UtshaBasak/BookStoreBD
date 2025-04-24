@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { FaHome } from 'react-icons/fa';
+import { useNavigate, Link } from 'react-router-dom';
+import { FaHome, FaHeart, FaShoppingCart } from 'react-icons/fa';
 
 export default function Profile() {
     const [profileData, setProfileData] = useState({
@@ -53,6 +53,7 @@ export default function Profile() {
                 padding: '2rem',
                 color: '#fff',
                 width: '100vw',
+                position: 'relative'
             }}
         >
             {/* Home icon button */}
@@ -78,6 +79,47 @@ export default function Profile() {
                     <FaHome size={22} />
                 </button>
             </div>
+            {/* Cart and Wishlist buttons for buyer profile */}
+            {profileMode === 'buyer' && (
+                <div style={{ position: 'absolute', top: 24, right: 24, display: 'flex', gap: '1rem', zIndex: 10 }}>
+                    <Link
+                        to="/wishlist"
+                        style={{
+                            color: '#e65100',
+                            background: '#fff',
+                            borderRadius: '50%',
+                            width: 40,
+                            height: 40,
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            boxShadow: '0 2px 8px rgba(0,0,0,0.12)',
+                            textDecoration: 'none'
+                        }}
+                        title="Go to Wishlist"
+                    >
+                        <FaHeart size={20} />
+                    </Link>
+                    <Link
+                        to="/cart"
+                        style={{
+                            color: '#8B6F6F',
+                            background: '#fff',
+                            borderRadius: '50%',
+                            width: 40,
+                            height: 40,
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            boxShadow: '0 2px 8px rgba(0,0,0,0.12)',
+                            textDecoration: 'none'
+                        }}
+                        title="Go to Cart"
+                    >
+                        <FaShoppingCart size={20} />
+                    </Link>
+                </div>
+            )}
             <div
                 style={{
                     background: 'rgba(0, 0, 0, 0.5)',
@@ -135,9 +177,17 @@ export default function Profile() {
                             height: '100px',
                             borderRadius: '50%',
                             background: '#bbb',
-                            display: 'block',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            fontSize: '2.5rem',
+                            color: '#fff',
                             border: '3px solid white'
-                        }} />
+                        }}>
+                            {profileData.username && profileData.username.length > 0
+                              ? profileData.username[0].toUpperCase()
+                              : 'U'}
+                        </div>
                     )}
                 </div>
 
