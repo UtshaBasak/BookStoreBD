@@ -8,9 +8,6 @@ import AdminPanel from './pages/AdminPanel';
 import Homepage from './pages/Homepage';
 import Profile from './pages/Profile';
 import UpdateProfile from './pages/UpdateProfile';
-import Filter from './pages/Filter';
-import Wishlist from './pages/Wishlist';
-
 
 
 export default function App() {
@@ -24,8 +21,6 @@ export default function App() {
     <Route path="/profile" element={<Profile />} />
     <Route path="/update-profile" element={<UpdateProfile />} />
     <Route path="*" element={<h1>404 Not Found</h1>} />
-    <Route path="/filter" element={<Filter />} />
-    <Route path="/wishlist" element={<Wishlist />} />
 
   </Routes></BrowserRouter>;
 };
