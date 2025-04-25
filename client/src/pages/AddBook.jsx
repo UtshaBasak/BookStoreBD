@@ -84,30 +84,33 @@ const AddBooks = () => {
     setFeedbackMessage('');
     setIsError(false);
 
+    // Only require: title, author, price, bookType, (condition if old), category, and at least one image
     const requiredFields = ['title', 'author', 'price', 'bookType'];
     if (Data.bookType === 'old') {
       requiredFields.push('condition');
     }
-    const emptyFields = requiredFields.filter(field => !Data[field]);
+    // Check only required fields for emptiness (null, undefined, or empty string)
+    const emptyFields = requiredFields.filter(
+      field => Data[field] === undefined || Data[field] === null || Data[field].toString().trim() === ''
+    );
     if (emptyFields.length > 0) {
       setFeedbackMessage(`Please fill: ${emptyFields.join(', ')}`);
       setIsError(true);
       setLoading(false);
       return;
     }
-    if (Data.category.length === 0) {
+    if (!Array.isArray(Data.category) || Data.category.length === 0) {
       setFeedbackMessage("Please select at least one category.");
       setIsError(true);
       setLoading(false);
       return;
     }
-    if (images.length === 0) {
+    if (!Array.isArray(images) || images.length === 0) {
       setFeedbackMessage("Please select at least one image.");
       setIsError(true);
       setLoading(false);
       return;
     }
-    
     if (images.length > 10) {
       setFeedbackMessage("Maximum 10 images allowed. Please select fewer images.");
       setIsError(true);
@@ -115,15 +118,41 @@ const AddBooks = () => {
       return;
     }
 
-    const formData = new FormData();
-    Object.keys(Data).forEach(key => {
-      if (key === 'category') {
-        Data[key].forEach(cat => formData.append('category', cat));
-      } else {
-        formData.append(key, Data[key]);
+    // Fill optional fields with 'N/A' if blank
+    const optionalFields = ['publisher', 'country', 'language', 'isbn', 'desc', 'conditionDetails'];
+    const filledData = { ...Data };
+    optionalFields.forEach(field => {
+      if (
+        filledData[field] === undefined ||
+        filledData[field] === null ||
+        filledData[field].toString().trim() === ''
+      ) {
+        filledData[field] = 'N/A';
       }
     });
+
+    const formData = new FormData();
+    // Only append required fields and optional fields if they are non-empty
+    Object.keys(filledData).forEach(key => {
+      if (requiredFields.includes(key)) {
+        formData.append(key, filledData[key]);
+      } else if (key === 'category' && filledData.category.length > 0) {
+        filledData.category.forEach(cat => formData.append('category', cat));
+      } else if (
+        // Only append optional fields if not empty
+        !requiredFields.includes(key) &&
+        key !== 'category' &&
+        filledData[key] !== undefined &&
+        filledData[key] !== null &&
+        filledData[key].toString().trim() !== ''
+      ) {
+        formData.append(key, filledData[key]);
+      }
+      // If optional field is empty, do not append at all
+    });
     images.forEach(img => formData.append('images', img));
+    // Add sellerEmail from localStorage
+    formData.append('sellerEmail', localStorage.getItem('userEmail'));
 
     try {
       const res = await axios.post("http://localhost:1015/user/add-book", formData, { headers });
@@ -138,7 +167,6 @@ const AddBooks = () => {
       document.getElementById('imageInput').value = null;
     } catch (err) {
       const msg = err.response?.data?.message || "Unknown error";
-      console.error("Submit Error:", err);
       setFeedbackMessage(`Submission failed: ${msg}`);
       setIsError(true);
     } finally {
@@ -170,7 +198,7 @@ const AddBooks = () => {
             )}
 
             <div>
-              <label className='block text-sm text-zinc-400 mb-1'>Book Images (Max 10)</label>
+              <label className='block text-sm text-zinc-400 mb-1'>Book Images (Max 10) *</label>
               <input
                 type='file' id='imageInput' multiple onChange={handleImageChange}
                 className='block w-full text-sm text-zinc-300 file:bg-blue-600 file:text-white file:px-4 file:py-2 file:rounded file:border-0 hover:file:bg-blue-700 transition cursor-pointer'
@@ -218,8 +246,8 @@ const AddBooks = () => {
           </div>
 
           <div className='bg-zinc-800 p-6 rounded-xl shadow-xl space-y-4'>
-            <InputField label="Title" name="title" value={Data.title} onChange={change} />
-            <InputField label="Author" name="author" value={Data.author} onChange={change} />
+            <InputField label="Title *" name="title" value={Data.title} onChange={change} />
+            <InputField label="Author *" name="author" value={Data.author} onChange={change} />
             <InputField label="Publisher" name="publisher" value={Data.publisher} onChange={change} />
             <InputField label="Country" name="country" value={Data.country} onChange={change} />
             <InputField label="Language" name="language" value={Data.language} onChange={change} />
@@ -241,7 +269,7 @@ const AddBooks = () => {
 
           <div className='bg-zinc-800 p-6 rounded-xl shadow-xl space-y-4'>
             <InputField 
-              label="Price (Tk)" 
+              label="Price (Taka) *" 
               name="price" 
               value={Data.price} 
               onChange={e => {
@@ -267,14 +295,14 @@ const AddBooks = () => {
                 <label className='block text-sm text-zinc-400 mb-1'>Details About Book Condition</label>
                 <textarea
                   name="conditionDetails" value={Data.conditionDetails} onChange={change} rows="4"
-                  placeholder="Describe the book condition in detail (optional)"
+                  placeholder="Describe the book condition in detail"
                   className='w-full p-3 rounded bg-zinc-700 text-white outline-none focus:ring-2 focus:ring-blue-500 resize-none'
                 ></textarea>
               </div>
             )}
 
             <div>
-              <label className='block text-sm text-zinc-400 mb-1'>Category</label>
+              <label className='block text-sm text-zinc-400 mb-1'>Category <span style={{color:'red'}}>*</span></label>
               <div className='grid grid-cols-2 gap-2 max-h-52 overflow-y-auto p-2 border border-zinc-700 rounded'>
                 {categoriesList.map(cat => (
                   <label key={cat} className='flex items-center gap-2 text-sm hover:bg-zinc-700 p-1 rounded'>

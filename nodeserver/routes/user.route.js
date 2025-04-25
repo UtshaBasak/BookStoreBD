@@ -5,20 +5,12 @@ import path from 'path';
 import { signup, signin } from '../controllers/auth.controller.js';
 import { test, getUserProfile, updateUserProfile } from '../controllers/user.controller.js';
 import AddBook from '../models/AddBook.model.js';
-import User from '../models/user.model.js';  // Add this import
+import User from '../models/user.model.js';
 
 const router = express.Router();
 
-// Multer config for file uploads
-const storage = multer.diskStorage({
-  destination: function (req, file, cb) {
-    cb(null, 'uploads/'); // Save to uploads directory
-  },
-  filename: function (req, file, cb) {
-    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-    cb(null, uniqueSuffix + '-' + file.originalname);
-  }
-});
+// Multer config for in-memory storage (buffer)
+const storage = multer.memoryStorage();
 const upload = multer({ storage: storage });
 
 router.use(bodyParser.json());
@@ -38,7 +30,9 @@ router.get('/test', test);
 
 // Profile routes
 router.get('/profile', getUserProfile); // Fetches user profile data
-router.put('/profile', updateUserProfile); // Updates user profile data
+
+// Use multer for profile update (to handle profilePicture upload)
+router.put('/profile', upload.single('profilePicture'), updateUserProfile); // Updates user profile data
 
 // Add Book Route (with image upload)
 router.post('/add-book', upload.array('images', 10), async (req, res) => {
@@ -48,8 +42,13 @@ router.post('/add-book', upload.array('images', 10), async (req, res) => {
     // Build book data
     const bookData = {
       ...req.body,
-      images: req.files ? req.files.map(f => f.filename) : []
+      images: req.files ? req.files.map(f => `data:${f.mimetype};base64,${f.buffer.toString('base64')}`) : [],
+      sellerEmail: req.body.sellerEmail, // NEW: require sellerEmail
+      stock: 1 // NEW: default stock to 1
     };
+    if (!bookData.sellerEmail) {
+      return res.status(400).json({ message: 'sellerEmail is required' });
+    }
     if (typeof bookData.category === 'string') {
       bookData.category = [bookData.category];
     }

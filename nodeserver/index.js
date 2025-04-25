@@ -7,6 +7,7 @@ dotenv.config();
 
 // MongoDB connection
 import mongoose from 'mongoose';
+import Bookdetails from './bookdetails.model.js';
 
 mongoose.connect(process.env.MONGO, {
   useNewUrlParser: true,
@@ -27,23 +28,37 @@ const corsOptions = {
 };
 
 const app = express();
+
+// Serve static files from the uploads directory
+import path from 'path';
+import { fileURLToPath } from 'url';
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+
 import userRouter from './routes/user.route.js';
 import authRouter from './routes/auth.route.js';
 import bookRouter from './routes/book.route.js';
+import filterRouter from './routes/filter.route.js';
+import wishlistRouter from './routes/wishlist.route.js';
+import cartRouter from './routes/cart.route.js';
 
 app.use(bodyParser.json());
 
 app.use(express.json());
 app.use(cors(corsOptions));
-app.use('/user',userRouter);
-app.use('/auth',authRouter);
+app.use('/user', userRouter);
+app.use('/auth', authRouter);
 app.use('/book', bookRouter);
+app.use('/filter', filterRouter);
+app.use('/wishlist', wishlistRouter);
+app.use('/cart', cartRouter);
 
-app.use((err,req,res,next) => {
+app.use((err, req, res, next) => {
     const statusCode = err.statusCode || 500;
     const message = err.message || 'Internet Server Error';
     return res.status(statusCode).json({
-        success:false,
+        success: false,
         statusCode,
         message,
     });
@@ -59,6 +74,7 @@ app.get('/wishlist', async (req, res) => {
         res.status(500).json({ message: error.message });
     }
 });
+
 app.get('/wishlist/delete/:id', async (req, res) => {
     try {
         console.log("Deleting from wishlist, ID:", req.params.id);
@@ -84,4 +100,4 @@ app.get('/wishlist/delete/:id', async (req, res) => {
 });
 
 const port = process.env.PORT || 1015;
-app.listen(port,()=> console.log(`Listening on port ${port}...`));
+app.listen(port, () => console.log(`Listening on port ${port}...`));

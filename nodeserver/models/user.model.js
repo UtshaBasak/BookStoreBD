@@ -31,7 +31,15 @@ const UserSchema = new mongoose.Schema(
         },
         profilePicture: {
             type: String,
-        }
+        },
+        wishlist: [{
+            type: mongoose.Schema.Types.ObjectId,
+            ref: 'AddBook'
+        }],
+        cart: [{
+            type: mongoose.Schema.Types.ObjectId,
+            ref: 'Cart'
+        }]
     }, 
     { timestamps: true }
 );

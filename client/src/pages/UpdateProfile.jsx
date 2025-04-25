@@ -12,6 +12,9 @@ export default function UpdateProfile() {
         gender: '',
     });
     const [profilePicture, setProfilePicture] = useState(null);
+    const [profilePicturePreview, setProfilePicturePreview] = useState(null);
+    const [removeProfilePicture, setRemoveProfilePicture] = useState(false);
+    const [errorMsg, setErrorMsg] = useState('');
     const navigate = useNavigate();
 
     useEffect(() => {
@@ -24,12 +27,23 @@ export default function UpdateProfile() {
                     return;
                 }
                 const data = await res.json();
-                // Don't set password in form data
-                const { password, ...profileData } = data;
                 setFormData(prev => ({
                     ...prev,
-                    ...profileData
+                    username: data.username || '',
+                    email: data.email || '',
+                    address: data.address || '',
+                    phone: data.phone || '',
+                    dateOfBirth: data.dateOfBirth ? data.dateOfBirth.slice(0, 10) : '',
+                    gender: data.gender || '',
+                    password: ''
                 }));
+                // Show current profile picture if exists (base64)
+                if (data.profilePicture) {
+                    setProfilePicturePreview(data.profilePicture);
+                    setRemoveProfilePicture(false); // reset remove flag on load
+                } else {
+                    setProfilePicturePreview(null);
+                }
             } catch (err) {
                 console.error('Error fetching profile:', err);
             }
@@ -38,25 +52,65 @@ export default function UpdateProfile() {
     }, []);
 
     const handleChange = (e) => {
-        setFormData({
-            ...formData,
-            [e.target.name]: e.target.value,
-        });
+        const { name, value } = e.target;
+        if (name === 'phone') {
+            // Only allow numbers
+            if (/^\d*$/.test(value)) {
+                setFormData({
+                    ...formData,
+                    [name]: value,
+                });
+            }
+        } else if (name === 'gender') {
+            setFormData({
+                ...formData,
+                gender: value // '' for None, 'male', or 'female'
+            });
+        } else {
+            setFormData({
+                ...formData,
+                [name]: value,
+            });
+        }
     };
 
     const handleFileChange = (e) => {
-        setProfilePicture(e.target.files[0]);
+        const file = e.target.files[0];
+        setProfilePicture(file);
+        if (file) {
+            setProfilePicturePreview(URL.createObjectURL(file));
+            setRemoveProfilePicture(false); // uploading a new one cancels removal
+        }
+    };
+
+    const handleRemoveProfilePicture = () => {
+        setProfilePicture(null);
+        setProfilePicturePreview(null);
+        setRemoveProfilePicture(true);
     };
 
     const handleSubmit = async (e) => {
         e.preventDefault();
         try {
+            setErrorMsg('');
             const formDataToSend = new FormData();
+            // Always send all fields except password (send password only if non-empty)
             Object.keys(formData).forEach(key => {
-                formDataToSend.append(key, formData[key]);
+                if (key === 'password') {
+                    if (formData.password && formData.password !== '') {
+                        formDataToSend.append('password', formData.password);
+                    }
+                } else {
+                    // Always send, even if blank, so backend can unset
+                    formDataToSend.append(key, formData[key] ?? '');
+                }
             });
             if (profilePicture) {
                 formDataToSend.append('profilePicture', profilePicture);
+            }
+            if (removeProfilePicture) {
+                // Signal backend to remove profile picture
+                formDataToSend.append('profilePicture', '');
             }
 
             const res = await fetch('http://localhost:1015/user/profile', {
@@ -66,14 +120,18 @@ export default function UpdateProfile() {
 
             if (!res.ok) {
                 const errorData = await res.json();
-                alert(`Error: ${errorData.message}`);
+                if (errorData.message === "Username already exists" || errorData.message === "Email already exists") {
+                    setErrorMsg(errorData.message);
+                } else {
+                    setErrorMsg(errorData.message || "Failed to update profile.");
+                }
                 return;
             }
             alert('Profile updated successfully!');
             navigate('/profile');
         } catch (err) {
             console.error('Error updating profile:', err);
-            alert('Failed to update profile.');
+            setErrorMsg('Failed to update profile.');
         }
     };
 
@@ -90,6 +148,27 @@ export default function UpdateProfile() {
             color: '#fff',
             width: '100vw',
         }}>
+            <div style={{ position: 'absolute', top: 24, left: 24 }}>
+                <button
+                    type="button"
+                    onClick={() => navigate('/profile')}
+                    style={{
+                        background: '#2196F3',
+                        color: 'white',
+                        border: 'none',
+                        borderRadius: '4px',
+                        padding: '0.5rem 1rem',
+                        cursor: 'pointer',
+                        fontWeight: 500,
+                        fontSize: 16,
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '0.5rem'
+                    }}
+                >
+                    &#8592; Back to Profile
+                </button>
+            </div>
             <form onSubmit={handleSubmit} style={{
                 background: 'rgba(0, 0, 0, 0.5)',
                 padding: '2rem',
@@ -99,7 +178,64 @@ export default function UpdateProfile() {
                 boxShadow: '0 4px 8px rgba(0, 0, 0, 0.2)',
             }}>
                 <h1 style={{ textAlign: 'center', marginBottom: '1rem' }}>Update Profile</h1>
+                {errorMsg && (
+                  <div style={{ color: 'red', marginBottom: '1rem' }}>{errorMsg}</div>
+                )}
                 
+                {/* Profile Picture Preview */}
+                <div style={{ marginBottom: '1rem', textAlign: 'center' }}>
+                    {profilePicturePreview ? (
+                        <>
+                            <img
+                                src={profilePicturePreview}
+                                alt="Profile Preview"
+                                style={{
+                                    width: '100px',
+                                    height: '100px',
+                                    borderRadius: '50%',
+                                    objectFit: 'cover',
+                                    border: '3px solid white'
+                                }}
+                            />
+                            <div>
+                                <button
+                                    type="button"
+                                    onClick={handleRemoveProfilePicture}
+                                    style={{
+                                        marginTop: '0.5rem',
+                                        background: '#e74c3c',
+                                        color: 'white',
+                                        border: 'none',
+                                        borderRadius: '4px',
+                                        padding: '0.25rem 0.75rem',
+                                        cursor: 'pointer'
+                                    }}
+                                >
+                                    Remove Profile Picture
+                                </button>
+                            </div>
+                        </>
+                    ) : (
+                        <div style={{
+                            width: '100px',
+                            height: '100px',
+                            borderRadius: '50%',
+                            background: '#bbb',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            fontSize: '2.5rem',
+                            color: '#fff',
+                            border: '3px solid white',
+                            margin: '0 auto'
+                        }}>
+                            {formData.username && formData.username.length > 0
+                              ? formData.username[0].toUpperCase()
+                              : 'U'}
+                        </div>
+                    )}
+                </div>
+
                 {/* Username and Email fields */}
                 <div style={{ marginBottom: '1rem' }}>
                     <label>Username:</label>
@@ -118,7 +254,6 @@ export default function UpdateProfile() {
                         name="email"
                         value={formData.email}
                         onChange={handleChange}
-                        disabled
                         style={inputStyle}
                     />
                 </div>
@@ -132,6 +267,8 @@ export default function UpdateProfile() {
                         placeholder="Enter new password"
                         onChange={handleChange}
                         style={inputStyle}
+                        autoComplete="new-password"
+                        value={formData.password}
                     />
                 </div>
 
@@ -141,7 +278,7 @@ export default function UpdateProfile() {
                     <input
                         type="date"
                         name="dateOfBirth"
-                        value={formData.dateOfBirth}
+                        value={formData.dateOfBirth || ''}
                         onChange={handleChange}
                         style={inputStyle}
                     />
@@ -169,6 +306,15 @@ export default function UpdateProfile() {
                                 onChange={handleChange}
                             /> Female
                         </label>
+                        <label>
+                            <input
+                                type="radio"
+                                name="gender"
+                                value=""
+                                checked={formData.gender === ''}
+                                onChange={handleChange}
+                            /> None
+                        </label>
                     </div>
                 </div>
 
@@ -192,7 +338,7 @@ export default function UpdateProfile() {
                     <input
                         type="text"
                         name="address"
-                        value={formData.address}
+                        value={formData.address || ''}
                         onChange={handleChange}
                         style={inputStyle}
                     />
@@ -202,9 +348,11 @@ export default function UpdateProfile() {
                     <input
                         type="text"
                         name="phone"
-                        value={formData.phone}
+                        value={formData.phone || ''}
                         onChange={handleChange}
                         style={inputStyle}
+                        inputMode="numeric"
+                        pattern="[0-9]*"
                     />
                 </div>
 

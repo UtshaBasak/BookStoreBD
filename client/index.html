@@ -2,13 +2,22 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <!-- No favicon reference here, so the missing file error will not occur -->
     <link href="/src/styles.css" rel="stylesheet">
-    <title>Vite + React</title>
+    <title>Bookstore</title>
   </head>
   <body>
     <div id="root"></div>
     <script type="module" src="/src/main.jsx"></script>
+    <style>
+      /* Make the header sticky for all pages */
+      .header {
+        position: sticky;
+        top: 0;
+        z-index: 100;
+        background: #fff;
+      }
+    </style>
   </body>
 </html>

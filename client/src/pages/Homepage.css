@@ -15,130 +15,314 @@ body, html, .homepage {
   background: #f8f8f8;
 }
 
-/* Make homepage fill the viewport */
+/* Reset and base styles */
 .homepage {
+  width: 100vw;
   min-height: 100vh;
   display: flex;
   flex-direction: column;
+  background: #fff;
+  box-sizing: border-box;
 }
 
+/* Header Styles */
 .header {
   display: flex;
   justify-content: space-between;
+  align-items: center;
   padding: 1rem 2rem;
-  background: #333;
-  color: white;
+  background: #fff;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
 }
 
-/* Make main content grow to fill space between header/nav and footer */
-.main-content {
-  flex: 1;
+.logo h1 {
+  color: #8B6F6F;
+  font-size: 2rem;
+  margin: 0;
+}
+
+.search-bar {
   display: flex;
-  flex-direction: column;
-}
-
-.store-name {
-  font-size: 1.5rem;
+  gap: 0.5rem;
 }
 
 .search-bar input {
-  padding: 0.5rem;
-  width: 250px;
-
+  padding: 0.5rem 1rem;
+  width: 300px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
 }
 
 .search-bar button {
-  padding: 0.5rem;
-  background: #555;
+  padding: 0.5rem 1rem;
+  background: #8B6F6F;
   color: white;
   border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.user-options {
+  display: flex;
+  gap: 1.5rem;
+  align-items: center;
 }
 
 .user-options a {
-  color: white;
-  margin-left: 1rem;
+  color: #8B6F6F;
   text-decoration: none;
 }
 
+/* Navigation Bar */
 .nav-bar {
   display: flex;
-  background: #444;
+  justify-content: center;
+  gap: 2rem;
   padding: 1rem;
-  gap: 1rem;
-  color: black;
+  background: #f5f5f5;
 }
 
 .nav-bar a {
-  color: rgb(0, 0, 0);
+  color: #333;
   text-decoration: none;
-  position: relative;
+  font-weight: 500;
 }
 
+/* Hero Banner */
+.hero-banner {
+  width: 100%;
+  height: 400px;
+  overflow: hidden;
+}
+
+.hero-banner img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* Popular Section */
+.popular-section {
+  padding: 2rem;
+  background: #fff; /* Ensure background is white, not transparent */
+  position: relative;
+  z-index: 2;
+}
+
+.popular-section h2 {
+  color: #8B6F6F;
+  margin-bottom: 1.5rem;
+}
+
+.book-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 2rem;
+  padding: 1rem;
+}
+
+.book-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 1rem;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  transition: transform 0.2s;
+}
+
+.book-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+}
+
+.book-image {
+  width: 150px;
+  height: 200px;
+  margin-bottom: 1rem;
+}
+
+.book-image img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 4px;
+}
+
+.book-info {
+  text-align: center;
+}
+
+.book-info h3 {
+  margin: 0;
+  color: #333;
+  font-size: 1rem;
+}
+
+.book-info p {
+  color: #666;
+  font-size: 0.9rem;
+  margin: 0.5rem 0;
+}
+
+/* Dropdown Menu Styles */
 .dropdown {
   position: relative;
+  display: inline-block;
+  z-index: 20; /* Ensure dropdown is above banners */
 }
 
 .dropdown-content {
   display: none;
   position: absolute;
-  background: white;
-  color: black;
-  padding: 0.5rem;
   top: 100%;
   left: 0;
-  z-index: 1;
-  min-width: 150px;
-  box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+  background-color: #fff;
+  min-width: 200px;
+  box-shadow: 0 8px 16px rgba(0,0,0,0.1);
+  z-index: 30; /* Higher than banners and other content */
+  border-radius: 4px;
+  padding: 0.5rem 0;
 }
 
 .dropdown:hover .dropdown-content {
   display: block;
 }
 
-.banner img {
-  width: 100%;
-  height: auto;
+.dropdown-content a {
+  color: #333;
+  padding: 0.75rem 1rem;
+  text-decoration: none;
+  display: block;
+  transition: background-color 0.2s;
 }
 
-.section {
-  padding: 2rem;
+.dropdown-content a:hover {
+  background-color: #f5f5f5;
+  color: #8B6F6F;
 }
 
-.book-list, .writer-list {
+/* Writers Section Styles */
+.writers-section {
+  background-color: #f9f9f9;
+  padding: 3rem 2rem;
+}
+
+.writers-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 2rem;
+  padding: 1rem;
+}
+
+.writer-card {
   display: flex;
-  gap: 1.5rem;
-  flex-wrap: wrap;
-  padding-top: 1rem;
+  flex-direction: column;
+  align-items: center;
+  padding: 1.5rem;
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+  transition: transform 0.2s;
 }
 
-.book, .writer {
+.writer-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+}
+
+.writer-image {
+  width: 120px;
+  height: 120px;
+  border-radius: 50%;
+  overflow: hidden;
+  margin-bottom: 1rem;
+}
+
+.writer-image img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.writer-info {
   text-align: center;
 }
 
-.book img {
-  width: 100px;
-  height: auto;
+.writer-info h3 {
+  margin: 0;
+  color: #333;
+  font-size: 1.1rem;
 }
 
+.writer-info p {
+  color: #666;
+  font-size: 0.9rem;
+  margin: 0.5rem 0;
+}
+
+/* Footer */
 .footer {
-  background: #ddd;
+  margin-top: 0; /* Remove auto margin to prevent footer from floating up */
   padding: 2rem;
-  display: flex;
-  justify-content: space-around;
-  flex-wrap: wrap;
-}
-
-.footer-section {
-  min-width: 200px;
+  background: #f5f5f5; /* Make sure this is NOT #222 or #222222 or #000 */
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 2rem;
+  color: #333;
+  position: relative;
+  z-index: 1;
+  border: none; /* Ensure no border */
+  box-shadow: none; /* Ensure no shadow */
 }
 
 .footer-section h4 {
-  margin-bottom: 0.5rem;
+  color: #333;
+  margin-bottom: 1rem;
 }
 
-.footer-bottom {
-  text-align: center;
-  width: 100%;
-  margin-top: 1rem;
-  font-style: italic;
+.footer-section ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.footer-section ul li {
+  color: #666;
+  margin: 0.5rem 0;
+  cursor: pointer;
+}
+
+.footer-section ul li:hover {
+  color: #8B6F6F;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .header {
+    flex-direction: column;
+    gap: 1rem;
+  }
+  
+  .search-bar input {
+    width: 200px;
+  }
+  
+  .nav-bar {
+    flex-wrap: wrap;
+  }
+  
+  .footer {
+    grid-template-columns: 1fr;
+  }
+
+  .dropdown-content {
+    position: static;
+    box-shadow: none;
+    border-radius: 0;
+  }
+  
+  .writers-grid {
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  }
 }

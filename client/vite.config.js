@@ -14,6 +14,10 @@ export default defineConfig({
   //   },
   // },
        
-
+  server: {
+    hmr: {
+      overlay: false
+    }
+  },
   plugins: [react(), tailwindcss(),],
 });
