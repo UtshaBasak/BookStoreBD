@@ -11,6 +11,7 @@ import UpdateProfile from './pages/UpdateProfile';
 import SellerBookList from './pages/SellerBookList';
 import Wishlist from './pages/Wishlist';
 import Cart from './pages/Cart';
+import Filter from './pages/Filter';
 
 // Helper: get current user email from localStorage
 const getUserEmail = () => localStorage.getItem('userEmail');
@@ -72,6 +73,7 @@ export default function App() {
         <Route path="/seller-books" element={<SellerBookList />} />
         <Route path="/wishlist" element={<Wishlist />} />
         <Route path="/cart" element={<Cart />} />
+        <Route path="/filter" element={<Filter />} />
         {/* Always keep the 404 route last */}
         <Route path="*" element={<h1>404 Not Found</h1>} />
       </Routes>

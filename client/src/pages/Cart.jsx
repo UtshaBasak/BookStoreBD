@@ -5,6 +5,7 @@ import { useNavigate, Link } from 'react-router-dom';
 export default function Cart() {
   const [cartBooks, setCartBooks] = useState([]);
   const [wishlist, setWishlist] = useState({});
+  const [error, setError] = useState(null);
   const navigate = useNavigate();
   const userEmail = localStorage.getItem('userEmail');
 
@@ -13,7 +14,8 @@ export default function Cart() {
     if (!userEmail) return;
     fetch(`http://localhost:1015/cart?email=${encodeURIComponent(userEmail)}`)
       .then(res => res.json())
-      .then(data => setCartBooks(data));
+      .then(data => setCartBooks(Array.isArray(data) ? data : []))
+      .catch(() => setError('Failed to load cart.'));
   }, [userEmail]);
 
   // Load wishlist for icon state
@@ -23,7 +25,7 @@ export default function Cart() {
       .then(res => res.json())
       .then(data => {
         const wishMap = {};
-        data.forEach(book => { wishMap[book._id] = true; });
+        (Array.isArray(data) ? data : []).forEach(book => { wishMap[book._id] = true; });
         setWishlist(wishMap);
       });
   }, [userEmail]);
@@ -72,6 +74,14 @@ export default function Cart() {
     return (
       <div style={{ color: 'white', padding: '2rem', textAlign: 'center', background: '#222', minHeight: '100vh' }}>
         Please sign in to view your cart.
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div style={{ color: 'red', padding: '2rem', textAlign: 'center', background: '#222', minHeight: '100vh' }}>
+        {error}
       </div>
     );
   }
@@ -198,7 +208,20 @@ export default function Cart() {
                 />
 
                 <div style={{ flex: 1 }}>
-                  <div><strong>Title:</strong> {book.title}</div>
+                  <div>
+                    <strong>Title:</strong> {book.title}
+                    <span style={{
+                      marginLeft: 8,
+                      fontSize: 13,
+                      fontWeight: 600,
+                      color: book.bookType === 'old' ? '#e65100' : '#43a047',
+                      background: 'rgba(255,255,255,0.13)',
+                      borderRadius: 8,
+                      padding: '2px 10px'
+                    }}>
+                      {book.bookType ? book.bookType.toUpperCase() : ''}
+                    </span>
+                  </div>
                   <div><strong>Author:</strong> {book.author}</div>
                   <div>
                     <strong>Category:</strong> {Array.isArray(book.category) ? book.category.join(', ') : (book.category || 'N/A')}
@@ -246,7 +269,7 @@ export default function Cart() {
             style={{
               marginTop: '2rem',
               padding: '0.75rem 2rem',
-              background: '#8B6F6F',
+              background: '#43a047', // green
               color: '#fff',
               border: 'none',
               borderRadius: 6,

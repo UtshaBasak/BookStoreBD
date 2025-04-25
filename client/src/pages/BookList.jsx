@@ -2,12 +2,25 @@ import React, { useState, useEffect } from 'react';
 
 export default function BookList() {
   const [books, setBooks] = useState([]);
+  const [users, setUsers] = useState({}); // Map: email -> user name
 
   useEffect(() => {
     fetch('http://localhost:1015/book')
       .then((res) => res.json())
       .then((data) => setBooks(data))
       .catch((err) => console.error(err));
+    // Fetch all users to map email to name
+    fetch('http://localhost:1015/user')
+      .then(res => res.json())
+      .then(data => {
+        // Build a map: email -> name
+        const map = {};
+        (Array.isArray(data) ? data : []).forEach(u => {
+          map[u.email] = u.name || u.email;
+        });
+        setUsers(map);
+      })
+      .catch(() => {});
   }, []);
 
   const deleteBook = (id) => {
@@ -25,15 +38,13 @@ export default function BookList() {
             <tr>
               <th>Title</th>
               <th>Author</th>
-              <th>Publisher</th>
-              <th>Country</th>
-              <th>Language</th>
-              <th>ISBN</th>
               <th>Pages</th>
               <th>Price (Tk)</th>
               <th>Category</th>
               <th>Book Type</th>
               <th>Condition</th>
+              <th>Stock</th>
+              <th>Owner</th>
               <th>Actions</th>
             </tr>
           </thead>
@@ -42,15 +53,13 @@ export default function BookList() {
               <tr key={book._id}>
                 <td>{book.title}</td>
                 <td>{book.author}</td>
-                <td>{book.publisher}</td>
-                <td>{book.country}</td>
-                <td>{book.language}</td>
-                <td>{book.isbn}</td>
                 <td>{book.pages}</td>
                 <td>{book.price}</td>
-                <td>{book.category.join(', ')}</td>
+                <td>{Array.isArray(book.category) ? book.category.join(', ') : book.category}</td>
                 <td>{book.bookType}</td>
                 <td>{book.condition}</td>
+                <td>{book.stock}</td>
+                <td>{users[book.sellerEmail] || book.sellerEmail}</td>
                 <td>
                   <button onClick={() => deleteBook(book._id)}>Delete</button>
                 </td>

@@ -28,6 +28,7 @@ export default function Homepage() {
   const [popularBooks, setPopularBooks] = useState([]);
   const [wishlist, setWishlist] = useState({});
   const [cart, setCart] = useState({});
+  const [searchInput, setSearchInput] = useState('');
   const scrollRef = React.useRef();
   const navigate = useNavigate();
   const userEmail = localStorage.getItem('userEmail');
@@ -159,26 +160,41 @@ export default function Homepage() {
     }
   };
 
+  // Add this function to handle search
+  const handleHomepageSearch = () => {
+    if (searchInput.trim()) {
+      navigate(`/filter?search=${encodeURIComponent(searchInput.trim())}`);
+    }
+  };
+
   return (
     <div className="homepage" style={{ width: '100vw', minHeight: '100vh' }}>
       {/* Header */}
       <header className="header">
         <div className="logo">
-          {/* Make logo clickable */}
+          {/* Make logo clickable and refresh homepage */}
           <span
             style={{ cursor: 'pointer', color: '#8B6F6F', fontSize: '2rem', fontWeight: 'bold', userSelect: 'none' }}
-            onClick={() => navigate('/')}
+            onClick={() => { navigate('/'); window.location.reload(); }}
             tabIndex={0}
-            onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') navigate('/'); }}
+            onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { navigate('/'); window.location.reload(); } }}
             aria-label="Go to homepage"
             role="button"
           >
-            Book Store
+            BookStore
           </span>
         </div>
         <div className="search-bar">
-          <input type="text" placeholder="Search books..." />
-          <button>Search</button>
+          <input
+            type="text"
+            placeholder="Search books..."
+            value={searchInput}
+            onChange={e => setSearchInput(e.target.value)}
+            onKeyDown={e => {
+              if (e.key === 'Enter') handleHomepageSearch();
+            }}
+          />
+          <button onClick={handleHomepageSearch}>Search</button>
         </div>
         <div className="user-options" style={{ position: 'relative' }}>
           <Link to="/cart">
@@ -406,10 +422,26 @@ export default function Homepage() {
               padding: '0 48px',
               scrollBehavior: 'smooth',
               position: 'relative',
-              zIndex: 0 // Ensure book cards are below dropdowns
+              zIndex: 0, // Ensure book cards are below dropdowns
+              scrollbarWidth: 'none', // Hide scrollbar for Firefox
+              msOverflowStyle: 'none', // Hide scrollbar for IE/Edge
             }}
             className="popular-books-horizontal-scroll"
+            onWheel={e => {
+              // Prevent vertical scroll from scrolling the horizontal container
+              if (e.deltaY !== 0) {
+                e.currentTarget.scrollLeft += e.deltaY;
+                e.preventDefault();
+              }
+            }}
           >
+            <style>
+              {`
+                .popular-books-horizontal-scroll::-webkit-scrollbar {
+                  display: none;
+                }
+              `}
+            </style>
             {popularBooks.map((book, index) => (
               <div
                 key={book._id || index}
@@ -452,7 +484,7 @@ export default function Homepage() {
                   >
                     {book.bookType === 'old' ? 'OLD' : 'NEW'}
                   </div>
-                  {/* Love icon for wishlist */}
+                  {/* Wishlist icon always visible */}
                   {user && (
                     <span
                       onClick={() => toggleWishlist(book._id)}
@@ -464,7 +496,7 @@ export default function Homepage() {
                         fontSize: 22,
                         color: wishlist[book._id] ? '#e65100' : '#fff',
                         textShadow: '0 1px 4px rgba(0,0,0,0.18)',
-                        zIndex: 1 // Lower than dropdown
+                        zIndex: 2
                       }}
                       title={wishlist[book._id] ? 'Remove from wishlist' : 'Add to wishlist'}
                     >
@@ -481,19 +513,38 @@ export default function Homepage() {
                     {book.price} Tk
                   </div>
                   <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'center', marginTop: 8 }}>
-                    <button
-                      style={{
-                        background: cart[book._id] ? '#e74c3c' : '#8B6F6F',
-                        color: 'white',
-                        border: 'none',
-                        borderRadius: 4,
-                        padding: '0.3rem 0.8rem',
-                        cursor: 'pointer'
-                      }}
-                      onClick={() => toggleCart(book._id)}
-                    >
-                      {cart[book._id] ? 'Remove from Cart' : 'Add to Cart'}
-                    </button>
+                    {book.stock === 0 ? (
+                      <div
+                        style={{
+                          background: '#e74c3c',
+                          color: '#fff',
+                          fontWeight: 700,
+                          fontSize: 13,
+                          padding: '2px 10px',
+                          borderRadius: 12,
+                          boxShadow: '0 2px 6px rgba(0,0,0,0.18)',
+                          letterSpacing: 1,
+                          minWidth: 90,
+                          textAlign: 'center'
+                        }}
+                      >
+                        Out of Stock
+                      </div>
+                    ) : (
+                      <button
+                        style={{
+                          background: cart[book._id] ? '#e74c3c' : '#8B6F6F',
+                          color: 'white',
+                          border: 'none',
+                          borderRadius: 4,
+                          padding: '0.3rem 0.8rem',
+                          cursor: 'pointer'
+                        }}
+                        onClick={() => toggleCart(book._id)}
+                      >
+                        {cart[book._id] ? 'Remove from Cart' : 'Add to Cart'}
+                      </button>
+                    )}
                   </div>
                 </div>
               </div>

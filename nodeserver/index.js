@@ -4,7 +4,10 @@ import cors from 'cors';
 import dotenv from 'dotenv';
 import bodyParser from 'body-parser';
 dotenv.config();
-import Bookdetails from './bookdetails.model.js'
+import Bookdetails from './bookdetails.model.js';
+import AddBook from './models/AddBook.model.js';
+import Cart from './models/Cart.model.js';
+import { Cart_clear } from './controllers/cart.controller.js';
 
 // MongoDB connection
 import mongoose from 'mongoose';
@@ -54,6 +57,71 @@ app.use('/filter', filterRouter);
 app.use('/wishlist', wishlistRouter);
 app.use('/cart', cartRouter);
 
+// Update stock (non-negative integer only) - ensure stock out books are removed from all carts
+app.put('/book/update-stock/:id', async (req, res) => {
+  try {
+    const { stock } = req.body;
+    if (!Number.isInteger(stock) || stock < 0) {
+      return res.status(400).json({ message: 'Stock must be a non-negative integer' });
+    }
+    const book = await AddBook.findByIdAndUpdate(
+      req.params.id,
+      { stock },
+      { new: true }
+    );
+    if (!book) return res.status(404).json({ message: 'Book not found' });
+
+    // If stock is now 0, remove this book from all carts
+    if (book.stock === 0) {
+      await Cart.deleteMany({ book: book._id });
+    }
+
+    res.status(200).json({ message: 'Stock updated', book });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+// Decrease stock after order confirmation
+app.post('/order/decrease-stock', async (req, res) => {
+  try {
+    const { items, email } = req.body; // [{ bookId, quantity }], email of ordering user
+    if (!Array.isArray(items)) return res.status(400).json({ message: 'Invalid items' });
+
+    // 1. Decrease stock for each book
+    const updates = [];
+    const stockOutBookIds = [];
+    for (const { bookId, quantity } of items) {
+      const book = await AddBook.findById(bookId);
+      if (!book) continue;
+      const newStock = Math.max(0, (book.stock || 0) - (quantity || 1));
+      book.stock = newStock;
+      if (newStock === 0) stockOutBookIds.push(bookId);
+      updates.push(book.save());
+    }
+    await Promise.all(updates);
+
+    // 2. Remove stock-out books from all carts
+    if (stockOutBookIds.length > 0) {
+      await Cart.deleteMany({ book: { $in: stockOutBookIds } });
+    }
+
+    // 3. Clear the ordering user's cart
+    if (email) {
+      const user = await require('./models/user.model.js').default.findOne({ email });
+      if (user) {
+        await Cart.deleteMany({ user: user._id });
+      }
+    }
+
+    res.status(200).json({ message: 'Stock updated and cart(s) cleaned' });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+app.post('/cart/clear', Cart_clear);
+
 app.use((err,req,res,next) => {
     const statusCode = err.statusCode || 500;
     const message = err.message || 'Internet Server Error';
@@ -63,40 +131,6 @@ app.use((err,req,res,next) => {
         message,
     });
 });
-
-// app.get('/wishlist', async (req, res) => {
-//     try {
-//         const wishlist = await Bookdetails.find({ isinwishlist: true });
-
-//         console.log("Wishlist books fetched:", wishlist);
-//         res.status(200).json(wishlist);
-//     } catch (error) {
-//         res.status(500).json({ message: error.message });
-//     }
-// });
-// app.get('/wishlist/delete/:id', async (req, res) => {
-//     try {
-//         console.log("Deleting from wishlist, ID:", req.params.id);
-
-//         const updatedBook = await Bookdetails.findByIdAndUpdate(
-//             req.params.id,
-//             { $set: { isinwishlist: 0 } },  
-//             { new: true }  
-//         );
-
-//         console.log("Updated book:", updatedBook);
-
-//         if (!updatedBook) {
-//             return res.status(404).json({ message: 'Book not found' });
-//         }
-
-//         const wishlist = await Bookdetails.find({ isinwishlist: 1 });
-//         res.status(200).json(wishlist);
-//     } catch (error) {
-//         console.error("Error:", error);  
-//         res.status(500).json({ message: error.message });
-//     }
-// });
 
 const port = process.env.PORT || 1015;
 app.listen(port,()=> console.log(`Listening on port ${port}...`));

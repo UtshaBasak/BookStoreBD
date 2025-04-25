@@ -32,7 +32,10 @@ export default function SellerBookList() {
     }
     setLoading(true);
     try {
-      const res = await fetch(`http://localhost:1015/book/update-${field}/${id}`, {
+      const url = field === 'stock'
+        ? `http://localhost:1015/book/update-stock/${id}`
+        : `http://localhost:1015/book/update-price/${id}`;
+      const res = await fetch(url, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ [field]: value })
@@ -100,6 +103,8 @@ export default function SellerBookList() {
             <tr>
               <th>Title</th>
               <th>Author</th>
+              <th>Pages</th>
+              <th>Category</th>
               <th>Book Type</th>
               <th>Condition</th>
               <th>Stock</th>
@@ -114,6 +119,8 @@ export default function SellerBookList() {
               <tr key={book._id}>
                 <td>{book.title}</td>
                 <td>{book.author}</td>
+                <td>{book.pages}</td>
+                <td>{Array.isArray(book.category) ? book.category.join(', ') : (book.category || 'N/A')}</td>
                 <td>{book.bookType}</td>
                 <td>{book.condition}</td>
                 <td>{book.stock}</td>
