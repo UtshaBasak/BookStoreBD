@@ -4,10 +4,10 @@ import cors from 'cors';
 import dotenv from 'dotenv';
 import bodyParser from 'body-parser';
 dotenv.config();
-import Bookdetails from './bookdetails.model.js'
 
 // MongoDB connection
 import mongoose from 'mongoose';
+import Bookdetails from './bookdetails.model.js';
 
 mongoose.connect(process.env.MONGO, {
   useNewUrlParser: true,
@@ -47,56 +47,57 @@ app.use(bodyParser.json());
 
 app.use(express.json());
 app.use(cors(corsOptions));
-app.use('/user',userRouter);
-app.use('/auth',authRouter);
+app.use('/user', userRouter);
+app.use('/auth', authRouter);
 app.use('/book', bookRouter);
 app.use('/filter', filterRouter);
 app.use('/wishlist', wishlistRouter);
 app.use('/cart', cartRouter);
 
-app.use((err,req,res,next) => {
+app.use((err, req, res, next) => {
     const statusCode = err.statusCode || 500;
     const message = err.message || 'Internet Server Error';
     return res.status(statusCode).json({
-        success:false,
+        success: false,
         statusCode,
         message,
     });
 });
 
-// app.get('/wishlist', async (req, res) => {
-//     try {
-//         const wishlist = await Bookdetails.find({ isinwishlist: true });
+app.get('/wishlist', async (req, res) => {
+    try {
+        const wishlist = await Bookdetails.find({ isinwishlist: true });
 
-//         console.log("Wishlist books fetched:", wishlist);
-//         res.status(200).json(wishlist);
-//     } catch (error) {
-//         res.status(500).json({ message: error.message });
-//     }
-// });
-// app.get('/wishlist/delete/:id', async (req, res) => {
-//     try {
-//         console.log("Deleting from wishlist, ID:", req.params.id);
+        console.log("Wishlist books fetched:", wishlist);
+        res.status(200).json(wishlist);
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+});
 
-//         const updatedBook = await Bookdetails.findByIdAndUpdate(
-//             req.params.id,
-//             { $set: { isinwishlist: 0 } },  
-//             { new: true }  
-//         );
+app.get('/wishlist/delete/:id', async (req, res) => {
+    try {
+        console.log("Deleting from wishlist, ID:", req.params.id);
 
-//         console.log("Updated book:", updatedBook);
+        const updatedBook = await Bookdetails.findByIdAndUpdate(
+            req.params.id,
+            { $set: { isinwishlist: false } },  
+            { new: true }  
+        );
 
-//         if (!updatedBook) {
-//             return res.status(404).json({ message: 'Book not found' });
-//         }
+        console.log("Updated book:", updatedBook);
 
-//         const wishlist = await Bookdetails.find({ isinwishlist: 1 });
-//         res.status(200).json(wishlist);
-//     } catch (error) {
-//         console.error("Error:", error);  
-//         res.status(500).json({ message: error.message });
-//     }
-// });
+        if (!updatedBook) {
+            return res.status(404).json({ message: 'Book not found' });
+        }
+
+        const wishlist = await Bookdetails.find({ isinwishlist: true });
+        res.status(200).json(wishlist);
+    } catch (error) {
+        console.error("Error:", error);  
+        res.status(500).json({ message: error.message });
+    }
+});
 
 const port = process.env.PORT || 1015;
-app.listen(port,()=> console.log(`Listening on port ${port}...`));
+app.listen(port, () => console.log(`Listening on port ${port}...`));

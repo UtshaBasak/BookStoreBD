@@ -5,8 +5,8 @@
   "main": "index.js",
   "type": "module",
   "scripts": {
-    "dev": "nodemon index.js",
-    "start": "node index.js"
+    "dev": "nodemon api/index.js",
+    "start": "node api/index.js"
   },
   "repository": {
     "type": "git",
@@ -21,7 +21,7 @@
   "homepage": "https://github.com/UtshaBasak/MernBookstore#readme",
   "dependencies": {
     "bcryptjs": "^3.0.2",
-    "cookie": "^1.0.2",
+    "cookie": "^0.5.0",
     "cors": "^2.8.5",
     "dotenv": "^16.5.0",
     "express": "^5.1.0",
@@ -29,8 +29,8 @@
     "mongobd": "^0.0.1-security.0",
     "mongodb": "^6.15.0",
     "mongoose": "^8.13.2",
-    "multer": "^1.4.5-lts.2"
-    
+    "multer": "^1.4.5-lts.2",
+    "react-router-dom": "^7.5.0"
   },
   "devDependencies": {
     "nodemon": "^3.1.9"
