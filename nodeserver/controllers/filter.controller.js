@@ -8,8 +8,8 @@ export const Booklist = async(req,res) => {
     } catch (error) {
         res.status(500).json({message: error.message});
     }
-
 };
+
 
 export const Booklist_filter = async (req, res) => {
     const { filter_key, filter_input } = req.body;
@@ -40,6 +40,3 @@ export const Booklist_search = async (req, res) => {
         res.status(500).json({ message: error.message });
     }
 };
-
-
-
