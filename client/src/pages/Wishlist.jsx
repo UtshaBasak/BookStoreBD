@@ -5,6 +5,7 @@ import { useNavigate, Link } from 'react-router-dom';
 export default function Wishlist() {
   const [wishlist, setWishlist] = useState([]);
   const [cart, setCart] = useState({});
+  const [error, setError] = useState(null);
   const navigate = useNavigate();
   const userEmail = localStorage.getItem('userEmail');
 
@@ -13,10 +14,8 @@ export default function Wishlist() {
     if (!userEmail) return;
     fetch(`http://localhost:1015/wishlist?email=${encodeURIComponent(userEmail)}`)
       .then((res) => res.json())
-      .then((data) => {
-        setWishlist(data);
-      })
-      .catch((err) => console.error('Error fetching wishlist:', err));
+      .then((data) => setWishlist(Array.isArray(data) ? data : []))
+      .catch(() => setError('Failed to load wishlist.'));
   }, [userEmail]);
 
   // Load cart state from backend
@@ -26,7 +25,7 @@ export default function Wishlist() {
       .then(res => res.json())
       .then(data => {
         const cartObj = {};
-        data.forEach(book => { cartObj[book._id] = true; });
+        (Array.isArray(data) ? data : []).forEach(book => { cartObj[book._id] = true; });
         setCart(cartObj);
       });
   }, [userEmail]);
@@ -80,6 +79,14 @@ export default function Wishlist() {
     return (
       <div style={{ color: 'white', padding: '2rem', textAlign: 'center', background: '#222', minHeight: '100vh' }}>
         Please sign in to view your wishlist.
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div style={{ color: 'red', padding: '2rem', textAlign: 'center', background: '#222', minHeight: '100vh' }}>
+        {error}
       </div>
     );
   }
@@ -190,8 +197,32 @@ export default function Wishlist() {
                   width: 'fit-content',
                   minWidth: '350px',
                   maxWidth: '600px',
+                  position: 'relative'
                 }}
               >
+                {/* Stock Out Banner */}
+                {book.stock === 0 && (
+                  <div
+                    style={{
+                      position: 'absolute',
+                      top: 8,
+                      right: 8,
+                      background: '#e74c3c',
+                      color: '#fff',
+                      fontWeight: 700,
+                      fontSize: 13,
+                      padding: '2px 10px',
+                      borderRadius: 12,
+                      boxShadow: '0 2px 6px rgba(0,0,0,0.18)',
+                      letterSpacing: 1,
+                      zIndex: 2,
+                      minWidth: 90,
+                      textAlign: 'center'
+                    }}
+                  >
+                    Out Of Stock
+                  </div>
+                )}
                 <img
                   src={getBookImageSrc(book)}
                   alt={book.title}
@@ -206,26 +237,41 @@ export default function Wishlist() {
                 />
 
                 <div style={{ flex: 1 }}>
-                  <div><strong>Title:</strong> {book.title}</div>
+                  <div>
+                    <strong>Title:</strong> {book.title}
+                    <span style={{
+                      marginLeft: 8,
+                      fontSize: 13,
+                      fontWeight: 600,
+                      color: book.bookType === 'old' ? '#e65100' : '#43a047',
+                      background: 'rgba(255,255,255,0.13)',
+                      borderRadius: 8,
+                      padding: '2px 10px'
+                    }}>
+                      {book.bookType ? book.bookType.toUpperCase() : ''}
+                    </span>
+                  </div>
                   <div><strong>Author:</strong> {book.author}</div>
                   <div>
                     <strong>Category:</strong> {Array.isArray(book.category) ? book.category.join(', ') : (book.category || 'N/A')}
                   </div>
                 </div>
 
-                {/* Cart icon toggle */}
-                <FaShoppingCart
-                  style={{
-                    cursor: 'pointer',
-                    color: cart[book._id] ? '#e65100' : '#ccc',
-                    marginLeft: 12,
-                  }}
-                  onClick={() => handleToggleCart(book._id)}
-                  title={cart[book._id] ? 'Remove from cart' : 'Add to cart'}
-                  tabIndex={0}
-                  role="button"
-                  aria-label="Toggle cart"
-                />
+                {/* Cart icon only if book is in stock */}
+                {book.stock > 0 && (
+                  <FaShoppingCart
+                    style={{
+                      cursor: 'pointer',
+                      color: cart[book._id] ? '#e65100' : '#ccc',
+                      marginLeft: 12,
+                    }}
+                    onClick={() => handleToggleCart(book._id)}
+                    title={cart[book._id] ? 'Remove from cart' : 'Add to cart'}
+                    tabIndex={0}
+                    role="button"
+                    aria-label="Toggle cart"
+                  />
+                )}
 
                 <FaTrash
                   style={{

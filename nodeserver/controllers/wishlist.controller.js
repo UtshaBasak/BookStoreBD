@@ -11,7 +11,9 @@ export const Wishlist_get = async (req, res) => {
     if (!user) return res.status(404).json({ message: 'User not found' });
 
     const wishlistEntries = await Wishlist.find({ user: user._id }).populate('book');
-    const books = wishlistEntries.map(entry => entry.book);
+    const books = wishlistEntries
+      .map(entry => entry.book)
+      .filter(book => book); // Remove nulls
     res.status(200).json(books);
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -36,7 +38,9 @@ export const Wishlist_add = async (req, res) => {
 
     // Return updated wishlist
     const wishlistEntries = await Wishlist.find({ user: user._id }).populate('book');
-    const books = wishlistEntries.map(entry => entry.book);
+    const books = wishlistEntries
+      .map(entry => entry.book)
+      .filter(book => book); // Remove nulls
     res.status(200).json(books);
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -56,7 +60,9 @@ export const Wishlist_remove = async (req, res) => {
 
     // Return updated wishlist
     const wishlistEntries = await Wishlist.find({ user: user._id }).populate('book');
-    const books = wishlistEntries.map(entry => entry.book);
+    const books = wishlistEntries
+      .map(entry => entry.book)
+      .filter(book => book); // Remove nulls
     res.status(200).json(books);
   } catch (error) {
     res.status(500).json({ message: error.message });

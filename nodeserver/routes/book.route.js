@@ -36,6 +36,13 @@ router.put('/update-stock/:id', async (req, res) => {
       { new: true }
     );
     if (!book) return res.status(404).json({ message: 'Book not found' });
+
+    // Remove from all carts if stock is now 0
+    if (book.stock === 0) {
+      const Cart = (await import('../models/Cart.model.js')).default;
+      await Cart.deleteMany({ book: book._id });
+    }
+
     res.status(200).json({ message: 'Stock updated', book });
   } catch (error) {
     res.status(500).json({ message: error.message });
