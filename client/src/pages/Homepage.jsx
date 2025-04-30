@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { FaChevronLeft, FaChevronRight, FaHeart, FaRegHeart } from 'react-icons/fa';
+import { FaChevronLeft, FaChevronRight, FaHeart, FaRegHeart, FaBell } from 'react-icons/fa';
 import './Homepage.css';
 
 const genres = [
@@ -23,7 +23,7 @@ const genres = [
 export default function Homepage() {
   const [user, setUser] = useState(null);
   const [profilePic, setProfilePic] = useState(null);
-  const [username, setUsername] = useState(''); // Add username state
+  const [username, setUsername] = useState('');
   const [showDropdown, setShowDropdown] = useState(false);
   const [popularBooks, setPopularBooks] = useState([]);
   const [wishlist, setWishlist] = useState({});
@@ -42,7 +42,7 @@ export default function Homepage() {
         .then(data => {
           if (data) {
             if (data.profilePicture) setProfilePic(data.profilePicture);
-            if (data.username) setUsername(data.username); // Save username
+            if (data.username) setUsername(data.username);
           }
         });
     }
@@ -63,17 +63,15 @@ export default function Homepage() {
           }
         });
         flat.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-        setPopularBooks(flat.slice(0, 10)); // Show up to 10 books
+        setPopularBooks(flat.slice(0, 10));
       });
   }, []);
 
-  // Fetch user's wishlist on mount
   useEffect(() => {
     if (!userEmail) return;
     fetch(`http://localhost:1015/wishlist?email=${encodeURIComponent(userEmail)}`)
       .then(res => res.json())
       .then(data => {
-        // Build a map of bookId -> true for quick lookup
         const wishMap = {};
         data.forEach(book => { wishMap[book._id] = true; });
         setWishlist(wishMap);
@@ -93,7 +91,6 @@ export default function Homepage() {
     navigate('/profile');
   };
 
-  // Toggle wishlist for a book (by _id)
   const toggleWishlist = (bookId) => {
     if (!userEmail) {
       alert('Please sign in to use wishlist.');
@@ -107,14 +104,12 @@ export default function Homepage() {
     })
       .then(res => res.json())
       .then(data => {
-        // Update wishlist state
         const wishMap = {};
         data.forEach(book => { wishMap[book._id] = true; });
         setWishlist(wishMap);
       });
   };
 
-  // Toggle add to cart for a book (by _id)
   const toggleCart = (bookId) => {
     if (!userEmail) {
       alert('Please sign in to use cart.');
@@ -128,14 +123,12 @@ export default function Homepage() {
     })
       .then(res => res.json())
       .then(data => {
-        // Update cart state
         const cartMap = {};
         data.forEach(book => { cartMap[book._id] = true; });
         setCart(cartMap);
       });
   };
 
-  // On mount, load cart from backend
   useEffect(() => {
     if (!userEmail) return;
     fetch(`http://localhost:1015/cart?email=${encodeURIComponent(userEmail)}`)
@@ -147,8 +140,7 @@ export default function Homepage() {
       });
   }, [userEmail]);
 
-  // Scroll handlers
-  const scrollAmount = 320; // px to scroll per click (adjust as needed)
+  const scrollAmount = 320;
   const handleScrollLeft = () => {
     if (scrollRef.current) {
       scrollRef.current.scrollBy({ left: -scrollAmount, behavior: 'smooth' });
@@ -160,7 +152,6 @@ export default function Homepage() {
     }
   };
 
-  // Add this function to handle search
   const handleHomepageSearch = () => {
     if (searchInput.trim()) {
       navigate(`/filter?search=${encodeURIComponent(searchInput.trim())}`);
@@ -169,10 +160,8 @@ export default function Homepage() {
 
   return (
     <div className="homepage" style={{ width: '100vw', minHeight: '100vh' }}>
-      {/* Header */}
       <header className="header">
         <div className="logo">
-          {/* Make logo clickable and refresh homepage */}
           <span
             style={{ cursor: 'pointer', color: '#8B6F6F', fontSize: '2rem', fontWeight: 'bold', userSelect: 'none' }}
             onClick={() => { navigate('/'); window.location.reload(); }}
@@ -196,107 +185,113 @@ export default function Homepage() {
           />
           <button onClick={handleHomepageSearch}>Search</button>
         </div>
-        <div className="user-options" style={{ position: 'relative' }}>
-          <Link to="/cart">
-            <span className="cart-icon">🛒 Cart</span>
+        <div className="user-options" style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: '1.5rem' }}>
+          <span
+            className="notification-icon"
+            style={{ cursor: 'pointer', marginRight: '0.5rem', fontSize: 22, color: '#8B6F6F', display: 'inline-flex', alignItems: 'center' }}
+            title="Notifications"
+            tabIndex={0}
+            onClick={() => alert('No notifications')}
+            aria-label="Notifications"
+          >
+            <FaBell />
+          </span>
+          <span
+            className="wishlist-icon"
+            style={{ cursor: 'pointer', marginRight: '0.5rem', fontSize: 22, color: '#e65100', display: 'inline-flex', alignItems: 'center' }}
+            onClick={() => navigate('/wishlist')}
+            title="Wishlist"
+            tabIndex={0}
+            aria-label="Wishlist"
+          >
+            <FaHeart />
+          </span>
+          <Link to="/cart" style={{ color: '#8B6F6F', fontSize: 22, display: 'inline-flex', alignItems: 'center', textDecoration: 'none' }} title="Cart" aria-label="Cart">
+            🛒
           </Link>
-          {user ? (
-            <>
-              <span
-                className="wishlist-icon"
-                style={{ marginLeft: '1rem', cursor: 'pointer' }}
-                onClick={() => navigate('/wishlist')}
-              >
-                ❤️ Wishlist
-              </span>
+          <div
+            style={{ display: 'inline-block', marginLeft: '1rem', cursor: 'pointer', position: 'relative' }}
+            tabIndex={0}
+            onMouseEnter={() => setShowDropdown('profile')}
+            onMouseLeave={() => setShowDropdown(false)}
+            onFocus={() => setShowDropdown('profile')}
+            onBlur={() => setShowDropdown(false)}
+          >
+            <img
+              src={
+                profilePic ||
+                `https://ui-avatars.com/api/?name=${encodeURIComponent(username ? username[0] : 'U')}`
+              }
+              alt="Profile"
+              style={{
+                width: 36,
+                height: 36,
+                borderRadius: '50%',
+                objectFit: 'cover',
+                border: '2px solid #8B6F6F',
+                verticalAlign: 'middle',
+              }}
+            />
+            {showDropdown === 'profile' && (
               <div
-                style={{ display: 'inline-block', marginLeft: '1rem', cursor: 'pointer', position: 'relative' }}
-                tabIndex={0}
-                onMouseEnter={() => setShowDropdown('profile')}
-                onMouseLeave={() => setShowDropdown(false)}
-                onFocus={() => setShowDropdown('profile')}
-                onBlur={() => setShowDropdown(false)}
+                style={{
+                  position: 'absolute',
+                  top: '100%',
+                  right: 0,
+                  background: '#fff',
+                  color: '#333',
+                  border: '1px solid #ddd',
+                  borderRadius: 6,
+                  boxShadow: '0 2px 8px rgba(0,0,0,0.12)',
+                  minWidth: 140,
+                  zIndex: 10,
+                  display: 'flex',
+                  flexDirection: 'column',
+                  padding: 0,
+                  pointerEvents: 'auto',
+                }}
               >
-                <img
-                  src={
-                    profilePic ||
-                    `https://ui-avatars.com/api/?name=${encodeURIComponent(username ? username[0] : 'U')}`
-                  }
-                  alt="Profile"
+                <button
                   style={{
-                    width: 36,
-                    height: 36,
-                    borderRadius: '50%',
-                    objectFit: 'cover',
-                    border: '2px solid #8B6F6F',
-                    verticalAlign: 'middle',
+                    width: '100%',
+                    background: 'none',
+                    border: 'none',
+                    padding: '0.75rem 1rem',
+                    textAlign: 'left',
+                    cursor: 'pointer',
+                    color: '#333',
+                    fontWeight: 500,
+                    borderRadius: '6px 6px 0 0',
+                    borderBottom: '1px solid #eee'
                   }}
-                />
-                {showDropdown === 'profile' && (
-                  <div
-                    style={{
-                      position: 'absolute',
-                      top: '100%', // changed from '110%' to remove the gap
-                      right: 0,
-                      background: '#fff',
-                      color: '#333',
-                      border: '1px solid #ddd',
-                      borderRadius: 6,
-                      boxShadow: '0 2px 8px rgba(0,0,0,0.12)',
-                      minWidth: 140,
-                      zIndex: 10,
-                      display: 'flex',
-                      flexDirection: 'column',
-                      padding: 0,
-                      pointerEvents: 'auto', // ensure dropdown is interactive
-                    }}
-                  >
-                    <button
-                      style={{
-                        width: '100%',
-                        background: 'none',
-                        border: 'none',
-                        padding: '0.75rem 1rem',
-                        textAlign: 'left',
-                        cursor: 'pointer',
-                        color: '#333',
-                        fontWeight: 500,
-                        borderRadius: '6px 6px 0 0',
-                        borderBottom: '1px solid #eee'
-                      }}
-                      onClick={handleViewProfile}
-                      tabIndex={0}
-                    >
-                      View Profile
-                    </button>
-                    <button
-                      style={{
-                        width: '100%',
-                        background: 'none',
-                        border: 'none',
-                        padding: '0.75rem 1rem',
-                        textAlign: 'left',
-                        cursor: 'pointer',
-                        color: '#e74c3c',
-                        fontWeight: 500,
-                        borderRadius: '0 0 6px 6px'
-                      }}
-                      onClick={handleSignOut}
-                      tabIndex={0}
-                    >
-                      Sign Out
-                    </button>
-                  </div>
-                )}
+                  onClick={handleViewProfile}
+                  tabIndex={0}
+                >
+                  View Profile
+                </button>
+                <button
+                  style={{
+                    width: '100%',
+                    background: 'none',
+                    border: 'none',
+                    padding: '0.75rem 1rem',
+                    textAlign: 'left',
+                    cursor: 'pointer',
+                    color: '#e74c3c',
+                    fontWeight: 500,
+                    borderRadius: '0 0 6px 6px'
+                  }}
+                  onClick={handleSignOut}
+                  tabIndex={0}
+                >
+                  Sign Out
+                </button>
               </div>
-            </>
-          ) : (
-            <Link to="/sign-in">Sign in</Link>
-          )}
+            )}
+          </div>
         </div>
       </header>
 
-      {/* Navigation Bar with Dropdowns */}
       <nav className="nav-bar">
         <div
           className="dropdown"
@@ -307,7 +302,13 @@ export default function Homepage() {
           onBlur={() => setShowDropdown(false)}
           tabIndex={0}
         >
-          <Link to="/genre">Category</Link>
+          <span
+            style={{ cursor: 'pointer', color: '#333', textDecoration: 'none', fontWeight: 500 }}
+            onClick={() => setShowDropdown('category')}
+            tabIndex={0}
+          >
+            Category
+          </span>
           {showDropdown === 'category' && (
             <div
               className="dropdown-content"
@@ -326,31 +327,62 @@ export default function Homepage() {
               }}
             >
               {genres.map((genre, index) => (
-                <Link
+                <span
                   key={index}
-                  to={`/genre/${genre.toLowerCase().replace(/[^a-z0-9]+/gi, '-').replace(/^-|-$/g, '')}`}
                   style={{
                     padding: '0.5rem 0.75rem',
                     whiteSpace: 'nowrap',
                     display: 'block',
+                    cursor: 'pointer',
                   }}
+                  onClick={() => {
+                    setShowDropdown(false);
+                    navigate(`/filter?category=${encodeURIComponent(genre)}`);
+                  }}
+                  tabIndex={0}
+                  onKeyDown={e => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      setShowDropdown(false);
+                      navigate(`/filter?category=${encodeURIComponent(genre)}`);
+                    }
+                  }}
+                  role="menuitem"
                 >
                   {genre}
-                </Link>
+                </span>
               ))}
             </div>
           )}
         </div>
-        
-        <div className="dropdown" style={{ zIndex: 20 }}>
-          <Link to="/authors">Author</Link>
-          {/* No dropdown-content for Author */}
-        </div>
-        <Link to="/new-books">New Books</Link>
-        <Link to="/old-books">Old Books</Link>
+        <span
+          style={{ cursor: 'pointer', color: '#333', textDecoration: 'none', fontWeight: 500 }}
+          onClick={() => navigate('/filter?bookType=new')}
+          tabIndex={0}
+          onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') navigate('/filter?bookType=new'); }}
+          role="menuitem"
+        >
+          New Books
+        </span>
+        <span
+          style={{ cursor: 'pointer', color: '#333', textDecoration: 'none', fontWeight: 500 }}
+          onClick={() => navigate('/filter?bookType=old')}
+          tabIndex={0}
+          onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') navigate('/filter?bookType=old'); }}
+          role="menuitem"
+        >
+          Old Books
+        </span>
+        <span
+          style={{ cursor: 'pointer', color: '#333', textDecoration: 'none', fontWeight: 500 }}
+          onClick={() => navigate('/filter?inStock=1')}
+          tabIndex={0}
+          onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') navigate('/filter?inStock=1'); }}
+          role="menuitem"
+        >
+          In Stock
+        </span>
       </nav>
 
-      {/* Hero Banner */}
       <div className="hero-banner" style={{ zIndex: 1, position: 'relative' }}>
         <img 
           src="https://a-static.besthdwallpaper.com/a-peaceful-library-with-a-variety-of-books-on-the-shelves-wallpaper-1280x720-98073_45.jpg" 
@@ -358,7 +390,6 @@ export default function Homepage() {
         />
       </div>
 
-      {/* Custom Banner Image */}
       <div style={{
         width: '100%',
         margin: '0 auto',
@@ -368,7 +399,7 @@ export default function Homepage() {
         justifyContent: 'center',
         alignItems: 'center',
         position: 'relative',
-        zIndex: 2, // Ensure banner is above hero banner
+        zIndex: 2,
         background: '#fff'
       }}>
         <img
@@ -386,7 +417,6 @@ export default function Homepage() {
         />
       </div>
 
-      {/* Most Popular Section */}
       <section className="popular-section">
         <h2>Most Popular</h2>
         <div style={{ position: 'relative', width: '100%', zIndex: 0 }}>
@@ -422,13 +452,12 @@ export default function Homepage() {
               padding: '0 48px',
               scrollBehavior: 'smooth',
               position: 'relative',
-              zIndex: 0, // Ensure book cards are below dropdowns
-              scrollbarWidth: 'none', // Hide scrollbar for Firefox
-              msOverflowStyle: 'none', // Hide scrollbar for IE/Edge
+              zIndex: 0,
+              scrollbarWidth: 'none',
+              msOverflowStyle: 'none',
             }}
             className="popular-books-horizontal-scroll"
             onWheel={e => {
-              // Prevent vertical scroll from scrolling the horizontal container
               if (e.deltaY !== 0) {
                 e.currentTarget.scrollLeft += e.deltaY;
                 e.preventDefault();
@@ -452,7 +481,7 @@ export default function Homepage() {
                   width: 220,
                   marginRight: 24,
                   position: 'relative',
-                  zIndex: 0 // Ensure book card is below dropdown
+                  zIndex: 0
                 }}
               >
                 <div className="book-image" style={{ position: 'relative', width: '100%', height: 200, zIndex: 0 }}>
@@ -465,7 +494,6 @@ export default function Homepage() {
                     alt={book.title}
                     style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: 4 }}
                   />
-                  {/* BookType Seal */}
                   <div
                     style={{
                       position: 'absolute',
@@ -478,13 +506,12 @@ export default function Homepage() {
                       padding: '2px 10px',
                       borderRadius: 12,
                       boxShadow: '0 2px 6px rgba(0,0,0,0.08)',
-                      zIndex: 1, // Lower than dropdown
+                      zIndex: 1,
                       letterSpacing: 1,
                     }}
                   >
                     {book.bookType === 'old' ? 'OLD' : 'NEW'}
                   </div>
-                  {/* Wishlist icon always visible */}
                   {user && (
                     <span
                       onClick={() => toggleWishlist(book._id)}
@@ -577,7 +604,6 @@ export default function Homepage() {
         </div>
       </section>
 
-      {/* Footer */}
       <footer className="footer">
         <div className="footer-section">
           <h4>About Us</h4>
@@ -610,7 +636,6 @@ export default function Homepage() {
           </ul>
         </div>
       </footer>
-      {/* Footer note - moved outside footer for true centering */}
       <div
         style={{
           width: '100%',

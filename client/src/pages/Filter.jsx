@@ -34,16 +34,25 @@ export default function BookFilter() {
   const [sortOption, setSortOption] = useState('popular');
   const [wishlist, setWishlist] = useState({});
   const [cart, setCart] = useState({});
+  const [inStockOnly, setInStockOnly] = useState(false);
   const userEmail = localStorage.getItem('userEmail');
   const location = useLocation();
   const navigate = useNavigate();
 
-  // Parse ?search=... from URL on mount
+  // Parse ?search=..., ?bookType=..., ?category=..., ?inStock=1 from URL on mount
   useEffect(() => {
     const params = new URLSearchParams(location.search);
     const query = params.get('search') || '';
+    const bookType = params.get('bookType') || '';
+    const category = params.get('category') || '';
     setSearchInput(query);
     setSearchTerm(query);
+    setFilters(prev => ({
+      ...prev,
+      bookType: bookType ? bookType.toLowerCase() : '',
+      category: category ? [category.toLowerCase()] : [],
+    }));
+    setInStockOnly(params.get('inStock') === '1');
   }, [location.search]);
 
   useEffect(() => {
@@ -130,6 +139,11 @@ export default function BookFilter() {
       );
     }
 
+    // In Stock filter
+    if (inStockOnly) {
+      filtered = filtered.filter(book => Number(book.stock) > 0);
+    }
+
     // Sorting
     if (sortOption === 'priceHighLow') {
       filtered.sort((a, b) => (parseFloat(b.price) || 0) - (parseFloat(a.price) || 0));
@@ -145,7 +159,7 @@ export default function BookFilter() {
     }
 
     setFilteredBooks(filtered);
-  }, [bookList, searchTerm, filters, priceFilter, sortOption]);
+  }, [bookList, searchTerm, filters, priceFilter, sortOption, inStockOnly]);
 
   const handleSearch = () => {
     setSearchTerm(searchInput);
@@ -401,6 +415,42 @@ export default function BookFilter() {
               <span style={{ marginLeft: 8, fontSize: 14, color: '#fff' }}>
                 {filters.rating > 0 ? `${filters.rating}+` : ''}
               </span>
+            </div>
+          </div>
+          {/* In Stock Toggle */}
+          <div style={{ backgroundColor: 'rgba(0,0,0,0.6)', borderRadius: '12px', padding: '1rem' }}>
+            <strong>Stock</strong>
+            <div style={{ marginTop: '0.5rem' }}>
+              <button
+                type="button"
+                style={{
+                  background: inStockOnly ? '#e65100' : '#fff',
+                  color: inStockOnly ? '#fff' : '#222',
+                  border: 'none',
+                  borderRadius: 6,
+                  padding: '8px 0',
+                  cursor: 'pointer',
+                  fontWeight: 500,
+                  fontSize: 15,
+                  textAlign: 'center',
+                  width: '100%',
+                  minHeight: 36,
+                  transition: 'background 0.2s, color 0.2s'
+                }}
+                onClick={() => {
+                  setInStockOnly(v => {
+                    const next = !v;
+                    // Update URL param
+                    const params = new URLSearchParams(location.search);
+                    if (next) params.set('inStock', '1');
+                    else params.delete('inStock');
+                    navigate(`/filter?${params.toString()}`);
+                    return next;
+                  });
+                }}
+              >
+                In Stock Only
+              </button>
             </div>
           </div>
         </div>

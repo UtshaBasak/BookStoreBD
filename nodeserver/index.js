@@ -45,6 +45,7 @@ import bookRouter from './routes/book.route.js';
 import filterRouter from './routes/filter.route.js';
 import wishlistRouter from './routes/wishlist.route.js';
 import cartRouter from './routes/cart.route.js';
+import orderRouter from './routes/order.route.js';
 
 app.use(bodyParser.json());
 
@@ -56,6 +57,7 @@ app.use('/book', bookRouter);
 app.use('/filter', filterRouter);
 app.use('/wishlist', wishlistRouter);
 app.use('/cart', cartRouter);
+app.use('/order', orderRouter);
 
 // Update stock (non-negative integer only) - ensure stock out books are removed from all carts
 app.put('/book/update-stock/:id', async (req, res) => {
@@ -132,5 +134,5 @@ app.use((err,req,res,next) => {
     });
 });
 
-const port = process.env.PORT || 1015;
+const port = 1015;
 app.listen(port,()=> console.log(`Listening on port ${port}...`));

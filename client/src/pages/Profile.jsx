@@ -270,7 +270,7 @@ export default function Profile() {
                             if (profileMode === 'seller') {
                                 navigate('/seller-books');
                             } else {
-                                // TODO: buyer book list page
+                                navigate('/buyer-books');
                             }
                         }}
                         style={{
