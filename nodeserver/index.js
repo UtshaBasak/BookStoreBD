@@ -11,6 +11,7 @@ import { Cart_clear } from './controllers/cart.controller.js';
 
 // MongoDB connection
 import mongoose from 'mongoose';
+import Bookdetails from './bookdetails.model.js';
 
 mongoose.connect(process.env.MONGO, {
   useNewUrlParser: true,
@@ -51,8 +52,8 @@ app.use(bodyParser.json());
 
 app.use(express.json());
 app.use(cors(corsOptions));
-app.use('/user',userRouter);
-app.use('/auth',authRouter);
+app.use('/user', userRouter);
+app.use('/auth', authRouter);
 app.use('/book', bookRouter);
 app.use('/filter', filterRouter);
 app.use('/wishlist', wishlistRouter);
@@ -128,7 +129,7 @@ app.use((err,req,res,next) => {
     const statusCode = err.statusCode || 500;
     const message = err.message || 'Internet Server Error';
     return res.status(statusCode).json({
-        success:false,
+        success: false,
         statusCode,
         message,
     });

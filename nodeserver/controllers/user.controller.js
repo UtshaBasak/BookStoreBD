@@ -1,7 +1,7 @@
 import User from '../models/user.model.js';
 import { errorHandler } from '../uits/error.js';
 import SignUp from './pages/SignUp.js';
-// import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import SignIn from './pages/SignIn.js';
 import Profile from './pages/Profile.js'; // Import Profile page
 

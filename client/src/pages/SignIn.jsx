@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 
 export default function SignIn() {
     const navigate = useNavigate();
-    const [formData,setFormData] = useState({});
+    const [formData, setFormData] = useState({});
 
     useEffect(() => {
         const userEmail = localStorage.getItem('userEmail');
@@ -13,10 +13,10 @@ export default function SignIn() {
         }
     }, [navigate]);
 
-    const handleChange =(e) => {
+    const handleChange = (e) => {
         setFormData({
             ...formData,
-            [e.target.id]:e.target.value,
+            [e.target.id]: e.target.value,
         });
     };
 
