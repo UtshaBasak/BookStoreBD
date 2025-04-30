@@ -11,7 +11,6 @@ import { Cart_clear } from './controllers/cart.controller.js';
 
 // MongoDB connection
 import mongoose from 'mongoose';
-import Bookdetails from './bookdetails.model.js';
 
 mongoose.connect(process.env.MONGO, {
   useNewUrlParser: true,
