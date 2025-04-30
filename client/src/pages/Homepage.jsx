@@ -76,6 +76,13 @@ export default function Homepage() {
         data.forEach(book => { wishMap[book._id] = true; });
         setWishlist(wishMap);
       });
+    fetch(`http://localhost:1015/cart?email=${encodeURIComponent(userEmail)}`)
+      .then(res => res.json())
+      .then(data => {
+        const cartObj = {};
+        data.forEach(book => { cartObj[book._id] = true; });
+        setCart(cartObj);
+      });
   }, [userEmail]);
 
   const handleSignOut = () => {
@@ -128,17 +135,6 @@ export default function Homepage() {
         setCart(cartMap);
       });
   };
-
-  useEffect(() => {
-    if (!userEmail) return;
-    fetch(`http://localhost:1015/cart?email=${encodeURIComponent(userEmail)}`)
-      .then(res => res.json())
-      .then(data => {
-        const cartObj = {};
-        data.forEach(book => { cartObj[book._id] = true; });
-        setCart(cartObj);
-      });
-  }, [userEmail]);
 
   const scrollAmount = 320;
   const handleScrollLeft = () => {
@@ -209,86 +205,92 @@ export default function Homepage() {
           <Link to="/cart" style={{ color: '#8B6F6F', fontSize: 22, display: 'inline-flex', alignItems: 'center', textDecoration: 'none' }} title="Cart" aria-label="Cart">
             🛒
           </Link>
-          <div
-            style={{ display: 'inline-block', marginLeft: '1rem', cursor: 'pointer', position: 'relative' }}
-            tabIndex={0}
-            onMouseEnter={() => setShowDropdown('profile')}
-            onMouseLeave={() => setShowDropdown(false)}
-            onFocus={() => setShowDropdown('profile')}
-            onBlur={() => setShowDropdown(false)}
-          >
-            <img
-              src={
-                profilePic ||
-                `https://ui-avatars.com/api/?name=${encodeURIComponent(username ? username[0] : 'U')}`
-              }
-              alt="Profile"
-              style={{
-                width: 36,
-                height: 36,
-                borderRadius: '50%',
-                objectFit: 'cover',
-                border: '2px solid #8B6F6F',
-                verticalAlign: 'middle',
-              }}
-            />
-            {showDropdown === 'profile' && (
-              <div
+          {user ? (
+            <div
+              style={{ display: 'inline-block', marginLeft: '1rem', cursor: 'pointer', position: 'relative' }}
+              tabIndex={0}
+              onMouseEnter={() => setShowDropdown('profile')}
+              onMouseLeave={() => setShowDropdown(false)}
+              onFocus={() => setShowDropdown('profile')}
+              onBlur={() => setShowDropdown(false)}
+            >
+              <img
+                src={
+                  profilePic ||
+                  `https://ui-avatars.com/api/?name=${encodeURIComponent(username ? username[0] : 'U')}`
+                }
+                alt="Profile"
                 style={{
-                  position: 'absolute',
-                  top: '100%',
-                  right: 0,
-                  background: '#fff',
-                  color: '#333',
-                  border: '1px solid #ddd',
-                  borderRadius: 6,
-                  boxShadow: '0 2px 8px rgba(0,0,0,0.12)',
-                  minWidth: 140,
-                  zIndex: 10,
-                  display: 'flex',
-                  flexDirection: 'column',
-                  padding: 0,
-                  pointerEvents: 'auto',
+                  width: 36,
+                  height: 36,
+                  borderRadius: '50%',
+                  objectFit: 'cover',
+                  border: '2px solid #8B6F6F',
+                  verticalAlign: 'middle',
                 }}
-              >
-                <button
+              />
+              {showDropdown === 'profile' && (
+                <div
                   style={{
-                    width: '100%',
-                    background: 'none',
-                    border: 'none',
-                    padding: '0.75rem 1rem',
-                    textAlign: 'left',
-                    cursor: 'pointer',
+                    position: 'absolute',
+                    top: '100%',
+                    right: 0,
+                    background: '#fff',
                     color: '#333',
-                    fontWeight: 500,
-                    borderRadius: '6px 6px 0 0',
-                    borderBottom: '1px solid #eee'
+                    border: '1px solid #ddd',
+                    borderRadius: 6,
+                    boxShadow: '0 2px 8px rgba(0,0,0,0.12)',
+                    minWidth: 140,
+                    zIndex: 10,
+                    display: 'flex',
+                    flexDirection: 'column',
+                    padding: 0,
+                    pointerEvents: 'auto',
                   }}
-                  onClick={handleViewProfile}
-                  tabIndex={0}
                 >
-                  View Profile
-                </button>
-                <button
-                  style={{
-                    width: '100%',
-                    background: 'none',
-                    border: 'none',
-                    padding: '0.75rem 1rem',
-                    textAlign: 'left',
-                    cursor: 'pointer',
-                    color: '#e74c3c',
-                    fontWeight: 500,
-                    borderRadius: '0 0 6px 6px'
-                  }}
-                  onClick={handleSignOut}
-                  tabIndex={0}
-                >
-                  Sign Out
-                </button>
-              </div>
-            )}
-          </div>
+                  <button
+                    style={{
+                      width: '100%',
+                      background: 'none',
+                      border: 'none',
+                      padding: '0.75rem 1rem',
+                      textAlign: 'left',
+                      cursor: 'pointer',
+                      color: '#333',
+                      fontWeight: 500,
+                      borderRadius: '6px 6px 0 0',
+                      borderBottom: '1px solid #eee'
+                    }}
+                    onClick={handleViewProfile}
+                    tabIndex={0}
+                  >
+                    View Profile
+                  </button>
+                  <button
+                    style={{
+                      width: '100%',
+                      background: 'none',
+                      border: 'none',
+                      padding: '0.75rem 1rem',
+                      textAlign: 'left',
+                      cursor: 'pointer',
+                      color: '#e74c3c',
+                      fontWeight: 500,
+                      borderRadius: '0 0 6px 6px'
+                    }}
+                    onClick={handleSignOut}
+                    tabIndex={0}
+                  >
+                    Sign Out
+                  </button>
+                </div>
+              )}
+            </div>
+          ) : (
+            <Link to="/sign-in" style={{ color: '#8B6F6F', fontWeight: 600, textDecoration: 'none', fontSize: 16 }}>
+              Sign In
+            </Link>
+          )}
         </div>
       </header>
 

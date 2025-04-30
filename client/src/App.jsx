@@ -12,7 +12,6 @@ import SellerBookList from './pages/SellerBookList';
 import Filter from './pages/Filter';
 import Wishlist from './pages/Wishlist';
 import Cart from './pages/Cart';
-import Filter from './pages/Filter';
 import BuyerBookList from './pages/BuyerBookList';
 
 // Helper: get current user email from localStorage
