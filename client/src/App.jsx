@@ -9,6 +9,7 @@ import Homepage from './pages/Homepage';
 import Profile from './pages/Profile';
 import UpdateProfile from './pages/UpdateProfile';
 import SellerBookList from './pages/SellerBookList';
+import Filter from './pages/Filter';
 import Wishlist from './pages/Wishlist';
 import Cart from './pages/Cart';
 import Filter from './pages/Filter';
@@ -37,6 +38,7 @@ function PublicOnlyRoute({ children }) {
   }
   return children;
 }
+
 
 export default function App() {
   return (
@@ -78,6 +80,7 @@ export default function App() {
         <Route path="/buyer-books" element={<BuyerBookList />} />
         {/* Always keep the 404 route last */}
         <Route path="*" element={<h1>404 Not Found</h1>} />
+        <Route path="/filter" element={<Filter />} />
       </Routes>
     </BrowserRouter>
   );
