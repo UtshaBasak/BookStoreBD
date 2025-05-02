@@ -12,7 +12,9 @@ const OrderSchema = new mongoose.Schema({
   pages: Number,
   price: Number,
   quantity: Number,
-  createdAt: { type: Date, default: Date.now }
+  createdAt: { type: Date, default: Date.now },
+  isReturned: { type: Number, default: 0 },
+  defectDescription: { type: String, default: '' },
 });
 
 const Order = mongoose.model('Order', OrderSchema);

@@ -2,16 +2,17 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 export default function BuyerBookList() {
+  const [books, setBooks] = useState([]);
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [refreshing, setRefreshing] = useState(false);
-  const buyerEmail = localStorage.getItem('userEmail');
+  const userEmail = localStorage.getItem('userEmail');
   const navigate = useNavigate();
 
   const fetchOrders = () => {
     setRefreshing(true);
-    fetch(`http://localhost:1015/order/buyer?email=${encodeURIComponent(buyerEmail)}`)
+    fetch(`http://localhost:1015/order/buyer?email=${encodeURIComponent(userEmail)}`)
       .then(res => res.json())
       .then(data => {
         setOrders(Array.isArray(data) ? data : []);
@@ -21,9 +22,19 @@ export default function BuyerBookList() {
   };
 
   useEffect(() => {
+    const fetchBooks = async () => {
+      try {
+        const res = await fetch(`http://localhost:1015/api/purchases?email=${userEmail}`);
+        const data = await res.json();
+        setBooks(data);
+      } catch (error) {
+        console.error('Error fetching purchased books:', error);
+      }
+    };
+
+    fetchBooks();
     fetchOrders();
-    // eslint-disable-next-line
-  }, [buyerEmail]);
+  }, [userEmail]);
 
   const handleDelete = async (id) => {
     if (!window.confirm('Are you sure you want to delete this order record?')) return;
@@ -31,6 +42,10 @@ export default function BuyerBookList() {
     setOrders(orders => orders.filter(o => o._id !== id));
   };
 
+  const handleReturn =  (bookId) => {
+    navigate(`/description-form/${bookId}`);
+  };
+  
   const filteredOrders = orders.filter(
     order =>
       (order.title || '').toLowerCase().includes(search.toLowerCase()) ||
@@ -116,19 +131,24 @@ export default function BuyerBookList() {
                   <td>{order.sellerEmail}</td>
                   <td>{order.createdAt ? new Date(order.createdAt).toLocaleDateString() : ''}</td>
                   <td>
+                    
+                    {!order.isReturned && (
                     <button
-                      onClick={() => handleDelete(order._id)}
+                      onClick={() => handleReturn(order.bookId)}
                       style={{
-                        backgroundColor: '#e74c3c',
+                        backgroundColor: '#f39c12',
                         color: 'white',
                         border: 'none',
                         borderRadius: '3px',
                         padding: '5px 10px',
-                        cursor: 'pointer'
+                        cursor: 'pointer',
+                        marginLeft: '5px'
                       }}
                     >
-                      Delete
+                      Return
                     </button>
+                  )}
+
                   </td>
                 </tr>
               ))

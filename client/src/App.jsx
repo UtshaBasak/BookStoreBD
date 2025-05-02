@@ -13,6 +13,8 @@ import Filter from './pages/Filter';
 import Wishlist from './pages/Wishlist';
 import Cart from './pages/Cart';
 import BuyerBookList from './pages/BuyerBookList';
+import DescriptionForm from './pages/Descriptionform';
+
 
 // Helper: get current user email from localStorage
 const getUserEmail = () => localStorage.getItem('userEmail');
@@ -80,6 +82,7 @@ export default function App() {
         {/* Always keep the 404 route last */}
         <Route path="*" element={<h1>404 Not Found</h1>} />
         <Route path="/filter" element={<Filter />} />
+        <Route path="/description-form/:bookId" element={<DescriptionForm />} />
       </Routes>
     </BrowserRouter>
   );
