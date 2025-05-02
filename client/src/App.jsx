@@ -5,7 +5,7 @@ import SignUp from './pages/SignUp';
 import Payment from './pages/Payment';
 import AddBooks from './pages/AddBook';
 import AdminPanel from './pages/AdminPanel';
-import Homepage from './pages/Homepage';
+import Homepage from './pages/HomePage';
 import Profile from './pages/Profile';
 import UpdateProfile from './pages/UpdateProfile';
 import SellerBookList from './pages/SellerBookList';
@@ -13,6 +13,8 @@ import Filter from './pages/Filter';
 import Wishlist from './pages/Wishlist';
 import Cart from './pages/Cart';
 import BuyerBookList from './pages/BuyerBookList';
+import SellerOrderList from './pages/SellerOrderList';
+import './styles/orderTracking.css';
 
 // Helper: get current user email from localStorage
 const getUserEmail = () => localStorage.getItem('userEmail');
@@ -37,7 +39,6 @@ function PublicOnlyRoute({ children }) {
   }
   return children;
 }
-
 
 export default function App() {
   return (
@@ -77,9 +78,10 @@ export default function App() {
         <Route path="/cart" element={<Cart />} />
         <Route path="/filter" element={<Filter />} />
         <Route path="/buyer-books" element={<BuyerBookList />} />
+        <Route path="/buyer-orders" element={<BuyerBookList />} />
+        <Route path="/seller-orders" element={<SellerOrderList />} />
         {/* Always keep the 404 route last */}
         <Route path="*" element={<h1>404 Not Found</h1>} />
-        <Route path="/filter" element={<Filter />} />
       </Routes>
     </BrowserRouter>
   );
