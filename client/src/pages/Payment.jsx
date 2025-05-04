@@ -1,6 +1,12 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 
+function generateOrderNumber() {
+  const ts = Date.now().toString();
+  const rand = Math.floor(Math.random() * 1e8).toString().padStart(8, '0');
+  return (ts + rand).slice(0, 16);
+}
+
 const PROMO_CODE = 'BookStore';
 const PROMO_DISCOUNT = 50.00;
 
@@ -246,9 +252,7 @@ export default function Payment() {
 
     let newOrderNumber = orderNumber;
     if (!orderNumber) {
-      // Generate a random alphanumeric order number (not based on date/email)
-      const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-      newOrderNumber = Array.from({ length: 12 }, () => chars[Math.floor(Math.random() * chars.length)]).join('');
+      newOrderNumber = generateOrderNumber();
       setOrderNumber(newOrderNumber);
     }
 
@@ -271,7 +275,6 @@ export default function Payment() {
         discount,
         promo,
         promoApplied,
-        shippingCharge: shipping, // <-- save shipping for localStorage as well
         quantities: latestQuantities,
         cartBooks: latestCartBooks,
       })
@@ -291,12 +294,7 @@ export default function Payment() {
           bookId: book._id,
           quantity: latestQuantities[book._id] || 1
         })),
-        email: user.email,
-        orderNumber: newOrderNumber,
-        shippingCharge: shipping, // <-- send shipping to backend
-        discount,
-        promo,
-        promoApplied
+        email: user.email
       })
     });
 

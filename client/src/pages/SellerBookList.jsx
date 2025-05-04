@@ -1,17 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
-// Utility to format date as dd/mm/yyyy
-function formatDate(dateStr) {
-  if (!dateStr) return '';
-  const d = new Date(dateStr);
-  if (isNaN(d)) return '';
-  const day = String(d.getDate()).padStart(2, '0');
-  const month = String(d.getMonth() + 1).padStart(2, '0');
-  const year = d.getFullYear();
-  return `${day}/${month}/${year}`;
-}
-
 export default function SellerBookList() {
   const [books, setBooks] = useState([]);
   const [edit, setEdit] = useState({});
@@ -230,7 +219,7 @@ export default function SellerBookList() {
                     placeholder=""
                   />
                 </td>
-                <td>{formatDate(book.createdAt)}</td>
+                <td>{book.createdAt ? new Date(book.createdAt).toLocaleDateString() : ''}</td>
                 <td>
                   <button
                     onClick={() => handleDelete(book._id)}
