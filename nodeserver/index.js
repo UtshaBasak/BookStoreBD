@@ -8,6 +8,7 @@ import Bookdetails from './bookdetails.model.js';
 import AddBook from './models/AddBook.model.js';
 import Cart from './models/Cart.model.js';
 import { Cart_clear } from './controllers/cart.controller.js';
+ 
 
 // MongoDB connection
 import mongoose from 'mongoose';
@@ -46,6 +47,8 @@ import filterRouter from './routes/filter.route.js';
 import wishlistRouter from './routes/wishlist.route.js';
 import cartRouter from './routes/cart.route.js';
 import orderRouter from './routes/order.route.js';
+import returnRoutes from './routes/return.route.js';
+import purchaseRoutes from './routes/purchase.route.js';
 
 app.use(bodyParser.json());
 
@@ -58,6 +61,8 @@ app.use('/filter', filterRouter);
 app.use('/wishlist', wishlistRouter);
 app.use('/cart', cartRouter);
 app.use('/order', orderRouter);
+app.use('/return', returnRoutes);
+app.use('/purchase', purchaseRoutes);
 
 
 

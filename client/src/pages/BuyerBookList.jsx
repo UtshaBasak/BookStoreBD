@@ -13,11 +13,12 @@ function formatDate(dateStr) {
 }
 
 export default function BuyerBookList() {
+  const [books, setBooks] = useState([]);
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [refreshing, setRefreshing] = useState(false);
-  const buyerEmail = localStorage.getItem('userEmail');
+  const userEmail = localStorage.getItem('userEmail');
   const navigate = useNavigate();
 
   React.useEffect(() => {
@@ -43,7 +44,7 @@ export default function BuyerBookList() {
 
   const fetchOrders = () => {
     setRefreshing(true);
-    fetch(`http://localhost:1015/order/buyer?email=${encodeURIComponent(buyerEmail)}`)
+    fetch(`http://localhost:1015/order/buyer?email=${encodeURIComponent(userEmail)}`)
       .then(res => res.json())
       .then(data => {
         setOrders(Array.isArray(data) ? data : []);
@@ -53,9 +54,29 @@ export default function BuyerBookList() {
   };
 
   useEffect(() => {
+    const fetchBooks = async () => {
+      try {
+        const res = await fetch(`http://localhost:1015/api/purchases?email=${userEmail}`);
+        const data = await res.json();
+        setBooks(data);
+      } catch (error) {
+        console.error('Error fetching purchased books:', error);
+      }
+    };
+
+    fetchBooks();
     fetchOrders();
-    // eslint-disable-next-line
-  }, [buyerEmail]);
+  }, [userEmail]);
+
+  const handleDelete = async (id) => {
+    if (!window.confirm('Are you sure you want to delete this order record?')) return;
+    await fetch(`http://localhost:1015/order/${id}`, { method: 'DELETE' });
+    setOrders(orders => orders.filter(o => o._id !== id));
+  };
+
+  const handleReturn =  (bookId) => {
+    navigate(`/description-form/${bookId}`);
+  };
 
   const filteredOrders = orders.filter(
     order =>
@@ -162,94 +183,63 @@ export default function BuyerBookList() {
         }}
       />
       <div style={{ overflowX: 'auto' }}>
-        {loading ? (
-          <div>Loading...</div>
-        ) : Object.keys(grouped).length === 0 ? (
-          <div>No orders found.</div>
-        ) : (
-          Object.entries(grouped).map(([orderNumber, orderBooks]) => {
-            const order = orderBooks[0];
-            const displayOrderNumber = order.orderNumber && !/@|T\d{2}:\d{2}/.test(order.orderNumber)
-              ? order.orderNumber
-              : orderNumber;
-            const itemTotal = orderBooks.reduce((sum, ob) => sum + (Number(ob.price) * Number(ob.quantity)), 0);
-            const { shipping, discount, status, promo, promoApplied } = getOrderMeta(orderBooks);
-            const finalTotal = itemTotal + shipping - discount;
-
-            return (
-              <div key={orderNumber} style={{
-                marginBottom: 32,
-                background: '#fff',
-                borderRadius: 8,
-                boxShadow: '0 2px 8px rgba(0,0,0,0.06)',
-                padding: 24
-              }}>
-                <div style={{ marginBottom: 8, fontWeight: 600, fontSize: 18 }}>
-                  Order Placed On: {formatDate(order.createdAt)} <br />
-                  Order Number: <span style={{ color: '#e65100' }}>{displayOrderNumber}</span>
-                  <span style={{ marginLeft: 24, color: '#2196F3', fontWeight: 500 }}>
-                    Status: {status}
-                  </span>
-                </div>
-                <table className="styled-table">
-                  <thead>
-                    <tr>
-                      <th>Title</th>
-                      <th>Author</th>
-                      <th>Category</th>
-                      <th>Book Type</th>
-                      <th>Condition</th>
-                      <th>No. of Pages</th>
-                      <th>Price (Tk.)</th>
-                      <th>Quantity</th>
-                      <th>Seller</th>
-                      <th>Total Cost</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {orderBooks.map((ob, idx) => (
-                      <tr key={ob._id || idx}>
-                        <td>{ob.title}</td>
-                        <td>{ob.author}</td>
-                        <td>{Array.isArray(ob.category) ? ob.category.join(', ') : ob.category}</td>
-                        <td>{ob.bookType}</td>
-                        <td>{ob.condition}</td>
-                        <td>{ob.pages}</td>
-                        <td>{ob.price}</td>
-                        <td>{ob.quantity}</td>
-                        <td>{ob.sellerEmail}</td>
-                        <td>{(Number(ob.price) * Number(ob.quantity)).toFixed(2)}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                  <tfoot>
-                    <tr>
-                      <td colSpan={9} style={{ textAlign: 'right', fontWeight: 600 }}>Subtotal:</td>
-                      <td style={{ fontWeight: 700 }}>{itemTotal.toFixed(2)}</td>
-                    </tr>
-                    {/* Always show shipping row, even if 0 */}
-                    <tr>
-                      <td colSpan={9} style={{ textAlign: 'right', fontWeight: 600 }}>Shipping Charge:</td>
-                      <td style={{ fontWeight: 700 }}>{shipping.toFixed(2)}</td>
-                    </tr>
-                    {discount > 0 && (
-                      <tr>
-                        <td colSpan={9} style={{ textAlign: 'right', fontWeight: 600 }}>
-                          Discount{promoApplied && promo ? ` (${promo})` : ''}:
-                        </td>
-                        <td style={{ fontWeight: 700 }}>- {discount.toFixed(2)}</td>
-                      </tr>
+        <table className="styled-table">
+          <thead>
+            <tr>
+              <th>Title</th>
+              <th>Author</th>
+              <th>Category</th>
+              <th>Book Type</th>
+              <th>Condition</th>
+              <th>No. of Pages</th>
+              <th>Price (Tk.)</th>
+              <th>Quantity</th>
+              <th>Seller</th>
+              <th>Created at</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+          <tbody>
+            {loading ? (
+              <tr><td colSpan={11}>Loading...</td></tr>
+            ) : filteredOrders.length === 0 ? (
+              <tr><td colSpan={11}>No books purchased yet.</td></tr>
+            ) : (
+              filteredOrders.map((order, idx) => (
+                <tr key={order._id || idx}>
+                  <td>{order.title}</td>
+                  <td>{order.author}</td>
+                  <td>{Array.isArray(order.category) ? order.category.join(', ') : order.category}</td>
+                  <td>{order.bookType}</td>
+                  <td>{order.condition}</td>
+                  <td>{order.pages}</td>
+                  <td>{order.price}</td>
+                  <td>{order.quantity}</td>
+                  <td>{order.sellerEmail}</td>
+                  <td>{order.createdAt ? new Date(order.createdAt).toLocaleDateString() : ''}</td>
+                  <td>
+                    {!order.isReturned && (
+                      <button
+                        onClick={() => handleReturn(order.bookId)}
+                        style={{
+                          backgroundColor: '#f39c12',
+                          color: 'white',
+                          border: 'none',
+                          borderRadius: '3px',
+                          padding: '5px 10px',
+                          cursor: 'pointer',
+                          marginLeft: '5px'
+                        }}
+                      >
+                        Return
+                      </button>
                     )}
-                    <tr>
-                      <td colSpan={9} style={{ textAlign: 'right', fontWeight: 700, fontSize: 16 }}>Order Total:</td>
-                      <td style={{ fontWeight: 900, fontSize: 16 }}>{finalTotal.toFixed(2)}</td>
-                    </tr>
-                  </tfoot>
-                </table>
-              </div>
-            );
-          })
-        )}
+                  </td>
+                </tr>
+              ))
+            )}
+          </tbody>
+        </table>
       </div>
     </div>
   );

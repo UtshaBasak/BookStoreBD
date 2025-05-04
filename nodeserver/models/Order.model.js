@@ -28,12 +28,10 @@ const OrderSchema = new mongoose.Schema({
     ],
     default: 'Order Confirmed'
   },
-  createdAt: { type: Date, default: Date.now }
+  createdAt: { type: Date, default: Date.now },
+  isReturned: { type: Number, default: 0 },
+  defectDescription: { type: String, default: '' }
 });
 
 const Order = mongoose.model('Order', OrderSchema);
 export default Order;
-
-// --- Add below for delete by _id (for controller/route usage) ---
-// Example usage in controller:
-// await Order.findByIdAndDelete(orderId);
