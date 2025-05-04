@@ -471,7 +471,7 @@ export default function BookFilter() {
             <div style={{ flex: 1, position: 'relative', display: 'flex', alignItems: 'center' }}>
               <input
                 type="text"
-                placeholder="Search book or author"
+                placeholder="Search books or authors"
                 value={searchInput}
                 onChange={(e) => setSearchInput(e.target.value)}
                 onKeyDown={(e) => {
