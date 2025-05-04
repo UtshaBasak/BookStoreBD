@@ -64,8 +64,6 @@ app.use('/order', orderRouter);
 app.use('/return', returnRoutes);
 app.use('/purchase', purchaseRoutes);
 
-
-
 // Update stock (non-negative integer only) - ensure stock out books are removed from all carts
 app.put('/book/update-stock/:id', async (req, res) => {
   try {

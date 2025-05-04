@@ -172,7 +172,7 @@ export default function Homepage() {
         <div className="search-bar">
           <input
             type="text"
-            placeholder="Search books or authors..."
+            placeholder="Search books..."
             value={searchInput}
             onChange={e => setSearchInput(e.target.value)}
             onKeyDown={e => {

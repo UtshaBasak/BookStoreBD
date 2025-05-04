@@ -128,6 +128,19 @@ export default function SignIn() {
                         />
                     </div>
 
+                    {/* Forgot Password Link */}
+                    <div style={{ textAlign: 'right', marginBottom: '1.5rem' }}>
+                        <Link
+                            to="/forgot-password"
+                            style={{
+                                fontSize: '0.85rem',
+                                color: '#00f',
+                                textDecoration: 'underline',
+                            }}
+                        >
+                            Forgot Password?
+                        </Link>
+                    </div>
                     <button
                         type="submit"
                         style={{

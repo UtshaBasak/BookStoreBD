@@ -2,17 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { FaHome, FaHeart, FaShoppingCart } from 'react-icons/fa';
 
-// Utility to format date as dd/mm/yyyy
-function formatDate(dateStr) {
-    if (!dateStr) return '';
-    const d = new Date(dateStr);
-    if (isNaN(d)) return '';
-    const day = String(d.getDate()).padStart(2, '0');
-    const month = String(d.getMonth() + 1).padStart(2, '0');
-    const year = d.getFullYear();
-    return `${day}/${month}/${year}`;
-}
-
 export default function Profile() {
     const [profileData, setProfileData] = useState({
         email: '',
@@ -211,7 +200,7 @@ export default function Profile() {
                 </div>
                 {showIfFilled(profileData.dateOfBirth) && (
                     <div style={{ marginBottom: '1rem' }}>
-                        <p><strong>Date of Birth:</strong> {formatDate(profileData.dateOfBirth)}</p>
+                        <p><strong>Date of Birth:</strong> {new Date(profileData.dateOfBirth).toLocaleDateString()}</p>
                     </div>
                 )}
                 {showIfFilled(profileData.gender) && (
@@ -263,13 +252,7 @@ export default function Profile() {
                         </button>
                     )}
                     <button
-                        onClick={() => {
-                            if (profileMode === 'seller') {
-                                navigate('/seller-orders');
-                            } else {
-                                navigate('/buyer-orders');
-                            }
-                        }}
+                        onClick={() => {/* TODO: navigate to order list page */}}
                         style={{
                             backgroundColor: '#FF9800',
                             color: 'white',
@@ -282,22 +265,26 @@ export default function Profile() {
                     >
                         Order List
                     </button>
-                    {profileMode === 'seller' && (
-                        <button
-                            onClick={() => navigate('/seller-books')}
-                            style={{
-                                backgroundColor: '#9C27B0',
-                                color: 'white',
-                                padding: '0.5rem 1rem',
-                                border: 'none',
-                                borderRadius: '4px',
-                                cursor: 'pointer',
-                                transition: 'background-color 0.3s'
-                            }}
-                        >
-                            Book List
-                        </button>
-                    )}
+                    <button
+                        onClick={() => {
+                            if (profileMode === 'seller') {
+                                navigate('/seller-books');
+                            } else {
+                                navigate('/buyer-books');
+                            }
+                        }}
+                        style={{
+                            backgroundColor: '#9C27B0',
+                            color: 'white',
+                            padding: '0.5rem 1rem',
+                            border: 'none',
+                            borderRadius: '4px',
+                            cursor: 'pointer',
+                            transition: 'background-color 0.3s'
+                        }}
+                    >
+                        Book List
+                    </button>
                     <button
                         onClick={() => {
                             localStorage.removeItem('userEmail');

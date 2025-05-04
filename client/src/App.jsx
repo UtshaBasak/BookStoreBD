@@ -5,7 +5,7 @@ import SignUp from './pages/SignUp';
 import Payment from './pages/Payment';
 import AddBooks from './pages/AddBook';
 import AdminPanel from './pages/AdminPanel';
-import Homepage from './pages/HomePage';
+import Homepage from './pages/Homepage';
 import Profile from './pages/Profile';
 import UpdateProfile from './pages/UpdateProfile';
 import SellerBookList from './pages/SellerBookList';
@@ -13,9 +13,8 @@ import Filter from './pages/Filter';
 import Wishlist from './pages/Wishlist';
 import Cart from './pages/Cart';
 import BuyerBookList from './pages/BuyerBookList';
-import SellerOrderList from './pages/SellerOrderList';
 import DescriptionForm from './pages/Descriptionform';
-import './styles/orderTracking.css';
+
 
 // Helper: get current user email from localStorage
 const getUserEmail = () => localStorage.getItem('userEmail');
@@ -34,11 +33,13 @@ function AdminRoute({ children }) {
 function PublicOnlyRoute({ children }) {
   const userEmail = getUserEmail();
   if (userEmail) {
+    // If admin, redirect to admin panel; else, to profile
     if (userEmail === ADMIN_EMAIL) return <Navigate to="/admin/users" replace />;
     return <Navigate to="/profile" replace />;
   }
   return children;
 }
+
 
 export default function App() {
   return (
@@ -78,11 +79,10 @@ export default function App() {
         <Route path="/cart" element={<Cart />} />
         <Route path="/filter" element={<Filter />} />
         <Route path="/buyer-books" element={<BuyerBookList />} />
-        <Route path="/buyer-orders" element={<BuyerBookList />} />
-        <Route path="/seller-orders" element={<SellerOrderList />} />
-        <Route path="/description-form/:bookId" element={<DescriptionForm />} />
         {/* Always keep the 404 route last */}
         <Route path="*" element={<h1>404 Not Found</h1>} />
+        <Route path="/filter" element={<Filter />} />
+        <Route path="/description-form/:bookId" element={<DescriptionForm />} />
       </Routes>
     </BrowserRouter>
   );
