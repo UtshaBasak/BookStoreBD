@@ -37,12 +37,13 @@ export default function SellerOrderList() {
     // eslint-disable-next-line
   }, [sellerEmail]);
 
-  // Filter by search (title, author, buyer)
+  // Filter by search (title, author, buyer, or order number)
   const filteredOrders = orders.filter(
     order =>
       (order.title || '').toLowerCase().includes(search.toLowerCase()) ||
       (order.author || '').toLowerCase().includes(search.toLowerCase()) ||
-      (order.buyerEmail || '').toLowerCase().includes(search.toLowerCase())
+      (order.buyerEmail || '').toLowerCase().includes(search.toLowerCase()) ||
+      (order.orderNumber || '').toLowerCase().includes(search.toLowerCase())
   );
 
   const grouped = groupOrdersByOrderNumber(filteredOrders);
@@ -86,7 +87,7 @@ export default function SellerOrderList() {
         <h2>Your Orders (as Seller)</h2>
         <input
           type="text"
-          placeholder="Search by title, author, or buyer..."
+          placeholder="Search by title, author, buyer or order number..."
           value={search}
           onChange={e => setSearch(e.target.value)}
           style={{

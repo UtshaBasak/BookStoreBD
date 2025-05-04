@@ -36,11 +36,13 @@ export default function BookList() {
       .catch((err) => console.error('Error deleting book:', err));
   };
 
-  // Filter books by search query (title or author)
+  // Filter books by search query (title, author, or owner)
   const filteredBooks = books.filter(
     book =>
-      book.title?.toLowerCase().includes(search.toLowerCase()) ||
-      book.author?.toLowerCase().includes(search.toLowerCase())
+      (book.title?.toLowerCase().includes(search.toLowerCase()) ||
+      book.author?.toLowerCase().includes(search.toLowerCase()) ||
+      (users[book.sellerEmail]?.toLowerCase().includes(search.toLowerCase()) ||
+        (book.sellerEmail || '').toLowerCase().includes(search.toLowerCase())))
   );
 
   return (
@@ -67,7 +69,7 @@ export default function BookList() {
       <div style={{ marginBottom: 16 }}>
         <input
           type="text"
-          placeholder="Search by title or author"
+          placeholder="Search by title, author or owner"
           value={search}
           onChange={e => setSearch(e.target.value)}
           style={{ padding: 8, width: 300, borderRadius: 4, border: '1px solid #ccc' }}

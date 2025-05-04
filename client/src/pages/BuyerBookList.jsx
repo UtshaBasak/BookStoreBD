@@ -61,7 +61,8 @@ export default function BuyerBookList() {
     order =>
       (order.title || '').toLowerCase().includes(search.toLowerCase()) ||
       (order.author || '').toLowerCase().includes(search.toLowerCase()) ||
-      (order.sellerEmail || '').toLowerCase().includes(search.toLowerCase())
+      (order.sellerEmail || '').toLowerCase().includes(search.toLowerCase()) ||
+      (order.orderNumber || '').toLowerCase().includes(search.toLowerCase())
   );
 
   const grouped = groupOrdersByOrderNumber(filteredOrders);
@@ -148,7 +149,7 @@ export default function BuyerBookList() {
       <h2>Your Orders</h2>
       <input
         type="text"
-        placeholder="Search by title, author, or seller..."
+        placeholder="Search by title, author, seller or order number..."
         value={search}
         onChange={(e) => setSearch(e.target.value)}
         style={{
