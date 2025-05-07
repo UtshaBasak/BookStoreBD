@@ -7,6 +7,7 @@ export default function BuyerBookList() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [refreshing, setRefreshing] = useState(false);
+  const buyerEmail = localStorage.getItem('userEmail');
   const userEmail = localStorage.getItem('userEmail');
   const navigate = useNavigate();
 
@@ -34,18 +35,13 @@ export default function BuyerBookList() {
 
     fetchBooks();
     fetchOrders();
-  }, [userEmail]);
+    // eslint-disable-next-line
+  }, [buyerEmail]);
 
-  const handleDelete = async (id) => {
-    if (!window.confirm('Are you sure you want to delete this order record?')) return;
-    await fetch(`http://localhost:1015/order/${id}`, { method: 'DELETE' });
-    setOrders(orders => orders.filter(o => o._id !== id));
-  };
-
-  const handleReturn =  (bookId) => {
+  const handleReturn = (bookId) => {
     navigate(`/description-form/${bookId}`);
   };
-  
+
   const filteredOrders = orders.filter(
     order =>
       (order.title || '').toLowerCase().includes(search.toLowerCase()) ||
@@ -131,24 +127,21 @@ export default function BuyerBookList() {
                   <td>{order.sellerEmail}</td>
                   <td>{order.createdAt ? new Date(order.createdAt).toLocaleDateString() : ''}</td>
                   <td>
-                    
                     {!order.isReturned && (
-                    <button
-                      onClick={() => handleReturn(order.bookId)}
-                      style={{
-                        backgroundColor: '#f39c12',
-                        color: 'white',
-                        border: 'none',
-                        borderRadius: '3px',
-                        padding: '5px 10px',
-                        cursor: 'pointer',
-                        marginLeft: '5px'
-                      }}
-                    >
-                      Return
-                    </button>
-                  )}
-
+                      <button
+                        onClick={() => handleReturn(order.bookId)}
+                        style={{
+                          backgroundColor: '#f39c12',
+                          color: 'white',
+                          border: 'none',
+                          borderRadius: '3px',
+                          padding: '5px 10px',
+                          cursor: 'pointer'
+                        }}
+                      >
+                        Return
+                      </button>
+                    )}
                   </td>
                 </tr>
               ))

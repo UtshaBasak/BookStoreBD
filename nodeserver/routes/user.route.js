@@ -3,7 +3,7 @@ import bodyParser from "body-parser";
 import multer from 'multer';
 import path from 'path';
 import { signup, signin } from '../controllers/auth.controller.js';
-import { test, getUserProfile, updateUserProfile } from '../controllers/user.controller.js';
+import { test, getUserProfile, updateUserProfile, uploadDescriptionImages } from '../controllers/user.controller.js';
 import AddBook from '../models/AddBook.model.js';
 import User from '../models/user.model.js';
 
@@ -88,6 +88,30 @@ router.delete('/:id', async (req, res) => {
   } catch (error) {
     console.error('Error deleting user:', error);
     res.status(500).json({ message: 'Failed to delete user', error: error.message });
+  }
+});
+
+// Route to handle image uploads for description form
+router.post('/upload-images', upload.array('images', 10), uploadDescriptionImages);
+
+router.post('/return', upload.array('images', 10), async (req, res) => {
+  try {
+    const { bookId, userEmail, defectDescription } = req.body;
+
+    if (!bookId || !userEmail || !defectDescription) {
+      return res.status(400).json({ message: 'Book ID, user email, and description are required.' });
+    }
+
+    const images = req.files
+      ? req.files.map((file) => `data:${file.mimetype};base64,${file.buffer.toString('base64')}`)
+      : [];
+
+    console.log('Return request received:', { bookId, userEmail, defectDescription, images });
+
+    res.status(200).json({ message: 'Return request submitted successfully.' });
+  } catch (error) {
+    console.error('Error processing return request:', error);
+    res.status(500).json({ message: 'Failed to process return request.', error: error.message });
   }
 });
 
