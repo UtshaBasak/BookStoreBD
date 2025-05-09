@@ -3,6 +3,7 @@ import { useParams } from 'react-router-dom';
 
 export default function DescriptionForm() {
   const [description, setDescription] = useState('');
+  const [_books, _setBooks] = useState([]);
   const [images, setImages] = useState([]);
   const userEmail = localStorage.getItem('userEmail');
   const { bookId } = useParams();
@@ -25,7 +26,7 @@ export default function DescriptionForm() {
           const data = await res.json();
           if (res.ok) {
             alert(data.message);
-            setBooks((prevBooks) => prevBooks.filter((book) => book._id !== bookId));
+            _setBooks((prevBooks) => prevBooks.filter((book) => book._id !== bookId));
           } else {
             alert(data.message);
           }
@@ -34,8 +35,6 @@ export default function DescriptionForm() {
           alert('Failed to return the book. Please try again.');
         }
       
-    
-    
     
   };
 

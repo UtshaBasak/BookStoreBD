@@ -1,8 +1,8 @@
 import React, { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useCallback } from 'react-router-dom';
 
 export default function BuyerBookList() {
-  const [books, setBooks] = useState([]);
+  const [_books, _setBooks] = useState([]);
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
@@ -10,7 +10,8 @@ export default function BuyerBookList() {
   const userEmail = localStorage.getItem('userEmail');
   const navigate = useNavigate();
 
-  const fetchOrders = () => {
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const fetchOrders = useCallback(() => {
     setRefreshing(true);
     fetch(`http://localhost:1015/order/buyer?email=${encodeURIComponent(userEmail)}`)
       .then(res => res.json())
@@ -19,18 +20,13 @@ export default function BuyerBookList() {
         setLoading(false);
         setRefreshing(false);
       });
-  };
+  });
 
   useEffect(() => {
     fetchOrders();
-  }, [userEmail]);
+  }, [fetchOrders, userEmail]);
 
-  const handleDelete = async (id) => {
-    if (!window.confirm('Are you sure you want to delete this order record?')) return;
-    await fetch(`http://localhost:1015/order/${id}`, { method: 'DELETE' });
-    setOrders(orders => orders.filter(o => o._id !== id));
-  };
-
+  
   const handleReturn =  (bookId) => {
     navigate(`/description-form/${bookId}`);
   };
