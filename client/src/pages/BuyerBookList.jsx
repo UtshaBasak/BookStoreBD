@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { useNavigate, useCallback } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 
 export default function BuyerBookList() {
   const [_books, _setBooks] = useState([]);
@@ -10,8 +10,8 @@ export default function BuyerBookList() {
   const userEmail = localStorage.getItem('userEmail');
   const navigate = useNavigate();
 
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  const fetchOrders = useCallback(() => {
+  // Fetch orders from the server
+  const fetchOrders = () => {
     setRefreshing(true);
     fetch(`http://localhost:1015/order/buyer?email=${encodeURIComponent(userEmail)}`)
       .then(res => res.json())
@@ -20,11 +20,18 @@ export default function BuyerBookList() {
         setLoading(false);
         setRefreshing(false);
       });
-  });
+  };
+
+  // Handler for refresh button
+  const handleRefresh = () => {
+    fetchOrders();
+  };
 
   useEffect(() => {
     fetchOrders();
-  }, [fetchOrders, userEmail]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Only run once on mount
+
 
   
   const handleReturn =  (bookId) => {
@@ -39,7 +46,7 @@ export default function BuyerBookList() {
   );
 
   return (
-    <div style={{ width: '100%', minHeight: '100vh', boxSizing: 'border-box', padding: '2rem' }}>
+    <div style={{ width: '100vw', minHeight: '100vh', boxSizing: 'border-box', padding: '2rem', background: '#fff', overflowX: 'hidden' }}>
       <div style={{ marginBottom: '1rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <button
           onClick={() => navigate('/profile')}
@@ -63,7 +70,7 @@ export default function BuyerBookList() {
           style={{ padding: 8, width: 300, borderRadius: 4, border: '1px solid #ccc', marginLeft: 16 }}
         />
         <button
-          onClick={fetchOrders}
+          onClick={handleRefresh}
           disabled={refreshing}
           style={{
             backgroundColor: '#43a047',
@@ -80,7 +87,7 @@ export default function BuyerBookList() {
         </button>
       </div>
       <h2>Your Purchased Books</h2>
-      <div style={{ overflowX: 'auto' }}>
+      <div style={{ overflowX: 'auto', background: '#fff' }}>
         <table className="styled-table">
           <thead>
             <tr>
