@@ -5,7 +5,7 @@ import SignUp from './pages/SignUp';
 import Payment from './pages/Payment';
 import AddBooks from './pages/AddBook';
 import AdminPanel from './pages/AdminPanel';
-import Homepage from './pages/Homepage';
+import HomePage from './pages/HomePage';
 import Profile from './pages/Profile';
 import UpdateProfile from './pages/UpdateProfile';
 import SellerBookList from './pages/SellerBookList';
@@ -13,8 +13,10 @@ import Filter from './pages/Filter';
 import Wishlist from './pages/Wishlist';
 import Cart from './pages/Cart';
 import BuyerBookList from './pages/BuyerBookList';
+import BuyerOrderList from './pages/buyer/BuyerOrderList';
 import DescriptionForm from './pages/Descriptionform';
-
+import SellerOrderList from './pages/SellerOrderList';
+import './styles/orderTracking.css';
 
 // Helper: get current user email from localStorage
 const getUserEmail = () => localStorage.getItem('userEmail');
@@ -45,7 +47,7 @@ export default function App() {
   return (
     <BrowserRouter>
       <Routes>
-        <Route path="/" element={<Homepage />} />
+        <Route path="/" element={<HomePage />} />
         <Route
           path="/sign-in"
           element={
@@ -79,10 +81,10 @@ export default function App() {
         <Route path="/cart" element={<Cart />} />
         <Route path="/filter" element={<Filter />} />
         <Route path="/buyer-books" element={<BuyerBookList />} />
-        {/* Always keep the 404 route last */}
-        <Route path="*" element={<h1>404 Not Found</h1>} />
-        <Route path="/filter" element={<Filter />} />
+        <Route path="/buyer/orders" element={<BuyerOrderList />} />
+        <Route path="/seller-orders" element={<SellerOrderList />} />
         <Route path="/description-form/:bookId" element={<DescriptionForm />} />
+        <Route path="*" element={<h1>404 Not Found</h1>} />
       </Routes>
     </BrowserRouter>
   );

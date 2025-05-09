@@ -46,7 +46,7 @@ export default function BookList() {
   return (
     <div style={{ width: '100%', minHeight: '100vh', boxSizing: 'border-box', padding: '2rem' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-        <h2>Book List</h2>
+        <h1>Book List</h1>
         <button
           onClick={fetchData}
           disabled={loading}
@@ -102,7 +102,7 @@ export default function BookList() {
                 <td>{book.price}</td>
                 <td>{book.stock}</td>
                 <td>{users[book.sellerEmail] || book.sellerEmail}</td>
-                <td>{book.createdAt ? new Date(book.createdAt).toLocaleDateString() : ''}</td>
+                <td>{book.createdAt ? new Date(book.createdAt).toLocaleDateString('en-GB') : ''}</td>
                 <td>
                   <button onClick={() => deleteBook(book._id)}>Delete</button>
                 </td>

@@ -12,14 +12,25 @@ const OrderSchema = new mongoose.Schema({
   pages: Number,
   price: Number,
   quantity: Number,
-  createdAt: { type: Date, default: Date.now },
-  isReturned: { type: Number, default: 0 },
-  defectDescription: { type: String, default: '' },
+  orderNumber: { type: String, required: true },
+  shippingCharge: { type: Number, default: 0 },
+  discount: { type: Number, default: 0 },
+  promo: { type: String, default: '' },
+  promoApplied: { type: Boolean, default: false },
+  status: {
+    type: String,
+    enum: [
+      'Order Confirmed',
+      'Processing',
+      'Shipped',
+      'Out for Delivery',
+      'Delivered'
+    ],
+    default: 'Order Confirmed'
+  },
+  createdAt: { type: Date, default: Date.now }
 });
 
 const Order = mongoose.model('Order', OrderSchema);
 export default Order;
 
-// --- Add below for delete by _id (for controller/route usage) ---
-// Example usage in controller:
-// await Order.findByIdAndDelete(orderId);

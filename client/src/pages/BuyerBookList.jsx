@@ -22,17 +22,6 @@ export default function BuyerBookList() {
   };
 
   useEffect(() => {
-    const fetchBooks = async () => {
-      try {
-        const res = await fetch(`http://localhost:1015/api/purchases?email=${userEmail}`);
-        const data = await res.json();
-        setBooks(data);
-      } catch (error) {
-        console.error('Error fetching purchased books:', error);
-      }
-    };
-
-    fetchBooks();
     fetchOrders();
   }, [userEmail]);
 
