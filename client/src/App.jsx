@@ -15,8 +15,9 @@ import Cart from './pages/Cart';
 import BuyerBookList from './pages/BuyerBookList';
 import BuyerOrderList from './pages/buyer/BuyerOrderList';
 import DescriptionForm from './pages/Descriptionform';
-import SellerOrderList from './pages/SellerOrderList';
-import './styles/orderTracking.css';
+import BookView from './pages/BookView';
+import ChatPage from './pages/ChatPage';
+
 
 // Helper: get current user email from localStorage
 const getUserEmail = () => localStorage.getItem('userEmail');
@@ -80,11 +81,15 @@ export default function App() {
         <Route path="/wishlist" element={<Wishlist />} />
         <Route path="/cart" element={<Cart />} />
         <Route path="/filter" element={<Filter />} />
+        <Route path="/chat" element={<ChatPage />} /> 
+        <Route path="/book/:id" element={<BookView />} />
         <Route path="/buyer-books" element={<BuyerBookList />} />
         <Route path="/buyer/orders" element={<BuyerOrderList />} />
         <Route path="/seller-orders" element={<SellerOrderList />} />
         <Route path="/description-form/:bookId" element={<DescriptionForm />} />
         <Route path="*" element={<h1>404 Not Found</h1>} />
+        <Route path="/filter" element={<Filter />} />
+        <Route path="/description-form/:bookId" element={<DescriptionForm />} />
       </Routes>
     </BrowserRouter>
   );

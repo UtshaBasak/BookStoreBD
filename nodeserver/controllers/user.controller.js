@@ -4,6 +4,8 @@ import SignUp from './pages/SignUp.js';
 // import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import SignIn from './pages/SignIn.js';
 import Profile from './pages/Profile.js'; // Import Profile page
+import fs from 'fs';
+import path from 'path';
 
 export const test = (req,res) =>{
     res.json({
@@ -127,5 +129,23 @@ export const updateUserProfile = async (req, res) => {
             }
         }
         res.status(500).json({ message: 'Server error', error: error.message });
+    }
+};
+
+export const uploadDescriptionImages = async (req, res) => {
+    try {
+        if (!req.files || req.files.length === 0) {
+            return res.status(400).json({ message: 'No images uploaded' });
+        }
+
+        const uploadedImages = req.files.map(file => {
+            const base64Image = `data:${file.mimetype};base64,${file.buffer.toString('base64')}`;
+            return base64Image;
+        });
+
+        res.status(200).json({ message: 'Images uploaded successfully', images: uploadedImages });
+    } catch (error) {
+        console.error('Error uploading images:', error);
+        res.status(500).json({ message: 'Failed to upload images', error });
     }
 };

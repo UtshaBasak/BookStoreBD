@@ -8,7 +8,6 @@ import Bookdetails from './bookdetails.model.js';
 import AddBook from './models/AddBook.model.js';
 import Cart from './models/Cart.model.js';
 import { Cart_clear } from './controllers/cart.controller.js';
- 
 
 // MongoDB connection
 import mongoose from 'mongoose';
@@ -47,6 +46,7 @@ import filterRouter from './routes/filter.route.js';
 import wishlistRouter from './routes/wishlist.route.js';
 import cartRouter from './routes/cart.route.js';
 import orderRouter from './routes/order.route.js';
+import chatRouter from './routes/chat.routes.js';
 import returnRoutes from './routes/return.route.js';
 import purchaseRoutes from './routes/purchase.route.js';
 
@@ -61,6 +61,7 @@ app.use('/filter', filterRouter);
 app.use('/wishlist', wishlistRouter);
 app.use('/cart', cartRouter);
 app.use('/order', orderRouter);
+app.use('/chat', chatRouter);
 app.use('/return', returnRoutes);
 app.use('/purchase', purchaseRoutes);
 
@@ -140,4 +141,31 @@ app.use((err,req,res,next) => {
 });
 
 const port = 1015;
-app.listen(port,()=> console.log(`Listening on port ${port}...`));
+const server = app.listen(port,()=> console.log(`Listening on port ${port}...`));
+ 
+// Socket.IO setup
+import { Server } from 'socket.io';
+const io = new Server(server, {
+  cors: {
+    origin: 'http://localhost:5173',
+    methods: ['GET', 'POST'],
+  },
+});
+
+io.on('connection', (socket) => {
+  console.log('User connected:', socket.id);
+
+  socket.on('join_chat', (room) => {
+    socket.join(room);
+    console.log(`User ${socket.id} joined room: ${room}`);
+  });
+
+  socket.on('send_message', (data) => {
+    console.log('Message sent to room:', data.room);
+    socket.to(data.room).emit('receive_message', data);
+  });
+
+  socket.on('disconnect', () => {
+    console.log('User disconnected:', socket.id);
+  });
+});

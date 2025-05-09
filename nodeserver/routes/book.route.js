@@ -1,5 +1,6 @@
 import express from 'express';
 import AddBook from '../models/AddBook.model.js';
+import { getBookById } from '../controllers/book.controller.js';
 
 const router = express.Router();
 
@@ -77,5 +78,8 @@ router.delete('/:id', async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 });
+
+// Update this route to use the controller
+router.get('/:id', getBookById);
 
 export default router;

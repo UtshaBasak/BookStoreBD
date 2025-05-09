@@ -7,6 +7,7 @@ export default function BuyerBookList() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [refreshing, setRefreshing] = useState(false);
+  const buyerEmail = localStorage.getItem('userEmail');
   const userEmail = localStorage.getItem('userEmail');
   const navigate = useNavigate();
 
@@ -29,12 +30,10 @@ export default function BuyerBookList() {
 
   useEffect(() => {
     fetchOrders();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []); // Only run once on mount
+    // eslint-disable-next-line
+  }, [buyerEmail]);
 
-
-  
-  const handleReturn =  (bookId) => {
+  const handleReturn = (bookId) => {
     navigate(`/description-form/${bookId}`);
   };
   
