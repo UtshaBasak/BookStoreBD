@@ -117,7 +117,7 @@ export default function DescriptionForm() {
             onChange={handleImageUpload}
             style={{ marginBottom: '1rem', width: '100%' }}
           />
-          <button
+          {/* <button
             type="submit"
             style={{
               backgroundColor: '#2196F3',
@@ -130,7 +130,7 @@ export default function DescriptionForm() {
             }}
           >
             Images Upload
-          </button>
+          </button> */}
         </form>
 
         {/* Form for writing a description */}
