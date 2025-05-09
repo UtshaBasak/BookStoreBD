@@ -591,7 +591,9 @@ export default function BookFilter() {
                       gap: '1.5rem',
                       position: 'relative',
                       minHeight: 180,
+                      cursor: 'pointer'
                     }}
+                    onClick={() => navigate(`/book/${book._id}`)}
                   >
                     {/* Book Image with sticker */}
                     <div style={{ position: 'relative', width: 100, height: 150 }}>
@@ -650,7 +652,10 @@ export default function BookFilter() {
                       <div style={{ display: 'flex', gap: 12, marginTop: 8 }}>
                         {/* Wishlist toggle */}
                         <button
-                          onClick={() => handleToggleWishlist(book._id)}
+                          onClick={(e) => {
+                            e.stopPropagation(); // Add this
+                            handleToggleWishlist(book._id);
+                          }}
                           style={{
                             background: isInWishlist ? '#e65100' : '#fff',
                             color: isInWishlist ? '#fff' : '#e65100',
@@ -687,7 +692,10 @@ export default function BookFilter() {
                           </span>
                         ) : (
                           <button
-                            onClick={() => handleToggleCart(book._id)}
+                            onClick={(e) => {
+                              e.stopPropagation(); // Add this
+                              handleToggleCart(book._id);
+                            }}
                             style={{
                               background: isInCart ? '#e65100' : '#fff',
                               color: isInCart ? '#fff' : '#e65100',
