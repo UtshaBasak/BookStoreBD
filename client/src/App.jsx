@@ -14,6 +14,8 @@ import Wishlist from './pages/Wishlist';
 import Cart from './pages/Cart';
 import BuyerBookList from './pages/BuyerBookList';
 import DescriptionForm from './pages/Descriptionform';
+import BookView from './pages/BookView';
+import ChatPage from './pages/ChatPage';
 
 
 // Helper: get current user email from localStorage
@@ -78,6 +80,8 @@ export default function App() {
         <Route path="/wishlist" element={<Wishlist />} />
         <Route path="/cart" element={<Cart />} />
         <Route path="/filter" element={<Filter />} />
+        <Route path="/chat" element={<ChatPage />} /> 
+        <Route path="/book/:id" element={<BookView />} />
         <Route path="/buyer-books" element={<BuyerBookList />} />
         {/* Always keep the 404 route last */}
         <Route path="*" element={<h1>404 Not Found</h1>} />
