@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { FaChevronLeft, FaChevronRight, FaHeart, FaRegHeart, FaBell } from 'react-icons/fa';
+import { FaChevronLeft, FaChevronRight, FaHeart, FaRegHeart, FaBell, FaComments } from 'react-icons/fa';
 import './Homepage.css';
 
 const genres = [
@@ -128,11 +128,18 @@ export default function Homepage() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email: userEmail })
     })
-      .then(res => res.json())
+      .then(res => {
+        if (!res.ok) throw new Error('Failed to update cart');
+        return res.json();
+      })
       .then(data => {
         const cartMap = {};
         data.forEach(book => { cartMap[book._id] = true; });
         setCart(cartMap);
+      })
+      .catch(error => {
+        console.error('Cart operation failed:', error);
+        alert('Failed to update cart. Please try again.');
       });
   };
 
@@ -182,6 +189,20 @@ export default function Homepage() {
           <button onClick={handleHomepageSearch}>Search</button>
         </div>
         <div className="user-options" style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: '1.5rem' }}>
+          
+        {user && (
+            <span
+              className="chat-icon"
+              style={{ cursor: 'pointer', marginRight: '0.5rem', fontSize: 22, color: '#8B6F6F', display: 'inline-flex', alignItems: 'center' }}
+              onClick={() => navigate('/chat')}
+              title="Chat"
+              tabIndex={0}
+              aria-label="Chat"
+            >
+              <FaComments />
+            </span>
+          )}
+          
           <span
             className="notification-icon"
             style={{ cursor: 'pointer', marginRight: '0.5rem', fontSize: 22, color: '#8B6F6F', display: 'inline-flex', alignItems: 'center' }}
@@ -192,6 +213,7 @@ export default function Homepage() {
           >
             <FaBell />
           </span>
+
           <span
             className="wishlist-icon"
             style={{ cursor: 'pointer', marginRight: '0.5rem', fontSize: 22, color: '#e65100', display: 'inline-flex', alignItems: 'center' }}
@@ -483,8 +505,10 @@ export default function Homepage() {
                   width: 220,
                   marginRight: 24,
                   position: 'relative',
-                  zIndex: 0
+                  zIndex: 0,
+                  cursor: 'pointer'
                 }}
+                onClick={() => navigate(`/book/${book._id}`)}
               >
                 <div className="book-image" style={{ position: 'relative', width: '100%', height: 200, zIndex: 0 }}>
                   <img
@@ -516,7 +540,10 @@ export default function Homepage() {
                   </div>
                   {user && (
                     <span
-                      onClick={() => toggleWishlist(book._id)}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        toggleWishlist(book._id);
+                      }}
                       style={{
                         position: 'absolute',
                         top: 8,
@@ -569,7 +596,10 @@ export default function Homepage() {
                           padding: '0.3rem 0.8rem',
                           cursor: 'pointer'
                         }}
-                        onClick={() => toggleCart(book._id)}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          toggleCart(book._id);
+                        }}
                       >
                         {cart[book._id] ? 'Remove from Cart' : 'Add to Cart'}
                       </button>
