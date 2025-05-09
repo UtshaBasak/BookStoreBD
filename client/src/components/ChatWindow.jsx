@@ -13,14 +13,14 @@ export default function ChatWindow({ receiver, receiverName, onClose }) {
 
   useEffect(() => {
     // Connect to Socket.IO
-    socketRef.current = io('http://localhost:4000');
+    socketRef.current = io('http://localhost:1015');
     
     // Join chat room
     const room = [userEmail, receiver].sort().join('-');
     socketRef.current.emit('join_chat', room);
 
     // Load chat history
-    fetch(`http://localhost:4000/chat/messages?sender=${userEmail}&receiver=${receiver}`)
+    fetch(`http://localhost:1015/chat/messages?sender=${userEmail}&receiver=${receiver}`)
       .then(res => res.json())
       .then(data => {
         if (Array.isArray(data)) {
@@ -60,7 +60,7 @@ export default function ChatWindow({ receiver, receiverName, onClose }) {
             formData.append('image', selectedImage);
         }
 
-        const res = await fetch('http://localhost:4000/chat/message', {
+        const res = await fetch('http://localhost:1015/chat/message', {
             method: 'POST',
             body: formData
         });
