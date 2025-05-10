@@ -37,11 +37,17 @@ export default function BookList() {
   };
 
   // Filter books by search query (title or author)
-  const filteredBooks = books.filter(
-    book =>
-      book.title?.toLowerCase().includes(search.toLowerCase()) ||
-      book.author?.toLowerCase().includes(search.toLowerCase())
+  const filteredBooks = books.filter(book => {
+  const searchLower = search.toLowerCase();
+  const sellerName = users[book.sellerEmail]?.toLowerCase() || '';
+  const sellerEmail = book.sellerEmail?.toLowerCase() || '';
+  return (
+    book.title?.toLowerCase().includes(searchLower) ||
+    book.author?.toLowerCase().includes(searchLower) ||
+    sellerName.includes(searchLower) ||
+    sellerEmail.includes(searchLower)
   );
+});
 
   return (
     <div style={{ width: '100%', minHeight: '100vh', boxSizing: 'border-box', padding: '2rem' }}>
@@ -67,13 +73,13 @@ export default function BookList() {
       <div style={{ marginBottom: 16 }}>
         <input
           type="text"
-          placeholder="Search by title or author"
+          placeholder="Search by title, author, or seller..."
           value={search}
           onChange={e => setSearch(e.target.value)}
           style={{ padding: 8, width: 300, borderRadius: 4, border: '1px solid #ccc' }}
         />
       </div>
-      <h2 style={{ marginTop: '2rem', marginBottom: '1rem' }}>Purchased Books</h2>
+
       <div style={{ overflowX: 'auto' }}>
         <table className="styled-table">
   <thead>

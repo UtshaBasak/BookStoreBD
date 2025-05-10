@@ -1,12 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 
-function generateOrderNumber() {
-  const ts = Date.now().toString();
-  const rand = Math.floor(Math.random() * 1e8).toString().padStart(8, '0');
-  return (ts + rand).slice(0, 16);
-}
-
 const PROMO_CODE = 'BookStore';
 const PROMO_DISCOUNT = 50.00;
 
@@ -250,12 +244,6 @@ export default function Payment() {
       return;
     }
 
-    let newOrderNumber = orderNumber;
-    if (!orderNumber) {
-      newOrderNumber = generateOrderNumber();
-      setOrderNumber(newOrderNumber);
-    }
-
     // Always use the current UI quantities for the books in cart
     const latestCartBooks = [...cartBooks];
     const latestQuantities = {};
@@ -268,7 +256,7 @@ export default function Payment() {
       'confirmedOrder',
       JSON.stringify({
         email: user.email,
-        orderNumber: newOrderNumber,
+        // orderNumber is now set by backend and returned after confirmation,
         division,
         district,
         address,
@@ -280,7 +268,6 @@ export default function Payment() {
       })
     );
 
-    setOrderNumber(newOrderNumber);
     setCartBooks(latestCartBooks);
     setQuantities(latestQuantities);
     setOrderConfirmed(true);
@@ -294,8 +281,16 @@ export default function Payment() {
           bookId: book._id,
           quantity: latestQuantities[book._id] || 1
         })),
-        email: user.email
+        email: user.email,
+        shippingCharge: shipping,
+        discount: discount,
+        promo: promo,
+        promoApplied: promoApplied
       })
+    })
+    .then(res => res.json())
+    .then(data => {
+      if (data.orderNumber) setOrderNumber(data.orderNumber);
     });
 
     // Clear the cart for the user after order confirmation

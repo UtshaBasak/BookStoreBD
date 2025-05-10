@@ -11,8 +11,6 @@ export default function BookView() {
     const [showDropdown, setShowDropdown] = useState(false);
     const [wishlist, setWishlist] = useState({});
     const [cart, setCart] = useState({});
-    const [quantity, setQuantity] = useState(1);
-    const [availableStock, setAvailableStock] = useState(0);
     const [searchQuery, setSearchQuery] = useState('');
     const [showChat, setShowChat] = useState(false);
     const [sellerInfo, setSellerInfo] = useState(null);
@@ -35,7 +33,6 @@ export default function BookView() {
                 const data = await response.json();
                 console.log('Fetched book:', data); // Debug log
                 setBook(data);
-                setAvailableStock(data.stock || 0);
             } catch (err) {
                 console.error('Error:', err);
                 setError(err.message);
@@ -196,18 +193,6 @@ export default function BookView() {
         if (/^https?:\/\//.test(img)) return img;
         return `http://localhost:1015/uploads/${img}`;
     };
-
-    const handleSearch = async (e) => {
-        e.preventDefault();
-        try {
-            const res = await fetch(`http://localhost:1015/filter/search?query=${searchQuery}`);
-            const data = await res.json();
-            navigate('/', { state: { searchResults: data } });
-        } catch (error) {
-            console.error('Search error:', error);
-        }
-    };
-
     if (loading) {
         return <div style={{ textAlign: 'center', padding: '2rem' }}>Loading...</div>;
     }
@@ -239,7 +224,7 @@ export default function BookView() {
                 <div className="search-bar">
                     <input
                         type="text"
-                        placeholder="Search books..."
+                        placeholder="Search books or authors..."
                         value={searchQuery}
                         onChange={e => setSearchQuery(e.target.value)}
                         onKeyDown={e => {

@@ -42,7 +42,9 @@ export default function SellerOrderList() {
     order =>
       (order.title || '').toLowerCase().includes(search.toLowerCase()) ||
       (order.author || '').toLowerCase().includes(search.toLowerCase()) ||
-      (order.buyerEmail || '').toLowerCase().includes(search.toLowerCase())
+      (order.buyerEmail || '').toLowerCase().includes(search.toLowerCase()) ||
+      (order.orderNumber && order.orderNumber.toString().toLowerCase().includes(search.toLowerCase())) ||
+      (order._id && order._id.toString().toLowerCase().includes(search.toLowerCase()))
   );
 
   const grouped = groupOrdersByOrderNumber(filteredOrders);
@@ -86,7 +88,7 @@ export default function SellerOrderList() {
         <h2>Your Orders (as Seller)</h2>
         <input
           type="text"
-          placeholder="Search by title, author, or buyer..."
+          placeholder="Search by order number, title, author, or buyer..."
           value={search}
           onChange={e => setSearch(e.target.value)}
           style={{

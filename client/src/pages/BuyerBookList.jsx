@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 export default function BuyerBookList() {
-  const [books, setBooks] = useState([]);
+  const [_books, _setBooks] = useState([]);
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
@@ -68,7 +68,7 @@ export default function BuyerBookList() {
         </button>
         <input
           type="text"
-          placeholder="Search by title, author, or seller"
+          placeholder="Search by title, author, or seller..."
           value={search}
           onChange={e => setSearch(e.target.value)}
           style={{ padding: 8, width: 300, borderRadius: 4, border: '1px solid #ccc', marginLeft: 16 }}

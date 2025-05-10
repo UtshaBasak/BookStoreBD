@@ -87,7 +87,7 @@ export default function UserManagement() {
       <div style={{ marginBottom: 16 }}>
         <input
           type="text"
-          placeholder="Search by username or email"
+          placeholder="Search by username or email..."
           value={search}
           onChange={e => setSearch(e.target.value)}
           style={{ padding: 8, width: 300, borderRadius: 4, border: '1px solid #ccc' }}

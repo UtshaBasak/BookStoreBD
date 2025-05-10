@@ -109,32 +109,6 @@ export default function ChatPage() {
         }
     };
 
-    const deleteConversation = async (userToDelete) => {
-        if (!window.confirm('Are you sure you want to delete this conversation?')) return;
-        
-        try {
-            const response = await fetch('http://localhost:1015/chat/delete', {
-                method: 'DELETE',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    user1: userEmail,
-                    user2: userToDelete.email
-                })
-            });
-
-            if (response.ok) {
-                setConversations(prev => 
-                    prev.filter(conv => conv.email !== userToDelete.email)
-                );
-                if (selectedUser?.email === userToDelete.email) {
-                    setSelectedUser(null);
-                    setMessages([]);
-                }
-            }
-        } catch (err) {
-            console.error('Error deleting conversation:', err);
-        }
-    };
 
     return (
         <div style={{ 
@@ -273,7 +247,6 @@ export default function ChatPage() {
                     boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
                     display: 'flex',
                     flexDirection: 'column',
-                    minWidth: '1000px',
                     height: 'calc(100vh - 150px)',
                     maxHeight: 'calc(100vh - 150px)'
                 }}>
