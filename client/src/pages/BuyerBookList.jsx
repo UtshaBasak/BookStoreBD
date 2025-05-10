@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 export default function BuyerBookList() {
-  const [_books, _setBooks] = useState([]);
+  const [books, setBooks] = useState([]);
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
@@ -34,6 +34,11 @@ export default function BuyerBookList() {
   }, [buyerEmail]);
 
   const handleReturn = (bookId) => {
+    setOrders(prevOrders =>
+      prevOrders.map(order =>
+        order.bookId === bookId ? { ...order, isReturned: true } : order
+      )
+    );
     navigate(`/description-form/${bookId}`);
   };
   

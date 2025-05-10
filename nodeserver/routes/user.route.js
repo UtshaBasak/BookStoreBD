@@ -94,25 +94,4 @@ router.delete('/:id', async (req, res) => {
 // Route to handle image uploads for description form
 router.post('/upload-images', upload.array('images', 10), uploadDescriptionImages);
 
-router.post('/return', upload.array('images', 10), async (req, res) => {
-  try {
-    const { bookId, userEmail, defectDescription } = req.body;
-
-    if (!bookId || !userEmail || !defectDescription) {
-      return res.status(400).json({ message: 'Book ID, user email, and description are required.' });
-    }
-
-    const images = req.files
-      ? req.files.map((file) => `data:${file.mimetype};base64,${file.buffer.toString('base64')}`)
-      : [];
-
-    console.log('Return request received:', { bookId, userEmail, defectDescription, images });
-
-    res.status(200).json({ message: 'Return request submitted successfully.' });
-  } catch (error) {
-    console.error('Error processing return request:', error);
-    res.status(500).json({ message: 'Failed to process return request.', error: error.message });
-  }
-});
-
 export default router;

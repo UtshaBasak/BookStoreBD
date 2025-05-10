@@ -12,6 +12,8 @@ const OrderSchema = new mongoose.Schema({
   pages: Number,
   price: Number,
   quantity: Number,
+  isReturned: { type: Number, default: 0 },
+  defectDescription: { type: String, default: '' },
   createdAt: { type: Date, default: Date.now },
 });
 
