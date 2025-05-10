@@ -107,7 +107,7 @@ export default function UserManagement() {
             <tr key={user._id}>
               <td>{user.username}</td>
               <td>{user.email}</td>
-              <td>{new Date(user.createdAt).toLocaleDateString()}</td>
+              <td>{user.createdAt ? new Date(user.createdAt).toLocaleDateString('en-GB') : ''}</td>
               <td>
                 <button onClick={() => deleteUser(user._id)}>Delete</button>
               </td>

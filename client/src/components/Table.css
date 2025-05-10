@@ -3,6 +3,7 @@
     width: 100%;
     border-collapse: collapse;
     margin-top: 20px;
+    background-color: #fff;
   }
   
   .styled-table thead {
@@ -14,6 +15,19 @@
     padding: 10px;
     text-align: left;
     border: 1px solid #ddd;
+  }
+  
+  .styled-table th {
+    background-color: #34495e;
+    color: #fff;
+  }
+  
+  .styled-table tbody {
+    background-color: #fff;
+  }
+  
+  .styled-table tbody tr {
+    background-color: #fff;
   }
   
   .styled-table tbody tr:nth-child(even) {

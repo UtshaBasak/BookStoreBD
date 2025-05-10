@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 export default function BuyerBookList() {
-  const [books, setBooks] = useState([]);
+  const [_books, _setBooks] = useState([]);
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
@@ -11,6 +11,7 @@ export default function BuyerBookList() {
   const userEmail = localStorage.getItem('userEmail');
   const navigate = useNavigate();
 
+  // Fetch orders from the server
   const fetchOrders = () => {
     setRefreshing(true);
     fetch(`http://localhost:1015/order/buyer?email=${encodeURIComponent(userEmail)}`)
@@ -22,18 +23,12 @@ export default function BuyerBookList() {
       });
   };
 
-  useEffect(() => {
-    const fetchBooks = async () => {
-      try {
-        const res = await fetch(`http://localhost:1015/api/purchases?email=${userEmail}`);
-        const data = await res.json();
-        setBooks(data);
-      } catch (error) {
-        console.error('Error fetching purchased books:', error);
-      }
-    };
+  // Handler for refresh button
+  const handleRefresh = () => {
+    fetchOrders();
+  };
 
-    fetchBooks();
+  useEffect(() => {
     fetchOrders();
     // eslint-disable-next-line
   }, [buyerEmail]);
@@ -41,7 +36,7 @@ export default function BuyerBookList() {
   const handleReturn = (bookId) => {
     navigate(`/description-form/${bookId}`);
   };
-
+  
   const filteredOrders = orders.filter(
     order =>
       (order.title || '').toLowerCase().includes(search.toLowerCase()) ||
@@ -50,7 +45,7 @@ export default function BuyerBookList() {
   );
 
   return (
-    <div style={{ width: '100%', minHeight: '100vh', boxSizing: 'border-box', padding: '2rem' }}>
+    <div style={{ width: '100vw', minHeight: '100vh', boxSizing: 'border-box', padding: '2rem', background: '#fff', overflowX: 'hidden' }}>
       <div style={{ marginBottom: '1rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <button
           onClick={() => navigate('/profile')}
@@ -74,7 +69,7 @@ export default function BuyerBookList() {
           style={{ padding: 8, width: 300, borderRadius: 4, border: '1px solid #ccc', marginLeft: 16 }}
         />
         <button
-          onClick={fetchOrders}
+          onClick={handleRefresh}
           disabled={refreshing}
           style={{
             backgroundColor: '#43a047',
@@ -91,7 +86,7 @@ export default function BuyerBookList() {
         </button>
       </div>
       <h2>Your Purchased Books</h2>
-      <div style={{ overflowX: 'auto' }}>
+      <div style={{ overflowX: 'auto', background: '#fff' }}>
         <table className="styled-table">
           <thead>
             <tr>
@@ -127,21 +122,24 @@ export default function BuyerBookList() {
                   <td>{order.sellerEmail}</td>
                   <td>{order.createdAt ? new Date(order.createdAt).toLocaleDateString() : ''}</td>
                   <td>
+                    
                     {!order.isReturned && (
-                      <button
-                        onClick={() => handleReturn(order.bookId)}
-                        style={{
-                          backgroundColor: '#f39c12',
-                          color: 'white',
-                          border: 'none',
-                          borderRadius: '3px',
-                          padding: '5px 10px',
-                          cursor: 'pointer'
-                        }}
-                      >
-                        Return
-                      </button>
-                    )}
+                    <button
+                      onClick={() => handleReturn(order.bookId)}
+                      style={{
+                        backgroundColor: '#f39c12',
+                        color: 'white',
+                        border: 'none',
+                        borderRadius: '3px',
+                        padding: '5px 10px',
+                        cursor: 'pointer',
+                        marginLeft: '5px'
+                      }}
+                    >
+                      Return
+                    </button>
+                  )}
+
                   </td>
                 </tr>
               ))

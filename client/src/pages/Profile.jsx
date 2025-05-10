@@ -252,7 +252,13 @@ export default function Profile() {
                         </button>
                     )}
                     <button
-                        onClick={() => {/* TODO: navigate to order list page */}}
+                        onClick={() => {
+                            if (profileMode === 'seller') {
+                                navigate('/seller-orders');
+                            } else {
+                                navigate('/buyer/orders');
+                            }
+                        }}
                         style={{
                             backgroundColor: '#FF9800',
                             color: 'white',

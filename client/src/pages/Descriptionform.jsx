@@ -3,6 +3,7 @@ import { useParams } from 'react-router-dom';
 
 export default function DescriptionForm() {
   const [description, setDescription] = useState('');
+  const [_books, _setBooks] = useState([]);
   const [images, setImages] = useState([]);
   const userEmail = localStorage.getItem('userEmail');
   const { bookId } = useParams();

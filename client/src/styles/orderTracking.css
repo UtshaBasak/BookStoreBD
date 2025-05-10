@@ -1,0 +1,84 @@
+.order-tracking-container {
+    max-width: 600px;
+    margin: 2rem auto;
+    background: #fff;
+    border-radius: 12px;
+    box-shadow: 0 2px 16px rgba(0,0,0,0.08);
+    padding: 2rem 2.5rem;
+  }
+  
+  .order-info {
+    margin-bottom: 2rem;
+    font-size: 1.1rem;
+    color: #333;
+  }
+  
+  .tracking-stages {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin: 2rem 0;
+  }
+  
+  .stage {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    flex: 1;
+    position: relative;
+    color: #bbb;
+  }
+  
+  .stage-dot {
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: #bbb;
+    margin-bottom: 0.5rem;
+    border: 2px solid #bbb;
+    transition: background 0.3s, border 0.3s;
+  }
+  
+  .stage.active {
+    color: #43a047;
+  }
+  
+  .stage.active .stage-dot {
+    background: #43a047;
+    border-color: #43a047;
+  }
+  
+  .stage-label {
+    font-size: 0.95rem;
+    font-weight: 600;
+    text-align: center;
+  }
+  
+  .stage:not(:last-child)::after {
+    content: '';
+    position: absolute;
+    top: 8px;
+    right: -50%;
+    width: 100%;
+    height: 4px;
+    background: #bbb;
+    z-index: 0;
+  }
+  
+  .stage.active:not(:last-child)::after {
+    background: #43a047;
+  }
+  
+  .order-card {
+    background: #f9f9f9;
+    border-radius: 8px;
+    box-shadow: 0 1px 6px rgba(0,0,0,0.06);
+    margin: 1rem 0;
+    padding: 1.2rem 1.5rem;
+    font-size: 1.05rem;
+    color: #222;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+  
