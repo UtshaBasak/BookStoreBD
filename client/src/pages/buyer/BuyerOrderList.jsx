@@ -38,12 +38,13 @@ export default function BuyerOrderList() {
     // eslint-disable-next-line
   }, [userEmail]);
 
-  // Filter by search (title, author, seller)
+  // Filter by search (title, author, seller, order number)
   const filteredOrders = orders.filter(
     order =>
       (order.title || '').toLowerCase().includes(search.toLowerCase()) ||
       (order.author || '').toLowerCase().includes(search.toLowerCase()) ||
-      (order.sellerEmail || '').toLowerCase().includes(search.toLowerCase())
+      (order.sellerEmail || '').toLowerCase().includes(search.toLowerCase()) ||
+      (order.orderNumber || '').toLowerCase().includes(search.toLowerCase())
   );
 
   const grouped = groupOrdersByOrderNumber(filteredOrders);
@@ -87,7 +88,7 @@ export default function BuyerOrderList() {
         <h2>Your Orders (as Buyer)</h2>
         <input
           type="text"
-          placeholder="Search by title, author, or seller..."
+          placeholder="Search by order number, title, author or seller..."
           value={search}
           onChange={e => setSearch(e.target.value)}
           style={{
@@ -107,7 +108,7 @@ export default function BuyerOrderList() {
           ) : (
             Object.entries(grouped).map(([orderNumber, orderBooks]) => {
               const order = orderBooks[0];
-              const shippingCost = order.shippingCost || 0;
+              const shippingCost = order.shippingCharge || 0;
               const discount = order.discount || 0;
               const booksTotal = orderBooks.reduce((sum, ob) => sum + (Number(ob.price) * Number(ob.quantity)), 0);
               const totalCost = booksTotal + Number(shippingCost) - Number(discount);

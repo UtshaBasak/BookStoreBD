@@ -113,7 +113,7 @@ export default function SellerBookList() {
         {/* Search bar */}
         <input
           type="text"
-          placeholder="Search by title or author"
+          placeholder="Search by title or author..."
           value={search}
           onChange={e => setSearch(e.target.value)}
           style={{ padding: 8, width: 300, borderRadius: 4, border: '1px solid #ccc', marginLeft: 16 }}

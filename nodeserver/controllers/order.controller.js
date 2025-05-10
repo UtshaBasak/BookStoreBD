@@ -2,10 +2,29 @@ import AddBook from '../models/AddBook.model.js';
 import Order from '../models/Order.model.js';
 import Purchase from '../models/Purchase.model.js';
 
+// Generate a unique 16-character order number (uppercase letters and numbers)
+async function generateUniqueOrderNumber() {
+  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+  let orderNumber;
+  let exists = true;
+  while (exists) {
+    orderNumber = '';
+    for (let i = 0; i < 16; i++) {
+      orderNumber += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    // Check if this orderNumber already exists
+    exists = await Order.exists({ orderNumber });
+  }
+  return orderNumber;
+}
+
 export const decreaseStock = async (req, res) => {
   try {
-    const { items, email, orderNumber, shippingCharge, discount, promo, promoApplied } = req.body;
+    const { items, email, shippingCharge, discount, promo, promoApplied } = req.body;
     if (!Array.isArray(items)) return res.status(400).json({ message: 'Invalid items' });
+
+    // Generate unique order number
+    const orderNumber = await generateUniqueOrderNumber();
 
     // Save order(s)
     for (const item of items) {
@@ -14,6 +33,7 @@ export const decreaseStock = async (req, res) => {
       const book = await AddBook.findById(bookId);
       if (!book) continue;
       await Order.create({
+        orderNumber, // save the same orderNumber for all books in this order
         buyerEmail: email,
         sellerEmail: book.sellerEmail,
         bookId: book._id,
@@ -25,7 +45,6 @@ export const decreaseStock = async (req, res) => {
         pages: book.pages,
         price: book.price,
         quantity,
-        orderNumber, // save the same orderNumber for all books in this order
         shippingCharge: typeof shippingCharge === 'number' ? shippingCharge : 0,
         discount: typeof discount === 'number' ? discount : 0,
         promo: promo || '',
@@ -38,7 +57,7 @@ export const decreaseStock = async (req, res) => {
         { $inc: { stock: -quantity } }
       );
     }
-    res.status(200).json({ message: 'Stock updated & order saved' });
+    res.status(200).json({ message: 'Stock updated & order saved', orderNumber });
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
@@ -147,4 +166,3 @@ export const getAllOrders = async (req, res) => {
     res.status(500).json({ message: err.message || 'Internal Server Error' });
   }
 };
-

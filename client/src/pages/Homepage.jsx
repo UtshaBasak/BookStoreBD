@@ -179,7 +179,7 @@ export default function Homepage() {
         <div className="search-bar">
           <input
             type="text"
-            placeholder="Search books..."
+            placeholder="Search books or authors..."
             value={searchInput}
             onChange={e => setSearchInput(e.target.value)}
             onKeyDown={e => {
@@ -442,7 +442,7 @@ export default function Homepage() {
       </div>
 
       <section className="popular-section">
-        <h2>Most Popular</h2>
+        <h2>Latest Books</h2>
         <div style={{ position: 'relative', width: '100%', zIndex: 0 }}>
           <button
             onClick={handleScrollLeft}
