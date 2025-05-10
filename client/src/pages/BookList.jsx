@@ -73,23 +73,24 @@ export default function BookList() {
           style={{ padding: 8, width: 300, borderRadius: 4, border: '1px solid #ccc' }}
         />
       </div>
+      <h2 style={{ marginTop: '2rem', marginBottom: '1rem' }}>Purchased Books</h2>
       <div style={{ overflowX: 'auto' }}>
         <table className="styled-table">
-          <thead>
-            <tr>
-              <th>Title</th>
-              <th>Author</th>
-              <th>Category</th>
-              <th>Book Type</th>
-              <th>Condition</th>
-              <th>No. of Pages</th>
-              <th>Price (Tk)</th>
-              <th>Stock</th>
-              <th>Owner</th>
-              <th>Created at</th>
-              <th>Actions</th>
-            </tr>
-          </thead>
+  <thead>
+    <tr>
+      <th>Title</th>
+      <th>Author</th>
+      <th>Category</th>
+      <th>Book Type</th>
+      <th>Condition</th>
+      <th>No. of Pages</th>
+      <th>Price (Tk)</th>
+      <th>Stock</th>
+      <th>Owner</th>
+      <th>Created at</th>
+      <th>Actions</th>
+    </tr>
+  </thead>
           <tbody>
             {filteredBooks.map((book) => (
               <tr key={book._id}>

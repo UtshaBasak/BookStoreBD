@@ -130,20 +130,21 @@ export default function BuyerOrderList() {
                     </span>
                   </div>
                   <table className="styled-table">
-                    <thead>
-                      <tr>
-                        <th>Title</th>
-                        <th>Author</th>
-                        <th>Category</th>
-                        <th>Book Type</th>
-                        <th>Condition</th>
-                        <th>No. of Pages</th>
-                        <th>Price (Tk.)</th>
-                        <th>Quantity</th>
-                        <th>Seller</th>
-                        <th>Total Cost</th>
-                      </tr>
-                    </thead>
+  <thead>
+    <tr>
+      <th>Title</th>
+      <th>Author</th>
+      <th>Category</th>
+      <th>Book Type</th>
+      <th>Condition</th>
+      <th>No. of Pages</th>
+      <th>Price (Tk.)</th>
+      <th>Quantity</th>
+      <th>Seller</th>
+      <th>Total Cost</th>
+    </tr>
+  </thead>
+                    
                     <tbody>
                       {orderBooks.map((ob, idx) => (
                         <tr key={ob._id || idx}>
