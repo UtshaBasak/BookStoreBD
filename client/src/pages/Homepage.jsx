@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { FaChevronLeft, FaChevronRight, FaHeart, FaRegHeart, FaBell, FaComments } from 'react-icons/fa';
 import './Homepage.css';
+import { io } from 'socket.io-client';
 
 const genres = [
   'Fiction',
@@ -29,6 +30,7 @@ export default function Homepage() {
   const [wishlist, setWishlist] = useState({});
   const [cart, setCart] = useState({});
   const [searchInput, setSearchInput] = useState('');
+  const [unreadCount, setUnreadCount] = useState(0);
   const scrollRef = React.useRef();
   const navigate = useNavigate();
   const userEmail = localStorage.getItem('userEmail');
@@ -83,6 +85,25 @@ export default function Homepage() {
         data.forEach(book => { cartObj[book._id] = true; });
         setCart(cartObj);
       });
+  }, [userEmail]);
+
+  useEffect(() => {
+    if (!userEmail) return;
+
+    // Fetch initial unread count
+    fetch(`http://localhost:1015/chat/unread/${userEmail}`)
+      .then(res => res.json())
+      .then(data => setUnreadCount(data.count));
+
+    // Listen for new messages
+    const socket = io('http://localhost:1015');
+    socket.on('receive_message', (data) => {
+      if (data.receiver === userEmail && !window.location.pathname.includes('/chat')) {
+        setUnreadCount(prev => prev + 1);
+      }
+    });
+
+    return () => socket.disconnect();
   }, [userEmail]);
 
   const handleSignOut = () => {
@@ -179,7 +200,7 @@ export default function Homepage() {
         <div className="search-bar">
           <input
             type="text"
-            placeholder="Search books or authors..."
+            placeholder="Search books..."
             value={searchInput}
             onChange={e => setSearchInput(e.target.value)}
             onKeyDown={e => {
@@ -193,13 +214,40 @@ export default function Homepage() {
         {user && (
             <span
               className="chat-icon"
-              style={{ cursor: 'pointer', marginRight: '0.5rem', fontSize: 22, color: '#8B6F6F', display: 'inline-flex', alignItems: 'center' }}
+              style={{ 
+                cursor: 'pointer',
+                marginRight: '0.5rem',
+                fontSize: 22,
+                color: '#8B6F6F',
+                display: 'inline-flex',
+                alignItems: 'center',
+                position: 'relative'
+              }}
               onClick={() => navigate('/chat')}
               title="Chat"
               tabIndex={0}
               aria-label="Chat"
             >
               <FaComments />
+              {unreadCount > 0 && (
+                <span style={{
+                  position: 'absolute',
+                  top: -8,
+                  right: -8,
+                  background: '#e65100',
+                  color: 'white',
+                  borderRadius: '50%',
+                  padding: '2px 6px',
+                  fontSize: '12px',
+                  minWidth: '18px',
+                  height: '18px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
+                }}>
+                  {unreadCount > 99 ? '99+' : unreadCount}
+                </span>
+              )}
             </span>
           )}
           
@@ -442,7 +490,7 @@ export default function Homepage() {
       </div>
 
       <section className="popular-section">
-        <h2>Latest Books</h2>
+        <h2>Most Popular</h2>
         <div style={{ position: 'relative', width: '100%', zIndex: 0 }}>
           <button
             onClick={handleScrollLeft}
