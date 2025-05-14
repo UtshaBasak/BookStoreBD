@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { FaHeart, FaRegHeart, FaChevronLeft, FaChevronRight, FaComments, FaBell } from 'react-icons/fa';
+import socket from '../utils/socket';  // Add this import
 import ChatWindow from '../components/ChatWindow';
 
 export default function BookView() {
@@ -11,9 +12,12 @@ export default function BookView() {
     const [showDropdown, setShowDropdown] = useState(false);
     const [wishlist, setWishlist] = useState({});
     const [cart, setCart] = useState({});
+    const [quantity, setQuantity] = useState(1);
+    const [availableStock, setAvailableStock] = useState(0);
     const [searchQuery, setSearchQuery] = useState('');
     const [showChat, setShowChat] = useState(false);
     const [sellerInfo, setSellerInfo] = useState(null);
+    const [unreadCount, setUnreadCount] = useState(0);
     const { id } = useParams();
     const navigate = useNavigate();
     const userEmail = localStorage.getItem('userEmail');
@@ -33,6 +37,7 @@ export default function BookView() {
                 const data = await response.json();
                 console.log('Fetched book:', data); // Debug log
                 setBook(data);
+                setAvailableStock(data.stock || 0);
             } catch (err) {
                 console.error('Error:', err);
                 setError(err.message);
@@ -93,6 +98,29 @@ export default function BookView() {
                 data.forEach(book => { wishMap[book._id] = true; });
                 setWishlist(wishMap);
             });
+    }, [userEmail]);
+
+    // Fetch initial unread count and setup socket
+    useEffect(() => {
+        if (!userEmail) return;
+
+        // Fetch initial unread count
+        fetch(`http://localhost:1015/chat/unread/${userEmail}`)
+            .then(res => res.json())
+            .then(data => setUnreadCount(data.count));
+
+        // Socket event handlers
+        const handleNewMessage = (data) => {
+            if (data.receiver === userEmail && !window.location.pathname.includes('/chat')) {
+                setUnreadCount(prev => prev + 1);
+            }
+        };
+
+        socket.on('receive_message', handleNewMessage);
+
+        return () => {
+            socket.off('receive_message', handleNewMessage);
+        };
     }, [userEmail]);
 
     const toggleCart = async (bookId) => {
@@ -193,6 +221,18 @@ export default function BookView() {
         if (/^https?:\/\//.test(img)) return img;
         return `http://localhost:1015/uploads/${img}`;
     };
+
+    const handleSearch = async (e) => {
+        e.preventDefault();
+        try {
+            const res = await fetch(`http://localhost:1015/filter/search?query=${searchQuery}`);
+            const data = await res.json();
+            navigate('/', { state: { searchResults: data } });
+        } catch (error) {
+            console.error('Search error:', error);
+        }
+    };
+
     if (loading) {
         return <div style={{ textAlign: 'center', padding: '2rem' }}>Loading...</div>;
     }
@@ -224,7 +264,7 @@ export default function BookView() {
                 <div className="search-bar">
                     <input
                         type="text"
-                        placeholder="Search books or authors..."
+                        placeholder="Search books..."
                         value={searchQuery}
                         onChange={e => setSearchQuery(e.target.value)}
                         onKeyDown={e => {
@@ -240,13 +280,40 @@ export default function BookView() {
                     {user && (
                         <span
                             className="chat-icon"
-                            style={{ cursor: 'pointer', marginRight: '0.5rem', fontSize: 22, color: '#8B6F6F', display: 'inline-flex', alignItems: 'center' }}
+                            style={{ 
+                                cursor: 'pointer',
+                                marginRight: '0.5rem', 
+                                fontSize: 22, 
+                                color: '#8B6F6F', 
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                position: 'relative'
+                            }}
                             onClick={() => navigate('/chat')}
                             title="Chat"
                             tabIndex={0}
                             aria-label="Chat"
                         >
                             <FaComments />
+                            {unreadCount > 0 && (
+                                <span style={{
+                                    position: 'absolute',
+                                    top: -8,
+                                    right: -8,
+                                    background: '#e65100',
+                                    color: 'white',
+                                    borderRadius: '50%',
+                                    padding: '2px 6px',
+                                    fontSize: '12px',
+                                    minWidth: '18px',
+                                    height: '18px',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center'
+                                }}>
+                                    {unreadCount > 99 ? '99+' : unreadCount}
+                                </span>
+                            )}
                         </span>
                     )}
                     
@@ -446,12 +513,16 @@ export default function BookView() {
                             }}>
                                 <h3 style={{ color: '#333', marginBottom: '1rem' }}>Book Details</h3>
                                 <div style={{ display: 'grid', gap: '0.75rem', color: '#666' }}>
+                                    <div><strong>Category:</strong> {book.category.join(', ')}</div> 
                                     <div><strong>Publisher:</strong> {book.publisher || 'N/A'}</div>
                                     <div><strong>ISBN:</strong> {book.isbn || 'N/A'}</div>
                                     <div><strong>Language:</strong> {book.language || 'N/A'}</div>
                                     <div><strong>Pages:</strong> {book.pages || 'N/A'}</div>
                                     {book.bookType === 'old' && (
-                                        <div><strong>Condition:</strong> {book.condition}</div>
+                                        <>
+                                            <div><strong>Condition:</strong> {book.condition}</div>
+                                            <div><strong>Condition Details:</strong> {book.conditionDetails || 'N/A'}</div>
+                                        </>
                                     )}
                                     <div>
                                         <strong>Seller:</strong> {sellerInfo?.username || book?.sellerEmail}

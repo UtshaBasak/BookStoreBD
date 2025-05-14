@@ -5,7 +5,7 @@ import SignUp from './pages/SignUp';
 import Payment from './pages/Payment';
 import AddBooks from './pages/AddBook';
 import AdminPanel from './pages/AdminPanel';
-import HomePage from './pages/HomePage';
+import Homepage from './pages/Homepage';
 import Profile from './pages/Profile';
 import UpdateProfile from './pages/UpdateProfile';
 import SellerBookList from './pages/SellerBookList';
@@ -49,7 +49,7 @@ export default function App() {
   return (
     <BrowserRouter>
       <Routes>
-        <Route path="/" element={<HomePage />} />
+        <Route path="/" element={<Homepage />} />
         <Route
           path="/sign-in"
           element={
@@ -89,8 +89,6 @@ export default function App() {
         <Route path="/seller-orders" element={<SellerOrderList />} />
         <Route path="/description-form/:bookId" element={<DescriptionForm />} />
         <Route path="*" element={<h1>404 Not Found</h1>} />
-        <Route path="/filter" element={<Filter />} />
-        <Route path="/description-form/:bookId" element={<DescriptionForm />} />
       </Routes>
     </BrowserRouter>
   );

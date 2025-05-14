@@ -7,33 +7,53 @@ export default function ChatWindow({ receiver, receiverName, onClose }) {
   const [messages, setMessages] = useState([]);
   const [selectedImage, setSelectedImage] = useState(null);
   const messagesEndRef = useRef(null);
-  const socketRef = useRef();
   const fileInputRef = useRef(null);
   const userEmail = localStorage.getItem('userEmail');
+  const [socket, setSocket] = useState(null);
 
   useEffect(() => {
-    // Connect to Socket.IO
-    socketRef.current = io('http://localhost:1015');
-    
+    // Initialize socket connection
+    const newSocket = io('http://localhost:1015');
+    setSocket(newSocket);
+
+    // Mark messages as read
+    fetch('http://localhost:1015/chat/read', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        sender: receiver,
+        receiver: userEmail
+      })
+    });
+
     // Join chat room
     const room = [userEmail, receiver].sort().join('-');
-    socketRef.current.emit('join_chat', room);
+    newSocket.emit('join_chat', room);
 
     // Load chat history
     fetch(`http://localhost:1015/chat/messages?sender=${userEmail}&receiver=${receiver}`)
       .then(res => res.json())
       .then(data => {
-        if (Array.isArray(data)) {
-          setMessages(data);
+        if (data && data.messages) {
+          setMessages(data.messages);
         }
-      });
+      })
+      .catch(err => console.error('Error loading messages:', err));
 
-    // Listen for new messages
-    socketRef.current.on('receive_message', (data) => {
-      setMessages(prev => [...prev, data]);
-    });
+    // Handle incoming messages
+    const handleNewMessage = (data) => {
+      if ((data.sender === receiver && data.receiver === userEmail) ||
+          (data.sender === userEmail && data.receiver === receiver)) {
+        setMessages(prev => [...prev, data]);
+      }
+    };
 
-    return () => socketRef.current.disconnect();
+    newSocket.on('receive_message', handleNewMessage);
+
+    return () => {
+      newSocket.off('receive_message', handleNewMessage);
+      newSocket.disconnect();
+    };
   }, [userEmail, receiver]);
 
   // Auto scroll to bottom when new messages arrive
@@ -49,39 +69,37 @@ export default function ChatWindow({ receiver, receiverName, onClose }) {
   };
 
   const sendMessage = async () => {
-    if (!message.trim() && !selectedImage) return;
+    if ((!message.trim() && !selectedImage) || !receiver) return;
 
     try {
-        const formData = new FormData();
-        formData.append('sender', userEmail);
-        formData.append('receiver', receiver);
-        formData.append('message', message.trim() || '');
-        if (selectedImage) {
-            formData.append('image', selectedImage);
-        }
+      const formData = new FormData();
+      formData.append('sender', userEmail);
+      formData.append('receiver', receiver);
+      formData.append('message', message.trim() || '');
+      
+      if (selectedImage) {
+        formData.append('image', selectedImage);
+      }
 
-        const res = await fetch('http://localhost:1015/chat/message', {
-            method: 'POST',
-            body: formData
-        });
+      const res = await fetch('http://localhost:1015/chat/message', {
+        method: 'POST',
+        body: formData
+      });
 
-        if (!res.ok) {
-            throw new Error('Failed to send message');
-        }
+      if (!res.ok) throw new Error('Failed to send message');
 
-        const messageData = await res.json();
+      const messageData = await res.json();
 
-        // Send through socket
-        const room = [userEmail, receiver].sort().join('-');
-        socketRef.current?.emit('send_message', { ...messageData, room });
+      // Send through socket
+      const room = [userEmail, receiver].sort().join('-');
+      socket.emit('send_message', { ...messageData, room });
 
-        // Update UI
-        setMessages(prev => [...prev, messageData]);
-        setMessage('');
-        setSelectedImage(null);
+      setMessages(prev => [...prev, messageData]);
+      setMessage('');
+      setSelectedImage(null);
     } catch (err) {
-        console.error('Error sending message:', err);
-        alert('Failed to send message. Please try again.');
+      console.error('Error sending message:', err);
+      alert('Failed to send message. Please try again.');
     }
   };
 
