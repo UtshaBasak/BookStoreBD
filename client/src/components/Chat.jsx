@@ -27,7 +27,7 @@ export default function Chat({ receiver, onClose }) {
     });
 
     return () => socket.off('receive_message');
-  }, [receiver]);
+  }, [receiver, userEmail]);
 
   const handleImageSelect = (event) => {
     const file = event.target.files[0];

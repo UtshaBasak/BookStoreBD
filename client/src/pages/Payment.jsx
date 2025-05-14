@@ -251,26 +251,8 @@ export default function Payment() {
       latestQuantities[book._id] = quantities[book._id] || 1;
     });
 
-    // Save order info to localStorage BEFORE clearing cart
-    localStorage.setItem(
-      'confirmedOrder',
-      JSON.stringify({
-        email: user.email,
-        // orderNumber is now set by backend and returned after confirmation,
-        division,
-        district,
-        address,
-        discount,
-        promo,
-        promoApplied,
-        quantities: latestQuantities,
-        cartBooks: latestCartBooks,
-      })
-    );
-
     setCartBooks(latestCartBooks);
     setQuantities(latestQuantities);
-    setOrderConfirmed(true);
 
     // Decrease stock in backend and clear cart
     fetch(`http://localhost:1015/order/decrease-stock`, {
@@ -285,12 +267,39 @@ export default function Payment() {
         shippingCharge: shipping,
         discount: discount,
         promo: promo,
-        promoApplied: promoApplied
+        promoApplied: promoApplied,
+        paymentMethod: 'Cash on Delivery', // or get from state if you support more methods
+        contactName: user.name,
+        contactPhone: user.phone,
+        deliveryDivision: division,
+        deliveryDistrict: district,
+        deliveryAddress: address
       })
     })
     .then(res => res.json())
     .then(data => {
-      if (data.orderNumber) setOrderNumber(data.orderNumber);
+      if (data.orderNumber) {
+        setOrderNumber(data.orderNumber);
+        // Save order info to localStorage only after receiving orderNumber
+        localStorage.setItem(
+          'confirmedOrder',
+          JSON.stringify({
+            email: user.email,
+            orderNumber: data.orderNumber,
+            division,
+            district,
+            address,
+            discount,
+            promo,
+            promoApplied,
+            quantities: latestQuantities,
+            cartBooks: latestCartBooks,
+          })
+        );
+        setOrderConfirmed(true);
+      } else {
+        setConfirmError('Order confirmation failed. Please try again.');
+      }
     });
 
     // Clear the cart for the user after order confirmation
@@ -433,7 +442,12 @@ export default function Payment() {
                   borderRadius: 6,
                   cursor: 'pointer'
                 }}
-                onClick={() => alert('Track Order (not implemented)')}
+                onClick={() => {
+                  localStorage.removeItem('confirmedOrder');
+                  window.removeEventListener('beforeunload', () => {});
+                  window.removeEventListener('popstate', () => {});
+                  navigate(`/order-tracking/${orderNumber}`);
+                }}
                 tabIndex={-1}
               >
                 Track Your Order
@@ -441,8 +455,6 @@ export default function Payment() {
             </div>
           </div>
           <div style={{
-            flex: '0 0 44%',
-            minWidth: 0,
             maxWidth: '44%',
             background: '#fff',
             boxShadow: 'none',

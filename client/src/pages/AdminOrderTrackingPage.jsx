@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import '../styles/orderTracking.css';
 
@@ -11,49 +11,60 @@ const ORDER_STAGES = [
   'Delivered'
 ];
 
-export default function OrderTrackingPage() {
-  const { orderNumber } = useParams();
-  const [order, setOrder] = useState(null);
-  const [updating, setUpdating] = useState(false);
-  const [error, setError] = useState('');
+export default function AdminOrderTrackingPage() {
+  const ADMIN_EMAIL = 'utsha23basak@gmail.com';
   const userEmail = localStorage.getItem('userEmail');
-  const userRole = localStorage.getItem('role'); // e.g. 'admin' or 'seller'
+  const navigate = useNavigate();
+  const { orderNumber } = useParams();
+  // Restrict access to admin only
+  useEffect(() => {
+    if (userEmail !== ADMIN_EMAIL) {
+      navigate('/sign-in', { replace: true });
+    }
+  }, [userEmail, navigate]);
+  const [_error, setError] = useState('');
 
+  const [statusValue, setStatusValue] = useState('');
   useEffect(() => {
     if (!orderNumber) return;
     axios.get(`http://localhost:1015/order/${orderNumber}`)
-      .then(res => setOrder(res.data))
+      .then(res => {
+        setOrder(res.data);
+        setStatusValue(res.data.status || 'Order Confirmed');
+      })
       .catch(() => setOrder(null));
   }, [orderNumber]);
-
   const handleStatusChange = async (e) => {
     const newStatus = e.target.value;
-    setUpdating(true);
+    setStatusValue(newStatus);
     setError('');
     try {
-      const res = await axios.patch(`http://localhost:1015/order/status/${orderNumber}`, { status: newStatus });
+      await axios.patch(`http://localhost:1015/order/status/${orderNumber}`, { status: newStatus });
+      // Refetch all books for this order after successful update
+      const res = await axios.get(`http://localhost:1015/order/${orderNumber}`);
       setOrder(res.data);
-    } catch {
-      setError('Failed to update status');
-    } finally {
-      setUpdating(false);
+      setStatusValue(res.data.status);
+      setError('');
+    } catch (error) {
+      setError('Failed to update status: ' + error.message);
     }
   };
 
+  const [order, setOrder] = useState(null);
 
   if (!order) return <div>Loading...</div>;
 
-  // Only admin or the seller of this order can update status
-  const canUpdateStatus =
-    userRole === 'admin' ||
-    (userRole === 'seller' && userEmail && userEmail === order.sellerEmail);
+  const books = order.books || [];
+  const itemTotal = books.reduce((sum, ob) => sum + (Number(ob.price) * Number(ob.quantity)), 0);
+  const shipping = typeof order.shippingCost === 'number' ? order.shippingCost : 0;
+  const discount = typeof order.discount === 'number' ? order.discount : 0;
+  const finalTotal = itemTotal + shipping - discount;
 
   return (
     <div className="order-tracking-outer">
-      {/* Button group: upper right, box type, stylish */}
       <div style={{ position: 'absolute', top: 24, right: 32, display: 'flex', gap: 16, zIndex: 10 }}>
         <button
-          onClick={() => window.location.href='/profile'}
+          onClick={() => navigate('/admin/users')}
           style={{
             background: '#fff',
             border: '2px solid #2196F3',
@@ -71,7 +82,7 @@ export default function OrderTrackingPage() {
           onMouseOver={e => { e.currentTarget.style.background = '#2196F3'; e.currentTarget.style.color = '#fff'; }}
           onMouseOut={e => { e.currentTarget.style.background = '#fff'; e.currentTarget.style.color = '#2196F3'; }}
         >
-          ← Back to Profile
+          ← Back to Admin Panel
         </button>
         <button
           onClick={() => window.location.reload()}
@@ -95,7 +106,7 @@ export default function OrderTrackingPage() {
         </button>
       </div>
       <div className="order-tracking-card">
-        <h2 style={{ textAlign: 'center', marginBottom: 24, color: '#e65100', letterSpacing: 1 }}>Track Your Order</h2>
+        <h2 style={{ textAlign: 'center', marginBottom: 24, color: '#e65100', letterSpacing: 1 }}>Track The Order (Admin)</h2>
         <div className="order-info" style={{ fontSize: 17, marginBottom: 24, textAlign: 'left', paddingLeft: 8 }}>
           <p><b>Order Number:</b> <span style={{ color: '#e65100', fontFamily: 'monospace', fontSize: 18 }}>{order.orderNumber}</span></p>
           <p><b>Placed On:</b> {order.createdAt ? new Date(order.createdAt).toLocaleString() : ''}</p>
@@ -103,13 +114,13 @@ export default function OrderTrackingPage() {
           <div style={{ margin: '20px 0 10px 0', fontWeight: 600, color: '#444' }}>Payment Method</div>
           <div style={{ color: '#e65100', fontWeight: 500, marginBottom: 12 }}>{order.paymentMethod || 'Cash on Delivery'}</div>
           <div style={{ fontWeight: 600, color: '#444', marginBottom: 2 }}>Contact Information</div>
-          <div style={{ marginBottom: 2 }}>Name: <b>{order.contactName}</b></div>
-          <div style={{ marginBottom: 2 }}>Email: <b>{order.buyerEmail}</b></div>
-          <div style={{ marginBottom: 10 }}>Phone: <b>{order.contactPhone}</b></div>
-          <div style={{ fontWeight: 600, color: '#444', marginBottom: 2 }}>Delivery Information</div>
-          <div style={{ marginBottom: 2 }}>Division: <b>{order.deliveryDivision}</b></div>
-          <div style={{ marginBottom: 2 }}>District: <b>{order.deliveryDistrict}</b></div>
-          <div>Address: <b>{order.deliveryAddress}</b></div>
+          <div style={{ marginBottom: 2 }}>Name: <b>{order.contactName || ''}</b></div>
+          <div style={{ marginBottom: 2 }}>Email: <b>{order.buyerEmail || ''}</b></div>
+          <div style={{ marginBottom: 2 }}>Phone: <b>{order.contactPhone || ''}</b></div>
+          <div style={{ fontWeight: 600, color: '#444', margin: '8px 0 2px 0' }}>Delivery Information</div>
+          <div style={{ marginBottom: 2 }}>Division: <b>{order.deliveryDivision || ''}</b></div>
+          <div style={{ marginBottom: 2 }}>District: <b>{order.deliveryDistrict || ''}</b></div>
+          <div style={{ marginBottom: 2 }}>Address: <b>{order.deliveryAddress || ''}</b></div>
         </div>
         <div className="order-progress-bar" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', margin: '32px 0 24px 0', padding: '0 12px' }}>
           {ORDER_STAGES.map((stage, idx) => {
@@ -154,26 +165,23 @@ export default function OrderTrackingPage() {
             );
           })}
         </div>
-        {canUpdateStatus && (
-          <div style={{ marginTop: 28, textAlign: 'center' }}>
-            <label>
-              <b>Update Status: </b>
-              <select
-                value={order.status}
-                onChange={handleStatusChange}
-                disabled={updating}
-                style={{ marginLeft: 8, padding: 4, borderRadius: 4 }}
-              >
-                {ORDER_STAGES.map(stage => (
-                  <option key={stage} value={stage}>{stage}</option>
-                ))}
-              </select>
-            </label>
-            {error && <span style={{ color: 'red', marginLeft: 12 }}>{error}</span>}
-          </div>
-        )}
+        <div style={{ marginTop: 28, textAlign: 'center' }}>
+          <label>
+            <b>Update Status: </b>
+            <select
+               value={statusValue}
+               onChange={handleStatusChange}
+               style={{ marginLeft: 8, padding: 4, borderRadius: 4 }}
+             >
+              {ORDER_STAGES.map(stage => (
+                <option key={stage} value={stage}>{stage}</option>
+              ))}
+            </select>
+          </label>
+          {_error && <span style={{ color: 'red', marginLeft: 12 }}>{_error}</span>}
+        </div>
       </div>
-      {/* Order Details Table OUTSIDE the card, after progress bar */}
+      {/* Admin Transaction History Style Table */}
       <div style={{ maxWidth: 900, margin: '32px auto 0 auto', background: '#fff', borderRadius: 12, boxShadow: '0 2px 12px rgba(0, 0, 0, 0.06)', padding: 24 }}>
         <div style={{ marginBottom: 12, fontWeight: 600, color: '#444', fontSize: 20 }}>Order Details</div>
         <div style={{ overflowX: 'auto' }}>
@@ -189,11 +197,12 @@ export default function OrderTrackingPage() {
                 <th style={{ color: '#fff' }}>Price (Tk.)</th>
                 <th style={{ color: '#fff' }}>Quantity</th>
                 <th style={{ color: '#fff' }}>Seller</th>
+                
                 <th style={{ color: '#fff' }}>Total Cost</th>
               </tr>
             </thead>
             <tbody>
-              {(order.books || [order]).map((ob, idx) => (
+              {books.map((ob, idx) => (
                 <tr key={ob._id || idx}>
                   <td>{ob.title}</td>
                   <td>{ob.author}</td>
@@ -209,23 +218,23 @@ export default function OrderTrackingPage() {
               ))}
             </tbody>
             <tfoot>
-              <tr>
-                <td colSpan={9} style={{ textAlign: 'right', fontWeight: 600 }}>Subtotal:</td>
-                <td style={{ fontWeight: 700 }}>{order.booksTotal?.toFixed(2) || ''}</td>
-              </tr>
-              <tr>
-                <td colSpan={9} style={{ textAlign: 'right', fontWeight: 600 }}>Shipping Cost:</td>
-                <td style={{ fontWeight: 700 }}>{Number(order.shippingCost).toFixed(2)}</td>
-              </tr>
-              <tr>
-                <td colSpan={9} style={{ textAlign: 'right', fontWeight: 600 }}>Discount:</td>
-                <td style={{ fontWeight: 700 }}>-{Number(order.discount).toFixed(2)}</td>
-              </tr>
-              <tr>
-                <td colSpan={9} style={{ textAlign: 'right', fontWeight: 600 }}>Order Total:</td>
-                <td style={{ fontWeight: 700 }}>{order.totalCost?.toFixed(2) || ''}</td>
-              </tr>
-            </tfoot>
+               <tr>
+                 <td colSpan={9} style={{ textAlign: 'right', fontWeight: 600, background: '#fff' }}>Subtotal:</td>
+                 <td style={{ fontWeight: 700, textAlign: 'right', background: '#fff' }}>{itemTotal.toFixed(2)}</td>
+               </tr>
+               <tr>
+                 <td colSpan={9} style={{ textAlign: 'right', fontWeight: 600, background: '#fff' }}>Shipping Cost:</td>
+                 <td style={{ fontWeight: 700, textAlign: 'right', background: '#fff' }}>{Number(shipping).toFixed(2)}</td>
+               </tr>
+               <tr>
+                 <td colSpan={9} style={{ textAlign: 'right', fontWeight: 600, background: '#fff' }}>Discount:</td>
+                 <td style={{ fontWeight: 700, textAlign: 'right', background: '#fff' }}>-{Number(discount).toFixed(2)}</td>
+               </tr>
+               <tr>
+                 <td colSpan={9} style={{ textAlign: 'right', fontWeight: 600, background: '#fff' }}>Order Total:</td>
+                 <td style={{ fontWeight: 700, textAlign: 'right', background: '#fff' }}>{finalTotal.toFixed(2)}</td>
+               </tr>
+             </tfoot>
           </table>
         </div>
       </div>

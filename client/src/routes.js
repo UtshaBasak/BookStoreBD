@@ -8,6 +8,7 @@ import BookDetailsPage from './pages/BookDetailsPage';
 import CartPage from './pages/CartPage';
 import CheckoutPage from './pages/CheckoutPage';
 import OrderTrackingPage from './pages/OrderTrackingPage';
+import SellerOrderTrackingPage from './pages/SellerOrderTrackingPage';
 
 function AppRoutes() {
   return (
@@ -21,6 +22,7 @@ function AppRoutes() {
         <Route path="/cart" element={<CartPage />} />
         <Route path="/checkout" element={<CheckoutPage />} />
         <Route path="/order-tracking/:orderId" element={<OrderTrackingPage />} />
+<Route path="/seller/order-tracking/:orderNumber" element={<SellerOrderTrackingPage />} />
       </Routes>
     </Router>
   );

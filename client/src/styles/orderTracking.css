@@ -1,3 +1,49 @@
+.order-tracking-outer {
+  min-height: 100vh;
+  width: 100vw;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #fafafa;
+}
+
+/* Remove any flex or grid that might place multiple cards/progress bars side by side */
+
+.order-tracking-card {
+  max-width: 480px;
+  width: 100%;
+  background: #fff;
+  border-radius: 18px;
+  box-shadow: 0 8px 32px rgba(230,81,0,0.10), 0 1.5px 8px rgba(0,0,0,0.06);
+  padding: 40px 36px 32px 36px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin: 24px;
+  transition: box-shadow 0.2s;
+}
+
+.order-tracking-card:hover {
+  box-shadow: 0 12px 40px rgba(230,81,0,0.15), 0 2px 12px rgba(0,0,0,0.10);
+}
+
+.order-info {
+  width: 100%;
+  margin-bottom: 24px;
+  font-size: 17px;
+  color: #222;
+}
+
+.order-progress-bar {
+  width: 100%;
+  margin-top: 32px;
+  margin-bottom: 8px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0 8px;
+}
+
 .order-tracking-container {
     max-width: 600px;
     margin: 2rem auto;
@@ -5,12 +51,6 @@
     border-radius: 12px;
     box-shadow: 0 2px 16px rgba(0,0,0,0.08);
     padding: 2rem 2.5rem;
-  }
-  
-  .order-info {
-    margin-bottom: 2rem;
-    font-size: 1.1rem;
-    color: #333;
   }
   
   .tracking-stages {

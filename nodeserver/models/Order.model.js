@@ -2,6 +2,7 @@ import mongoose from 'mongoose';
 
 const OrderSchema = new mongoose.Schema({
   orderNumber: { type: String, required: true, unique: true }, // Unique order ID
+  status: { type: String, default: 'Order Confirmed' },
   buyerEmail: { type: String, required: true },
   sellerEmail: { type: String, required: true },
   bookId: { type: mongoose.Schema.Types.ObjectId, ref: 'AddBook', required: true },
@@ -13,6 +14,14 @@ const OrderSchema = new mongoose.Schema({
   pages: Number,
   price: Number,
   quantity: Number,
+  // --- New fields for full order info ---
+  paymentMethod: { type: String, default: '' },
+  contactName: { type: String, default: '' },
+  contactPhone: { type: String, default: '' },
+  deliveryDivision: { type: String, default: '' },
+  deliveryDistrict: { type: String, default: '' },
+  deliveryAddress: { type: String, default: '' },
+  // ---
   shippingCharge: { type: Number, default: 0 },
   discount: { type: Number, default: 0 },
   promo: { type: String, default: '' },

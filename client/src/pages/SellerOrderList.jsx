@@ -118,13 +118,33 @@ export default function SellerOrderList() {
                   background: '#fff',
                   borderRadius: 8,
                   boxShadow: '0 2px 8px rgba(0,0,0,0.06)',
-                  padding: 24
+                  padding: 24,
+                  position: 'relative'
                 }}>
+                  {/* Track Your Order button */}
+                  <button
+                    onClick={() => navigate(`/seller/order-tracking/${order.orderNumber ? order.orderNumber : order._id}`)}
+                    style={{
+                      position: 'absolute',
+                      top: 24,
+                      right: 24,
+                      backgroundColor: '#2196F3',
+                      color: 'white',
+                      border: 'none',
+                      borderRadius: 4,
+                      padding: '0.5rem 1.5rem',
+                      fontWeight: 'bold',
+                      cursor: 'pointer',
+                      zIndex: 2
+                    }}
+                  >
+                    Track Your Order
+                  </button>
                   <div style={{ marginBottom: 8, fontWeight: 600, fontSize: 18 }}>
                     Order Placed On: {order.createdAt ? new Date(order.createdAt).toLocaleDateString() : ''} <br />
                     Order Number: <span style={{ color: '#e65100' }}>{displayOrderNumber}</span>
                     <span style={{ marginLeft: 24, color: '#2196F3', fontWeight: 500 }}>
-                      Status: {order.status}
+                      Status: {order.status || 'Order Confirmed'}
                     </span>
                     <br />
                     Buyer: <span style={{ color: '#2196F3' }}>{order.buyerEmail}</span>

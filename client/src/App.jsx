@@ -5,7 +5,7 @@ import SignUp from './pages/SignUp';
 import Payment from './pages/Payment';
 import AddBooks from './pages/AddBook';
 import AdminPanel from './pages/AdminPanel';
-import Homepage from './pages/Homepage';
+import HomePage from './pages/HomePage';
 import Profile from './pages/Profile';
 import UpdateProfile from './pages/UpdateProfile';
 import SellerBookList from './pages/SellerBookList';
@@ -18,6 +18,9 @@ import SellerOrderList from './pages/SellerOrderList';
 import DescriptionForm from './pages/Descriptionform';
 import BookView from './pages/BookView';
 import ChatPage from './pages/ChatPage';
+import OrderTrackingPage from './pages/OrderTrackingPage';
+import SellerOrderTrackingPage from './pages/SellerOrderTrackingPage';
+import AdminOrderTrackingPage from './pages/AdminOrderTrackingPage';
 import './styles/orderTracking.css';
 
 // Helper: get current user email from localStorage
@@ -44,12 +47,24 @@ function PublicOnlyRoute({ children }) {
   return children;
 }
 
+// Route guard for protected pages
+function ProtectedRoute({ children }) {
+  const userEmail = getUserEmail();
+  if (!userEmail) {
+    return <Navigate to="/sign-in" replace />;
+  }
+  return children;
+}
+
 
 export default function App() {
   return (
     <BrowserRouter>
       <Routes>
-        <Route path="/" element={<Homepage />} />
+        {/* Public routes */}
+        <Route path="/" element={<HomePage />} />
+        <Route path="/book" element={<BookView />} />
+        <Route path="/filter" element={<Filter />} />
         <Route
           path="/sign-in"
           element={
@@ -66,8 +81,23 @@ export default function App() {
             </PublicOnlyRoute>
           }
         />
-        <Route path="/payment" element={<Payment />} />
-        <Route path="/add-book" element={<AddBooks />} />
+        {/* Protected routes */}
+        <Route
+          path="/payment"
+          element={
+            <ProtectedRoute>
+              <Payment />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/add-book"
+          element={
+            <ProtectedRoute>
+              <AddBooks />
+            </ProtectedRoute>
+          }
+        />
         <Route
           path="/admin/*"
           element={
@@ -76,18 +106,118 @@ export default function App() {
             </AdminRoute>
           }
         />
-        <Route path="/profile" element={<Profile />} />
-        <Route path="/update-profile" element={<UpdateProfile />} />
-        <Route path="/seller-books" element={<SellerBookList />} />
-        <Route path="/wishlist" element={<Wishlist />} />
-        <Route path="/cart" element={<Cart />} />
-        <Route path="/filter" element={<Filter />} />
-        <Route path="/chat" element={<ChatPage />} /> 
-        <Route path="/book/:id" element={<BookView />} />
-        <Route path="/buyer-books" element={<BuyerBookList />} />
-        <Route path="/buyer/orders" element={<BuyerOrderList />} />
-        <Route path="/seller-orders" element={<SellerOrderList />} />
-        <Route path="/description-form/:bookId" element={<DescriptionForm />} />
+        <Route
+          path="/profile"
+          element={
+            <ProtectedRoute>
+              <Profile />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/update-profile"
+          element={
+            <ProtectedRoute>
+              <UpdateProfile />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/seller-books"
+          element={
+            <ProtectedRoute>
+              <SellerBookList />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/wishlist"
+          element={
+            <ProtectedRoute>
+              <Wishlist />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/cart"
+          element={
+            <ProtectedRoute>
+              <Cart />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/chat"
+          element={
+            <ProtectedRoute>
+              <ChatPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/order-tracking/:orderNumber"
+          element={
+            <ProtectedRoute>
+              <OrderTrackingPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/seller/order-tracking/:orderNumber"
+          element={
+            <ProtectedRoute>
+              <SellerOrderTrackingPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin/order-tracking/:orderNumber"
+          element={
+            <ProtectedRoute>
+              <AdminOrderTrackingPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/book/:id"
+          element={
+            <ProtectedRoute>
+              <BookView />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/buyer-books"
+          element={
+            <ProtectedRoute>
+              <BuyerBookList />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/buyer/orders"
+          element={
+            <ProtectedRoute>
+              <BuyerOrderList />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/seller-orders"
+          element={
+            <ProtectedRoute>
+              <SellerOrderList />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/description-form/:bookId"
+          element={
+            <ProtectedRoute>
+              <DescriptionForm />
+            </ProtectedRoute>
+          }
+        />
         <Route path="*" element={<h1>404 Not Found</h1>} />
       </Routes>
     </BrowserRouter>

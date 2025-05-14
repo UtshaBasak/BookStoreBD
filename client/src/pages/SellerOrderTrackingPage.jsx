@@ -11,13 +11,13 @@ const ORDER_STAGES = [
   'Delivered'
 ];
 
-export default function OrderTrackingPage() {
+export default function SellerOrderTrackingPage() {
   const { orderNumber } = useParams();
   const [order, setOrder] = useState(null);
   const [updating, setUpdating] = useState(false);
   const [error, setError] = useState('');
   const userEmail = localStorage.getItem('userEmail');
-  const userRole = localStorage.getItem('role'); // e.g. 'admin' or 'seller'
+  const userRole = localStorage.getItem('role');
 
   useEffect(() => {
     if (!orderNumber) return;
@@ -40,8 +40,10 @@ export default function OrderTrackingPage() {
     }
   };
 
-
   if (!order) return <div>Loading...</div>;
+
+  // Filter books for this seller
+  const sellerBooks = (order.books || []).filter(book => book.sellerEmail === userEmail);
 
   // Only admin or the seller of this order can update status
   const canUpdateStatus =
@@ -50,7 +52,6 @@ export default function OrderTrackingPage() {
 
   return (
     <div className="order-tracking-outer">
-      {/* Button group: upper right, box type, stylish */}
       <div style={{ position: 'absolute', top: 24, right: 32, display: 'flex', gap: 16, zIndex: 10 }}>
         <button
           onClick={() => window.location.href='/profile'}
@@ -95,21 +96,16 @@ export default function OrderTrackingPage() {
         </button>
       </div>
       <div className="order-tracking-card">
-        <h2 style={{ textAlign: 'center', marginBottom: 24, color: '#e65100', letterSpacing: 1 }}>Track Your Order</h2>
+        <h2 style={{ textAlign: 'center', marginBottom: 24, color: '#e65100', letterSpacing: 1 }}>Track Order (Seller)</h2>
         <div className="order-info" style={{ fontSize: 17, marginBottom: 24, textAlign: 'left', paddingLeft: 8 }}>
           <p><b>Order Number:</b> <span style={{ color: '#e65100', fontFamily: 'monospace', fontSize: 18 }}>{order.orderNumber}</span></p>
           <p><b>Placed On:</b> {order.createdAt ? new Date(order.createdAt).toLocaleString() : ''}</p>
           <p><b>Status:</b> <span style={{ color: '#e65100', fontWeight: 600 }}>{order.status || 'Order Confirmed'}</span></p>
           <div style={{ margin: '20px 0 10px 0', fontWeight: 600, color: '#444' }}>Payment Method</div>
           <div style={{ color: '#e65100', fontWeight: 500, marginBottom: 12 }}>{order.paymentMethod || 'Cash on Delivery'}</div>
-          <div style={{ fontWeight: 600, color: '#444', marginBottom: 2 }}>Contact Information</div>
+          <div style={{ fontWeight: 600, color: '#444', marginBottom: 2 }}>Buyer Information</div>
           <div style={{ marginBottom: 2 }}>Name: <b>{order.contactName}</b></div>
           <div style={{ marginBottom: 2 }}>Email: <b>{order.buyerEmail}</b></div>
-          <div style={{ marginBottom: 10 }}>Phone: <b>{order.contactPhone}</b></div>
-          <div style={{ fontWeight: 600, color: '#444', marginBottom: 2 }}>Delivery Information</div>
-          <div style={{ marginBottom: 2 }}>Division: <b>{order.deliveryDivision}</b></div>
-          <div style={{ marginBottom: 2 }}>District: <b>{order.deliveryDistrict}</b></div>
-          <div>Address: <b>{order.deliveryAddress}</b></div>
         </div>
         <div className="order-progress-bar" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', margin: '32px 0 24px 0', padding: '0 12px' }}>
           {ORDER_STAGES.map((stage, idx) => {
@@ -173,7 +169,7 @@ export default function OrderTrackingPage() {
           </div>
         )}
       </div>
-      {/* Order Details Table OUTSIDE the card, after progress bar */}
+      {/* Seller Order Details Table OUTSIDE the card */}
       <div style={{ maxWidth: 900, margin: '32px auto 0 auto', background: '#fff', borderRadius: 12, boxShadow: '0 2px 12px rgba(0, 0, 0, 0.06)', padding: 24 }}>
         <div style={{ marginBottom: 12, fontWeight: 600, color: '#444', fontSize: 20 }}>Order Details</div>
         <div style={{ overflowX: 'auto' }}>
@@ -188,12 +184,11 @@ export default function OrderTrackingPage() {
                 <th style={{ color: '#fff' }}>No. of Pages</th>
                 <th style={{ color: '#fff' }}>Price (Tk.)</th>
                 <th style={{ color: '#fff' }}>Quantity</th>
-                <th style={{ color: '#fff' }}>Seller</th>
                 <th style={{ color: '#fff' }}>Total Cost</th>
               </tr>
             </thead>
             <tbody>
-              {(order.books || [order]).map((ob, idx) => (
+              {sellerBooks.map((ob, idx) => (
                 <tr key={ob._id || idx}>
                   <td>{ob.title}</td>
                   <td>{ob.author}</td>
@@ -203,27 +198,14 @@ export default function OrderTrackingPage() {
                   <td>{ob.pages}</td>
                   <td>{ob.price}</td>
                   <td>{ob.quantity}</td>
-                  <td>{ob.sellerEmail}</td>
                   <td>{(Number(ob.price) * Number(ob.quantity)).toFixed(2)}</td>
                 </tr>
               ))}
             </tbody>
             <tfoot>
               <tr>
-                <td colSpan={9} style={{ textAlign: 'right', fontWeight: 600 }}>Subtotal:</td>
-                <td style={{ fontWeight: 700 }}>{order.booksTotal?.toFixed(2) || ''}</td>
-              </tr>
-              <tr>
-                <td colSpan={9} style={{ textAlign: 'right', fontWeight: 600 }}>Shipping Cost:</td>
-                <td style={{ fontWeight: 700 }}>{Number(order.shippingCost).toFixed(2)}</td>
-              </tr>
-              <tr>
-                <td colSpan={9} style={{ textAlign: 'right', fontWeight: 600 }}>Discount:</td>
-                <td style={{ fontWeight: 700 }}>-{Number(order.discount).toFixed(2)}</td>
-              </tr>
-              <tr>
-                <td colSpan={9} style={{ textAlign: 'right', fontWeight: 600 }}>Order Total:</td>
-                <td style={{ fontWeight: 700 }}>{order.totalCost?.toFixed(2) || ''}</td>
+                <td colSpan={8} style={{ textAlign: 'right', fontWeight: 600 }}>Order Total:</td>
+                <td style={{ fontWeight: 700 }}>{sellerBooks.reduce((sum, ob) => sum + (Number(ob.price) * Number(ob.quantity)), 0).toFixed(2)}</td>
               </tr>
             </tfoot>
           </table>
