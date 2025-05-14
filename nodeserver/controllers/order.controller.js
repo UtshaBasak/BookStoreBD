@@ -45,6 +45,14 @@ export const decreaseStock = async (req, res) => {
         pages: book.pages,
         price: book.price,
         quantity,
+        // --- New fields for full order info ---
+        paymentMethod: req.body.paymentMethod || '',
+        contactName: req.body.contactName || '',
+        contactPhone: req.body.contactPhone || '',
+        deliveryDivision: req.body.deliveryDivision || '',
+        deliveryDistrict: req.body.deliveryDistrict || '',
+        deliveryAddress: req.body.deliveryAddress || '',
+        // ---
         shippingCharge: typeof shippingCharge === 'number' ? shippingCharge : 0,
         discount: typeof discount === 'number' ? discount : 0,
         promo: promo || '',
@@ -114,6 +122,39 @@ export const getOrdersBySeller = async (req, res) => {
   }
 };
 
+// Get order by orderNumber
+export const getOrderByOrderNumber = async (req, res) => {
+  try {
+    const { orderNumber } = req.params;
+    if (!orderNumber) return res.status(400).json({ message: 'Order number required' });
+    const orders = await Order.find({ orderNumber }).lean();
+    if (!orders || orders.length === 0) return res.status(404).json({ message: 'Order not found' });
+    // Group and summarize as in getOrdersByBuyer
+    const booksTotal = orders.reduce((sum, ob) => sum + (Number(ob.price) * Number(ob.quantity)), 0);
+    const shippingCost = orders[0].shippingCharge || 0;
+    const discount = orders[0].discount || 0;
+    const totalCost = booksTotal + Number(shippingCost) - Number(discount);
+    res.status(200).json({
+      orderNumber: orders[0].orderNumber,
+      status: orders[0].status || 'Order Confirmed',
+      paymentMethod: orders[0].paymentMethod || '',
+      contactName: orders[0].contactName || '',
+      contactPhone: orders[0].contactPhone || '',
+      deliveryDivision: orders[0].deliveryDivision || '',
+      deliveryDistrict: orders[0].deliveryDistrict || '',
+      deliveryAddress: orders[0].deliveryAddress || '',
+      ...orders[0],
+      books: orders,
+      booksTotal,
+      shippingCost,
+      discount,
+      totalCost
+    });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
 // Update order status
 export const updateOrderStatus = async (req, res) => {
   try {
@@ -122,6 +163,23 @@ export const updateOrderStatus = async (req, res) => {
     const order = await Order.findByIdAndUpdate(id, { status }, { new: true });
     if (!order) return res.status(404).json({ message: 'Order not found' });
     res.status(200).json(order);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+// Update order status by orderNumber (for all books in the order)
+export const updateOrderStatusByOrderNumber = async (req, res) => {
+  try {
+    const { orderNumber } = req.params;
+    const { status } = req.body;
+    const orders = await Order.updateMany({ orderNumber }, { status });
+    if (!orders || orders.matchedCount === 0) {
+      return res.status(404).json({ message: 'Order not found' });
+    }
+    // Optionally, return the updated orders
+    const updatedOrders = await Order.find({ orderNumber });
+    res.status(200).json(updatedOrders);
   } catch (err) {
     res.status(500).json({ message: err.message });
   }

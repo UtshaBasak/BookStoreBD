@@ -112,80 +112,101 @@ export default function TransactionHistory() {
 
             return (
               <div key={orderNumber} style={{
-              marginBottom: 40,
-              background: '#fff',
-              borderRadius: 8,
-              boxShadow: '0 2px 8px rgba(0,0,0,0.06)',
-              padding: 24,
-              border: '1px solid #e0e0e0'
+                marginBottom: 40,
+                background: '#fff',
+                borderRadius: 8,
+                boxShadow: '0 2px 8px rgba(0,0,0,0.06)',
+                padding: 24,
+                border: '1px solid #e0e0e0',
+                position: 'relative'
               }}>
-              <div style={{ marginBottom: 8, fontWeight: 600, fontSize: 18 }}>
-                Order Placed On: {formatDate(order.createdAt)} <br />
-                <span>
-                Order Number: <span style={{ color: '#e65100', fontWeight: 700 }}>{displayOrderNumber}</span>
-                </span>
-                <span style={{ marginLeft: 24, color: '#2196F3', fontWeight: 500 }}>
-                Status: {status}
-                </span>
-                <br />
-                <span style={{ color: '#888', fontWeight: 700 }}>
-                Buyer Email: {order.buyerEmail}
-                </span>
-              </div>
-              <table className="styled-table" style={{ width: '100%', marginBottom: 0 }}>
-                <thead>
-                <tr>
-                  <th>Title</th>
-                  <th>Author</th>
-                  <th>Category</th>
-                  <th>Book Type</th>
-                  <th>Condition</th>
-                  <th>No. of Pages</th>
-                  <th>Price (Tk.)</th>
-                  <th>Quantity</th>
-                  <th>Seller</th>
-                  <th>Total Cost</th>
-                </tr>
-                </thead>
-                <tbody>
-                {orderBooks.map((ob, idx) => (
-                  <tr key={ob._id || idx}>
-                  <td>{ob.title}</td>
-                  <td>{ob.author}</td>
-                  <td>{Array.isArray(ob.category) ? ob.category.join(', ') : ob.category}</td>
-                  <td>{ob.bookType}</td>
-                  <td>{ob.condition}</td>
-                  <td>{ob.pages}</td>
-                  <td>{ob.price}</td>
-                  <td>{ob.quantity}</td>
-                  <td>{ob.sellerEmail}</td>
-                  <td>{(Number(ob.price) * Number(ob.quantity)).toFixed(2)}</td>
-                  </tr>
-                ))}
-                </tbody>
-                <tfoot>
-                <tr>
-                  <td colSpan={9} style={{ textAlign: 'right', fontWeight: 600 }}>Subtotal:</td>
-                  <td style={{ fontWeight: 700 }}>{itemTotal.toFixed(2)}</td>
-                </tr>
-                <tr>
-                  <td colSpan={9} style={{ textAlign: 'right', fontWeight: 600 }}>Shipping Charge:</td>
-                  <td style={{ fontWeight: 700 }}>{shipping.toFixed(2)}</td>
-                </tr>
-                {discount > 0 && (
-                  <tr>
-                  <td colSpan={9} style={{ textAlign: 'right', fontWeight: 600 }}>
-                    Discount{promoApplied && promo ? ` (${promo})` : ''}:
-                  </td>
-                  <td style={{ fontWeight: 700 }}>- {discount.toFixed(2)}</td>
-                  </tr>
-                )}
-                <tr>
-                  <td colSpan={9} style={{ textAlign: 'right', fontWeight: 700, fontSize: 16 }}>Order Total:</td>
-                  <td style={{ fontWeight: 900, fontSize: 16 }}>{finalTotal.toFixed(2)}</td>
-                </tr>
-                </tfoot>
-              </table>
+                {/* Track The Order button */}
+                <button
+                  onClick={() => window.location.href = `/admin/order-tracking/${order.orderNumber ? order.orderNumber : order._id}`}
+                  style={{
+                    position: 'absolute',
+                    top: 24,
+                    right: 24,
+                    backgroundColor: '#2196F3',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: 4,
+                    padding: '0.5rem 1.5rem',
+                    fontWeight: 'bold',
+                    cursor: 'pointer',
+                    zIndex: 2
+                  }}
+                >
+                  Track The Order
+                </button>
+                <div style={{ marginBottom: 8, fontWeight: 600, fontSize: 18 }}>
+                  Order Placed On: {formatDate(order.createdAt)} <br />
+                  <span>
+                    Order Number: <span style={{ color: '#e65100', fontWeight: 700 }}>{displayOrderNumber}</span>
+                  </span>
+                  <span style={{ marginLeft: 24, color: '#2196F3', fontWeight: 500 }}>
+                    Status: {status || 'Order Confirmed'}
+                  </span>
+                  <br />
+                  <span style={{ color: '#888', fontWeight: 700 }}>
+                    Buyer Email: {order.buyerEmail}
+                  </span>
+                </div>
+                <table className="styled-table" style={{ width: '100%', marginBottom: 0 }}>
+                  <thead>
+                    <tr>
+                      <th>Title</th>
+                      <th>Author</th>
+                      <th>Category</th>
+                      <th>Book Type</th>
+                      <th>Condition</th>
+                      <th>No. of Pages</th>
+                      <th>Price (Tk.)</th>
+                      <th>Quantity</th>
+                      <th>Seller</th>
+                      <th>Total Cost</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {orderBooks.map((ob, idx) => (
+                      <tr key={ob._id || idx}>
+                        <td>{ob.title}</td>
+                        <td>{ob.author}</td>
+                        <td>{Array.isArray(ob.category) ? ob.category.join(', ') : ob.category}</td>
+                        <td>{ob.bookType}</td>
+                        <td>{ob.condition}</td>
+                        <td>{ob.pages}</td>
+                        <td>{ob.price}</td>
+                        <td>{ob.quantity}</td>
+                        <td>{ob.sellerEmail}</td>
+                        <td>{(Number(ob.price) * Number(ob.quantity)).toFixed(2)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                  <tfoot>
+                    <tr>
+                      <td colSpan={9} style={{ textAlign: 'right', fontWeight: 600 }}>Subtotal:</td>
+                      <td style={{ fontWeight: 700 }}>{itemTotal.toFixed(2)}</td>
+                    </tr>
+                    <tr>
+                      <td colSpan={9} style={{ textAlign: 'right', fontWeight: 600 }}>Shipping Charge:</td>
+                      <td style={{ fontWeight: 700 }}>{shipping.toFixed(2)}</td>
+                    </tr>
+                    {discount > 0 && (
+                      <tr>
+                        <td colSpan={9} style={{ textAlign: 'right', fontWeight: 600 }}>
+                          Discount{promoApplied && promo ? ` (${promo})` : ''}:
+                        </td>
+                        <td style={{ fontWeight: 700 }}>- {discount.toFixed(2)}</td>
+                      </tr>
+                    )}
+                    <tr>
+                      <td colSpan={9} style={{ textAlign: 'right', fontWeight: 700, fontSize: 16 }}>Order Total:</td>
+                      <td style={{ fontWeight: 900, fontSize: 16 }}>{finalTotal.toFixed(2)}</td>
+                    </tr>
+                  </tfoot>
+                </table>
+                
               </div>
             );
           })

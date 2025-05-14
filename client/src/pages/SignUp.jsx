@@ -177,8 +177,28 @@ export default function SignUp() {
                         SIGN IN
                     </Link>
                 </p>
-            </div>
+            {/* Go To Home Button */}
+            <button
+                type="button"
+                style={{
+                    width: '100%',
+                    padding: '0.75rem',
+                    backgroundColor: '#8B6F6F',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '4px',
+                    fontSize: '1rem',
+                    cursor: 'pointer',
+                    marginTop: '1rem',
+                    transition: 'background-color 0.3s',
+                }}
+                onClick={() => navigate('/')}
+                onMouseOver={e => (e.target.style.backgroundColor = '#6d5454')}
+                onMouseOut={e => (e.target.style.backgroundColor = '#8B6F6F')}
+            >
+                Go To Home
+            </button>
+        </div>
         </div>
     );
 }
-
