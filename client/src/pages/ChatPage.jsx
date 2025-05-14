@@ -9,33 +9,41 @@ export default function ChatPage() {
     const [messages, setMessages] = useState([]);
     const [newMessage, setNewMessage] = useState('');
     const [selectedImage, setSelectedImage] = useState(null);
+    const [page, setPage] = useState(1);
+    const [loading, setLoading] = useState(false);
+    const [hasMore, setHasMore] = useState(true);
     const socketRef = useRef();
     const fileInputRef = useRef(null);
     const navigate = useNavigate();
     const userEmail = localStorage.getItem('userEmail');
-
-    // Add messageRef for scrolling
     const messagesEndRef = useRef(null);
+    const messagesContainerRef = useRef(null);
 
-    // Add scrollToBottom function
     const scrollToBottom = () => {
         messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
     };
 
-    // Add useEffect for auto-scrolling when new messages arrive
     useEffect(() => {
         scrollToBottom();
     }, [messages]);
 
     useEffect(() => {
-        // Connect to Socket.IO
         socketRef.current = io('http://localhost:1015');
         
-        // Load chat history
         if (userEmail) {
+            // Add logging to debug
+            console.log('Fetching chat history for:', userEmail);
+            
             fetch(`http://localhost:1015/chat/history/${userEmail}`)
                 .then(res => res.json())
-                .then(data => setConversations(data));
+                .then(data => {
+                    console.log('Chat history response:', data);
+                    // Make sure data is an array before setting
+                    setConversations(Array.isArray(data) ? data : []);
+                })
+                .catch(err => {
+                    console.error('Error fetching chat history:', err);
+                });
         }
 
         return () => {
@@ -44,22 +52,85 @@ export default function ChatPage() {
     }, [userEmail]);
 
     useEffect(() => {
-        if (selectedUser && socketRef.current) {
-            // Join chat room
+        if (selectedUser && userEmail) {
+            // Mark messages as read when chat is opened
+            fetch('http://localhost:1015/chat/read', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    sender: selectedUser.email,
+                    receiver: userEmail
+                })
+            });
+
+            setMessages([]); // Clear messages immediately when user changes
+            setLoading(true); // Show loading state
+            
             const room = [userEmail, selectedUser.email].sort().join('-');
             socketRef.current.emit('join_chat', room);
 
-            // Load messages
-            fetch(`http://localhost:1015/chat/messages?sender=${userEmail}&receiver=${selectedUser.email}`)
+            // Load messages for new user
+            fetch(`http://localhost:1015/chat/messages?sender=${userEmail}&receiver=${selectedUser.email}&page=1&limit=20`)
                 .then(res => res.json())
-                .then(data => setMessages(data));
+                .then(data => {
+                    setMessages(data.messages || []);
+                    setLoading(false);
+                })
+                .catch(err => {
+                    console.error('Error loading messages:', err);
+                    setLoading(false);
+                });
 
-            // Listen for new messages
-            socketRef.current.on('receive_message', (data) => {
+            // Clean up socket listener to prevent message duplication
+            const handleMessage = (data) => {
                 setMessages(prev => [...prev, data]);
-            });
+            };
+            
+            socketRef.current.on('receive_message', handleMessage);
+
+            return () => {
+                socketRef.current.off('receive_message', handleMessage);
+                setMessages([]); // Clear messages when unmounting
+            };
         }
     }, [selectedUser, userEmail]);
+
+    const loadMessages = async (pageNum) => {
+        if (loading || !hasMore) return;
+        
+        setLoading(true);
+        try {
+            const response = await fetch(
+                `http://localhost:1015/chat/messages?sender=${userEmail}&receiver=${selectedUser.email}&page=${pageNum}&limit=20`
+            );
+            const data = await response.json();
+            
+            if (data.messages.length < 20) {
+                setHasMore(false);
+            }
+
+            if (pageNum === 1) {
+                setMessages(data.messages);
+            } else {
+                setMessages(prev => [...data.messages, ...prev]);
+            }
+        } catch (error) {
+            console.error('Error loading messages:', error);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleScroll = (e) => {
+        const container = e.target;
+        if (container.scrollTop === 0 && hasMore && !loading) {
+            const nextPage = page + 1;
+            setPage(nextPage);
+            loadMessages(nextPage);
+        }
+    };
 
     const handleImageSelect = (event) => {
         const file = event.target.files[0];
@@ -69,39 +140,33 @@ export default function ChatPage() {
     };
 
     const sendMessage = async () => {
-        if (!newMessage.trim() || !selectedUser) return;
+        if ((!newMessage.trim() && !selectedImage) || !selectedUser) return;
 
         try {
-            const messageData = {
-                sender: userEmail,
-                receiver: selectedUser.email,
-                message: newMessage.trim(),
-                timestamp: new Date()
-            };
+            const formData = new FormData();
+            formData.append('sender', userEmail);
+            formData.append('receiver', selectedUser.email);
+            formData.append('message', newMessage.trim());
+            
+            if (selectedImage) {
+                formData.append('image', selectedImage);
+            }
 
             const response = await fetch('http://localhost:1015/chat/message', {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify(messageData)
+                body: formData
             });
 
             if (!response.ok) throw new Error('Failed to send message');
 
             const newMsg = await response.json();
-
-            // Update messages state
             setMessages(prev => [...prev, newMsg]);
-            
-            // Clear input field
             setNewMessage('');
+            setSelectedImage(null);
 
-            // Send through socket
             const room = [userEmail, selectedUser.email].sort().join('-');
-            socketRef.current?.emit('send_message', { ...messageData, room });
+            socketRef.current?.emit('send_message', { ...newMsg, room });
 
-            // Scroll to bottom
             scrollToBottom();
         } catch (err) {
             console.error('Error sending message:', err);
@@ -109,6 +174,32 @@ export default function ChatPage() {
         }
     };
 
+    const deleteConversation = async (userToDelete) => {
+        if (!window.confirm('Are you sure you want to delete this conversation?')) return;
+        
+        try {
+            const response = await fetch('http://localhost:1015/chat/delete', {
+                method: 'DELETE',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    user1: userEmail,
+                    user2: userToDelete.email
+                })
+            });
+
+            if (response.ok) {
+                setConversations(prev => 
+                    prev.filter(conv => conv.email !== userToDelete.email)
+                );
+                if (selectedUser?.email === userToDelete.email) {
+                    setSelectedUser(null);
+                    setMessages([]);
+                }
+            }
+        } catch (err) {
+            console.error('Error deleting conversation:', err);
+        }
+    };
 
     return (
         <div style={{ 
@@ -215,7 +306,7 @@ export default function ChatPage() {
                                     />
                                     <div style={{ flex: 1 }}>
                                         <div style={{ 
-                                            fontWeight: 600,
+                                            fontWeight: user.unreadCount > 0 ? 700 : 600,
                                             color: '#333',
                                             marginBottom: '0.25rem'
                                         }}>
@@ -226,7 +317,8 @@ export default function ChatPage() {
                                             color: '#666',
                                             whiteSpace: 'nowrap',
                                             overflow: 'hidden',
-                                            textOverflow: 'ellipsis'
+                                            textOverflow: 'ellipsis',
+                                            fontWeight: user.unreadCount > 0 ? 600 : 'normal'
                                         }}>
                                             {user.lastMessage || 'Start a conversation'}
                                         </div>
@@ -247,6 +339,7 @@ export default function ChatPage() {
                     boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
                     display: 'flex',
                     flexDirection: 'column',
+                    minWidth: '1000px',
                     height: 'calc(100vh - 150px)',
                     maxHeight: 'calc(100vh - 150px)'
                 }}>
@@ -272,15 +365,20 @@ export default function ChatPage() {
                                 </div>
                             </div>
 
-                            <div style={{ 
-                                flex: 1,
-                                overflowY: 'auto',
-                                padding: '1rem',
-                                display: 'flex',
-                                flexDirection: 'column',
-                                gap: '0.5rem',
-                                background: '#f0f2f5'
-                            }}>
+                            <div 
+                                ref={messagesContainerRef}
+                                onScroll={handleScroll}
+                                style={{ 
+                                    flex: 1,
+                                    overflowY: 'auto',
+                                    padding: '1rem',
+                                    display: 'flex',
+                                    flexDirection: 'column',
+                                    gap: '0.5rem',
+                                    background: '#f0f2f5'
+                                }}
+                            >
+                                {loading && <div style={{ textAlign: 'center', padding: '10px' }}>Loading...</div>}
                                 {messages.map((msg, i) => (
                                     <div key={i} style={{ 
                                         alignSelf: msg.sender === userEmail ? 'flex-end' : 'flex-start',
