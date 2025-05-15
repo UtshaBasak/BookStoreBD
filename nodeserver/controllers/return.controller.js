@@ -15,8 +15,6 @@ const purchase = await Order.findOne({
 });
 
 
-    
-
     if (!purchase) {
       return res.status(404).json({ message: 'Purchase record not found within expired date' });
     }

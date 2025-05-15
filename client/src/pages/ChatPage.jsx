@@ -174,7 +174,7 @@ export default function ChatPage() {
         }
     };
 
-    const deleteConversation = async (userToDelete) => {
+    const _handleDeleteConversation = async (userToDelete) => {
         if (!window.confirm('Are you sure you want to delete this conversation?')) return;
         
         try {
@@ -198,7 +198,7 @@ export default function ChatPage() {
             }
         } catch (err) {
             console.error('Error deleting conversation:', err);
-        }
+        } 
     };
 
     return (
@@ -339,8 +339,6 @@ export default function ChatPage() {
                     boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
                     display: 'flex',
                     flexDirection: 'column',
-                    minWidth: '1000px',
-                    height: 'calc(100vh - 150px)',
                     maxHeight: 'calc(100vh - 150px)'
                 }}>
                     {selectedUser ? (
