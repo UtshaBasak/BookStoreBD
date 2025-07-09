@@ -7,6 +7,7 @@ export default function BuyerBookList() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [refreshing, setRefreshing] = useState(false);
+  const [returnStatuses, setReturnStatuses] = useState({});
   const buyerEmail = localStorage.getItem('userEmail');
   const userEmail = localStorage.getItem('userEmail');
   const navigate = useNavigate();
@@ -23,25 +24,59 @@ export default function BuyerBookList() {
       });
   };
 
+  // Fetch return statuses from the server
+  const fetchReturnStatuses = async () => {
+    try {
+      const response = await fetch(`http://localhost:1015/return/requests?userEmail=${encodeURIComponent(userEmail)}`, {
+        credentials: 'include'
+      });
+      const data = await response.json();
+      // Create a map of bookId -> status
+      const statusMap = {};
+      data.forEach(request => {
+        statusMap[request.bookId] = request.status;
+      });
+      setReturnStatuses(statusMap);
+    } catch (error) {
+      console.error('Error fetching return statuses:', error);
+    }
+  };
+
   // Handler for refresh button
   const handleRefresh = () => {
     fetchOrders();
+    fetchReturnStatuses();
   };
 
   useEffect(() => {
     fetchOrders();
+    fetchReturnStatuses();
     // eslint-disable-next-line
   }, [buyerEmail]);
 
-  const handleReturn = (bookId) => {
+  const handleReturn = (bookId, order) => {
     setOrders(prevOrders =>
-      prevOrders.map(order =>
-        order.bookId === bookId ? { ...order, isReturned: true } : order
+      prevOrders.map(o =>
+        o._id === order._id ? { ...o, isReturned: true } : o
       )
     );
-    navigate(`/description-form/${bookId}`);
+    navigate(`/description-form/${bookId}`, { 
+      state: {
+        orderId: order._id,
+        bookTitle: order.title,
+        orderDate: order.createdAt,
+        sellerEmail: order.sellerEmail
+      }
+    });
   };
   
+  const isWithinReturnPeriod = (orderDate) => {
+    const orderDateTime = new Date(orderDate).getTime();
+    const currentDateTime = new Date().getTime();
+    const threeDaysInMs = 3 * 24 * 60 * 60 * 1000;
+    return currentDateTime - orderDateTime <= threeDaysInMs;
+  };
+
   const filteredOrders = orders.filter(
     order =>
       (order.title || '').toLowerCase().includes(search.toLowerCase()) ||
@@ -127,24 +162,24 @@ export default function BuyerBookList() {
                   <td>{order.sellerEmail}</td>
                   <td>{order.createdAt ? new Date(order.createdAt).toLocaleDateString() : ''}</td>
                   <td>
-                    
-                    {!order.isReturned && (
-                    <button
-                      onClick={() => handleReturn(order.bookId)}
-                      style={{
-                        backgroundColor: '#f39c12',
-                        color: 'white',
-                        border: 'none',
-                        borderRadius: '3px',
-                        padding: '5px 10px',
-                        cursor: 'pointer',
-                        marginLeft: '5px'
-                      }}
-                    >
-                      Return
-                    </button>
-                  )}
-
+                    {returnStatuses[order.bookId] ? (
+                      <span className={`px-2 py-1 rounded ${
+                        returnStatuses[order.bookId] === 'pending' ? 'bg-yellow-200 text-yellow-800' :
+                        returnStatuses[order.bookId] === 'approved' ? 'bg-green-200 text-green-800' :
+                        'bg-red-200 text-red-800'
+                      }`}>
+                        Return {returnStatuses[order.bookId]}
+                      </span>
+                    ) : isWithinReturnPeriod(order.createdAt) ? (
+                      <button
+                        onClick={() => handleReturn(order.bookId, order)}
+                        className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
+                      >
+                        Return
+                      </button>
+                    ) : (
+                      <span className="text-red-500">Return period expired</span>
+                    )}
                   </td>
                 </tr>
               ))

@@ -19,7 +19,7 @@ export default function ChatPage() {
     const messagesEndRef = useRef(null);
     const messagesContainerRef = useRef(null);
 
-    const scrollToBottom = () => {
+    const scrollToBottom = () => { 
         messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
     };
 
@@ -66,6 +66,8 @@ export default function ChatPage() {
             });
 
             setMessages([]); // Clear messages immediately when user changes
+            setPage(1);      // Reset pagination
+            setHasMore(true);
             setLoading(true); // Show loading state
             
             const room = [userEmail, selectedUser.email].sort().join('-');
@@ -75,17 +77,24 @@ export default function ChatPage() {
             fetch(`http://localhost:1015/chat/messages?sender=${userEmail}&receiver=${selectedUser.email}&page=1&limit=20`)
                 .then(res => res.json())
                 .then(data => {
-                    setMessages(data.messages || []);
+                    setMessages(Array.isArray(data.messages) ? data.messages : []);
                     setLoading(false);
                 })
                 .catch(err => {
                     console.error('Error loading messages:', err);
+                    setMessages([]);
                     setLoading(false);
                 });
 
             // Clean up socket listener to prevent message duplication
             const handleMessage = (data) => {
-                setMessages(prev => [...prev, data]);
+                // Only add message if it's for the current conversation
+                if (
+                    (data.sender === userEmail && data.receiver === selectedUser.email) ||
+                    (data.sender === selectedUser.email && data.receiver === userEmail)
+                ) {
+                    setMessages(prev => [...prev, data]);
+                }
             };
             
             socketRef.current.on('receive_message', handleMessage);
@@ -98,7 +107,7 @@ export default function ChatPage() {
     }, [selectedUser, userEmail]);
 
     const loadMessages = async (pageNum) => {
-        if (loading || !hasMore) return;
+        if (loading || !hasMore || !selectedUser) return;
         
         setLoading(true);
         try {
@@ -107,6 +116,12 @@ export default function ChatPage() {
             );
             const data = await response.json();
             
+            if (!Array.isArray(data.messages)) {
+                setHasMore(false);
+                setLoading(false);
+                return;
+            }
+
             if (data.messages.length < 20) {
                 setHasMore(false);
             }
@@ -125,7 +140,7 @@ export default function ChatPage() {
 
     const handleScroll = (e) => {
         const container = e.target;
-        if (container.scrollTop === 0 && hasMore && !loading) {
+        if (container.scrollTop === 0 && hasMore && !loading && selectedUser) {
             const nextPage = page + 1;
             setPage(nextPage);
             loadMessages(nextPage);
@@ -174,7 +189,7 @@ export default function ChatPage() {
         }
     };
 
-    const _handleDeleteConversation = async (userToDelete) => {
+    const deleteConversation = async (userToDelete) => {
         if (!window.confirm('Are you sure you want to delete this conversation?')) return;
         
         try {
@@ -198,7 +213,7 @@ export default function ChatPage() {
             }
         } catch (err) {
             console.error('Error deleting conversation:', err);
-        } 
+        }
     };
 
     return (
@@ -324,6 +339,24 @@ export default function ChatPage() {
                                         </div>
                                     </div>
                                 </div>
+                                <button
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        deleteConversation(user);
+                                    }}
+                                    style={{
+                                        background: 'none',
+                                        border: 'none',
+                                        color: '#dc3545',
+                                        cursor: 'pointer',
+                                        padding: '8px',
+                                        opacity: 0.7,
+                                        transition: 'opacity 0.2s'
+                                    }}
+                                    title="Delete conversation"
+                                >
+                                    <FaTrash size={16} />
+                                </button>
                             </div>
                         ))}
                     </div>
@@ -339,6 +372,8 @@ export default function ChatPage() {
                     boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
                     display: 'flex',
                     flexDirection: 'column',
+                    minWidth: '1000px',
+                    height: 'calc(100vh - 150px)',
                     maxHeight: 'calc(100vh - 150px)'
                 }}>
                     {selectedUser ? (
