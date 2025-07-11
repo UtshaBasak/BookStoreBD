@@ -21,7 +21,7 @@ export default function SellerOrderTrackingPage() {
 
   useEffect(() => {
     if (!orderNumber) return;
-    axios.get(`http://localhost:1015/order/${orderNumber}`)
+    axios.get(`http://localhost:4000/order/${orderNumber}`)
       .then(res => setOrder(res.data))
       .catch(() => setOrder(null));
   }, [orderNumber]);
@@ -31,7 +31,7 @@ export default function SellerOrderTrackingPage() {
     setUpdating(true);
     setError('');
     try {
-      const res = await axios.patch(`http://localhost:1015/order/status/${orderNumber}`, { status: newStatus });
+      const res = await axios.patch(`http://localhost:4000/order/status/${orderNumber}`, { status: newStatus });
       setOrder(res.data);
     } catch {
       setError('Failed to update status');

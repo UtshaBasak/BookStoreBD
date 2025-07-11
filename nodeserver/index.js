@@ -26,7 +26,7 @@ mongoose.connect(process.env.MONGO, {
 // Configure CORS
 const corsOptions = {
     origin: 'http://localhost:5173', // Allow requests from this origin
-    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'], // Allowed HTTP methods
+    methods: ['GET', 'POST', 'PUT', 'DELETE'], // Allowed HTTP methods
     credentials: true, // Allow cookies if needed
 };
 
@@ -53,7 +53,10 @@ import purchaseRoutes from './routes/purchase.route.js';
 app.use(bodyParser.json());
 
 app.use(express.json());
-app.use(cors(corsOptions));
+app.use(cors({
+  origin: 'http://localhost:5173', // Update this to match your frontend URL
+  credentials: true
+}));
 app.use('/user', userRouter);
 app.use('/auth', authRouter);
 app.use('/book', bookRouter);
@@ -130,6 +133,35 @@ app.post('/order/decrease-stock', async (req, res) => {
 
 app.post('/cart/clear', Cart_clear);
 
+// Submit return request
+app.post('/return-requests', async (req, res) => {
+  try {
+    const { bookId } = req.body;
+    const book = await Book.findByIdAndUpdate(bookId, 
+      { returnStatus: 'pending' },
+      { new: true }
+    );
+    res.json(book);
+  } catch (error) {
+    res.status(500).json({ message: 'Error submitting return request' });
+  }
+});
+
+// Update return status
+app.patch('/return-requests/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { status } = req.body;
+    const book = await Book.findByIdAndUpdate(id,
+      { returnStatus: status },
+      { new: true }
+    );
+    res.json(book);
+  } catch (error) {
+    res.status(500).json({ message: 'Error updating return status' });
+  }
+});
+
 app.use((err,req,res,next) => {
     const statusCode = err.statusCode || 500;
     const message = err.message || 'Internet Server Error';
@@ -140,7 +172,7 @@ app.use((err,req,res,next) => {
     });
 });
 
-const port = 1015;
+const port = 4000;
 const server = app.listen(port,()=> console.log(`Listening on port ${port}...`));
  
 // Socket.IO setup

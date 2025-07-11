@@ -9,11 +9,11 @@ export default function BookList() {
   // Fetch books and users
   const fetchData = () => {
     setLoading(true);
-    fetch('http://localhost:1015/book')
+    fetch('http://localhost:4000/book')
       .then((res) => res.json())
       .then((data) => setBooks(data))
       .catch((err) => console.error(err));
-    fetch('http://localhost:1015/user')
+    fetch('http://localhost:4000/user')
       .then(res => res.json())
       .then(data => {
         const map = {};
@@ -31,7 +31,7 @@ export default function BookList() {
   }, []);
 
   const deleteBook = (id) => {
-    fetch(`http://localhost:1015/book/${id}`, { method: 'DELETE' })
+    fetch(`http://localhost:4000/book/${id}`, { method: 'DELETE' })
       .then(() => setBooks(books.filter((book) => book._id !== id)))
       .catch((err) => console.error('Error deleting book:', err));
   };

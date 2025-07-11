@@ -27,7 +27,7 @@ export default function AdminOrderTrackingPage() {
   const [statusValue, setStatusValue] = useState('');
   useEffect(() => {
     if (!orderNumber) return;
-    axios.get(`http://localhost:1015/order/${orderNumber}`)
+    axios.get(`http://localhost:4000/order/${orderNumber}`)
       .then(res => {
         setOrder(res.data);
         setStatusValue(res.data.status || 'Order Confirmed');
@@ -39,9 +39,9 @@ export default function AdminOrderTrackingPage() {
     setStatusValue(newStatus);
     setError('');
     try {
-      await axios.patch(`http://localhost:1015/order/status/${orderNumber}`, { status: newStatus });
+      await axios.patch(`http://localhost:4000/order/status/${orderNumber}`, { status: newStatus });
       // Refetch all books for this order after successful update
-      const res = await axios.get(`http://localhost:1015/order/${orderNumber}`);
+      const res = await axios.get(`http://localhost:4000/order/${orderNumber}`);
       setOrder(res.data);
       setStatusValue(res.data.status);
       setError('');

@@ -24,7 +24,7 @@ export default function SignUp() {
         e.preventDefault(); // Prevents page refresh on form submit
 
         try {
-            const res = await fetch('http://localhost:1015/auth/signup', {
+            const res = await fetch('http://localhost:4000/auth/signup', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
