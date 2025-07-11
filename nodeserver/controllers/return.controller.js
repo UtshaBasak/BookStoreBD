@@ -1,39 +1,74 @@
 import Order from '../models/Order.model.js';
+import ReturnRequest from '../models/ReturnRequest.model.js';
+import AddBook from '../models/AddBook.model.js';
 
 export const returnBook = async (req, res) => {
-  const { bookId, userEmail ,defectDescription } = req.body;
-  console.log('Received data:', req.body); 
   try {
-    // Find the purchase record for the book and user
-    const threeDaysAgo = new Date();
-threeDaysAgo.setDate(threeDaysAgo.getDate() - 3);
-
-const purchase = await Order.findOne({
-  bookId,
-  buyerEmail: userEmail,
-  createdAt: { $gte: threeDaysAgo }
-});
-
-
-    if (!purchase) {
-      return res.status(404).json({ message: 'Purchase record not found within expired date' });
-    }
-
+    const { bookId, userEmail, defectDescription } = req.body;
     
-    if (purchase.isReturned) {
-      return res.status(400).json({ message: 'Book has already been returned' });
+    // Get the book details
+    const book = await AddBook.findById(bookId);
+    if (!book) {
+      return res.status(404).json({ message: 'Book not found' });
     }
 
-    // Mark the book as returned
-    console.log('purchase:',purchase);
-    purchase.isReturned = 1;
-    purchase.defectDescription = defectDescription; 
-    console.log('response:',purchase);
-  
-    await purchase.save();
+    // Create return request
+    const returnRequest = new ReturnRequest({
+      bookId,
+      bookTitle: book.title,
+      userEmail,
+      sellerEmail: book.sellerEmail,
+      defectDescription,
+      status: 'pending'
+    });
 
-    res.status(200).json({ message: 'Book returned successfully' });
+    await returnRequest.save();
+    
+    // Update the order status
+    await Order.findOneAndUpdate(
+      { bookId, buyerEmail: userEmail },
+      { isReturned: 1 }
+    );
+
+    res.status(200).json({ 
+      message: 'Return request submitted successfully',
+      returnId: returnRequest._id
+    });
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    console.error('Return Error:', error);
+    res.status(500).json({ message: 'Failed to process return request' });
+  }
+};
+
+export const getReturnRequests = async (req, res) => {
+  try {
+    const { userEmail } = req.query;
+    const query = userEmail ? { userEmail } : {};
+    const requests = await ReturnRequest.find(query).sort({ createdAt: -1 });
+    res.json(requests);
+  } catch (error) {
+    res.status(500).json({ message: 'Error fetching return requests' });
+  }
+};
+
+export const updateReturnStatus = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { status } = req.body;
+    
+    const updatedRequest = await ReturnRequest.findByIdAndUpdate(
+      id,
+      { status },
+      { new: true }
+    );
+
+    if (!updatedRequest) {
+      return res.status(404).json({ message: 'Return request not found' });
+    }
+
+    res.json(updatedRequest);
+  } catch (error) {
+    console.error('Error updating return request:', error);
+    res.status(500).json({ message: 'Error updating return request' });
   }
 };

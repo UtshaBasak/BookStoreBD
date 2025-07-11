@@ -5,7 +5,7 @@ export default function TransactionHistory() {
   const [orders, setOrders] = useState([]);
 
   useEffect(() => {
-    axios.get('http://localhost:1015/order/admin/all')
+    axios.get('http://localhost:4000/order/admin/all')
       .then(res => setOrders(Array.isArray(res.data) ? res.data : []));
   }, []);
 

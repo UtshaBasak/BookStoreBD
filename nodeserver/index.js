@@ -172,7 +172,7 @@ app.use((err,req,res,next) => {
     });
 });
 
-const port = 1015;
+const port = 4000;
 const server = app.listen(port,()=> console.log(`Listening on port ${port}...`));
  
 // Socket.IO setup

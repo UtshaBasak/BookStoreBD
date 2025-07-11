@@ -18,12 +18,15 @@ router.get('/messages', async (req, res) => {
         const { sender, receiver, page = 1, limit = 20 } = req.query;
         const skip = (page - 1) * limit;
 
+        // Use index hint and only select needed fields
         const messages = await ChatMessage.find({
             $or: [
                 { sender, receiver },
                 { sender: receiver, receiver: sender }
             ]
         })
+        .hint({ sender: 1, receiver: 1 }) // If you have this index
+        .select('sender receiver message image timestamp') // Only needed fields
         .sort({ timestamp: -1 })
         .skip(skip)
         .limit(parseInt(limit))

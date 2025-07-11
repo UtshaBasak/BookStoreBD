@@ -15,7 +15,7 @@ export default function BuyerBookList() {
   // Fetch orders from the server
   const fetchOrders = () => {
     setRefreshing(true);
-    fetch(`http://localhost:1015/order/buyer?email=${encodeURIComponent(userEmail)}`)
+    fetch(`http://localhost:4000/order/buyer?email=${encodeURIComponent(userEmail)}`)
       .then(res => res.json())
       .then(data => {
         setOrders(Array.isArray(data) ? data : []);
@@ -27,7 +27,7 @@ export default function BuyerBookList() {
   // Fetch return statuses from the server
   const fetchReturnStatuses = async () => {
     try {
-      const response = await fetch(`http://localhost:1015/return/requests?userEmail=${encodeURIComponent(userEmail)}`, {
+      const response = await fetch(`http://localhost:4000/return/requests?userEmail=${encodeURIComponent(userEmail)}`, {
         credentials: 'include'
       });
       const data = await response.json();

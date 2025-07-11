@@ -12,7 +12,7 @@ export default function UserManagement() {
 
   const fetchUsers = () => {
     setRefreshing(true);
-    fetch('http://localhost:1015/user')
+    fetch('http://localhost:4000/user')
       .then((res) => {
         if (!res.ok) throw new Error('Failed to fetch users');
         return res.json();
@@ -36,7 +36,7 @@ export default function UserManagement() {
 
   const deleteUser = async (id) => {
     try {
-      const response = await fetch(`http://localhost:1015/user/${id}`, {
+      const response = await fetch(`http://localhost:4000/user/${id}`, {
         method: 'DELETE',
         headers: {
           'Content-Type': 'application/json',

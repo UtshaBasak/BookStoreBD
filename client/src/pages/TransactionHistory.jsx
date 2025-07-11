@@ -19,7 +19,7 @@ export default function TransactionHistory() {
   // Fetch all orders for admin
   const fetchOrders = () => {
     setRefreshing(true);
-    fetch('http://localhost:1015/order/admin/all')
+    fetch('http://localhost:4000/order/admin/all')
       .then((res) => res.json())
       .then((data) => setOrders(Array.isArray(data) ? data : []))
       .catch((err) => console.error(err))

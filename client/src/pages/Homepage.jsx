@@ -39,7 +39,7 @@ export default function Homepage() {
     const email = localStorage.getItem('userEmail');
     if (email) {
       setUser({ email });
-      fetch(`http://localhost:1015/user/profile?email=${email}`)
+      fetch(`http://localhost:4000/user/profile?email=${email}`)
         .then(res => res.ok ? res.json() : null)
         .then(data => {
           if (data) {
@@ -51,7 +51,7 @@ export default function Homepage() {
   }, []);
 
   useEffect(() => {
-    fetch('http://localhost:1015/book')
+    fetch('http://localhost:4000/book')
       .then(res => res.ok ? res.json() : [])
       .then(data => {
         if (!Array.isArray(data)) return setPopularBooks([]);
@@ -71,14 +71,14 @@ export default function Homepage() {
 
   useEffect(() => {
     if (!userEmail) return;
-    fetch(`http://localhost:1015/wishlist?email=${encodeURIComponent(userEmail)}`)
+    fetch(`http://localhost:4000/wishlist?email=${encodeURIComponent(userEmail)}`)
       .then(res => res.json())
       .then(data => {
         const wishMap = {};
         data.forEach(book => { wishMap[book._id] = true; });
         setWishlist(wishMap);
       });
-    fetch(`http://localhost:1015/cart?email=${encodeURIComponent(userEmail)}`)
+    fetch(`http://localhost:4000/cart?email=${encodeURIComponent(userEmail)}`)
       .then(res => res.json())
       .then(data => {
         const cartObj = {};
@@ -91,12 +91,12 @@ export default function Homepage() {
     if (!userEmail) return;
 
     // Fetch initial unread count
-    fetch(`http://localhost:1015/chat/unread/${userEmail}`)
+    fetch(`http://localhost:4000/chat/unread/${userEmail}`)
       .then(res => res.json())
       .then(data => setUnreadCount(data.count));
 
     // Listen for new messages
-    const socket = io('http://localhost:1015');
+    const socket = io('http://localhost:4000');
     socket.on('receive_message', (data) => {
       if (data.receiver === userEmail && !window.location.pathname.includes('/chat')) {
         setUnreadCount(prev => prev + 1);
@@ -125,7 +125,7 @@ export default function Homepage() {
       return;
     }
     const isInWishlist = !!wishlist[bookId];
-    fetch(`http://localhost:1015/wishlist/${isInWishlist ? 'remove' : 'add'}/${bookId}`, {
+    fetch(`http://localhost:4000/wishlist/${isInWishlist ? 'remove' : 'add'}/${bookId}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email: userEmail })
@@ -144,7 +144,7 @@ export default function Homepage() {
       return;
     }
     const isInCart = !!cart[bookId];
-    fetch(`http://localhost:1015/cart/${isInCart ? 'remove' : 'add'}/${bookId}`, {
+    fetch(`http://localhost:4000/cart/${isInCart ? 'remove' : 'add'}/${bookId}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email: userEmail })
@@ -457,7 +457,7 @@ export default function Homepage() {
 
       <div className="hero-banner" style={{ zIndex: 1, position: 'relative' }}>
         <img 
-          src="https://a-static.besthdwallpaper.com/a-peaceful-library-with-a-variety-of-books-on-the-shelves-wallpaper-1280x720-98073_45.jpg" 
+          // src="https://a-static.besthdwallpaper.com/a-peaceful-library-with-a-variety-of-books-on-the-shelves-wallpaper-1280x720-98073_45.jpg"
           alt="Book Store Banner"
         />
       </div>
@@ -475,12 +475,13 @@ export default function Homepage() {
         background: '#fff'
       }}>
         <img
-          src="https://images.unsplash.com/photo-1512820790803-83ca734da794?auto=format&fit=crop&w=1200&q=80"
+          // src="https://images.unsplash.com/photo-1512820790803-83ca734da794?auto=format&fit=crop&w=1200&q=80"
+          src="/banner1.png"
           alt="Books Banner"
           style={{
-            width: '90%',
-            maxWidth: 1200,
-            height: 180,
+            width: '80%',
+            // maxWidth: 1200,
+            height: '60%',
             objectFit: 'cover',
             borderRadius: 16,
             boxShadow: '0 4px 16px rgba(0,0,0,0.08)',

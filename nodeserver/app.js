@@ -21,6 +21,6 @@ import orderRoutes from './routes/order.route.js';
 app.use('/order', orderRoutes);
 
 // Start server
-app.listen(1015, () => {
-  console.log('Server running on port 1015');
+app.listen(4000, () => {
+  console.log('Server running on port 4000');
 });

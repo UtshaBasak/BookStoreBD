@@ -54,7 +54,7 @@ export default function Payment() {
 
     // Fetch latest profile from backend to get updated phone
     if (profile.email) {
-      fetch(`http://localhost:1015/user/profile?email=${encodeURIComponent(profile.email)}`)
+      fetch(`http://localhost:4000/user/profile?email=${encodeURIComponent(profile.email)}`)
         .then(res => res.json())
         .then(data => {
           setUser(u => ({
@@ -102,7 +102,7 @@ export default function Payment() {
     }
 
     // If not confirmed, load cart as usual
-    fetch(`http://localhost:1015/cart?email=${encodeURIComponent(email)}`)
+    fetch(`http://localhost:4000/cart?email=${encodeURIComponent(email)}`)
       .then(res => res.json())
       .then(data => {
         setCartBooks(Array.isArray(data) ? data : []);
@@ -150,7 +150,7 @@ export default function Payment() {
     if (!img) return 'https://via.placeholder.com/80x120?text=No+Image';
     if (img.startsWith('data:image/')) return img;
     if (/^https?:\/\//.test(img)) return img;
-    return `http://localhost:1015/uploads/${img}`;
+    return `http://localhost:4000/uploads/${img}`;
   };
 
   // Helper for sticker color
@@ -170,7 +170,7 @@ export default function Payment() {
 
   const handleRemoveBook = (bookId) => {
     const email = user.email;
-    fetch(`http://localhost:1015/cart/remove/${bookId}`, {
+    fetch(`http://localhost:4000/cart/remove/${bookId}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email })
@@ -255,7 +255,7 @@ export default function Payment() {
     setQuantities(latestQuantities);
 
     // Decrease stock in backend and clear cart
-    fetch(`http://localhost:1015/order/decrease-stock`, {
+    fetch(`http://localhost:4000/order/decrease-stock`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -303,7 +303,7 @@ export default function Payment() {
     });
 
     // Clear the cart for the user after order confirmation
-    fetch(`http://localhost:1015/cart/clear`, {
+    fetch(`http://localhost:4000/cart/clear`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email: user.email })
