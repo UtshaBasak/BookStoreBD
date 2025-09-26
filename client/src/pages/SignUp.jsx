@@ -3,6 +3,10 @@ import { Link, useNavigate } from 'react-router-dom';
 
 export default function SignUp() {
     const [formData, setFormData] = useState({});
+    const [step, setStep] = useState('form'); // form | otp | done
+    const [otp, setOtp] = useState('');
+    const [otpMsg, setOtpMsg] = useState('');
+    const [emailForOtp, setEmailForOtp] = useState('');
     const navigate = useNavigate();
 
     useEffect(() => {
@@ -20,22 +24,64 @@ export default function SignUp() {
         });
     };
 
-    const handleSubmit = async (e) => {
-        e.preventDefault(); // Prevents page refresh on form submit
+    const handleSendOtp = async (email) => {
+        setOtpMsg('');
+        const res = await fetch('http://localhost:4000/auth/send-otp', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email, username: formData.username, purpose: 'register' }) // include purpose
+        });
+        const data = await res.json();
+        if (res.ok) {
+            setOtpMsg('OTP sent to your email.');
+            setStep('otp');
+            setEmailForOtp(email);
+        } else {
+            setOtpMsg(data.message || 'Failed to send OTP.');
+        }
+    };
 
+    const handleVerifyOtp = async () => {
+        setOtpMsg('');
+        const res = await fetch('http://localhost:4000/auth/verify-otp', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email: emailForOtp, code: otp })
+        });
+        const data = await res.json();
+        if (res.ok) {
+            setOtpMsg('OTP verified. Completing registration...');
+            // Now submit registration
+            handleSubmitFinal();
+        } else {
+            setOtpMsg(data.message || 'Invalid OTP. Try again.');
+        }
+    };
+
+    const handleSubmit = async (e) => {
+        e.preventDefault();
+        if (!formData.email || !formData.username || !formData.password) {
+            alert('Please fill all fields.');
+            return;
+        }
+        // Prevent sending OTP if already in OTP step
+        if (step === 'otp') return;
+        await handleSendOtp(formData.email);
+    };
+
+    const handleSubmitFinal = async () => {
+        // ...existing code...
         try {
             const res = await fetch('http://localhost:4000/auth/signup', {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify(formData),
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ ...formData, otp }),
             });
-
             const data = await res.json();
             if (res.ok) {
                 localStorage.setItem('userEmail', formData.email);
-                navigate('/'); // Redirect to homepage after sign up
+                setStep('done');
+                setTimeout(() => navigate('/'), 1000);
             } else {
                 alert(JSON.stringify(data));
             }
@@ -90,91 +136,119 @@ export default function SignUp() {
                 }}
             >
                 <h2 style={{ fontSize: '1.5rem', marginBottom: '1.5rem' }}>Sign Up</h2>
-                <form onSubmit={handleSubmit}>
-                    <div style={{ marginBottom: '1rem' }}>
+                {step === 'form' && (
+                    <form onSubmit={handleSubmit}>
+                        <div style={{ marginBottom: '1rem' }}>
+                            <input
+                                type="text"
+                                placeholder="Username"
+                                id="username"
+                                onChange={handleChange}
+                                style={{
+                                    width: '100%',
+                                    padding: '0.5rem',
+                                    border: 'none',
+                                    borderBottom: '1px solid white',
+                                    background: 'transparent',
+                                    color: 'white',
+                                    fontSize: '1rem',
+                                    outline: 'none',
+                                }}
+                            />
+                        </div>
+                        <div style={{ marginBottom: '1rem' }}>
+                            <input
+                                type="email"
+                                placeholder="Email"
+                                id="email"
+                                onChange={handleChange}
+                                style={{
+                                    width: '100%',
+                                    padding: '0.5rem',
+                                    border: 'none',
+                                    borderBottom: '1px solid white',
+                                    background: 'transparent',
+                                    color: 'white',
+                                    fontSize: '1rem',
+                                    outline: 'none',
+                                }}
+                            />
+                        </div>
+                        <div style={{ marginBottom: '1.5rem' }}>
+                            <input
+                                type="password"
+                                placeholder="Password"
+                                id="password"
+                                onChange={handleChange}
+                                style={{
+                                    width: '100%',
+                                    padding: '0.5rem',
+                                    border: 'none',
+                                    borderBottom: '1px solid white',
+                                    background: 'transparent',
+                                    color: 'white',
+                                    fontSize: '1rem',
+                                    outline: 'none',
+                                }}
+                            />
+                        </div>
+                        <button
+                            type="submit"
+                            style={{
+                                width: '100%',
+                                padding: '0.75rem',
+                                backgroundColor: '#333',
+                                color: 'white',
+                                border: 'none',
+                                borderRadius: '4px',
+                                fontSize: '1rem',
+                                cursor: 'pointer',
+                                transition: 'background-color 0.3s',
+                            }}
+                            onMouseOver={(e) => (e.target.style.backgroundColor = '#555')}
+                            onMouseOut={(e) => (e.target.style.backgroundColor = '#333')}
+                        >
+                            Send OTP
+                        </button>
+                        {/* Show error or info message below the button */}
+                        {otpMsg && (
+                            <div style={{ color: otpMsg.startsWith('OTP sent') ? 'green' : 'red', marginTop: 8 }}>
+                                {otpMsg}
+                            </div>
+                        )}
+                    </form>
+                )}
+                {step === 'otp' && (
+                    <div>
                         <input
                             type="text"
-                            placeholder="Username"
-                            id="username"
-                            onChange={handleChange}
-                            style={{
-                                width: '100%',
-                                padding: '0.5rem',
-                                border: 'none',
-                                borderBottom: '1px solid white',
-                                background: 'transparent',
-                                color: 'white',
-                                fontSize: '1rem',
-                                outline: 'none',
-                            }}
+                            placeholder="Enter OTP"
+                            value={otp}
+                            onChange={e => setOtp(e.target.value)}
+                            style={{ width: '100%', padding: '0.5rem', marginBottom: '1rem' }}
                         />
+                        <button onClick={handleVerifyOtp} style={{ width: '100%', padding: '0.75rem', backgroundColor: '#333', color: 'white', border: 'none', borderRadius: '4px' }}>
+                            Verify OTP & Register
+                        </button>
+                        <button type="button" onClick={() => handleSendOtp(emailForOtp)} style={{ marginTop: 8, background: 'none', color: '#00f', border: 'none', cursor: 'pointer' }}>
+                            Resend OTP
+                        </button>
+                        <div style={{ color: otpMsg.startsWith('OTP verified') || otpMsg.startsWith('OTP sent') ? 'green' : 'red', marginTop: 8 }}>{otpMsg}</div>
                     </div>
-                    <div style={{ marginBottom: '1rem' }}>
-                        <input
-                            type="email"
-                            placeholder="Email"
-                            id="email"
-                            onChange={handleChange}
-                            style={{
-                                width: '100%',
-                                padding: '0.5rem',
-                                border: 'none',
-                                borderBottom: '1px solid white',
-                                background: 'transparent',
-                                color: 'white',
-                                fontSize: '1rem',
-                                outline: 'none',
-                            }}
-                        />
-                    </div>
-                    <div style={{ marginBottom: '1.5rem' }}>
-                        <input
-                            type="password"
-                            placeholder="Password"
-                            id="password"
-                            onChange={handleChange}
-                            style={{
-                                width: '100%',
-                                padding: '0.5rem',
-                                border: 'none',
-                                borderBottom: '1px solid white',
-                                background: 'transparent',
-                                color: 'white',
-                                fontSize: '1rem',
-                                outline: 'none',
-                            }}
-                        />
-                    </div>
-                    <button
-                        type="submit"
-                        style={{
-                            width: '100%',
-                            padding: '0.75rem',
-                            backgroundColor: '#333',
-                            color: 'white',
-                            border: 'none',
-                            borderRadius: '4px',
-                            fontSize: '1rem',
-                            cursor: 'pointer',
-                            transition: 'background-color 0.3s',
-                        }}
-                        onMouseOver={(e) => (e.target.style.backgroundColor = '#555')}
-                        onMouseOut={(e) => (e.target.style.backgroundColor = '#333')}
-                    >
-                        Sign Up
-                    </button>
-                </form>
-
+                )}
+                {step === 'done' && (
+                    <div style={{ color: 'green', marginTop: 16 }}>Registration successful! Redirecting...</div>
+                )}
                 {/* Forgot Password Link */}
-        <p style={{ marginTop: '1rem', fontSize: '0.9rem' }}>
+        {/* <p style={{ marginTop: '1rem', fontSize: '0.9rem' }}>
           <Link to="/forgot-password" style={{ color: '#00f', textDecoration: 'underline' }}>
             Forgot Password?
           </Link>
-        </p>
+        </p> */}
                 <p style={{ marginTop: '1rem', fontSize: '0.9rem' }}>
                     Already registered?{' '}
-                    <Link to="/sign-in" style={{ color: '#00f', textDecoration: 'underline' }}>
-                        SIGN IN
+                    <Link to="/sign-in" style={{ color: 'white', textDecoration: 'underline', textDecoration: 'none', backgroundColor: '#8B6F6F' }}>
+                        <b>SIGN IN</b>
                     </Link>
                 </p>
             {/* Go To Home Button */}

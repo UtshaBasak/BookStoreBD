@@ -4,6 +4,12 @@ import React, { useState, useEffect } from 'react';
 export default function SignIn() {
     const navigate = useNavigate();
     const [formData, setFormData] = useState({});
+    const [showForgot, setShowForgot] = useState(false);
+    const [forgotEmail, setForgotEmail] = useState('');
+    const [forgotOtp, setForgotOtp] = useState('');
+    const [forgotStep, setForgotStep] = useState('email'); // email | otp | reset
+    const [forgotMsg, setForgotMsg] = useState('');
+    const [newPassword, setNewPassword] = useState('');
 
     useEffect(() => {
         const userEmail = localStorage.getItem('userEmail');
@@ -42,6 +48,54 @@ export default function SignIn() {
         } catch (err) {
             console.error('Error submitting form:', err);
             alert('Error submitting form: ' + err.message);
+        }
+    };
+
+    const handleForgotSendOtp = async () => {
+        setForgotMsg('');
+        const res = await fetch('http://localhost:4000/auth/send-otp', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email: forgotEmail, purpose: 'reset' }) // include purpose
+        });
+        const data = await res.json();
+        if (res.ok) {
+            setForgotStep('otp');
+            setForgotMsg('OTP sent to your email.');
+        } else {
+            setForgotMsg(data.message || 'Failed to send OTP.');
+        }
+    };
+
+    const handleForgotVerifyOtp = async () => {
+        setForgotMsg('');
+        const res = await fetch('http://localhost:4000/auth/verify-otp', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email: forgotEmail, code: forgotOtp })
+        });
+        const data = await res.json();
+        if (res.ok) {
+            setForgotStep('reset');
+            setForgotMsg('OTP verified. Enter new password.');
+        } else {
+            setForgotMsg(data.message || 'Invalid OTP.');
+        }
+    };
+
+    const handleForgotResetPassword = async () => {
+        setForgotMsg('');
+        const res = await fetch('http://localhost:4000/auth/reset-password', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email: forgotEmail, otp: forgotOtp, newPassword })
+        });
+        const data = await res.json();
+        if (res.ok) {
+            setForgotMsg('Password reset successful. Please sign in.');
+            setTimeout(() => setShowForgot(false), 1000);
+        } else {
+            setForgotMsg(data.message || 'Failed to reset password.');
         }
     };
 
@@ -148,14 +202,14 @@ export default function SignIn() {
                     </button>
                 </form>
                 <p style={{ marginTop: '1rem', fontSize: '0.9rem' }}>
-                    <Link to="/forgot-password" style={{ color: '#00f', textDecoration: 'underline' }}>
+                    <span style={{ color: 'white', textDecoration: 'underline', cursor: 'pointer' }} onClick={() => setShowForgot(true)}>
                         Forgot Password?
-                    </Link>
+                    </span>
                 </p>
                 <p style={{ marginTop: '1rem', fontSize: '0.9rem' }}>
                     Not registered?{' '}
-                    <Link to="/sign-up" style={{ color: '#00f', textDecoration: 'underline' }}>
-                        SIGN UP
+                    <Link to="/sign-up" style={{ color: 'white', textDecoration: 'none', backgroundColor: '#8B6F6F' }}>
+                       <b> SIGN UP</b>
                     </Link>
                 </p>
                 {/* Go To Home Button */}
@@ -180,6 +234,39 @@ export default function SignIn() {
                     Go To Home
                 </button>
             </div>
+
+            {/* Forgot Password Modal */}
+            {showForgot && (
+                <div style={{
+                    position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh',
+                    background: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000
+                }}>
+                    <div style={{ background: '#fff', color: '#222', padding: 32, borderRadius: 8, minWidth: 320 }}>
+                        <h3>Forgot Password</h3>
+                        {forgotStep === 'email' && (
+                            <>
+                                <input type="email" placeholder="Enter your email" value={forgotEmail} onChange={e => setForgotEmail(e.target.value)} style={{ width: '100%', marginBottom: 12, padding: 8 }} />
+                                <button onClick={handleForgotSendOtp} style={{ width: '100%', padding: 10, background: '#333', color: '#fff', border: 'none', borderRadius: 4 }}>Send OTP</button>
+                            </>
+                        )}
+                        {forgotStep === 'otp' && (
+                            <>
+                                <input type="text" placeholder="Enter OTP" value={forgotOtp} onChange={e => setForgotOtp(e.target.value)} style={{ width: '100%', marginBottom: 12, padding: 8 }} />
+                                <button onClick={handleForgotVerifyOtp} style={{ width: '100%', padding: 10, background: '#333', color: '#fff', border: 'none', borderRadius: 4 }}>Verify OTP</button>
+                                <button onClick={handleForgotSendOtp} style={{ marginTop: 8, background: 'none', color: '#00f', border: 'none', cursor: 'pointer' }}>Resend OTP</button>
+                            </>
+                        )}
+                        {forgotStep === 'reset' && (
+                            <>
+                                <input type="password" placeholder="New Password" value={newPassword} onChange={e => setNewPassword(e.target.value)} style={{ width: '100%', marginBottom: 12, padding: 8 }} />
+                                <button onClick={handleForgotResetPassword} style={{ width: '100%', padding: 10, background: '#333', color: '#fff', border: 'none', borderRadius: 4 }}>Set New Password</button>
+                            </>
+                        )}
+                        <div style={{ color: forgotMsg.startsWith('Password reset') ? 'green' : 'red', marginTop: 8 }}>{forgotMsg}</div>
+                        <button onClick={() => setShowForgot(false)} style={{ marginTop: 16, background: '#e74c3c', color: '#fff', border: 'none', borderRadius: 4, padding: 8, width: '100%' }}>Close</button>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }
