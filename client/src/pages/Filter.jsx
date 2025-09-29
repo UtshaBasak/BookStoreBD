@@ -56,7 +56,7 @@ export default function BookFilter() {
   }, [location.search]);
 
   useEffect(() => {
-    fetch('http://localhost:4000/filter/booklist')
+    fetch('https://bookstorebd.onrender.com/filter/booklist')
       .then((res) => res.json())
       .then((data) => {
         setBookList(data);
@@ -68,14 +68,14 @@ export default function BookFilter() {
   // Fetch wishlist and cart for toggle buttons
   useEffect(() => {
     if (!userEmail) return;
-    fetch(`http://localhost:4000/wishlist?email=${encodeURIComponent(userEmail)}`)
+    fetch(`https://bookstorebd.onrender.com/wishlist?email=${encodeURIComponent(userEmail)}`)
       .then(res => res.json())
       .then(data => {
         const wishMap = {};
         data.forEach(book => { wishMap[book._id] = true; });
         setWishlist(wishMap);
       });
-    fetch(`http://localhost:4000/cart?email=${encodeURIComponent(userEmail)}`)
+    fetch(`https://bookstorebd.onrender.com/cart?email=${encodeURIComponent(userEmail)}`)
       .then(res => res.json())
       .then(data => {
         const cartMap = {};
@@ -195,7 +195,7 @@ export default function BookFilter() {
       return;
     }
     const isInWishlist = !!wishlist[bookId];
-    await fetch(`http://localhost:4000/wishlist/${isInWishlist ? 'remove' : 'add'}/${bookId}`, {
+    await fetch(`https://bookstorebd.onrender.com/wishlist/${isInWishlist ? 'remove' : 'add'}/${bookId}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email: userEmail })
@@ -210,7 +210,7 @@ export default function BookFilter() {
       return;
     }
     const isInCart = !!cart[bookId];
-    await fetch(`http://localhost:4000/cart/${isInCart ? 'remove' : 'add'}/${bookId}`, {
+    await fetch(`https://bookstorebd.onrender.com/cart/${isInCart ? 'remove' : 'add'}/${bookId}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email: userEmail })

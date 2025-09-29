@@ -28,13 +28,13 @@ export default function ChatPage() {
     }, [messages]);
 
     useEffect(() => {
-        socketRef.current = io('http://localhost:4000');
+        socketRef.current = io('https://bookstorebd.onrender.com');
         
         if (userEmail) {
             // Add logging to debug
             console.log('Fetching chat history for:', userEmail);
             
-            fetch(`http://localhost:4000/chat/history/${userEmail}`)
+            fetch(`https://bookstorebd.onrender.com/chat/history/${userEmail}`)
                 .then(res => res.json())
                 .then(data => {
                     console.log('Chat history response:', data);
@@ -54,7 +54,7 @@ export default function ChatPage() {
     useEffect(() => {
         if (selectedUser && userEmail) {
             // Mark messages as read when chat is opened
-            fetch('http://localhost:4000/chat/read', {
+            fetch('https://bookstorebd.onrender.com/chat/read', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -77,7 +77,7 @@ export default function ChatPage() {
             const fetchMessages = async () => {
                 setLoading(true);
                 try {
-                    const res = await fetch(`http://localhost:4000/chat/messages?sender=${userEmail}&receiver=${selectedUser.email}&page=1&limit=20`);
+                    const res = await fetch(`https://bookstorebd.onrender.com/chat/messages?sender=${userEmail}&receiver=${selectedUser.email}&page=1&limit=20`);
                     const data = await res.json();
                     setMessages(Array.isArray(data.messages) ? data.messages : []);
                 } catch (err) {
@@ -114,7 +114,7 @@ export default function ChatPage() {
         setLoading(true);
         try {
             const response = await fetch(
-                `http://localhost:4000/chat/messages?sender=${userEmail}&receiver=${selectedUser.email}&page=${pageNum}&limit=20`
+                `https://bookstorebd.onrender.com/chat/messages?sender=${userEmail}&receiver=${selectedUser.email}&page=${pageNum}&limit=20`
             );
             const data = await response.json();
             
@@ -169,7 +169,7 @@ export default function ChatPage() {
                 formData.append('image', selectedImage);
             }
 
-            const response = await fetch('http://localhost:4000/chat/message', {
+            const response = await fetch('https://bookstorebd.onrender.com/chat/message', {
                 method: 'POST',
                 body: formData
             });
@@ -195,7 +195,7 @@ export default function ChatPage() {
         if (!window.confirm('Are you sure you want to delete this conversation?')) return;
         
         try {
-            const response = await fetch('http://localhost:4000/chat/delete', {
+            const response = await fetch('https://bookstorebd.onrender.com/chat/delete', {
                 method: 'DELETE',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({

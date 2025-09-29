@@ -24,7 +24,7 @@ export default function BuyerOrderList() {
 
   const fetchOrders = () => {
     setRefreshing(true);
-    axios.get(`http://localhost:4000/order/buyer?email=${encodeURIComponent(userEmail)}`)
+    axios.get(`https://bookstorebd.onrender.com/order/buyer?email=${encodeURIComponent(userEmail)}`)
       .then(res => {
         setOrders(Array.isArray(res.data) ? res.data : []);
         setLoading(false);

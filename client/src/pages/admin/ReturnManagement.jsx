@@ -10,7 +10,7 @@ export default function ReturnManagement() {
 
   const fetchReturnRequests = async () => { 
     try {
-      const response = await fetch('http://localhost:4000/return/requests', {
+      const response = await fetch('https://bookstorebd.onrender.com/return/requests', {
         credentials: 'include', // Add this to include cookies
       });
 
@@ -30,7 +30,7 @@ export default function ReturnManagement() {
 
   const handleStatusUpdate = async (requestId, status) => {
     try {
-      const response = await fetch(`http://localhost:4000/return/requests/${requestId}`, {
+      const response = await fetch(`https://bookstorebd.onrender.com/return/requests/${requestId}`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',

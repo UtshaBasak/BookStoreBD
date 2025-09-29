@@ -26,7 +26,7 @@ export default function SignUp() {
 
     const handleSendOtp = async (email) => {
         setOtpMsg('');
-        const res = await fetch('http://localhost:4000/auth/send-otp', {
+        const res = await fetch('https://bookstorebd.onrender.com/auth/send-otp', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ email, username: formData.username, purpose: 'register' }) // include purpose
@@ -43,7 +43,7 @@ export default function SignUp() {
 
     const handleVerifyOtp = async () => {
         setOtpMsg('');
-        const res = await fetch('http://localhost:4000/auth/verify-otp', {
+        const res = await fetch('https://bookstorebd.onrender.com/auth/verify-otp', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ email: emailForOtp, code: otp })
@@ -72,7 +72,7 @@ export default function SignUp() {
     const handleSubmitFinal = async () => {
         // ...existing code...
         try {
-            const res = await fetch('http://localhost:4000/auth/signup', {
+            const res = await fetch('https://bookstorebd.onrender.com/auth/signup', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ ...formData, otp }),

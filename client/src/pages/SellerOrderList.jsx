@@ -23,7 +23,7 @@ export default function SellerOrderList() {
 
   const fetchOrders = () => {
     setRefreshing(true);
-    fetch(`http://localhost:4000/order/seller?email=${encodeURIComponent(sellerEmail)}`)
+    fetch(`https://bookstorebd.onrender.com/order/seller?email=${encodeURIComponent(sellerEmail)}`)
       .then(res => res.json())
       .then(data => {
         setOrders(Array.isArray(data) ? data : []);

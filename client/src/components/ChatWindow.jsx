@@ -13,11 +13,11 @@ export default function ChatWindow({ receiver, receiverName, onClose }) {
 
   useEffect(() => {
     // Initialize socket connection
-    const newSocket = io('http://localhost:4000');
+    const newSocket = io('https://bookstorebd.onrender.com'); //render
     setSocket(newSocket);
 
     // Mark messages as read
-    fetch('http://localhost:4000/chat/read', {
+    fetch('https://bookstorebd.onrender.com/chat/read', { //render
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -31,7 +31,7 @@ export default function ChatWindow({ receiver, receiverName, onClose }) {
     newSocket.emit('join_chat', room);
 
     // Load chat history
-    fetch(`http://localhost:4000/chat/messages?sender=${userEmail}&receiver=${receiver}`)
+    fetch(`https://bookstorebd.onrender.com/chat/messages?sender=${userEmail}&receiver=${receiver}`)
       .then(res => res.json())
       .then(data => {
         if (data && data.messages) {
@@ -81,7 +81,7 @@ export default function ChatWindow({ receiver, receiverName, onClose }) {
         formData.append('image', selectedImage);
       }
 
-      const res = await fetch('http://localhost:4000/chat/message', {
+      const res = await fetch('https://bookstorebd.onrender.com/chat/message', {
         method: 'POST',
         body: formData
       });
