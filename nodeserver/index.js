@@ -176,6 +176,21 @@ app.use((err,req,res,next) => {
 const port = 4000;
 const server = app.listen(port,()=> console.log(`Listening on port ${port}...`));
  
+
+// Health checkup endpoint
+
+app.get('/', (_req, res) => res.status(200).send('BookstoreBD API is running'));
+app.get('/api/health', (_req, res) => {
+  res.status(200).json({ ok: true, uptime: process.uptime(), ts: Date.now() });
+});
+
+import mongoose from 'mongoose';
+app.get('/api/health/db', (_req, res) => {
+  const state = mongoose.connection.readyState; // 1 = connected
+  res.status(state === 1 ? 200 : 500).json({ mongo: state });
+});
+
+
 // Socket.IO setup
 import { Server } from 'socket.io';
 const io = new Server(server, {
