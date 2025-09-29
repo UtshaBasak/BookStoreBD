@@ -25,9 +25,13 @@ mongoose.connect(process.env.MONGO, {
 
 // Configure CORS
 const corsOptions = {
-    origin: ['http://localhost:5173', 'https://bookstorebd.vercel.app/'], // Allow requests from these origins
-    methods: ['GET', 'POST', 'PUT', 'DELETE'], // Allowed HTTP methods
-    credentials: true, // Allow cookies if needed
+    origin: [ 
+      'http://localhost:5173',
+      'https://bookstorebd.vercel.app', // <-- Vercel frontend
+      'https://bookstorebd.vercel.app/' // <-- Vercel frontend (with slash)
+    ],
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+    credentials: true,
 };
 
 const app = express();
@@ -53,10 +57,7 @@ import purchaseRoutes from './routes/purchase.route.js';
 app.use(bodyParser.json());
 
 app.use(express.json());
-app.use(cors({
-  origin: 'http://localhost:5173', // Update this to match your frontend URL
-  credentials: true
-}));
+app.use(cors(corsOptions));
 app.use('/user', userRouter);
 app.use('/auth', authRouter);
 app.use('/book', bookRouter);
