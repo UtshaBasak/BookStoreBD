@@ -30,7 +30,7 @@ export default function SignIn() {
         e.preventDefault();
 
         try {
-            const res = await fetch('http://localhost:4000/auth/signin', {
+            const res = await fetch('https://bookstorebd.onrender.com/auth/signin', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -53,7 +53,7 @@ export default function SignIn() {
 
     const handleForgotSendOtp = async () => {
         setForgotMsg('');
-        const res = await fetch('http://localhost:4000/auth/send-otp', {
+        const res = await fetch('https://bookstorebd.onrender.com/auth/send-otp', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ email: forgotEmail, purpose: 'reset' }) // include purpose
@@ -69,7 +69,7 @@ export default function SignIn() {
 
     const handleForgotVerifyOtp = async () => {
         setForgotMsg('');
-        const res = await fetch('http://localhost:4000/auth/verify-otp', {
+        const res = await fetch('https://bookstorebd.onrender.com/auth/verify-otp', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ email: forgotEmail, code: forgotOtp })
@@ -85,7 +85,7 @@ export default function SignIn() {
 
     const handleForgotResetPassword = async () => {
         setForgotMsg('');
-        const res = await fetch('http://localhost:4000/auth/reset-password', {
+        const res = await fetch('https://bookstorebd.onrender.com/auth/reset-password', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ email: forgotEmail, otp: forgotOtp, newPassword })

@@ -39,7 +39,7 @@ export default function Homepage() {
     const email = localStorage.getItem('userEmail');
     if (email) {
       setUser({ email });
-      fetch(`http://localhost:4000/user/profile?email=${email}`)
+      fetch(`https://bookstorebd.onrender.com/user/profile?email=${email}`)
         .then(res => res.ok ? res.json() : null)
         .then(data => {
           if (data) {
@@ -51,7 +51,7 @@ export default function Homepage() {
   }, []);
 
   useEffect(() => {
-    fetch('http://localhost:4000/book')
+    fetch('https://bookstorebd.onrender.com/book')
       .then(res => res.ok ? res.json() : [])
       .then(data => {
         if (!Array.isArray(data)) return setPopularBooks([]);
@@ -71,14 +71,14 @@ export default function Homepage() {
 
   useEffect(() => {
     if (!userEmail) return;
-    fetch(`http://localhost:4000/wishlist?email=${encodeURIComponent(userEmail)}`)
+    fetch(`https://bookstorebd.onrender.com/wishlist?email=${encodeURIComponent(userEmail)}`)
       .then(res => res.json())
       .then(data => {
         const wishMap = {};
         data.forEach(book => { wishMap[book._id] = true; });
         setWishlist(wishMap);
       });
-    fetch(`http://localhost:4000/cart?email=${encodeURIComponent(userEmail)}`)
+    fetch(`https://bookstorebd.onrender.com/cart?email=${encodeURIComponent(userEmail)}`)
       .then(res => res.json())
       .then(data => {
         const cartObj = {};
@@ -91,12 +91,12 @@ export default function Homepage() {
     if (!userEmail) return;
 
     // Fetch initial unread count
-    fetch(`http://localhost:4000/chat/unread/${userEmail}`)
+    fetch(`https://bookstorebd.onrender.com/chat/unread/${userEmail}`)
       .then(res => res.json())
       .then(data => setUnreadCount(data.count));
 
     // Listen for new messages
-    const socket = io('http://localhost:4000');
+    const socket = io('https://bookstorebd.onrender.com');
     socket.on('receive_message', (data) => {
       if (data.receiver === userEmail && !window.location.pathname.includes('/chat')) {
         setUnreadCount(prev => prev + 1);
@@ -125,7 +125,7 @@ export default function Homepage() {
       return;
     }
     const isInWishlist = !!wishlist[bookId];
-    fetch(`http://localhost:4000/wishlist/${isInWishlist ? 'remove' : 'add'}/${bookId}`, {
+    fetch(`https://bookstorebd.onrender.com/wishlist/${isInWishlist ? 'remove' : 'add'}/${bookId}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email: userEmail })
@@ -144,7 +144,7 @@ export default function Homepage() {
       return;
     }
     const isInCart = !!cart[bookId];
-    fetch(`http://localhost:4000/cart/${isInCart ? 'remove' : 'add'}/${bookId}`, {
+    fetch(`https://bookstorebd.onrender.com/cart/${isInCart ? 'remove' : 'add'}/${bookId}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email: userEmail })

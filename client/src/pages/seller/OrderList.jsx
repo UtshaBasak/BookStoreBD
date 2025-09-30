@@ -10,7 +10,7 @@ export default function SellerOrderList() {
 
   useEffect(() => {
     if (!userEmail) return;
-    axios.get(`http://localhost:4000/order/seller?email=${encodeURIComponent(userEmail)}`)
+    axios.get(`https://bookstorebd.onrender.com/order/seller?email=${encodeURIComponent(userEmail)}`)
       .then(res => setOrders(Array.isArray(res.data) ? res.data : []));
   }, [userEmail]);
 

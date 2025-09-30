@@ -13,7 +13,7 @@ export default function SellerBookList() {
 
   const fetchBooks = React.useCallback(() => {
     setRefreshing(true);
-    fetch(`http://localhost:4000/book/seller/${encodeURIComponent(sellerEmail)}`)
+    fetch(`https://bookstorebd.onrender.com/book/seller/${encodeURIComponent(sellerEmail)}`)
       .then(res => res.json())
       .then(data => {
         setBooks(data);
@@ -43,14 +43,14 @@ export default function SellerBookList() {
       const updates = Object.entries(edit);
       for (const [id, changes] of updates) {
         if (changes.price !== undefined) {
-          await fetch(`http://localhost:4000/book/update-price/${id}`, {
+          await fetch(`https://bookstorebd.onrender.com/book/update-price/${id}`, {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ price: parseInt(changes.price, 10) })
           });
         }
         if (changes.stock !== undefined) {
-          await fetch(`http://localhost:4000/book/update-stock/${id}`, {
+          await fetch(`https://bookstorebd.onrender.com/book/update-stock/${id}`, {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ stock: parseInt(changes.stock, 10) })
@@ -71,7 +71,7 @@ export default function SellerBookList() {
     if (!window.confirm('Are you sure you want to delete this book?')) return;
     setLoading(true);
     try {
-      const res = await fetch(`http://localhost:4000/book/${id}`, {
+      const res = await fetch(`https://bookstorebd.onrender.com/book/${id}`, {
         method: 'DELETE'
       });
       if (!res.ok) {

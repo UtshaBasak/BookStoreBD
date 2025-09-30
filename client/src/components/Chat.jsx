@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { FaImage, FaPaperPlane } from 'react-icons/fa';
 import io from 'socket.io-client';
 
-const socket = io.connect('http://localhost:4000');
+const socket = io.connect('https://bookstorebd.onrender.com'); //render
 
 export default function Chat({ receiver, onClose }) {
   const [message, setMessage] = useState('');
@@ -18,7 +18,7 @@ export default function Chat({ receiver, onClose }) {
     setRoom(roomId);
     socket.emit('join_room', roomId);
 
-    fetch(`http://localhost:4000/chat/messages?room=${roomId}`)
+    fetch(`https://bookstorebd.onrender.com/chat/messages?room=${roomId}`)  //render
       .then(res => res.json())
       .then(data => setMessageList(data));
 
@@ -48,7 +48,7 @@ export default function Chat({ receiver, onClose }) {
         formData.append('image', selectedImage);
       }
 
-      const res = await fetch('http://localhost:4000/chat/message', {
+      const res = await fetch('https://bookstorebd.onrender.com/chat/message', {   //render
         method: 'POST',
         body: formData
       });

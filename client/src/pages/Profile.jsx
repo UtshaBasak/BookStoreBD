@@ -19,7 +19,7 @@ export default function Profile() {
                     return;
                 }
                 
-                const res = await fetch(`http://localhost:4000/user/profile?email=${userEmail}`);
+                const res = await fetch(`https://bookstorebd.onrender.com/user/profile?email=${userEmail}`);
                 if (!res.ok) {
                     throw new Error(`Failed to fetch profile: ${res.statusText}`);
                 }

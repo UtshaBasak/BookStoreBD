@@ -21,7 +21,7 @@ export default function UpdateProfile() {
         const fetchProfile = async () => {
             try {
                 const userEmail = localStorage.getItem('userEmail') || 'user@example.com';
-                const res = await fetch(`http://localhost:4000/user/profile?email=${userEmail}`);
+                const res = await fetch(`https://bookstorebd.onrender.com/user/profile?email=${userEmail}`);
                 if (!res.ok) {
                     console.error(`Failed to fetch profile: ${res.statusText}`);
                     return;
@@ -113,7 +113,7 @@ export default function UpdateProfile() {
                 formDataToSend.append('profilePicture', '');
             }
 
-            const res = await fetch('http://localhost:4000/user/profile', {
+            const res = await fetch('https://bookstorebd.onrender.com/user/profile', {
                 method: 'PUT',
                 body: formDataToSend,
             });

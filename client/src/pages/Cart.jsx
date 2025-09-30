@@ -12,7 +12,7 @@ export default function Cart() {
   // Load cart from backend
   useEffect(() => {
     if (!userEmail) return;
-    fetch(`http://localhost:4000/cart?email=${encodeURIComponent(userEmail)}`)
+    fetch(`https://bookstorebd.onrender.com/cart?email=${encodeURIComponent(userEmail)}`)
       .then(res => res.json())
       .then(data => setCartBooks(Array.isArray(data) ? data : []))
       .catch(() => setError('Failed to load cart.'));
@@ -21,7 +21,7 @@ export default function Cart() {
   // Load wishlist for icon state
   useEffect(() => {
     if (!userEmail) return;
-    fetch(`http://localhost:4000/wishlist?email=${encodeURIComponent(userEmail)}`)
+    fetch(`https://bookstorebd.onrender.com/wishlist?email=${encodeURIComponent(userEmail)}`)
       .then(res => res.json())
       .then(data => {
         const wishMap = {};
@@ -32,7 +32,7 @@ export default function Cart() {
 
   // Remove from cart
   const handleRemoveFromCart = (id) => {
-    fetch(`http://localhost:4000/cart/remove/${id}`, {
+    fetch(`https://bookstorebd.onrender.com/cart/remove/${id}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email: userEmail })
@@ -48,7 +48,7 @@ export default function Cart() {
       return;
     }
     const inWishlist = !!wishlist[id];
-    fetch(`http://localhost:4000/wishlist/${inWishlist ? 'remove' : 'add'}/${id}`, {
+    fetch(`https://bookstorebd.onrender.com/wishlist/${inWishlist ? 'remove' : 'add'}/${id}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email: userEmail })
@@ -67,7 +67,7 @@ export default function Cart() {
     if (!img) return 'https://via.placeholder.com/80x120?text=No+Image';
     if (img.startsWith('data:image/')) return img;
     if (/^https?:\/\//.test(img)) return img;
-    return `http://localhost:4000/uploads/${img}`;
+    return `https://bookstorebd.onrender.com/uploads/${img}`;
   };
 
   if (!userEmail) {

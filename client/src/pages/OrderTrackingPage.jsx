@@ -21,7 +21,7 @@ export default function OrderTrackingPage() {
 
   useEffect(() => {
     if (!orderNumber) return;
-    axios.get(`http://localhost:4000/order/${orderNumber}`)
+    axios.get(`https://bookstorebd.onrender.com/order/${orderNumber}`)
       .then(res => setOrder(res.data))
       .catch(() => setOrder(null));
   }, [orderNumber]);
@@ -31,7 +31,7 @@ export default function OrderTrackingPage() {
     setUpdating(true);
     setError('');
     try {
-      const res = await axios.patch(`http://localhost:4000/order/status/${orderNumber}`, { status: newStatus });
+      const res = await axios.patch(`https://bookstorebd.onrender.com/order/status/${orderNumber}`, { status: newStatus });
       setOrder(res.data);
     } catch {
       setError('Failed to update status');
