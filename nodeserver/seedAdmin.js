@@ -19,3 +19,12 @@ async function seedAdmin() {
     mongoose.disconnect();
 }
 seedAdmin();
+
+
+
+
+
+
+
+
+

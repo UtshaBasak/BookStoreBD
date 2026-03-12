@@ -7,7 +7,8 @@ const app = express();
 
 // MIDDLEWARES
 app.use(cors({
-  origin: 'http://localhost:5173',
+  origin: ['http://localhost:5173', 'https://bookstorebd.vercel.app/'], 
+  credentials: true,
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
 }));
@@ -21,6 +22,6 @@ import orderRoutes from './routes/order.route.js';
 app.use('/order', orderRoutes);
 
 // Start server
-app.listen(1015, () => {
-  console.log('Server running on port 1015');
+app.listen(4000, () => {
+  console.log('Server running on port 4000');
 });
