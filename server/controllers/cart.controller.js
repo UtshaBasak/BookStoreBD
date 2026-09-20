@@ -1,6 +1,7 @@
 import Cart from '../models/Cart.model.js';
 import User from '../models/user.model.js';
 import { asTrimmedString } from '../utils/sanitize.js';
+import { toListBook } from '../utils/projections.js';
 
 export const Cart_get = async (req, res) => {
   try {
@@ -9,11 +10,12 @@ export const Cart_get = async (req, res) => {
     const user = await User.findOne({ email });
     if (!user) return res.status(404).json({ message: 'User not found' });
 
-    const cartEntries = await Cart.find({ user: user._id }).populate('book');
+    const cartEntries = await Cart.find({ user: user._id }).populate('book').lean();
     // Only return books that are not stock out
     const books = cartEntries
       .map(entry => entry.book)
-      .filter(book => book && book.stock > 0); // Remove nulls and stock out books
+      .filter(book => book && book.stock > 0) // Remove nulls and stock out books
+      .map(toListBook);
     res.status(200).json(books);
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -34,10 +36,11 @@ export const Cart_add = async (req, res) => {
       { upsert: true, returnDocument: 'after' }
     );
 
-    const cartEntries = await Cart.find({ user: user._id }).populate('book');
+    const cartEntries = await Cart.find({ user: user._id }).populate('book').lean();
     const books = cartEntries
       .map(entry => entry.book)
-      .filter(book => book); // Remove nulls
+      .filter(book => book) // Remove nulls
+      .map(toListBook);
     res.status(200).json(books);
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -54,10 +57,11 @@ export const Cart_remove = async (req, res) => {
 
     await Cart.deleteOne({ user: user._id, book: bookId });
 
-    const cartEntries = await Cart.find({ user: user._id }).populate('book');
+    const cartEntries = await Cart.find({ user: user._id }).populate('book').lean();
     const books = cartEntries
       .map(entry => entry.book)
-      .filter(book => book); // Remove nulls
+      .filter(book => book) // Remove nulls
+      .map(toListBook);
     res.status(200).json(books);
   } catch (error) {
     res.status(500).json({ message: error.message });

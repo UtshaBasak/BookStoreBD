@@ -192,10 +192,13 @@ Book covers are currently base64 data URIs stored on the document.
 
 **Two separate problems**
 
-1. **A performance bug that can be fixed immediately, independently of the
-   rest of this task.** `GET /book` returns every book with its full base64
-   images inline. Adding `.select('-images')` to the list endpoints is a few
-   lines and a large speedup; the detail endpoint keeps returning images.
+1. ~~A performance bug that can be fixed immediately.~~ **Done ahead of this
+   task.** `GET /book` returned every book with all of its base64 covers
+   inline. List endpoints now project `images: { $slice: 1 }`, since every
+   list view renders only the first cover; the detail endpoint still returns
+   the full set. Measured on 40 books with 5 covers each: **23.45 MB → 4.70 MB**.
+   Dropping images entirely was not an option — `Homepage.jsx` and
+   `Filter.jsx` render `book.images[0]` straight from the list response.
 2. Documents approach the 16 MB MongoDB limit, nothing is CDN-cached, and the
    database carries binary weight it should not.
 

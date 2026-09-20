@@ -5,6 +5,7 @@ import Cart from '../models/Cart.model.js';
 import { getBookById } from '../controllers/book.controller.js';
 import { asTrimmedString, asNonNegativeInt } from '../utils/sanitize.js';
 import { requireAuth } from '../middleware/auth.js';
+import { LIST_IMAGE_PROJECTION } from '../utils/projections.js';
 
 const router = express.Router();
 
@@ -31,7 +32,7 @@ const loadOwnedBook = async (req, res) => {
 
 router.get('/', async (req, res) => {
   try {
-    const books = await AddBook.find();
+    const books = await AddBook.find({}, LIST_IMAGE_PROJECTION);
     res.status(200).json(books);
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -40,7 +41,10 @@ router.get('/', async (req, res) => {
 
 router.get('/seller/:email', async (req, res) => {
   try {
-    const books = await AddBook.find({ sellerEmail: asTrimmedString(req.params.email) });
+    const books = await AddBook.find(
+      { sellerEmail: asTrimmedString(req.params.email) },
+      LIST_IMAGE_PROJECTION
+    );
     res.status(200).json(books);
   } catch (error) {
     res.status(500).json({ message: error.message });

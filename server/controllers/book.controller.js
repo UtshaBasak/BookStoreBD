@@ -1,4 +1,5 @@
 import AddBook from '../models/AddBook.model.js';
+import { LIST_IMAGE_PROJECTION } from '../utils/projections.js';
 
 // Get book details with related books
 export const getBookById = async (req, res) => {
@@ -9,13 +10,16 @@ export const getBookById = async (req, res) => {
         }
 
         // Find related books (same category or author)
-        const relatedBooks = await AddBook.find({
-            _id: { $ne: book._id }, // exclude current book
-            $or: [
-                { category: { $in: book.category } },
-                { author: book.author }
-            ]
-        }).limit(10);
+        const relatedBooks = await AddBook.find(
+            {
+                _id: { $ne: book._id }, // exclude current book
+                $or: [
+                    { category: { $in: book.category } },
+                    { author: book.author }
+                ]
+            },
+            LIST_IMAGE_PROJECTION
+        ).limit(10);
 
         // Combine book data with related books
         const bookResponse = {

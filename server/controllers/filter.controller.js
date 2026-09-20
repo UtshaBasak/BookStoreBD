@@ -1,4 +1,5 @@
 import AddBook from '../models/AddBook.model.js';
+import { LIST_IMAGE_PROJECTION } from '../utils/projections.js';
 import { asTrimmedString } from '../utils/sanitize.js';
 
 // Whitelisted so a client cannot query arbitrary document paths (or inject a
@@ -31,7 +32,7 @@ const escapeRegex = (value) =>
 
 export const Booklist = async (req, res) => {
     try {
-        const booklist = await AddBook.find({});
+        const booklist = await AddBook.find({}, LIST_IMAGE_PROJECTION);
         res.status(200).json(booklist);
     } catch (error) {
         res.status(500).json({ message: error.message });
@@ -47,7 +48,7 @@ export const Booklist_filter = async (req, res) => {
     }
 
     try {
-        const filteredBooks = await AddBook.find({ [filter_key]: filter_input });
+        const filteredBooks = await AddBook.find({ [filter_key]: filter_input }, LIST_IMAGE_PROJECTION);
         res.status(200).json(filteredBooks);
     } catch (error) {
         res.status(500).json({ message: error.message });
@@ -58,9 +59,10 @@ export const Booklist_search = async (req, res) => {
     const search_input = asTrimmedString(req.body.search_input);
 
     try {
-        const searchedBooks = await AddBook.find({
-            title: { $regex: escapeRegex(search_input), $options: 'i' },
-        });
+        const searchedBooks = await AddBook.find(
+            { title: { $regex: escapeRegex(search_input), $options: 'i' } },
+            LIST_IMAGE_PROJECTION
+        );
 
         res.status(200).json(searchedBooks);
     } catch (error) {
