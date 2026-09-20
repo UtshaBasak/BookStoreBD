@@ -11,6 +11,7 @@
   "scripts": {
     "dev": "nodemon index.js",
     "start": "node index.js",
+    "seed": "node scripts/seed.js",
     "lint": "eslint .",
     "test": "vitest run",
     "test:watch": "vitest"

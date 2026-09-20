@@ -1,0 +1,71 @@
+# Production-like stack: the API without a watcher, and the built client served
+# by nginx. Use this to check a real build rather than for day-to-day work.
+#
+#   docker compose -f docker-compose.prod.yml up --build
+#
+# The client is served on http://localhost:8080.
+
+name: bookstorebd-prod
+
+services:
+  mongo:
+    image: mongo:8
+    restart: unless-stopped
+    volumes:
+      - mongo-data-prod:/data/db
+    healthcheck:
+      test: ['CMD', 'mongosh', '--quiet', '--eval', "db.adminCommand('ping').ok"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+
+  server:
+    build:
+      context: ./server
+      target: production
+    restart: unless-stopped
+    ports:
+      - '4000:4000'
+    environment:
+      NODE_ENV: production
+      PORT: '4000'
+      MONGO: mongodb://mongo:27017/bookstorebd
+      # Supply a real secret here; the server refuses to start without one of
+      # at least 32 characters.
+      JWT_SECRET: ${JWT_SECRET:?set JWT_SECRET, e.g. openssl rand -hex 48}
+      JWT_EXPIRES_IN: ${JWT_EXPIRES_IN:-7d}
+      ADMIN_EMAILS: ${ADMIN_EMAILS:-}
+      CORS_ORIGINS: http://localhost:8080
+      SMTP_SERVICE: ${SMTP_SERVICE:-gmail}
+      SMTP_USER: ${SMTP_USER:-}
+      SMTP_PASS: ${SMTP_PASS:-}
+    healthcheck:
+      test:
+        - CMD
+        - node
+        - -e
+        - "fetch('http://127.0.0.1:4000/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+    depends_on:
+      mongo:
+        condition: service_healthy
+
+  client:
+    build:
+      context: ./client
+      target: production
+      args:
+        # Read by the browser, so it points at the published API port.
+        VITE_API_URL: ${VITE_API_URL:-http://localhost:4000}
+    restart: unless-stopped
+    ports:
+      - '8080:80'
+    depends_on:
+      - server
+
+volumes:
+  mongo-data-prod:

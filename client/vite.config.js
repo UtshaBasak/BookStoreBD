@@ -38,6 +38,12 @@ export default defineConfig({
   server: {
     port: 5173,
     hmr: { overlay: false },
+    watch: {
+      // Filesystem events do not cross a Windows bind mount into a Linux
+      // container, so hot reload needs polling there. Off by default, since
+      // polling is much heavier than native events.
+      usePolling: process.env.VITE_USE_POLLING === 'true',
+    },
   },
   build: {
     outDir: 'dist',

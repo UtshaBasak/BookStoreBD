@@ -1,0 +1,12 @@
+node_modules
+npm-debug.log*
+.env
+.env.*
+!.env.example
+coverage
+tests
+vitest.config.js
+eslint.config.js
+Dockerfile
+.dockerignore
+uploads

@@ -8,8 +8,9 @@ commit, so any one of them can be reverted without unpicking the others.
 all three package roots report zero dependency vulnerabilities; CodeQL reports
 five findings, all confirmed false positives in the same rule
 (`js/xss-through-dom`). Authentication and authorisation are enforced
-server-side. Task 1 is complete: **110 tests** (66 server, 44 client) run in
-about 14 seconds and gate every push.
+server-side. Tasks 1 and 7 are complete: **120 tests** (76 server, 44 client)
+gate every push, and `docker compose up` brings the whole stack up with no
+local Node or MongoDB install.
 
 ---
 
@@ -21,7 +22,7 @@ before any deployment work resumes.
 | Order | Task | Phase | Depends on | Risk |
 | ----: | ---- | ----- | ---------- | ---- |
 | ~~1~~ | ~~[Automated tests](#1--automated-tests)~~ **done** | Foundation | — | Low |
-| 2 | [Docker Compose](#7--docker-compose) (task 7) | Foundation | — | Low |
+| ~~2~~ | ~~[Docker Compose](#7--docker-compose)~~ (task 7) **done** | Foundation | — | Low |
 | 3 | [Structured logging](#5--structured-logging-and-error-tracking) (task 5) | Foundation | — | Low |
 | 4 | [Zod validation](#3--request-validation-with-zod) (task 3) | Hardening | 1 | Medium |
 | 5 | [Refresh tokens](#2--refresh-tokens-and-logout) (task 2) | Hardening | 1 | High |
@@ -92,9 +93,10 @@ transport stubbed.
 
 ---
 
-## 7 · Docker Compose
+## 7 · Docker Compose — done
 
-*Runs second — it is the local-smoothness goal itself.*
+*Landed. `docker compose up` brings up MongoDB, the API and the client; both
+stacks were built and exercised end to end.*
 
 `docker compose up` brings up MongoDB, the API and the client together, so
 setup stops depending on what happens to be installed on a given machine.
@@ -113,6 +115,24 @@ setup stops depending on what happens to be installed on a given machine.
 **Why it is worth doing before deployment work.** A reproducible
 production-like build locally is the most effective tool for diagnosing the
 Render failure, because it removes "works on my machine" from the equation.
+
+**Done.** Two stacks: `docker-compose.yml` for development (nodemon and the
+Vite dev server, source bind-mounted) and `docker-compose.prod.yml` for a
+production-like build (the bundle served by nginx, the API unprivileged with a
+health check). `docker compose run --rm seed` loads demo accounts and a
+catalogue; `docker compose run --rm test` runs the server suite.
+
+Three things only surfaced by actually running it:
+
+- `NODE_ENV=production` in the shared base stage reached the dependency stages,
+  so `npm ci` skipped devDependencies and the dev image had no nodemon.
+- Filesystem events raised on a Windows host do not reach a Linux container, so
+  neither watcher reloaded. Both now poll, enabled only inside the containers.
+- `mongodb-memory-server` has no mongod build for Alpine's musl libc, so the
+  suite takes `MONGO_TEST_URI` and points at the stack's MongoDB instead.
+
+Baseline note: the host test path is unchanged and still uses the in-memory
+server.
 
 ---
 

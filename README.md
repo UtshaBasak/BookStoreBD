@@ -23,6 +23,7 @@
 - [Architecture](#architecture)
 - [Project structure](#project-structure)
 - [Getting started](#getting-started)
+- [Running with Docker](#running-with-docker)
 - [Environment variables](#environment-variables)
 - [Available scripts](#available-scripts)
 - [Testing](#testing)
@@ -160,6 +161,8 @@ MernBookstore/
 │   │   └── sanitizeRequest.js   # Strips Mongo operator keys from input
 │   ├── models/                  # Mongoose schemas
 │   ├── routes/                  # Express routers, one per domain
+│   ├── scripts/
+│   │   └── seed.js              # Demo accounts and catalogue
 │   ├── sockets/
 │   │   └── chatSocket.js        # Socket.IO room and message handling
 │   ├── tests/                   # Vitest + Supertest suites
@@ -176,6 +179,8 @@ MernBookstore/
 ├── .github/
 │   ├── ISSUE_TEMPLATE/
 │   └── workflows/               # CI and CodeQL
+├── docker-compose.yml           # Dev stack: Mongo + API + Vite
+├── docker-compose.prod.yml      # Production-like: Mongo + API + nginx
 ├── .editorconfig
 ├── .nvmrc
 ├── LICENSE
@@ -229,6 +234,57 @@ To run them separately, use `npm run dev:server` and `npm run dev:client`.
 
 ---
 
+## Running with Docker
+
+Everything the project needs, without installing Node or MongoDB:
+
+```bash
+docker compose up --build            # MongoDB + API + client
+docker compose run --rm seed         # sample accounts and catalogue
+```
+
+| Service | URL |
+| ------- | --- |
+| Client (Vite dev server) | <http://localhost:5173> |
+| API | <http://localhost:4000> |
+| MongoDB | `mongodb://localhost:27017/bookstorebd` |
+
+The source is bind-mounted, so edits on the host reload inside the containers.
+Both watchers are set to poll, because filesystem events raised on a Windows
+host do not reach a Linux container.
+
+After seeding, sign in as any of:
+
+| Role | Email | Password |
+| ---- | ----- | -------- |
+| admin | `admin@bookstorebd.local` | `***REMOVED***` |
+| seller | `seller@bookstorebd.local` | `***REMOVED***` |
+| buyer | `buyer@bookstorebd.local` | `***REMOVED***` |
+
+Other useful commands:
+
+```bash
+docker compose run --rm test   # the server suite, against the stack's MongoDB
+docker compose logs -f server  # follow the API log
+docker compose down            # stop, keeping the database
+docker compose down -v         # stop and discard the database
+```
+
+### Production-like build
+
+To check a real build rather than the dev servers — useful before deploying:
+
+```bash
+export JWT_SECRET=$(openssl rand -hex 48)
+docker compose -f docker-compose.prod.yml up --build
+```
+
+The client is built and served by nginx on <http://localhost:8080> with an SPA
+fallback, and the API runs unprivileged with `NODE_ENV=production` and a health
+check. `JWT_SECRET` is required; Compose refuses to start without it.
+
+---
+
 ## Environment variables
 
 ### `server/.env`
@@ -278,6 +334,7 @@ Run these from the repository root:
 | `npm test`            | Runs the server and client test suites                |
 | `npm run test:server` | Server suite only                                     |
 | `npm run test:client` | Client suite only                                     |
+| `npm run seed`        | Seeds demo data (run inside `server/`)                |
 
 ---
 

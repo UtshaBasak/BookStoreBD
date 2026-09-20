@@ -1,0 +1,114 @@
+# Development stack: MongoDB, the API with hot reload, and the Vite dev server.
+#
+#   docker compose up            start everything
+#   docker compose run --rm seed seed the database
+#   docker compose down -v       stop and discard the database
+#
+# For a production-like build instead, see docker-compose.prod.yml.
+
+name: bookstorebd
+
+services:
+  mongo:
+    image: mongo:8
+    restart: unless-stopped
+    ports:
+      # Exposed so Compass or mongosh on the host can connect.
+      - '27017:27017'
+    volumes:
+      - mongo-data:/data/db
+    healthcheck:
+      # The API waits for this, otherwise it races MongoDB's first-run setup.
+      test: ['CMD', 'mongosh', '--quiet', '--eval', "db.adminCommand('ping').ok"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+
+  server:
+    build:
+      context: ./server
+      target: development
+    restart: unless-stopped
+    ports:
+      - '4000:4000'
+    environment:
+      NODE_ENV: development
+      PORT: '4000'
+      # `mongo` is the service name; Compose resolves it on the shared network.
+      MONGO: mongodb://mongo:27017/bookstorebd
+      # Development only. Production reads a real secret from the environment.
+      JWT_SECRET: ${JWT_SECRET:-***REMOVED***}
+      JWT_EXPIRES_IN: ${JWT_EXPIRES_IN:-7d}
+      ADMIN_EMAILS: ${ADMIN_EMAILS:-admin@bookstorebd.local}
+      # The browser runs on the host, so the client's origin is localhost.
+      CORS_ORIGINS: http://localhost:5173
+      SMTP_SERVICE: ${SMTP_SERVICE:-gmail}
+      SMTP_USER: ${SMTP_USER:-}
+      SMTP_PASS: ${SMTP_PASS:-}
+    # -L makes nodemon poll. Filesystem events raised on a Windows host do not
+    # reach a Linux container, so without it edits never trigger a restart.
+    command: ['npm', 'run', 'dev', '--', '--legacy-watch']
+    volumes:
+      - ./server:/app
+      # Keeps the image's Linux-built node_modules instead of letting the host
+      # directory shadow it.
+      - /app/node_modules
+    depends_on:
+      mongo:
+        condition: service_healthy
+
+  client:
+    build:
+      context: ./client
+      target: development
+    restart: unless-stopped
+    ports:
+      - '5173:5173'
+    environment:
+      # Resolved by the browser, not by the container, so it is the host port.
+      VITE_API_URL: http://localhost:4000
+      # Same watcher problem as the server; see the note on its command.
+      VITE_USE_POLLING: 'true'
+    volumes:
+      - ./client:/app
+      - /app/node_modules
+    depends_on:
+      - server
+
+  # One-shot helper: `docker compose run --rm test`
+  #
+  # mongodb-memory-server has no mongod build for Alpine, so the suite points
+  # at the MongoDB service instead. Each test file still uses its own database.
+  test:
+    build:
+      context: ./server
+      target: development
+    profiles: ['tools']
+    environment:
+      MONGO_TEST_URI: mongodb://mongo:27017/
+      JWT_SECRET: ${JWT_SECRET:-***REMOVED***}
+    command: ['npm', 'test']
+    volumes:
+      - ./server:/app
+      - /app/node_modules
+    depends_on:
+      mongo:
+        condition: service_healthy
+
+  # One-shot helper: `docker compose run --rm seed`
+  seed:
+    build:
+      context: ./server
+      target: development
+    profiles: ['tools']
+    environment:
+      MONGO: mongodb://mongo:27017/bookstorebd
+      JWT_SECRET: ${JWT_SECRET:-***REMOVED***}
+    command: ['npm', 'run', 'seed']
+    depends_on:
+      mongo:
+        condition: service_healthy
+
+volumes:
+  mongo-data:

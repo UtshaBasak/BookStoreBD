@@ -6,6 +6,16 @@ import reactRefresh from 'eslint-plugin-react-refresh';
 export default [
   { ignores: ['dist'] },
   {
+    // Build and tooling config runs in Node, not the browser.
+    files: ['*.config.js', 'src/test/**'],
+    languageOptions: {
+      ecmaVersion: 'latest',
+      sourceType: 'module',
+      globals: globals.node,
+    },
+    rules: { ...js.configs.recommended.rules },
+  },
+  {
     files: ['**/*.{js,jsx}'],
     languageOptions: {
       ecmaVersion: 2020,

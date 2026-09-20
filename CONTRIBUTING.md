@@ -31,7 +31,15 @@ cp client/.env.example client/.env
 npm run dev
 ```
 
-The full setup notes live in the [README](README.md#getting-started).
+Or, without installing Node or MongoDB at all:
+
+```bash
+docker compose up --build
+docker compose run --rm seed
+```
+
+The full setup notes live in the [README](README.md#getting-started), and the
+Docker path is in [Running with Docker](README.md#running-with-docker).
 
 ---
 
