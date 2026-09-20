@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { FaTrash, FaHome, FaHeart, FaRegHeart } from 'react-icons/fa';
 import { useNavigate, Link } from 'react-router-dom';
-import { API_BASE_URL } from '../config/api.js';
+import { API_BASE_URL, apiFetch } from '../config/api.js';
 
 export default function Cart() {
   const [cartBooks, setCartBooks] = useState([]);
@@ -13,7 +13,7 @@ export default function Cart() {
   // Load cart from backend
   useEffect(() => {
     if (!userEmail) return;
-    fetch(`${API_BASE_URL}/cart?email=${encodeURIComponent(userEmail)}`)
+    apiFetch(`${API_BASE_URL}/cart?email=${encodeURIComponent(userEmail)}`)
       .then(res => res.json())
       .then(data => setCartBooks(Array.isArray(data) ? data : []))
       .catch(() => setError('Failed to load cart.'));
@@ -22,7 +22,7 @@ export default function Cart() {
   // Load wishlist for icon state
   useEffect(() => {
     if (!userEmail) return;
-    fetch(`${API_BASE_URL}/wishlist?email=${encodeURIComponent(userEmail)}`)
+    apiFetch(`${API_BASE_URL}/wishlist?email=${encodeURIComponent(userEmail)}`)
       .then(res => res.json())
       .then(data => {
         const wishMap = {};
@@ -33,7 +33,7 @@ export default function Cart() {
 
   // Remove from cart
   const handleRemoveFromCart = (id) => {
-    fetch(`${API_BASE_URL}/cart/remove/${id}`, {
+    apiFetch(`${API_BASE_URL}/cart/remove/${id}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email: userEmail })
@@ -49,7 +49,7 @@ export default function Cart() {
       return;
     }
     const inWishlist = !!wishlist[id];
-    fetch(`${API_BASE_URL}/wishlist/${inWishlist ? 'remove' : 'add'}/${id}`, {
+    apiFetch(`${API_BASE_URL}/wishlist/${inWishlist ? 'remove' : 'add'}/${id}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email: userEmail })

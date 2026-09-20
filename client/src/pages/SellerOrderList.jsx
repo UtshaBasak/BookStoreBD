@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { API_BASE_URL } from '../config/api.js';
+import { API_BASE_URL, apiFetch } from '../config/api.js';
 
 export default function SellerOrderList() {
   const [orders, setOrders] = useState([]);
@@ -24,7 +24,7 @@ export default function SellerOrderList() {
 
   const fetchOrders = () => {
     setRefreshing(true);
-    fetch(`${API_BASE_URL}/order/seller?email=${encodeURIComponent(sellerEmail)}`)
+    apiFetch(`${API_BASE_URL}/order/seller?email=${encodeURIComponent(sellerEmail)}`)
       .then(res => res.json())
       .then(data => {
         setOrders(Array.isArray(data) ? data : []);

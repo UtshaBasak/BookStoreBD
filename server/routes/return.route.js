@@ -1,15 +1,18 @@
 import express from 'express';
 import { returnBook, getReturnRequests, updateReturnStatus } from '../controllers/return.controller.js';
+import { requireAuth, requireAdmin } from '../middleware/auth.js';
 
 const router = express.Router();
 
-// User submits a return request
+router.use(requireAuth);
+
+// Submit a return request for your own purchase.
 router.post('/', returnBook);
 
-// Admin or user fetches return requests
+// Administrators see every request; everyone else sees only their own.
 router.get('/requests', getReturnRequests);
 
-// Admin updates return status
-router.patch('/requests/:id', updateReturnStatus);
+// Approving or rejecting is an administrator action.
+router.patch('/requests/:id', requireAdmin, updateReturnStatus);
 
 export default router;

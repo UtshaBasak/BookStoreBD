@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { API_BASE_URL } from '../config/api.js';
+import { API_BASE_URL, apiFetch } from '../config/api.js';
 import { safeImageSrc, PLACEHOLDER_IMAGE } from '../utils/safeImageSrc.js';
 
 const PROMO_CODE = 'BookStore';
@@ -56,7 +56,7 @@ export default function Payment() {
 
     // Fetch latest profile from backend to get updated phone
     if (profile.email) {
-      fetch(`${API_BASE_URL}/user/profile?email=${encodeURIComponent(profile.email)}`)
+      apiFetch(`${API_BASE_URL}/user/profile?email=${encodeURIComponent(profile.email)}`)
         .then(res => res.json())
         .then(data => {
           setUser(u => ({
@@ -104,7 +104,7 @@ export default function Payment() {
     }
 
     // If not confirmed, load cart as usual
-    fetch(`${API_BASE_URL}/cart?email=${encodeURIComponent(email)}`)
+    apiFetch(`${API_BASE_URL}/cart?email=${encodeURIComponent(email)}`)
       .then(res => res.json())
       .then(data => {
         setCartBooks(Array.isArray(data) ? data : []);
@@ -175,7 +175,7 @@ export default function Payment() {
 
   const handleRemoveBook = (bookId) => {
     const email = user.email;
-    fetch(`${API_BASE_URL}/cart/remove/${bookId}`, {
+    apiFetch(`${API_BASE_URL}/cart/remove/${bookId}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email })
@@ -260,7 +260,7 @@ export default function Payment() {
     setQuantities(latestQuantities);
 
     // Decrease stock in backend and clear cart
-    fetch(`${API_BASE_URL}/order/decrease-stock`, {
+    apiFetch(`${API_BASE_URL}/order/decrease-stock`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -308,7 +308,7 @@ export default function Payment() {
     });
 
     // Clear the cart for the user after order confirmation
-    fetch(`${API_BASE_URL}/cart/clear`, {
+    apiFetch(`${API_BASE_URL}/cart/clear`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email: user.email })

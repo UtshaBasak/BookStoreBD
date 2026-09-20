@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { FaSearch, FaHome, FaStar, FaHeart, FaRegHeart, FaShoppingCart } from 'react-icons/fa';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { API_BASE_URL } from '../config/api.js';
+import { API_BASE_URL, apiFetch } from '../config/api.js';
 
 const categories = [
   'Fiction',
@@ -57,7 +57,7 @@ export default function BookFilter() {
   }, [location.search]);
 
   useEffect(() => {
-    fetch(`${API_BASE_URL}/filter/booklist`)
+    apiFetch(`${API_BASE_URL}/filter/booklist`)
       .then((res) => res.json())
       .then((data) => {
         setBookList(data);
@@ -69,14 +69,14 @@ export default function BookFilter() {
   // Fetch wishlist and cart for toggle buttons
   useEffect(() => {
     if (!userEmail) return;
-    fetch(`${API_BASE_URL}/wishlist?email=${encodeURIComponent(userEmail)}`)
+    apiFetch(`${API_BASE_URL}/wishlist?email=${encodeURIComponent(userEmail)}`)
       .then(res => res.json())
       .then(data => {
         const wishMap = {};
         data.forEach(book => { wishMap[book._id] = true; });
         setWishlist(wishMap);
       });
-    fetch(`${API_BASE_URL}/cart?email=${encodeURIComponent(userEmail)}`)
+    apiFetch(`${API_BASE_URL}/cart?email=${encodeURIComponent(userEmail)}`)
       .then(res => res.json())
       .then(data => {
         const cartMap = {};
@@ -196,7 +196,7 @@ export default function BookFilter() {
       return;
     }
     const isInWishlist = !!wishlist[bookId];
-    await fetch(`${API_BASE_URL}/wishlist/${isInWishlist ? 'remove' : 'add'}/${bookId}`, {
+    await apiFetch(`${API_BASE_URL}/wishlist/${isInWishlist ? 'remove' : 'add'}/${bookId}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email: userEmail })
@@ -211,7 +211,7 @@ export default function BookFilter() {
       return;
     }
     const isInCart = !!cart[bookId];
-    await fetch(`${API_BASE_URL}/cart/${isInCart ? 'remove' : 'add'}/${bookId}`, {
+    await apiFetch(`${API_BASE_URL}/cart/${isInCart ? 'remove' : 'add'}/${bookId}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email: userEmail })

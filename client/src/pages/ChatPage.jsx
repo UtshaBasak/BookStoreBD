@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { FaHome, FaArrowLeft, FaPaperPlane, FaComments, FaTrash, FaImage } from 'react-icons/fa';
 import io from 'socket.io-client';
-import { API_BASE_URL } from '../config/api.js';
+import { API_BASE_URL, apiFetch } from '../config/api.js';
 import { safeObjectUrl } from '../utils/safeImageSrc.js';
 
 export default function ChatPage() {
@@ -36,7 +36,7 @@ export default function ChatPage() {
             // Add logging to debug
             console.log('Fetching chat history for:', userEmail);
             
-            fetch(`${API_BASE_URL}/chat/history/${userEmail}`)
+            apiFetch(`${API_BASE_URL}/chat/history/${userEmail}`)
                 .then(res => res.json())
                 .then(data => {
                     console.log('Chat history response:', data);
@@ -56,7 +56,7 @@ export default function ChatPage() {
     useEffect(() => {
         if (selectedUser && userEmail) {
             // Mark messages as read when chat is opened
-            fetch(`${API_BASE_URL}/chat/read`, {
+            apiFetch(`${API_BASE_URL}/chat/read`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -79,7 +79,7 @@ export default function ChatPage() {
             const fetchMessages = async () => {
                 setLoading(true);
                 try {
-                    const res = await fetch(`${API_BASE_URL}/chat/messages?sender=${userEmail}&receiver=${selectedUser.email}&page=1&limit=20`);
+                    const res = await apiFetch(`${API_BASE_URL}/chat/messages?sender=${userEmail}&receiver=${selectedUser.email}&page=1&limit=20`);
                     const data = await res.json();
                     setMessages(Array.isArray(data.messages) ? data.messages : []);
                 } catch (error) {
@@ -172,7 +172,7 @@ export default function ChatPage() {
                 formData.append('image', selectedImage);
             }
 
-            const response = await fetch(`${API_BASE_URL}/chat/message`, {
+            const response = await apiFetch(`${API_BASE_URL}/chat/message`, {
                 method: 'POST',
                 body: formData
             });
@@ -198,7 +198,7 @@ export default function ChatPage() {
         if (!window.confirm('Are you sure you want to delete this conversation?')) return;
         
         try {
-            const response = await fetch(`${API_BASE_URL}/chat/delete`, {
+            const response = await apiFetch(`${API_BASE_URL}/chat/delete`, {
                 method: 'DELETE',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({

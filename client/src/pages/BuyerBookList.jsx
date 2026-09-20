@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { API_BASE_URL } from '../config/api.js';
+import { API_BASE_URL, apiFetch } from '../config/api.js';
 
 export default function BuyerBookList() {
   const [_books, _setBooks] = useState([]);
@@ -16,7 +16,7 @@ export default function BuyerBookList() {
   // Fetch orders from the server
   const fetchOrders = () => {
     setRefreshing(true);
-    fetch(`${API_BASE_URL}/order/buyer?email=${encodeURIComponent(userEmail)}`)
+    apiFetch(`${API_BASE_URL}/order/buyer?email=${encodeURIComponent(userEmail)}`)
       .then(res => res.json())
       .then(data => {
         setOrders(Array.isArray(data) ? data : []);
@@ -28,7 +28,7 @@ export default function BuyerBookList() {
   // Fetch return statuses from the server
   const fetchReturnStatuses = async () => {
     try {
-      const response = await fetch(`${API_BASE_URL}/return/requests?userEmail=${encodeURIComponent(userEmail)}`, {
+      const response = await apiFetch(`${API_BASE_URL}/return/requests?userEmail=${encodeURIComponent(userEmail)}`, {
         credentials: 'include'
       });
       const data = await response.json();

@@ -3,7 +3,8 @@ import { Link, useNavigate } from 'react-router-dom';
 import { FaChevronLeft, FaChevronRight, FaHeart, FaRegHeart, FaBell, FaComments } from 'react-icons/fa';
 import './Homepage.css';
 import { io } from 'socket.io-client';
-import { API_BASE_URL } from '../config/api.js';
+import { API_BASE_URL, apiFetch } from '../config/api.js';
+import { clearSession } from '../utils/auth.js';
 
 const genres = [
   'Fiction',
@@ -40,7 +41,7 @@ export default function Homepage() {
     const email = localStorage.getItem('userEmail');
     if (email) {
       setUser({ email });
-      fetch(`${API_BASE_URL}/user/profile?email=${email}`)
+      apiFetch(`${API_BASE_URL}/user/profile?email=${email}`)
         .then(res => res.ok ? res.json() : null)
         .then(data => {
           if (data) {
@@ -52,7 +53,7 @@ export default function Homepage() {
   }, []);
 
   useEffect(() => {
-    fetch(`${API_BASE_URL}/book`)
+    apiFetch(`${API_BASE_URL}/book`)
       .then(res => res.ok ? res.json() : [])
       .then(data => {
         if (!Array.isArray(data)) return setPopularBooks([]);
@@ -72,14 +73,14 @@ export default function Homepage() {
 
   useEffect(() => {
     if (!userEmail) return;
-    fetch(`${API_BASE_URL}/wishlist?email=${encodeURIComponent(userEmail)}`)
+    apiFetch(`${API_BASE_URL}/wishlist?email=${encodeURIComponent(userEmail)}`)
       .then(res => res.json())
       .then(data => {
         const wishMap = {};
         data.forEach(book => { wishMap[book._id] = true; });
         setWishlist(wishMap);
       });
-    fetch(`${API_BASE_URL}/cart?email=${encodeURIComponent(userEmail)}`)
+    apiFetch(`${API_BASE_URL}/cart?email=${encodeURIComponent(userEmail)}`)
       .then(res => res.json())
       .then(data => {
         const cartObj = {};
@@ -92,7 +93,7 @@ export default function Homepage() {
     if (!userEmail) return;
 
     // Fetch initial unread count
-    fetch(`${API_BASE_URL}/chat/unread/${userEmail}`)
+    apiFetch(`${API_BASE_URL}/chat/unread/${userEmail}`)
       .then(res => res.json())
       .then(data => setUnreadCount(data.count));
 
@@ -108,7 +109,7 @@ export default function Homepage() {
   }, [userEmail]);
 
   const handleSignOut = () => {
-    localStorage.removeItem('userEmail');
+    clearSession();
     setUser(null);
     setProfilePic(null);
     setShowDropdown(false);
@@ -126,7 +127,7 @@ export default function Homepage() {
       return;
     }
     const isInWishlist = !!wishlist[bookId];
-    fetch(`${API_BASE_URL}/wishlist/${isInWishlist ? 'remove' : 'add'}/${bookId}`, {
+    apiFetch(`${API_BASE_URL}/wishlist/${isInWishlist ? 'remove' : 'add'}/${bookId}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email: userEmail })
@@ -145,7 +146,7 @@ export default function Homepage() {
       return;
     }
     const isInCart = !!cart[bookId];
-    fetch(`${API_BASE_URL}/cart/${isInCart ? 'remove' : 'add'}/${bookId}`, {
+    apiFetch(`${API_BASE_URL}/cart/${isInCart ? 'remove' : 'add'}/${bookId}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email: userEmail })

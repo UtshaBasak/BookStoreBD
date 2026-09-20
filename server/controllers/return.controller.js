@@ -6,7 +6,7 @@ import { asTrimmedString } from '../utils/sanitize.js';
 export const returnBook = async (req, res) => {
   try {
     const bookId = asTrimmedString(req.body.bookId);
-    const userEmail = asTrimmedString(req.body.userEmail);
+    const userEmail = req.user.email;
     const defectDescription = asTrimmedString(req.body.defectDescription);
     
     // Get the book details
@@ -45,8 +45,8 @@ export const returnBook = async (req, res) => {
 
 export const getReturnRequests = async (req, res) => {
   try {
-    const userEmail = asTrimmedString(req.query.userEmail);
-    const query = userEmail ? { userEmail } : {};
+    // Administrators see every request; everyone else sees only their own.
+    const query = req.user.role === 'admin' ? {} : { userEmail: req.user.email };
     const requests = await ReturnRequest.find(query).sort({ createdAt: -1 });
     res.json(requests);
   } catch (error) {

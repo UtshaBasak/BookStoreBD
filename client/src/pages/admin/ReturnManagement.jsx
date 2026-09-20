@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { API_BASE_URL } from '../../config/api.js';
+import { API_BASE_URL, apiFetch } from '../../config/api.js';
 
 export default function ReturnManagement() {
   const [returnRequests, setReturnRequests] = useState([]);
@@ -11,7 +11,7 @@ export default function ReturnManagement() {
 
   const fetchReturnRequests = async () => { 
     try {
-      const response = await fetch(`${API_BASE_URL}/return/requests`, {
+      const response = await apiFetch(`${API_BASE_URL}/return/requests`, {
         credentials: 'include', // Add this to include cookies
       });
 
@@ -31,7 +31,7 @@ export default function ReturnManagement() {
 
   const handleStatusUpdate = async (requestId, status) => {
     try {
-      const response = await fetch(`${API_BASE_URL}/return/requests/${requestId}`, {
+      const response = await apiFetch(`${API_BASE_URL}/return/requests/${requestId}`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',

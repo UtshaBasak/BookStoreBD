@@ -21,7 +21,7 @@ async function generateUniqueOrderNumber() {
 export const decreaseStock = async (req, res) => {
   try {
     const { items, shippingCharge, discount, promoApplied } = req.body;
-    const email = asTrimmedString(req.body.email);
+    const email = req.user.email;
     const promo = asTrimmedString(req.body.promo);
     if (!Array.isArray(items)) return res.status(400).json({ message: 'Invalid items' });
 
@@ -92,8 +92,7 @@ export const decreaseStock = async (req, res) => {
 // Get all orders for a buyer
 export const getOrdersByBuyer = async (req, res) => {
   try {
-    const email = asTrimmedString(req.query.email);
-    if (!email) return res.status(400).json({ message: 'Email required' });
+    const email = req.user.email;
     const orders = await Order.find({ buyerEmail: email }).sort({ createdAt: -1 }).lean();
     // Group by orderNumber
     const grouped = {};
@@ -131,8 +130,7 @@ export const getOrdersByBuyer = async (req, res) => {
 // Get all orders for a seller
 export const getOrdersBySeller = async (req, res) => {
   try {
-    const email = asTrimmedString(req.query.email);
-    if (!email) return res.status(400).json({ message: 'Email required' });
+    const email = req.user.email;
     const orders = await Order.find({ sellerEmail: email }).sort({ createdAt: -1 });
     res.status(200).json(orders);
   } catch (err) {
@@ -147,6 +145,14 @@ export const getOrderByOrderNumber = async (req, res) => {
     if (!orderNumber) return res.status(400).json({ message: 'Order number required' });
     const orders = await Order.find({ orderNumber }).lean();
     if (!orders || orders.length === 0) return res.status(404).json({ message: 'Order not found' });
+
+    // Only the buyer, the seller, or an administrator may read an order.
+    // Order numbers are guessable enough that this must be enforced.
+    const { email: actor, role } = req.user;
+    const involved = orders.some((o) => o.buyerEmail === actor || o.sellerEmail === actor);
+    if (role !== 'admin' && !involved) {
+      return res.status(403).json({ message: 'You do not have access to this order' });
+    }
     // Group and summarize as in getOrdersByBuyer
     const booksTotal = orders.reduce((sum, ob) => sum + (Number(ob.price) * Number(ob.quantity)), 0);
     const shippingCost = orders[0].shippingCharge || 0;
@@ -178,6 +184,16 @@ export const updateOrderStatusByOrderNumber = async (req, res) => {
   try {
     const orderNumber = asTrimmedString(req.params.orderNumber);
     const status = asTrimmedString(req.body.status);
+
+    const existing = await Order.find({ orderNumber }).lean();
+    if (existing.length === 0) return res.status(404).json({ message: 'Order not found' });
+
+    const { email: actor, role } = req.user;
+    const involved = existing.some((o) => o.buyerEmail === actor || o.sellerEmail === actor);
+    if (role !== 'admin' && !involved) {
+      return res.status(403).json({ message: 'You do not have access to this order' });
+    }
+
     const orders = await Order.updateMany({ orderNumber }, { status });
     if (!orders || orders.matchedCount === 0) {
       return res.status(404).json({ message: 'Order not found' });

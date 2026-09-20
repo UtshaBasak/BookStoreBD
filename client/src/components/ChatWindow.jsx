@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { FaTimes, FaPaperPlane, FaImage } from 'react-icons/fa';
 import io from 'socket.io-client';
-import { API_BASE_URL } from '../config/api.js';
+import { API_BASE_URL, apiFetch } from '../config/api.js';
 import { safeObjectUrl } from '../utils/safeImageSrc.js';
 
 export default function ChatWindow({ receiver, receiverName, onClose }) {
@@ -19,7 +19,7 @@ export default function ChatWindow({ receiver, receiverName, onClose }) {
     setSocket(newSocket);
 
     // Mark messages as read
-    fetch(`${API_BASE_URL}/chat/read`, {
+    apiFetch(`${API_BASE_URL}/chat/read`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -33,7 +33,7 @@ export default function ChatWindow({ receiver, receiverName, onClose }) {
     newSocket.emit('join_chat', room);
 
     // Load chat history
-    fetch(`${API_BASE_URL}/chat/messages?sender=${userEmail}&receiver=${receiver}`)
+    apiFetch(`${API_BASE_URL}/chat/messages?sender=${userEmail}&receiver=${receiver}`)
       .then(res => res.json())
       .then(data => {
         if (data && data.messages) {
@@ -83,7 +83,7 @@ export default function ChatWindow({ receiver, receiverName, onClose }) {
         formData.append('image', selectedImage);
       }
 
-      const res = await fetch(`${API_BASE_URL}/chat/message`, {
+      const res = await apiFetch(`${API_BASE_URL}/chat/message`, {
         method: 'POST',
         body: formData
       });

@@ -12,33 +12,53 @@ export const test = (req,res) =>{
 // Fetch user profile
 export const getUserProfile = async (req, res) => {
     try {
-        const email = asTrimmedString(req.query.email);
+        // A profile may be viewed by its owner, an administrator, or
+        // anyone looking at a seller's public details on a listing.
+        const requested = asTrimmedString(req.query.email);
+        const email = requested || req.user?.email;
+        if (!email) return res.status(400).json({ message: 'Email required' });
         const user = await User.findOne({ email });
         if (!user) {
             return res.status(404).json({ message: 'User not found' });
         }
-        // Explicitly return all fields, including profilePicture as base64 string
-        res.status(200).json({
+
+        // Anyone may see the handle and avatar attached to a listing. The
+        // contact details are only for the owner and administrators - without
+        // this split, any address, phone number and date of birth in the
+        // database could be read by e-mail address alone.
+        const isOwnerOrAdmin =
+            req.user?.role === 'admin' || req.user?.email === user.email;
+
+        const publicProfile = {
             username: user.username,
             email: user.email,
-            address: user.address,
-            phone: user.phone,
-            dateOfBirth: user.dateOfBirth,
-            gender: user.gender,
-            profilePicture: user.profilePicture || null // Return base64 string if exists
-        });
+            profilePicture: user.profilePicture || null,
+        };
+
+        return res.status(200).json(
+            isOwnerOrAdmin
+                ? {
+                      ...publicProfile,
+                      address: user.address,
+                      phone: user.phone,
+                      dateOfBirth: user.dateOfBirth,
+                      gender: user.gender,
+                      role: user.role,
+                  }
+                : publicProfile
+        );
     } catch (error) {
-        res.status(500).json({ message: 'Server error', error });
+        console.error('Error fetching profile:', error);
+        return res.status(500).json({ message: 'Server error' });
     }
 };
 
 // Update user profile
 export const updateUserProfile = async (req, res) => {
     try {
-        const email = asTrimmedString(req.body.email);
-        if (!email) {
-            return res.status(400).json({ message: 'Email is required' });
-        }
+        // Always the caller's own profile - a body-supplied e-mail would
+        // let anyone rewrite another account.
+        const email = req.user.email;
         const updateFields = {};
         const unsetFields = {};
 

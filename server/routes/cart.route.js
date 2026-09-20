@@ -5,12 +5,16 @@ import {
   Cart_remove,
   Cart_clear
 } from '../controllers/cart.controller.js';
+import { requireAuth } from '../middleware/auth.js';
 
 const router = express.Router();
 
-router.get('/', Cart_get); // GET /cart?email=...
-router.post('/add/:id', Cart_add); // POST /cart/add/:id { email }
-router.post('/remove/:id', Cart_remove); // POST /cart/remove/:id { email }
-router.post('/clear', Cart_clear); // POST /cart/clear { email } - used after checkout
+// A cart belongs to the signed-in user; the owner is taken from the token.
+router.use(requireAuth);
+
+router.get('/', Cart_get);
+router.post('/add/:id', Cart_add);
+router.post('/remove/:id', Cart_remove);
+router.post('/clear', Cart_clear); // used after checkout
 
 export default router;

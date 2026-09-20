@@ -5,8 +5,8 @@ import { asTrimmedString } from '../utils/sanitize.js';
 // Fetch wishlist for a specific user
 export const Wishlist_get = async (req, res) => {
   try {
-    const email = asTrimmedString(req.query.email);
-    if (!email) return res.status(400).json({ message: 'Email required' });
+    // Identity comes from the verified token, never from the request.
+    const email = req.user.email;
     const user = await User.findOne({ email });
     if (!user) return res.status(404).json({ message: 'User not found' });
 
@@ -23,7 +23,7 @@ export const Wishlist_get = async (req, res) => {
 // Add a book to user's wishlist
 export const Wishlist_add = async (req, res) => {
   try {
-    const email = asTrimmedString(req.body.email);
+    const email = req.user.email;
     const bookId = asTrimmedString(req.params.id);
     if (!email) return res.status(400).json({ message: 'Email required' });
     const user = await User.findOne({ email });
@@ -50,7 +50,7 @@ export const Wishlist_add = async (req, res) => {
 // Remove a book from user's wishlist
 export const Wishlist_remove = async (req, res) => {
   try {
-    const email = asTrimmedString(req.body.email);
+    const email = req.user.email;
     const bookId = asTrimmedString(req.params.id);
     if (!email) return res.status(400).json({ message: 'Email required' });
     const user = await User.findOne({ email });

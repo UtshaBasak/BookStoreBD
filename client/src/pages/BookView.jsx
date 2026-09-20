@@ -3,7 +3,8 @@ import { useParams, useNavigate, Link } from 'react-router-dom';
 import { FaHeart, FaRegHeart, FaChevronLeft, FaChevronRight, FaComments, FaBell } from 'react-icons/fa';
 import socket from '../utils/socket';  // Add this import
 import ChatWindow from '../components/ChatWindow';
-import { API_BASE_URL } from '../config/api.js';
+import { API_BASE_URL, apiFetch } from '../config/api.js';
+import { clearSession } from '../utils/auth.js';
 
 export default function BookView() {
     const [book, setBook] = useState(null);
@@ -29,7 +30,7 @@ export default function BookView() {
         const fetchBook = async () => {
             try {
                 setLoading(true);
-                const response = await fetch(`${API_BASE_URL}/book/${id}`);
+                const response = await apiFetch(`${API_BASE_URL}/book/${id}`);
                 if (!response.ok) {
                     throw new Error('Failed to fetch book');
                 }
@@ -52,7 +53,7 @@ export default function BookView() {
     // Fetch seller info
     useEffect(() => {
         if (book?.sellerEmail) {
-            fetch(`${API_BASE_URL}/user/profile?email=${book.sellerEmail}`)
+            apiFetch(`${API_BASE_URL}/user/profile?email=${book.sellerEmail}`)
                 .then(res => res.json())
                 .then(data => setSellerInfo(data));
         }
@@ -63,7 +64,7 @@ export default function BookView() {
         const email = localStorage.getItem('userEmail');
         if (email) {
             setUser({ email });
-            fetch(`${API_BASE_URL}/user/profile?email=${email}`)
+            apiFetch(`${API_BASE_URL}/user/profile?email=${email}`)
                 .then(res => res.ok ? res.json() : null)
                 .then(data => {
                     if (data) {
@@ -77,7 +78,7 @@ export default function BookView() {
     // Add/update cart state loading
     useEffect(() => {
         if (!userEmail) return;
-        fetch(`${API_BASE_URL}/cart?email=${encodeURIComponent(userEmail)}`)
+        apiFetch(`${API_BASE_URL}/cart?email=${encodeURIComponent(userEmail)}`)
             .then(res => res.json())
             .then(data => {
                 const cartMap = {};
@@ -89,7 +90,7 @@ export default function BookView() {
     // Add/update wishlist state loading
     useEffect(() => {
         if (!userEmail) return;
-        fetch(`${API_BASE_URL}/wishlist?email=${encodeURIComponent(userEmail)}`)
+        apiFetch(`${API_BASE_URL}/wishlist?email=${encodeURIComponent(userEmail)}`)
             .then(res => res.json())
             .then(data => {
                 const wishMap = {};
@@ -103,7 +104,7 @@ export default function BookView() {
         if (!userEmail) return;
 
         // Fetch initial unread count
-        fetch(`${API_BASE_URL}/chat/unread/${userEmail}`)
+        apiFetch(`${API_BASE_URL}/chat/unread/${userEmail}`)
             .then(res => res.json())
             .then(data => setUnreadCount(data.count));
 
@@ -134,7 +135,7 @@ export default function BookView() {
 
         try {
             const isInCart = !!cart[bookId];
-            const response = await fetch(`${API_BASE_URL}/cart/${isInCart ? 'remove' : 'add'}/${bookId}`, {
+            const response = await apiFetch(`${API_BASE_URL}/cart/${isInCart ? 'remove' : 'add'}/${bookId}`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ email: userEmail })
@@ -164,7 +165,7 @@ export default function BookView() {
 
         try {
             const isInWishlist = !!wishlist[bookId];
-            const response = await fetch(`${API_BASE_URL}/wishlist/${isInWishlist ? 'remove' : 'add'}/${bookId}`, {
+            const response = await apiFetch(`${API_BASE_URL}/wishlist/${isInWishlist ? 'remove' : 'add'}/${bookId}`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ email: userEmail })
@@ -187,7 +188,7 @@ export default function BookView() {
     };
 
     const handleSignOut = () => {
-        localStorage.removeItem('userEmail');
+        clearSession();
         setUser(null);
         setProfilePic(null);
         setShowDropdown(false);

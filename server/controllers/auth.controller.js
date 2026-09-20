@@ -6,6 +6,30 @@ import User from '../models/user.model.js';
 import { errorHandler } from '../utils/error.js';
 import { config } from '../config/env.js';
 import { asTrimmedString } from '../utils/sanitize.js';
+import { signAccessToken } from '../utils/jwt.js';
+
+/**
+ * Shapes the sign-in / sign-up response. The token is what authorises every
+ * later request; the user object is only for rendering.
+ */
+const sessionResponse = (user) => ({
+  token: signAccessToken(user),
+  user: {
+    id: String(user._id),
+    username: user.username,
+    email: user.email,
+    role: user.role,
+  },
+});
+
+/** Promotes accounts listed in ADMIN_EMAILS, so the deployment keeps its admin. */
+const applyAdminBootstrap = async (user) => {
+  if (user.role !== 'admin' && config.adminEmails.includes(user.email.toLowerCase())) {
+    user.role = 'admin';
+    await user.save();
+  }
+  return user;
+};
 
 // In-memory OTP store keyed by e-mail. A Map rather than a plain object: an
 // attacker who signs up as "__proto__" would otherwise assign through to
@@ -120,8 +144,9 @@ export const signup = async(req,res,next) =>{
         const hashedPassword = bcryptjs.hashSync(password,10);
         const newUser = new User ({username,email,password:hashedPassword});
         await newUser.save();
+        await applyAdminBootstrap(newUser);
         otpStore.delete(email);
-        res.status(201).json("User created successfully")
+        res.status(201).json(sessionResponse(newUser));
     } catch (error) {
         // Handle duplicate key error (in case of race condition)
         if (error.code === 11000) {
@@ -145,9 +170,9 @@ export const signin = async(req,res,next) =>{
         if (!validUser) return next (errorHandler(404,'User not found!'));
         const validPassword = bcryptjs.compareSync(password,validUser.password);
         if (!validPassword) return next (errorHandler(401,'Wrong credentials!'));
-        if (validUser && validPassword) {
-            res.status(200).json("User founded successfully")
-        }
+
+        await applyAdminBootstrap(validUser);
+        res.status(200).json(sessionResponse(validUser));
     } catch (error){
         next(error);
     }

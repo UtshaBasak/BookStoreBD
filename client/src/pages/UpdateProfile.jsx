@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { API_BASE_URL } from '../config/api.js';
+import { API_BASE_URL, apiFetch } from '../config/api.js';
 import { safeImageSrc, safeObjectUrl } from '../utils/safeImageSrc.js';
 
 export default function UpdateProfile() {
@@ -23,7 +23,7 @@ export default function UpdateProfile() {
         const fetchProfile = async () => {
             try {
                 const userEmail = localStorage.getItem('userEmail') || 'user@example.com';
-                const res = await fetch(`${API_BASE_URL}/user/profile?email=${userEmail}`);
+                const res = await apiFetch(`${API_BASE_URL}/user/profile?email=${userEmail}`);
                 if (!res.ok) {
                     console.error(`Failed to fetch profile: ${res.statusText}`);
                     return;
@@ -115,7 +115,7 @@ export default function UpdateProfile() {
                 formDataToSend.append('profilePicture', '');
             }
 
-            const res = await fetch(`${API_BASE_URL}/user/profile`, {
+            const res = await apiFetch(`${API_BASE_URL}/user/profile`, {
                 method: 'PUT',
                 body: formDataToSend,
             });

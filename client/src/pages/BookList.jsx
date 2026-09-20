@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { API_BASE_URL } from '../config/api.js';
+import { API_BASE_URL, apiFetch } from '../config/api.js';
 
 export default function BookList() {
   const [books, setBooks] = useState([]);
@@ -10,11 +10,11 @@ export default function BookList() {
   // Fetch books and users
   const fetchData = () => {
     setLoading(true);
-    fetch(`${API_BASE_URL}/book`)
+    apiFetch(`${API_BASE_URL}/book`)
       .then((res) => res.json())
       .then((data) => setBooks(data))
       .catch((err) => console.error(err));
-    fetch(`${API_BASE_URL}/user`)
+    apiFetch(`${API_BASE_URL}/user`)
       .then(res => res.json())
       .then(data => {
         const map = {};
@@ -32,7 +32,7 @@ export default function BookList() {
   }, []);
 
   const deleteBook = (id) => {
-    fetch(`${API_BASE_URL}/book/${id}`, { method: 'DELETE' })
+    apiFetch(`${API_BASE_URL}/book/${id}`, { method: 'DELETE' })
       .then(() => setBooks(books.filter((book) => book._id !== id)))
       .catch((err) => console.error('Error deleting book:', err));
   };

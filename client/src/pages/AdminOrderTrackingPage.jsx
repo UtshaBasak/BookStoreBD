@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import '../styles/orderTracking.css';
 import { API_BASE_URL } from '../config/api.js';
+import { isAdmin } from '../utils/auth.js';
 
 const ORDER_STAGES = [
   'Order Confirmed',
@@ -13,16 +14,14 @@ const ORDER_STAGES = [
 ];
 
 export default function AdminOrderTrackingPage() {
-  const ADMIN_EMAIL = 'utsha23basak@gmail.com';
-  const userEmail = localStorage.getItem('userEmail');
   const navigate = useNavigate();
   const { orderNumber } = useParams();
-  // Restrict access to admin only
+  // Rendering guard only; the API enforces the real check.
   useEffect(() => {
-    if (userEmail !== ADMIN_EMAIL) {
+    if (!isAdmin()) {
       navigate('/sign-in', { replace: true });
     }
-  }, [userEmail, navigate]);
+  }, [navigate]);
   const [_error, setError] = useState('');
 
   const [statusValue, setStatusValue] = useState('');

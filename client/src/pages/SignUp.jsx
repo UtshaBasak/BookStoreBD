@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { API_BASE_URL } from '../config/api.js';
+import { API_BASE_URL, apiFetch } from '../config/api.js';
+import { isAdmin, isAuthenticated, setSession } from '../utils/auth.js';
 
 export default function SignUp() {
     const [formData, setFormData] = useState({});
@@ -11,10 +12,8 @@ export default function SignUp() {
     const navigate = useNavigate();
 
     useEffect(() => {
-        const userEmail = localStorage.getItem('userEmail');
-        if (userEmail) {
-            if (userEmail === 'utsha23basak@gmail.com') navigate('/admin/users', { replace: true });
-            else navigate('/profile', { replace: true });
+        if (isAuthenticated()) {
+            navigate(isAdmin() ? '/admin/users' : '/profile', { replace: true });
         }
     }, [navigate]);
 
@@ -27,7 +26,7 @@ export default function SignUp() {
 
     const handleSendOtp = async (email) => {
         setOtpMsg('');
-        const res = await fetch(`${API_BASE_URL}/auth/send-otp`, {
+        const res = await apiFetch(`${API_BASE_URL}/auth/send-otp`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ email, username: formData.username, purpose: 'register' }) // include purpose
@@ -44,7 +43,7 @@ export default function SignUp() {
 
     const handleVerifyOtp = async () => {
         setOtpMsg('');
-        const res = await fetch(`${API_BASE_URL}/auth/verify-otp`, {
+        const res = await apiFetch(`${API_BASE_URL}/auth/verify-otp`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ email: emailForOtp, code: otp })
@@ -73,14 +72,15 @@ export default function SignUp() {
     const handleSubmitFinal = async () => {
         // ...existing code...
         try {
-            const res = await fetch(`${API_BASE_URL}/auth/signup`, {
+            const res = await apiFetch(`${API_BASE_URL}/auth/signup`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ ...formData, otp }),
             });
             const data = await res.json();
             if (res.ok) {
-                localStorage.setItem('userEmail', formData.email);
+                // Sign-up returns the same session payload as sign-in.
+                setSession(data);
                 setStep('done');
                 setTimeout(() => navigate('/'), 1000);
             } else {

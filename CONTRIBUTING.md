@@ -25,7 +25,8 @@ npm run install:all
 
 cp server/.env.example server/.env
 cp client/.env.example client/.env
-# fill in MONGO, SMTP_USER and SMTP_PASS in server/.env
+# fill in MONGO, JWT_SECRET, SMTP_USER and SMTP_PASS in server/.env
+# generate a secret with: openssl rand -hex 48
 
 npm run dev
 ```
@@ -111,11 +112,19 @@ Open the PR against `master` and fill in the template.
   Anything that starts the process belongs in `index.js`.
 - Read configuration through `config/env.js`, never `process.env` directly.
 - Never return a stack trace, raw error object or password field in a response.
+- **Take the acting user from `req.user`, never from a request parameter.** An
+  `?email=` or a body field is supplied by the caller and proves nothing. Guard
+  new routes with `requireAuth`, `requireAdmin`, or an ownership check, and add
+  a test for the unauthorised case as well as the happy path.
 
 ### Client
 
 - Route-level screens go in `src/pages/`, shared UI in `src/components/`.
-- Every network call resolves its origin through `src/config/api.js`.
+- Every network call resolves its origin through `src/config/api.js`, and uses
+  `apiFetch` (or axios, which has an interceptor) so the bearer token is
+  attached. A bare `fetch` to the API will be anonymous and get a `401`.
+- Client-side route guards decide what to *render*. They are not a security
+  boundary — the server re-checks the token and role on every request.
 - Only variables prefixed with `VITE_` reach the browser bundle — never put a
   secret in `client/.env`.
 

@@ -22,37 +22,28 @@ import OrderTrackingPage from './pages/OrderTrackingPage';
 import SellerOrderTrackingPage from './pages/SellerOrderTrackingPage';
 import AdminOrderTrackingPage from './pages/AdminOrderTrackingPage';
 import './styles/orderTracking.css';
+import { isAdmin, isAuthenticated } from './utils/auth.js';
 
-// Helper: get current user email from localStorage
-const getUserEmail = () => localStorage.getItem('userEmail');
-const ADMIN_EMAIL = 'utsha23basak@gmail.com';
+// These guards only decide what to render. They are a convenience, not a
+// security boundary: the API re-checks the token and the role on every
+// request, so editing localStorage gains an attacker nothing.
 
-// Route guard for admin panel
+// Route guard for the admin panel
 function AdminRoute({ children }) {
-  const userEmail = getUserEmail();
-  if (userEmail !== ADMIN_EMAIL) {
-    return <Navigate to="/sign-in" replace />;
-  }
+  if (!isAuthenticated()) return <Navigate to="/sign-in" replace />;
+  if (!isAdmin()) return <Navigate to="/" replace />;
   return children;
 }
 
-// Route guard for sign-in/up: block if already logged in
+// Route guard for sign-in/up: block if already signed in
 function PublicOnlyRoute({ children }) {
-  const userEmail = getUserEmail();
-  if (userEmail) {
-    // If admin, redirect to admin panel; else, to profile
-    if (userEmail === ADMIN_EMAIL) return <Navigate to="/admin/users" replace />;
-    return <Navigate to="/profile" replace />;
-  }
-  return children;
+  if (!isAuthenticated()) return children;
+  return <Navigate to={isAdmin() ? '/admin/users' : '/profile'} replace />;
 }
 
 // Route guard for protected pages
 function ProtectedRoute({ children }) {
-  const userEmail = getUserEmail();
-  if (!userEmail) {
-    return <Navigate to="/sign-in" replace />;
-  }
+  if (!isAuthenticated()) return <Navigate to="/sign-in" replace />;
   return children;
 }
 

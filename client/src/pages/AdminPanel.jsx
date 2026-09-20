@@ -6,15 +6,14 @@ import TransactionHistory from './TransactionHistory';
 import BookList from './BookList';
 import ReturnManagement from './admin/ReturnManagement';
 import { FaHome } from 'react-icons/fa';
-
-const ADMIN_EMAIL = 'utsha23basak@gmail.com';
+import { clearSession, isAdmin } from '../utils/auth.js';
 
 export default function AdminPanel() {
   const navigate = useNavigate();
 
+  // Rendering guard only; the API enforces the real check.
   useEffect(() => {
-    const userEmail = localStorage.getItem('userEmail');
-    if (userEmail !== ADMIN_EMAIL) {
+    if (!isAdmin()) {
       navigate('/sign-in', { replace: true });
     }
   }, [navigate]);
@@ -68,7 +67,7 @@ export default function AdminPanel() {
             fontWeight: 'bold'
           }}
           onClick={() => {
-            localStorage.removeItem('userEmail');
+            clearSession();
             window.location.href = '/sign-in';
           }}
         >

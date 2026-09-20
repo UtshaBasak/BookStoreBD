@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { FaTrash, FaHome, FaShoppingCart } from 'react-icons/fa';
 import { useNavigate, Link } from 'react-router-dom';
-import { API_BASE_URL } from '../config/api.js';
+import { API_BASE_URL, apiFetch } from '../config/api.js';
 
 export default function Wishlist() {
   const [wishlist, setWishlist] = useState([]);
@@ -13,7 +13,7 @@ export default function Wishlist() {
   // Fetch wishlist from backend for the specific user
   useEffect(() => {
     if (!userEmail) return;
-    fetch(`${API_BASE_URL}/wishlist?email=${encodeURIComponent(userEmail)}`)
+    apiFetch(`${API_BASE_URL}/wishlist?email=${encodeURIComponent(userEmail)}`)
       .then((res) => res.json())
       .then((data) => setWishlist(Array.isArray(data) ? data : []))
       .catch(() => setError('Failed to load wishlist.'));
@@ -22,7 +22,7 @@ export default function Wishlist() {
   // Load cart state from backend
   useEffect(() => {
     if (!userEmail) return;
-    fetch(`${API_BASE_URL}/cart?email=${encodeURIComponent(userEmail)}`)
+    apiFetch(`${API_BASE_URL}/cart?email=${encodeURIComponent(userEmail)}`)
       .then(res => res.json())
       .then(data => {
         const cartObj = {};
@@ -38,7 +38,7 @@ export default function Wishlist() {
       return;
     }
     const isInCart = !!cart[id];
-    fetch(`${API_BASE_URL}/cart/${isInCart ? 'remove' : 'add'}/${id}`, {
+    apiFetch(`${API_BASE_URL}/cart/${isInCart ? 'remove' : 'add'}/${id}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email: userEmail })
@@ -55,7 +55,7 @@ export default function Wishlist() {
   const handleDelete = async (id) => {
     try {
       // Use /wishlist/remove/:id for consistency with homepage logic
-      const res = await fetch(`${API_BASE_URL}/wishlist/remove/${id}`, {
+      const res = await apiFetch(`${API_BASE_URL}/wishlist/remove/${id}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email: userEmail })

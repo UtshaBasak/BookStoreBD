@@ -52,8 +52,10 @@ both new and used books. It ships three distinct experiences from one codebase:
 ### Authentication and access control
 
 - Email/password sign-up and sign-in, with passwords hashed using `bcryptjs`
+- Stateless JWT sessions; every protected endpoint verifies the token server-side
+- Role-based authorisation (`user` / `admin`) plus per-resource ownership checks
 - Email verification and password reset via one-time codes delivered over SMTP
-- Route guards on the client: protected, public-only, and admin-only routes
+- Client route guards for rendering, backed by the server as the real boundary
 
 ### Catalogue
 
@@ -130,7 +132,7 @@ MernBookstore/
 │   ├── src/
 │   │   ├── components/          # Reusable UI (chat window, table, spinner…)
 │   │   ├── config/
-│   │   │   └── api.js           # Single source of truth for the API origin
+│   │   │   └── api.js           # API origin + authenticated fetch/axios
 │   │   ├── pages/               # Route-level screens
 │   │   │   ├── admin/           # Admin-only screens
 │   │   │   └── buyer/           # Buyer-only screens
@@ -150,6 +152,7 @@ MernBookstore/
 │   │   └── env.js               # Typed, validated environment config
 │   ├── controllers/             # Request handlers, one per domain
 │   ├── middleware/
+│   │   ├── auth.js              # Token verification, role and owner guards
 │   │   ├── errorHandler.js      # 404 + centralised error responses
 │   │   ├── rateLimit.js         # Per-IP request ceilings
 │   │   └── sanitizeRequest.js   # Strips Mongo operator keys from input
@@ -159,6 +162,7 @@ MernBookstore/
 │   │   └── chatSocket.js        # Socket.IO room and message handling
 │   ├── utils/
 │   │   ├── error.js             # Error factory used by controllers
+│   │   ├── jwt.js               # Access token signing and verification
 │   │   └── sanitize.js          # Narrows request values before a query
 │   ├── .env.example
 │   ├── app.js                   # createApp() factory
@@ -199,8 +203,10 @@ cp server/.env.example server/.env
 cp client/.env.example client/.env
 ```
 
-Then fill in `server/.env` — at minimum `MONGO`, `SMTP_USER` and `SMTP_PASS`.
-The server refuses to start with a clear error message if `MONGO` is missing.
+Then fill in `server/.env` — at minimum `MONGO`, `JWT_SECRET`, `SMTP_USER` and
+`SMTP_PASS`. Generate the secret with `openssl rand -hex 48`. The server
+refuses to start, with a clear message, if `MONGO` or `JWT_SECRET` is missing
+or if the secret is shorter than 32 characters.
 
 ### 3. Run both apps
 
@@ -228,6 +234,9 @@ To run them separately, use `npm run dev:server` and `npm run dev:client`.
 | `PORT`             |          | `4000`                                                 | Port the API listens on                                 |
 | `NODE_ENV`         |          | `development`                                          | `development` or `production`                           |
 | `CORS_ORIGINS`     |          | `http://localhost:5173,https://bookstorebd.vercel.app` | Comma-separated browser origins allowed to call the API |
+| `JWT_SECRET`       |    ✅    | —                                                      | Signs access tokens; must be 32+ chars, else start fails |
+| `JWT_EXPIRES_IN`   |          | `7d`                                                   | Access token lifetime                                   |
+| `ADMIN_EMAILS`     |          | —                                                      | Comma-separated e-mails promoted to admin on sign-in    |
 | `SMTP_SERVICE`     |          | `gmail`                                                | Nodemailer service name                                 |
 | `SMTP_USER`        |   ✅ ¹   | —                                                      | SMTP account used as the sender                         |
 | `SMTP_PASS`        |   ✅ ¹   | —                                                      | SMTP password or app password                           |
@@ -272,6 +281,38 @@ All routes sit behind a per-IP rate limiter (see
 [`server/middleware/rateLimit.js`](server/middleware/rateLimit.js)); `/auth` is
 held to a tighter ceiling than the rest. Responses carry `RateLimit-*` headers,
 and an exhausted limit returns `429`.
+
+### Authentication
+
+`POST /auth/signin` and `POST /auth/signup` return a signed JWT:
+
+```json
+{ "token": "eyJhbGciOi...", "user": { "id": "...", "username": "...", "email": "...", "role": "user" } }
+```
+
+Send it on every protected request:
+
+```
+Authorization: Bearer <token>
+```
+
+The server resolves the caller from that token and **ignores any identity in
+the request itself**. An `?email=` in a query string is supplied by the caller
+and proves nothing, so it is never used to decide what you may see or change.
+
+| Access level      | Applies to                                                                 |
+| ----------------- | -------------------------------------------------------------------------- |
+| **Public**        | `/health`, catalogue browsing (`/book`, `/filter/*`), `/auth/*`, a seller's public profile |
+| **Authenticated** | Cart, wishlist, orders, chat, returns, purchases, profile updates, creating a listing |
+| **Owner**         | Editing or deleting a listing (seller only), reading or updating an order (buyer or seller only), reading a conversation (participants only) |
+| **Administrator** | Listing and deleting users, every order, approving returns                  |
+
+A rejected token returns `401`; a valid token without the right role returns
+`403`. The client clears the session and redirects to sign-in on a `401`.
+
+Admins are identified by `role` on the user document. `ADMIN_EMAILS` promotes
+listed accounts on their next sign-in, so an existing deployment gains its
+administrator without a migration.
 
 ### Health
 

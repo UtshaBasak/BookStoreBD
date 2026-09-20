@@ -4,8 +4,8 @@ import { asTrimmedString } from '../utils/sanitize.js';
 
 export const Cart_get = async (req, res) => {
   try {
-    const email = asTrimmedString(req.query.email);
-    if (!email) return res.status(400).json({ message: 'Email required' });
+    // Identity comes from the verified token, never from the request.
+    const email = req.user.email;
     const user = await User.findOne({ email });
     if (!user) return res.status(404).json({ message: 'User not found' });
 
@@ -22,7 +22,7 @@ export const Cart_get = async (req, res) => {
 
 export const Cart_add = async (req, res) => {
   try {
-    const email = asTrimmedString(req.body.email);
+    const email = req.user.email;
     const bookId = asTrimmedString(req.params.id);
     if (!email) return res.status(400).json({ message: 'Email required' });
     const user = await User.findOne({ email });
@@ -46,7 +46,7 @@ export const Cart_add = async (req, res) => {
 
 export const Cart_remove = async (req, res) => {
   try {
-    const email = asTrimmedString(req.body.email);
+    const email = req.user.email;
     const bookId = asTrimmedString(req.params.id);
     if (!email) return res.status(400).json({ message: 'Email required' });
     const user = await User.findOne({ email });
@@ -66,8 +66,7 @@ export const Cart_remove = async (req, res) => {
 
 export const Cart_clear = async (req, res) => {
   try {
-    const email = asTrimmedString(req.body.email);
-    if (!email) return res.status(400).json({ message: 'Email required' });
+    const email = req.user.email;
     const user = await User.findOne({ email });
     if (!user) return res.status(404).json({ message: 'User not found' });
 

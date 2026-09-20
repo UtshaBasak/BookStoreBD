@@ -1,8 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import './UserManagement.css';
-import { API_BASE_URL } from '../config/api.js';
+import { API_BASE_URL, apiFetch } from '../config/api.js';
 
-const ADMIN_EMAIL = 'utsha23basak@gmail.com';
 
 export default function UserManagement() {
   const [users, setUsers] = useState([]);
@@ -13,13 +12,14 @@ export default function UserManagement() {
 
   const fetchUsers = () => {
     setRefreshing(true);
-    fetch(`${API_BASE_URL}/user`)
+    apiFetch(`${API_BASE_URL}/user`)
       .then((res) => {
         if (!res.ok) throw new Error('Failed to fetch users');
         return res.json();
       })
       .then((data) => {
-        const filtered = data.filter(user => user.email !== ADMIN_EMAIL);
+        // Administrators are not listed as deletable rows.
+        const filtered = data.filter(user => user.role !== 'admin');
         setUsers(filtered);
         setLoading(false);
         setRefreshing(false);
@@ -37,7 +37,7 @@ export default function UserManagement() {
 
   const deleteUser = async (id) => {
     try {
-      const response = await fetch(`${API_BASE_URL}/user/${id}`, {
+      const response = await apiFetch(`${API_BASE_URL}/user/${id}`, {
         method: 'DELETE',
         headers: {
           'Content-Type': 'application/json',

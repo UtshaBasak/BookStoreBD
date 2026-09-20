@@ -1,6 +1,7 @@
 import { Link, useNavigate } from 'react-router-dom';
 import React, { useState, useEffect } from 'react';
-import { API_BASE_URL } from '../config/api.js';
+import { API_BASE_URL, apiFetch } from '../config/api.js';
+import { isAdmin, isAuthenticated, setSession } from '../utils/auth.js';
 
 export default function SignIn() {
     const navigate = useNavigate();
@@ -13,10 +14,8 @@ export default function SignIn() {
     const [newPassword, setNewPassword] = useState('');
 
     useEffect(() => {
-        const userEmail = localStorage.getItem('userEmail');
-        if (userEmail) {
-            if (userEmail === 'utsha23basak@gmail.com') navigate('/admin/users', { replace: true });
-            else navigate('/profile', { replace: true });
+        if (isAuthenticated()) {
+            navigate(isAdmin() ? '/admin/users' : '/profile', { replace: true });
         }
     }, [navigate]);
 
@@ -31,7 +30,7 @@ export default function SignIn() {
         e.preventDefault();
 
         try {
-            const res = await fetch(`${API_BASE_URL}/auth/signin`, {
+            const res = await apiFetch(`${API_BASE_URL}/auth/signin`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -41,7 +40,8 @@ export default function SignIn() {
 
             const data = await res.json();
             if (res.ok) {
-                localStorage.setItem('userEmail', formData.email);
+                // The token is what authorises every later request.
+                setSession(data);
                 navigate('/'); // Redirect to homepage after sign in
             } else {
                 alert(JSON.stringify(data));
@@ -54,7 +54,7 @@ export default function SignIn() {
 
     const handleForgotSendOtp = async () => {
         setForgotMsg('');
-        const res = await fetch(`${API_BASE_URL}/auth/send-otp`, {
+        const res = await apiFetch(`${API_BASE_URL}/auth/send-otp`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ email: forgotEmail, purpose: 'reset' }) // include purpose
@@ -70,7 +70,7 @@ export default function SignIn() {
 
     const handleForgotVerifyOtp = async () => {
         setForgotMsg('');
-        const res = await fetch(`${API_BASE_URL}/auth/verify-otp`, {
+        const res = await apiFetch(`${API_BASE_URL}/auth/verify-otp`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ email: forgotEmail, code: forgotOtp })
@@ -86,7 +86,7 @@ export default function SignIn() {
 
     const handleForgotResetPassword = async () => {
         setForgotMsg('');
-        const res = await fetch(`${API_BASE_URL}/auth/reset-password`, {
+        const res = await apiFetch(`${API_BASE_URL}/auth/reset-password`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ email: forgotEmail, otp: forgotOtp, newPassword })
