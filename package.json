@@ -37,6 +37,6 @@
   },
   "homepage": "https://github.com/UtshaBasak/MernBookstore#readme",
   "devDependencies": {
-    "concurrently": "^9.1.2"
+    "concurrently": "^10.0.5"
   }
 }
