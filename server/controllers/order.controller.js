@@ -1,6 +1,5 @@
 import AddBook from '../models/AddBook.model.js';
 import Order from '../models/Order.model.js';
-import { asTrimmedString } from '../utils/sanitize.js';
 import { createLogger } from '../config/logger.js';
 
 const log = createLogger('order');
@@ -25,7 +24,7 @@ export const decreaseStock = async (req, res) => {
   try {
     const { items, shippingCharge, discount, promoApplied } = req.body;
     const email = req.user.email;
-    const promo = asTrimmedString(req.body.promo);
+    const promo = req.body.promo;
     if (!Array.isArray(items)) return res.status(400).json({ message: 'Invalid items' });
 
     // Generate unique order number
@@ -35,7 +34,7 @@ export const decreaseStock = async (req, res) => {
 
     // Save order(s)
     for (const item of items) {
-      const bookId = asTrimmedString(item?.bookId);
+      const bookId = item.bookId;
       const quantity = Number(item?.quantity);
       if (!bookId || !Number.isInteger(quantity) || quantity < 1) continue;
       const book = await AddBook.findById(bookId);
@@ -144,7 +143,7 @@ export const getOrdersBySeller = async (req, res) => {
 // Get order by orderNumber
 export const getOrderByOrderNumber = async (req, res) => {
   try {
-    const orderNumber = asTrimmedString(req.params.orderNumber);
+    const orderNumber = req.params.orderNumber;
     if (!orderNumber) return res.status(400).json({ message: 'Order number required' });
     const orders = await Order.find({ orderNumber }).lean();
     if (!orders || orders.length === 0) return res.status(404).json({ message: 'Order not found' });
@@ -185,8 +184,8 @@ export const getOrderByOrderNumber = async (req, res) => {
 // Update order status by orderNumber (for all books in the order)
 export const updateOrderStatusByOrderNumber = async (req, res) => {
   try {
-    const orderNumber = asTrimmedString(req.params.orderNumber);
-    const status = asTrimmedString(req.body.status);
+    const orderNumber = req.params.orderNumber;
+    const status = req.body.status;
 
     const existing = await Order.find({ orderNumber }).lean();
     if (existing.length === 0) return res.status(404).json({ message: 'Order not found' });
@@ -212,7 +211,7 @@ export const updateOrderStatusByOrderNumber = async (req, res) => {
 // Add delete order by id
 export const deleteOrder = async (req, res) => {
   try {
-    const id = asTrimmedString(req.params.id);
+    const id = req.params.id;
     await Order.findByIdAndDelete(id);
     res.status(200).json({ message: 'Order deleted' });
   } catch (err) {

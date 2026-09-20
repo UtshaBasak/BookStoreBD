@@ -1,6 +1,5 @@
 import bcryptjs from 'bcryptjs';
 import User from '../models/user.model.js';
-import { asTrimmedString } from '../utils/sanitize.js';
 import { createLogger } from '../config/logger.js';
 
 const log = createLogger('user');
@@ -17,7 +16,7 @@ export const getUserProfile = async (req, res) => {
     try {
         // A profile may be viewed by its owner, an administrator, or
         // anyone looking at a seller's public details on a listing.
-        const requested = asTrimmedString(req.query.email);
+        const requested = req.query.email;
         const email = requested || req.user?.email;
         if (!email) return res.status(400).json({ message: 'Email required' });
         const user = await User.findOne({ email });

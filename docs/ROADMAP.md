@@ -8,10 +8,11 @@ commit, so any one of them can be reverted without unpicking the others.
 all three package roots report zero dependency vulnerabilities; CodeQL reports
 five findings, all confirmed false positives in the same rule
 (`js/xss-through-dom`). Authentication and authorisation are enforced
-server-side. Tasks 1, 7 and 5 are complete: **144 tests** (93 server, 51
-client) gate every push, `docker compose up` brings the whole stack up with no
-local Node or MongoDB install, and the API emits structured logs with a
-correlation id per request.
+server-side, and every endpoint validates its input against a Zod schema.
+Tasks 1, 7, 5 and 3 are complete: **161 tests** (110 server, 51 client) gate
+every push, `docker compose up` brings the whole stack up with no local Node or
+MongoDB install, and the API emits structured logs with a correlation id per
+request.
 
 ---
 
@@ -25,7 +26,7 @@ before any deployment work resumes.
 | ~~1~~ | ~~[Automated tests](#1--automated-tests)~~ **done** | Foundation | — | Low |
 | ~~2~~ | ~~[Docker Compose](#7--docker-compose)~~ (task 7) **done** | Foundation | — | Low |
 | ~~3~~ | ~~[Structured logging](#5--structured-logging-and-error-tracking)~~ (task 5) **done** | Foundation | — | Low |
-| 4 | [Zod validation](#3--request-validation-with-zod) (task 3) | Hardening | 1 | Medium |
+| ~~4~~ | ~~[Zod validation](#3--request-validation-with-zod)~~ (task 3) **done** | Hardening | 1 | Medium |
 | 5 | [Refresh tokens](#2--refresh-tokens-and-logout) (task 2) | Hardening | 1 | High |
 | 6 | [Cloudinary image storage](#4--move-images-out-of-mongodb-cloudinary) (task 4) | Larger | 1 | Medium |
 | 7 | [TanStack Query](#6--tanstack-query-and-the-17-lint-warnings) (task 6) | Larger | 1 | Medium-high |
@@ -170,7 +171,10 @@ by a person.
 
 ---
 
-## 3 · Request validation with Zod
+## 3 · Request validation with Zod — done
+
+*Landed. Every endpoint validates body, query and params; `utils/sanitize.js`
+is gone.*
 
 One schema per endpoint, applied by a `validate` middleware, returning a
 consistent shape:
@@ -193,6 +197,25 @@ place. `middleware/sanitizeRequest.js` stays as defence in depth.
 
 Schemas also produce static types through `z.infer`, which is why this comes
 before TypeScript.
+
+**Done.** `middleware/validate.js` plus `schemas/common.js` and
+`schemas/index.js`. All 31 `asTrimmedString` calls removed and
+`utils/sanitize.js` deleted; `middleware/sanitizeRequest.js` stays as defence
+in depth.
+
+Two traps found while building it:
+
+- Express 5 defines `req.query` as a getter, so `req.query = parsed` is
+  silently discarded — validation would pass while handlers kept reading raw
+  values. The middleware uses `Object.defineProperty`, and a test fails if that
+  regresses.
+- `z.coerce.number()` accepts `[]`, because `Number([]) === 0`, so `stock: []`
+  would have quietly become 0. The numeric primitives narrow through a union
+  first.
+
+One deliberate behaviour change: an operator object in `filter_input` used to
+coerce to an empty string and return `200` with no results. It now returns
+`400`, which is equally safe and tells the caller why.
 
 ---
 

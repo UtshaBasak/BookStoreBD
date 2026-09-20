@@ -3,9 +3,10 @@ import express from 'express';
 import AddBook from '../models/AddBook.model.js';
 import Cart from '../models/Cart.model.js';
 import { getBookById } from '../controllers/book.controller.js';
-import { asTrimmedString, asNonNegativeInt } from '../utils/sanitize.js';
 import { requireAuth } from '../middleware/auth.js';
 import { LIST_IMAGE_PROJECTION } from '../utils/projections.js';
+import { validate } from '../middleware/validate.js';
+import { bookSchemas } from '../schemas/index.js';
 
 const router = express.Router();
 
@@ -14,7 +15,7 @@ const router = express.Router();
  * user could reprice or delete another seller's books.
  */
 const loadOwnedBook = async (req, res) => {
-  const book = await AddBook.findById(asTrimmedString(req.params.id));
+  const book = await AddBook.findById(req.params.id);
   if (!book) {
     res.status(404).json({ message: 'Book not found' });
     return null;
@@ -39,10 +40,10 @@ router.get('/', async (req, res) => {
   }
 });
 
-router.get('/seller/:email', async (req, res) => {
+router.get('/seller/:email', validate(bookSchemas.bySeller), async (req, res) => {
   try {
     const books = await AddBook.find(
-      { sellerEmail: asTrimmedString(req.params.email) },
+      { sellerEmail: req.params.email },
       LIST_IMAGE_PROJECTION
     );
     res.status(200).json(books);
@@ -55,12 +56,9 @@ router.get('/seller/:email', async (req, res) => {
 // Seller-owned mutations
 // ---------------------------------------------------------------------------
 
-router.put('/update-stock/:id', requireAuth, async (req, res) => {
+router.put('/update-stock/:id', requireAuth, validate(bookSchemas.updateStock), async (req, res) => {
   try {
-    const stock = asNonNegativeInt(req.body.stock);
-    if (stock === null) {
-      return res.status(400).json({ message: 'Stock must be a non-negative integer' });
-    }
+    const { stock } = req.body;
 
     const book = await loadOwnedBook(req, res);
     if (!book) return undefined;
@@ -79,12 +77,9 @@ router.put('/update-stock/:id', requireAuth, async (req, res) => {
   }
 });
 
-router.put('/update-price/:id', requireAuth, async (req, res) => {
+router.put('/update-price/:id', requireAuth, validate(bookSchemas.updatePrice), async (req, res) => {
   try {
-    const price = asNonNegativeInt(req.body.price);
-    if (price === null) {
-      return res.status(400).json({ message: 'Price must be a non-negative integer' });
-    }
+    const { price } = req.body;
 
     const book = await loadOwnedBook(req, res);
     if (!book) return undefined;
@@ -98,7 +93,7 @@ router.put('/update-price/:id', requireAuth, async (req, res) => {
   }
 });
 
-router.delete('/:id', requireAuth, async (req, res) => {
+router.delete('/:id', requireAuth, validate(bookSchemas.byId), async (req, res) => {
   try {
     const book = await loadOwnedBook(req, res);
     if (!book) return undefined;
@@ -113,6 +108,6 @@ router.delete('/:id', requireAuth, async (req, res) => {
 });
 
 // Declared last so it does not shadow the specific routes above.
-router.get('/:id', getBookById);
+router.get('/:id', validate(bookSchemas.byId), getBookById);
 
 export default router;

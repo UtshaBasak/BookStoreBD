@@ -11,9 +11,10 @@ import {
 import AddBook from '../models/AddBook.model.js';
 import User from '../models/user.model.js';
 import { config } from '../config/env.js';
-import { asTrimmedString } from '../utils/sanitize.js';
 import { requireAuth, requireAdmin, optionalAuth } from '../middleware/auth.js';
 import { createLogger } from '../config/logger.js';
+import { validate } from '../middleware/validate.js';
+import { userSchemas } from '../schemas/index.js';
 
 const log = createLogger('user-routes');
 
@@ -37,13 +38,20 @@ router.get('/test', test);
 
 // A listing shows its seller's public details, so this stays readable without
 // a token; the handler only ever returns non-sensitive fields.
-router.get('/profile', optionalAuth, getUserProfile);
+router.get('/profile', optionalAuth, validate(userSchemas.profileQuery), getUserProfile);
 
 // ---------------------------------------------------------------------------
 // Authenticated
 // ---------------------------------------------------------------------------
 
-router.put('/profile', requireAuth, upload.single('profilePicture'), updateUserProfile);
+router.put(
+  '/profile',
+  requireAuth,
+  upload.single('profilePicture'),
+  // After multer, which is what populates req.body for a multipart form.
+  validate(userSchemas.updateProfile),
+  updateUserProfile
+);
 
 router.post(
   '/add-book',
@@ -100,9 +108,9 @@ router.get('/', requireAuth, requireAdmin, async (req, res) => {
   }
 });
 
-router.delete('/:id', requireAuth, requireAdmin, async (req, res) => {
+router.delete('/:id', requireAuth, requireAdmin, validate(userSchemas.byId), async (req, res) => {
   try {
-    const id = asTrimmedString(req.params.id);
+    const { id } = req.params;
     if (id === req.user.id) {
       return res.status(400).json({ message: 'You cannot delete your own account' });
     }

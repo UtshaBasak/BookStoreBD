@@ -130,6 +130,10 @@ Open the PR against `master` and fill in the template.
   `?email=` or a body field is supplied by the caller and proves nothing. Guard
   new routes with `requireAuth`, `requireAdmin`, or an ownership check, and add
   a test for the unauthorised case as well as the happy path.
+- **Every route gets a Zod schema.** Add it to `server/schemas/`, wire it with
+  `validate({ body, query, params })`, and let the handler trust the parsed
+  result rather than re-checking types. For a multipart route, `validate` goes
+  *after* multer, which is what populates `req.body`.
 
 ### Client
 

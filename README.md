@@ -95,6 +95,7 @@ both new and used books. It ships three distinct experiences from one codebase:
 | Real-time    | Socket.IO 4                                              |
 | HTTP clients | Axios and the native `fetch` API                         |
 | Uploads      | Multer (in-memory, persisted as base64)                  |
+| Validation   | Zod schemas on every request                             |
 | Hardening    | express-rate-limit, request sanitisation                 |
 | Email        | Nodemailer                                               |
 | Tooling      | ESLint 10, GitHub Actions, CodeQL                       |
@@ -162,9 +163,13 @@ MernBookstore/
 │   │   ├── errorHandler.js      # 404 + centralised error responses
 │   │   ├── rateLimit.js         # Per-IP request ceilings
 │   │   ├── requestLogger.js     # One line per request, with a request id
+│   │   ├── validate.js          # Zod validation for body, query and params
 │   │   └── sanitizeRequest.js   # Strips Mongo operator keys from input
 │   ├── models/                  # Mongoose schemas
 │   ├── routes/                  # Express routers, one per domain
+│   ├── schemas/                 # One Zod schema per endpoint
+│   │   ├── common.js            # Shared primitives (email, objectId, ints)
+│   │   └── index.js             # Grouped by domain
 │   ├── scripts/
 │   │   └── seed.js              # Demo accounts and catalogue
 │   ├── sockets/
@@ -415,6 +420,27 @@ All routes sit behind a per-IP rate limiter (see
 [`server/middleware/rateLimit.js`](server/middleware/rateLimit.js)); `/auth` is
 held to a tighter ceiling than the rest. Responses carry `RateLimit-*` headers,
 and an exhausted limit returns `429`.
+
+### Validation
+
+Every endpoint validates its `body`, `query` and `params` against a Zod schema
+before the handler runs, and the handler then works with the parsed result.
+
+A failure returns `400` listing **every** problem, not just the first:
+
+```json
+{
+  "message": "Validation failed",
+  "errors": [
+    { "path": "body.email", "message": "Must be a valid email address" },
+    { "path": "body.password", "message": "Password must be at least 8 characters" }
+  ]
+}
+```
+
+Schemas also strip unknown keys, so a request body cannot smuggle extra fields
+into a document, and type narrowing is what keeps query operators out of
+Mongoose — a field declared `z.string()` can never arrive as `{ "$ne": null }`.
 
 ### Authentication
 

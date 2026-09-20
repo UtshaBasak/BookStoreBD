@@ -1,6 +1,5 @@
 import Wishlist from '../models/Wishlist.model.js';
 import User from '../models/user.model.js';
-import { asTrimmedString } from '../utils/sanitize.js';
 import { toListBook } from '../utils/projections.js';
 
 // Fetch wishlist for a specific user
@@ -26,7 +25,7 @@ export const Wishlist_get = async (req, res) => {
 export const Wishlist_add = async (req, res) => {
   try {
     const email = req.user.email;
-    const bookId = asTrimmedString(req.params.id);
+    const bookId = req.params.id;
     if (!email) return res.status(400).json({ message: 'Email required' });
     const user = await User.findOne({ email });
     if (!user) return res.status(404).json({ message: 'User not found' });
@@ -54,7 +53,7 @@ export const Wishlist_add = async (req, res) => {
 export const Wishlist_remove = async (req, res) => {
   try {
     const email = req.user.email;
-    const bookId = asTrimmedString(req.params.id);
+    const bookId = req.params.id;
     if (!email) return res.status(400).json({ message: 'Email required' });
     const user = await User.findOne({ email });
     if (!user) return res.status(404).json({ message: 'User not found' });

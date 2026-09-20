@@ -3,9 +3,10 @@ import multer from 'multer';
 import ChatMessage from '../models/Chat.model.js';
 import User from '../models/user.model.js';
 import { config } from '../config/env.js';
-import { asTrimmedString } from '../utils/sanitize.js';
 import { requireAuth } from '../middleware/auth.js';
 import { createLogger } from '../config/logger.js';
+import { validate } from '../middleware/validate.js';
+import { chatSchemas } from '../schemas/index.js';
 
 const log = createLogger('chat');
 
@@ -24,19 +25,13 @@ const isParticipant = (req, ...emails) =>
     req.user.role === 'admin' || emails.includes(req.user.email);
 
 // Get chat messages between two users
-router.get('/messages', async (req, res) => {
+router.get('/messages', validate(chatSchemas.messages), async (req, res) => {
     try {
-        const sender = asTrimmedString(req.query.sender);
-        const receiver = asTrimmedString(req.query.receiver);
-        if (!sender || !receiver) {
-            return res.status(400).json({ message: 'sender and receiver are required' });
-        }
+        const { sender, receiver, page, limit } = req.query;
         if (!isParticipant(req, sender, receiver)) {
             return res.status(403).json({ message: 'Not a participant in this conversation' });
         }
 
-        const page = Math.max(parseInt(req.query.page, 10) || 1, 1);
-        const limit = Math.min(Math.max(parseInt(req.query.limit, 10) || 20, 1), 100);
         const skip = (page - 1) * limit;
 
         // Use index hint and only select needed fields
@@ -117,16 +112,12 @@ router.get('/history/:email', async (req, res) => {
 });
 
 // Save new message (handles both text and image messages)
-router.post('/message', upload.single('image'), async (req, res) => {
+router.post('/message', upload.single('image'), validate(chatSchemas.send), async (req, res) => {
     try {
         // The sender is the signed-in user, never a body field: otherwise
         // anyone could post messages as somebody else.
         const sender = req.user.email;
-        const receiver = asTrimmedString(req.body.receiver);
-        const message = asTrimmedString(req.body.message);
-        if (!receiver) {
-            return res.status(400).json({ message: 'Receiver is required' });
-        }
+        const { receiver, message } = req.body;
 
         let imageData = null;
         if (req.file) {
@@ -150,13 +141,9 @@ router.post('/message', upload.single('image'), async (req, res) => {
 });
 
 // Delete conversation between two users
-router.delete('/delete', async (req, res) => {
+router.delete('/delete', validate(chatSchemas.remove), async (req, res) => {
     try {
-        const user1 = asTrimmedString(req.body.user1);
-        const user2 = asTrimmedString(req.body.user2);
-        if (!user1 || !user2) {
-            return res.status(400).json({ message: 'user1 and user2 are required' });
-        }
+        const { user1, user2 } = req.body;
         if (!isParticipant(req, user1, user2)) {
             return res.status(403).json({ message: 'Not a participant in this conversation' });
         }
@@ -190,9 +177,9 @@ router.get('/unread/:email', async (req, res) => {
 });
 
 // Mark messages as read
-router.post('/read', async (req, res) => {
+router.post('/read', validate(chatSchemas.markRead), async (req, res) => {
   try {
-    const sender = asTrimmedString(req.body.sender);
+    const { sender } = req.body;
     // Only the recipient can mark a thread as read.
     const receiver = req.user.email;
     await ChatMessage.updateMany(

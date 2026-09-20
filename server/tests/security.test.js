@@ -39,9 +39,12 @@ describe('NoSQL injection', () => {
       .post('/filter/booklist_filter')
       .send({ filter_key: 'author', filter_input: { $ne: null } });
 
-    // Narrowed to a string, so it matches nothing rather than everything.
-    expect(res.status).toBe(200);
-    expect(res.body).toHaveLength(0);
+    // Rejected outright by the schema. This previously coerced to an empty
+    // string and returned 200 with no results - safe, but it told the caller
+    // nothing about why.
+    expect(res.status).toBe(400);
+    expect(res.body.message).toBe('Validation failed');
+    expect(res.body.errors[0].path).toBe('body.filter_input');
   });
 
   it('rejects a filter field that is not whitelisted', async () => {

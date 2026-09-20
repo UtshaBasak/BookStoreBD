@@ -1,5 +1,4 @@
 import Purchase from '../models/Purchase.model.js';
-import { asTrimmedString } from '../utils/sanitize.js';
 
 export const getPurchasesByUser = async (req, res) => {
   const email = req.user.email;
@@ -12,7 +11,7 @@ export const getPurchasesByUser = async (req, res) => {
   }
 };
 export const createPurchase = async (req, res) => {
-  const bookId = asTrimmedString(req.body.bookId);
+  const bookId = req.body.bookId;
   const userEmail = req.user.email;
   const { quantity } = req.body;
 

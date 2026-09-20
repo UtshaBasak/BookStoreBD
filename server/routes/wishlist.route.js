@@ -5,6 +5,8 @@ import {
   Wishlist_remove
 } from '../controllers/wishlist.controller.js';
 import { requireAuth } from '../middleware/auth.js';
+import { validate } from '../middleware/validate.js';
+import { wishlistSchemas } from '../schemas/index.js';
 
 const router = express.Router();
 
@@ -12,7 +14,7 @@ const router = express.Router();
 router.use(requireAuth);
 
 router.get('/', Wishlist_get);
-router.post('/add/:id', Wishlist_add);
-router.post('/remove/:id', Wishlist_remove);
+router.post('/add/:id', validate(wishlistSchemas.mutate), Wishlist_add);
+router.post('/remove/:id', validate(wishlistSchemas.mutate), Wishlist_remove);
 
 export default router;

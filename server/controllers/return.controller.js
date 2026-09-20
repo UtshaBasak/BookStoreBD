@@ -1,16 +1,15 @@
 import Order from '../models/Order.model.js';
 import ReturnRequest from '../models/ReturnRequest.model.js';
 import AddBook from '../models/AddBook.model.js';
-import { asTrimmedString } from '../utils/sanitize.js';
 import { createLogger } from '../config/logger.js';
 
 const log = createLogger('return');
 
 export const returnBook = async (req, res) => {
   try {
-    const bookId = asTrimmedString(req.body.bookId);
+    const bookId = req.body.bookId;
     const userEmail = req.user.email;
-    const defectDescription = asTrimmedString(req.body.defectDescription);
+    const defectDescription = req.body.defectDescription;
     
     // Get the book details
     const book = await AddBook.findById(bookId);
@@ -60,8 +59,8 @@ export const getReturnRequests = async (req, res) => {
 
 export const updateReturnStatus = async (req, res) => {
   try {
-    const id = asTrimmedString(req.params.id);
-    const status = asTrimmedString(req.body.status);
+    const id = req.params.id;
+    const status = req.body.status;
 
     const updatedRequest = await ReturnRequest.findByIdAndUpdate(
       id,

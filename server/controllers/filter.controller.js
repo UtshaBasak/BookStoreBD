@@ -1,6 +1,5 @@
 import AddBook from '../models/AddBook.model.js';
 import { LIST_IMAGE_PROJECTION } from '../utils/projections.js';
-import { asTrimmedString } from '../utils/sanitize.js';
 
 // Whitelisted so a client cannot query arbitrary document paths (or inject a
 // query operator object) through `filter_key`.
@@ -40,8 +39,8 @@ export const Booklist = async (req, res) => {
 };
 
 export const Booklist_filter = async (req, res) => {
-    const filter_key = asTrimmedString(req.body.filter_key);
-    const filter_input = asTrimmedString(req.body.filter_input);
+    const filter_key = req.body.filter_key;
+    const filter_input = req.body.filter_input;
 
     if (!FILTERABLE_FIELDS.has(filter_key)) {
         return res.status(400).json({ message: `Cannot filter on "${filter_key}"` });
@@ -56,7 +55,7 @@ export const Booklist_filter = async (req, res) => {
 };
 
 export const Booklist_search = async (req, res) => {
-    const search_input = asTrimmedString(req.body.search_input);
+    const search_input = req.body.search_input;
 
     try {
         const searchedBooks = await AddBook.find(

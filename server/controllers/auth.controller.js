@@ -5,7 +5,6 @@ import nodemailer from 'nodemailer';
 import User from '../models/user.model.js';
 import { errorHandler } from '../utils/error.js';
 import { config } from '../config/env.js';
-import { asTrimmedString } from '../utils/sanitize.js';
 import { signAccessToken } from '../utils/jwt.js';
 import { createLogger } from '../config/logger.js';
 
@@ -69,9 +68,9 @@ async function sendEmail(email, subject, text) {
 // Send OTP for registration or password reset
 export const sendOtp = async (req, res) => {
     try {
-        const username = asTrimmedString(req.body.username);
-        const email = asTrimmedString(req.body.email);
-        const purpose = asTrimmedString(req.body.purpose);
+        const username = req.body.username;
+        const email = req.body.email;
+        const purpose = req.body.purpose;
         if (!email) return res.status(400).json({ message: "Email is required" });
 
         if (purpose === 'register') {
@@ -113,8 +112,8 @@ export const sendOtp = async (req, res) => {
 
 // Verify OTP
 export const verifyOtp = (req, res) => {
-    const email = asTrimmedString(req.body.email);
-    const code = asTrimmedString(req.body.code);
+    const email = req.body.email;
+    const code = req.body.code;
     if (!email || !code) return res.status(400).json({ message: "Email and code required" });
     const record = otpStore.get(email);
     if (!record || record.code !== code || Date.now() > record.expiresAt) {
@@ -126,9 +125,9 @@ export const verifyOtp = (req, res) => {
 
 // Signup with OTP verification
 export const signup = async(req,res,next) =>{
-    const username = asTrimmedString(req.body.username);
-    const email = asTrimmedString(req.body.email);
-    const password = asTrimmedString(req.body.password);
+    const username = req.body.username;
+    const email = req.body.email;
+    const password = req.body.password;
     try {
         // Check OTP
         if (!otpStore.get(email)?.verified) {
@@ -166,8 +165,8 @@ export const signup = async(req,res,next) =>{
 
 // Signin (no change)
 export const signin = async(req,res,next) =>{
-    const email = asTrimmedString(req.body.email);
-    const password = asTrimmedString(req.body.password);
+    const email = req.body.email;
+    const password = req.body.password;
     try{
         const validUser = await User.findOne({email});
         if (!validUser) return next (errorHandler(404,'User not found!'));
@@ -183,9 +182,9 @@ export const signin = async(req,res,next) =>{
 
 // Forgot password: send OTP (reuse sendOtp), verify OTP (reuse verifyOtp), then reset password
 export const resetPassword = async (req, res) => {
-    const email = asTrimmedString(req.body.email);
-    const otp = asTrimmedString(req.body.otp);
-    const newPassword = asTrimmedString(req.body.newPassword);
+    const email = req.body.email;
+    const otp = req.body.otp;
+    const newPassword = req.body.newPassword;
     if (!email || !otp || !newPassword) return res.status(400).json({ message: "All fields required" });
     const record = otpStore.get(email);
     if (!record || record.code !== otp || Date.now() > record.expiresAt) {
