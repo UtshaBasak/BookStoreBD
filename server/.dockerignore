@@ -4,8 +4,9 @@ npm-debug.log*
 .env.*
 !.env.example
 coverage
+dist
 tests
-vitest.config.js
+vitest.config.ts
 eslint.config.js
 Dockerfile
 .dockerignore

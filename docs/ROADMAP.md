@@ -19,16 +19,17 @@ that a real finding is noticeable.
 
 ---
 
-**Current baseline.** Lint, build and boot are green from a clean `npm ci`;
-all three package roots report zero dependency vulnerabilities; CodeQL reports
-five findings, all confirmed false positives in the same rule
+**Current baseline.** Lint, type-check, build and boot are green from a clean
+`npm ci`; all three package roots report zero dependency vulnerabilities; CodeQL
+reports five findings, all confirmed false positives in the same rule
 (`js/xss-through-dom`). Authentication and authorisation are enforced
 server-side, sessions use short access tokens with rotating refresh tokens, and
-every endpoint validates its input against a Zod schema. Seven of the eight tasks
-are complete: **203 tests** (146 server, 54 client) gate every push, `docker
-compose up` brings the whole stack up with no local Node or MongoDB install,
-the API emits structured logs with a correlation id per request, and book
-covers can be hosted on a CDN instead of living in the database.
+every endpoint validates its input against a Zod schema. All eight tasks are
+complete: the whole codebase is TypeScript under `strict`, **204 tests** (150
+server, 54 client) gate every push, `docker compose up` brings the whole stack
+up with no local Node or MongoDB install, the API emits structured logs with a
+correlation id per request, and book covers can be hosted on a CDN instead of
+living in the database.
 
 ---
 
@@ -46,7 +47,7 @@ before any deployment work resumes.
 | ~~5~~ | ~~[Refresh tokens](#2--refresh-tokens-and-logout)~~ (task 2) **done** | Hardening | 1 | High |
 | ~~6~~ | ~~[Cloudinary image storage](#4--move-images-out-of-mongodb-cloudinary)~~ (task 4) **done** | Larger | 1 | Medium |
 | ~~7~~ | ~~[TanStack Query](#6--tanstack-query-and-the-17-lint-warnings)~~ (task 6) **done** | Larger | 1 | Medium-high |
-| 8 | [TypeScript](#8--typescript) | Larger | 1, 4 | High volume |
+| ~~8~~ | ~~[TypeScript](#8--typescript)~~ **done** | Larger | 1, 4 | High volume |
 
 Task numbers are stable throughout this document — only the running order
 differs from the numbering.
@@ -387,21 +388,96 @@ to `/api/auth/refresh`.
 
 ---
 
-## 8 · TypeScript
+## 8 · TypeScript — done
+
+*Landed. Every source file in both packages is TypeScript under `strict`, and
+one shared declaration file is the contract between them.*
 
 Largest effort, largest payoff for how the project reads to an outside
-reviewer. Incremental, never a big-bang rewrite.
+reviewer.
 
-**Order**
+**What it looks like now**
 
-1. `allowJs: true`, `checkJs: false` — compiles, changes nothing
-2. Server: models → utils → middleware → controllers → routes
-3. A shared module for API request and response types
-4. Client: `utils` → `config` → `components` → `pages`
-5. Tighten to `strict` once the surface is converted
+| | Server | Client |
+| --- | --- | --- |
+| Checked by | `tsc --noEmit`, tests included | `tsc --noEmit`, tests included |
+| Built by | `tsc -p tsconfig.build.json` → `dist/` | Vite (strips types, does not check) |
+| Run in development by | nodemon + `tsx` | the Vite dev server |
+| Run in production by | `node dist/index.js` | nginx, or the API with `SERVE_CLIENT` |
 
-Zod schemas from task 3 provide inferred types rather than hand-written
-duplicates. Vitest runs TypeScript without extra configuration.
+Relative imports keep their `.js` extension — `./app.js` for `app.ts` — because
+the specifier describes the emitted module. Nothing had to be rewritten to
+introduce the build, and nothing would have to be rewritten to remove it.
+
+**The contract**
+
+`server/shared/api.d.ts` declares every request and response the HTTP API uses.
+Both packages compile against that one file, so a shape cannot change on one
+side without the other failing to type-check. It is a declaration file on
+purpose: types and nothing else, erased at compile time, so neither package
+gains a runtime dependency on the other.
+
+Request shapes are not written out twice. `schemas/index.ts` exports a
+`z.infer` type per endpoint for the handlers, and `types/contracts.ts` asserts
+at compile time that everything the client may send is something the endpoint's
+schema accepts. Breaking one of those assertions deliberately was the first
+thing done after writing them — it fails the build, as it should.
+
+**Bugs the compiler found**
+
+None of these were caught by lint, tests or CodeQL, because none of them are
+syntactically wrong. They are all places where two parts of the code disagreed
+about a shape.
+
+- `PATCH /order/status/:orderNumber` answers with the raw order *lines*, but
+  the buyer and seller tracking pages stored that response as if it were the
+  summarised order. Changing a status blanked the page until the next reload.
+  Both now read the order back.
+- Those same two pages looked for the signed-in role under `localStorage.role`,
+  while the session stores it under `userRole`. The status control they guard
+  was therefore never shown to anyone.
+- The catalogue table mapped sellers with `user.name`, a field the user record
+  does not have, so the column always fell back to the e-mail address.
+- `AddBook` passed `min` and `step` to a local `InputField` that never forwarded
+  them, so the numeric constraints on price and page count did nothing.
+- A `':hover'` key sat inside a React inline style object. React writes style
+  objects onto `element.style`, so a pseudo-selector there has never had any
+  effect.
+- `POST /purchase` passed a `quantity` the Purchase model has no field for, and
+  the seed script passed a `country` the user model has no field for. Mongoose
+  drops unknown paths silently; both are gone.
+- `/user/signup` and `/user/signin`, kept as aliases of the `/auth` routes,
+  were not running the Zod schemas their canonical counterparts run. They are
+  now.
+- `RefreshToken.isUsable()` was dead: the rotation logic needs to distinguish
+  *why* a token is unusable, so it checks the fields directly.
+
+Two things the types could not decide on their own, left as they are and
+recorded here instead: the catalogue's star filter and "most popular" sort read
+`rating` and `numReviews`, which no endpoint returns and no model stores, so
+both currently do nothing — whether to build ratings or drop the controls is a
+product decision, not a typing one.
+
+**One mistake worth recording.** The access-log serializer reads
+`req.remoteAddress`, which looked wrong: a raw Node request keeps the address on
+`req.socket`. Changing it produced a log line with no client address at all,
+because pino-http wraps custom serializers by default and hands them pino's
+*already serialised* request, where `remoteAddress` is exactly right. The test
+written to prove the "fix" is what caught it, and it stayed — the field is now
+pinned by an assertion rather than by nobody looking.
+
+**One real bug of the migration's own making, avoided.** Compiling to `dist/`
+moves the running module one directory deeper, so anything resolved from
+`import.meta.url` — the uploads directory, the client bundle — would have
+silently pointed at `server/dist/...` in production and nowhere in particular.
+`config/paths.ts` finds the package root by walking up to the nearest
+`package.json`, which gives the same answer from source and from a build; both
+were checked.
+
+**Not done, deliberately.** `noUncheckedIndexedAccess` is off. Turning it on
+would add a null check to every array index and object lookup in the codebase
+for very little here, where the indexes are nearly all `map` callbacks and
+lookups the code has just populated.
 
 ---
 

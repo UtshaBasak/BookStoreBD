@@ -1,0 +1,11 @@
+{
+  // What `npm run build` compiles into dist/: the application, and nothing
+  // else. Tests and tooling configuration are type-checked by tsconfig.json
+  // but have no business in a production image.
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "sourceMap": false,
+    "removeComments": false
+  },
+  "exclude": ["node_modules", "dist", "tests", "vitest.config.ts", "types/contracts.ts"]
+}

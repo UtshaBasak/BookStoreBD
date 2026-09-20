@@ -74,7 +74,14 @@ updates:
           - eslint
           - "@eslint/*"
           - eslint-plugin-*
+          - typescript-eslint
           - globals
+      # The compiler and the declarations it reads move together; bumping one
+      # without the others is how a type-check breaks for no visible reason.
+      typescript:
+        patterns:
+          - typescript
+          - "@types/*"
       minor-and-patch:
         patterns:
           - "*"
@@ -105,7 +112,13 @@ updates:
         patterns:
           - eslint
           - "@eslint/*"
+          - typescript-eslint
           - globals
+      typescript:
+        patterns:
+          - typescript
+          - tsx
+          - "@types/*"
       minor-and-patch:
         patterns:
           - "*"

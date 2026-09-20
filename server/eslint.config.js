@@ -1,18 +1,36 @@
 import js from '@eslint/js';
 import globals from 'globals';
+import tseslint from 'typescript-eslint';
 
-export default [
-  { ignores: ['node_modules'] },
+// Deliberately still JavaScript: a TypeScript config file would need a loader
+// installed purely to read it, for no benefit.
+export default tseslint.config(
+  { ignores: ['node_modules', 'dist'] },
+
   {
-    files: ['**/*.js'],
+    files: ['**/*.ts'],
+    extends: [js.configs.recommended, ...tseslint.configs.recommended],
     languageOptions: {
       ecmaVersion: 'latest',
       sourceType: 'module',
       globals: globals.node,
     },
     rules: {
-      ...js.configs.recommended.rules,
-      'no-unused-vars': ['error', { argsIgnorePattern: '^_|^next$' }],
+      // The base rule cannot see type-only syntax, so the TypeScript-aware one
+      // replaces it rather than running alongside.
+      'no-unused-vars': 'off',
+      '@typescript-eslint/no-unused-vars': ['error', { argsIgnorePattern: '^_|^next$' }],
     },
   },
-];
+
+  {
+    // This file itself.
+    files: ['*.js'],
+    extends: [js.configs.recommended],
+    languageOptions: {
+      ecmaVersion: 'latest',
+      sourceType: 'module',
+      globals: globals.node,
+    },
+  }
+);

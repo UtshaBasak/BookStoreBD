@@ -18,7 +18,7 @@ permissions:
 
 jobs:
   client:
-    name: Client (lint + build)
+    name: Client (lint + types + tests + build)
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -40,6 +40,12 @@ jobs:
       - name: Lint
         run: npm run lint
 
+      # Vite strips types rather than checking them, so the build on its own
+      # would not catch a type error. This is the step that does. It reads the
+      # shared API contract from server/shared, which the checkout provides.
+      - name: Type-check
+        run: npm run typecheck
+
       - name: Test
         run: npm test
 
@@ -47,7 +53,7 @@ jobs:
         run: npm run build
 
   server:
-    name: Server (lint + smoke)
+    name: Server (lint + types + tests + build)
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -69,6 +75,11 @@ jobs:
       - name: Lint
         run: npm run lint
 
+      # Covers the tests and the contract assertions as well as the app; the
+      # build below compiles only what ships.
+      - name: Type-check
+        run: npm run typecheck
+
       - name: Cache MongoDB binary
         uses: actions/cache@v4
         with:
@@ -77,3 +88,6 @@ jobs:
 
       - name: Test
         run: npm test
+
+      - name: Build
+        run: npm run build

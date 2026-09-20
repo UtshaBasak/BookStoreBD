@@ -1,0 +1,46 @@
+{
+  // Type-checking configuration, covering the tests as well as the source.
+  // `npm run build` uses tsconfig.build.json, which narrows this to the files
+  // that actually ship.
+  "compilerOptions": {
+    "target": "ES2023",
+    "lib": ["ES2023"],
+
+    // NodeNext, so the compiler resolves imports exactly as Node will at run
+    // time. It is also what lets the source keep writing `./app.js` while the
+    // file on disk is `./app.ts` - the specifier describes the emitted module,
+    // so nothing has to be rewritten when the build output changes shape.
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+
+    "rootDir": ".",
+    "outDir": "dist",
+    "sourceMap": true,
+
+    "strict": true,
+    "noUnusedLocals": true,
+    "noImplicitOverride": true,
+    "noFallthroughCasesInSwitch": true,
+
+    // Imports must say whether they are types, so a type-only import is never
+    // left behind as a runtime require of a module that emits nothing.
+    "verbatimModuleSyntax": true,
+
+    "esModuleInterop": true,
+    "resolveJsonModule": true,
+    "forceConsistentCasingInFileNames": true,
+
+    // The dependency declarations are not ours to fix, and checking them adds
+    // seconds to every run for findings nobody can act on.
+    "skipLibCheck": true,
+
+    "baseUrl": ".",
+    "paths": {
+      // The wire contract the client also compiles against. Types only, so
+      // this never resolves at run time.
+      "@shared/*": ["./shared/*"]
+    }
+  },
+  "include": ["**/*.ts"],
+  "exclude": ["node_modules", "dist"]
+}

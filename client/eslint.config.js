@@ -2,21 +2,27 @@ import js from '@eslint/js';
 import globals from 'globals';
 import reactHooks from 'eslint-plugin-react-hooks';
 import reactRefresh from 'eslint-plugin-react-refresh';
+import tseslint from 'typescript-eslint';
 
-export default [
+// Deliberately still JavaScript: a TypeScript config file would need a loader
+// installed purely to read it, for no benefit.
+export default tseslint.config(
   { ignores: ['dist'] },
+
   {
     // Build and tooling config runs in Node, not the browser.
-    files: ['*.config.js', 'src/test/**'],
+    files: ['*.config.{js,ts}', 'src/test/**'],
+    extends: [js.configs.recommended],
     languageOptions: {
       ecmaVersion: 'latest',
       sourceType: 'module',
       globals: globals.node,
     },
-    rules: { ...js.configs.recommended.rules },
   },
+
   {
-    files: ['**/*.{js,jsx}'],
+    files: ['**/*.{ts,tsx}'],
+    extends: [js.configs.recommended, ...tseslint.configs.recommended],
     languageOptions: {
       ecmaVersion: 2020,
       globals: globals.browser,
@@ -31,9 +37,13 @@ export default [
       'react-refresh': reactRefresh,
     },
     rules: {
-      ...js.configs.recommended.rules,
       ...reactHooks.configs.recommended.rules,
-      'no-unused-vars': ['error', { varsIgnorePattern: '^[A-Z_]' }],
+
+      // The base rule cannot see type-only syntax, so the TypeScript-aware one
+      // replaces it rather than running alongside.
+      'no-unused-vars': 'off',
+      '@typescript-eslint/no-unused-vars': ['error', { varsIgnorePattern: '^[A-Z_]' }],
+
       'react-refresh/only-export-components': ['warn', { allowConstantExport: true }],
 
       // Back at 'error' now that data fetching has moved to TanStack Query and
@@ -42,5 +52,5 @@ export default [
       'react-hooks/set-state-in-effect': 'error',
       'react-hooks/immutability': 'error',
     },
-  },
-];
+  }
+);

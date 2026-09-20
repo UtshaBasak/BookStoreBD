@@ -90,6 +90,7 @@ both new and used books. It ships three distinct experiences from one codebase:
 
 | Layer        | Technology                                              |
 | ------------ | ------------------------------------------------------- |
+| Language     | TypeScript 5, strict mode, across both packages          |
 | Frontend     | React 19, React Router 7, Vite 8, Tailwind CSS 4         |
 | Data fetching| TanStack Query                                           |
 | Backend      | Node.js, Express 5                                       |
@@ -100,7 +101,7 @@ both new and used books. It ships three distinct experiences from one codebase:
 | Validation   | Zod schemas on every request                             |
 | Hardening    | express-rate-limit, request sanitisation                 |
 | Email        | Nodemailer                                               |
-| Tooling      | ESLint 10, GitHub Actions, CodeQL                       |
+| Tooling      | ESLint 10 + typescript-eslint, GitHub Actions, CodeQL    |
 
 ---
 
@@ -119,14 +120,31 @@ both new and used books. It ships three distinct experiences from one codebase:
 ```
 
 The client never hardcodes the backend origin. Every request resolves through
-[`client/src/config/api.js`](client/src/config/api.js), which reads `VITE_API_URL`
+[`client/src/config/api.ts`](client/src/config/api.ts), which reads `VITE_API_URL`
 and falls back to the deployed API — so pointing the app at a local server is a
 one-line change in `client/.env`.
 
-On the server, [`app.js`](server/app.js) exports a side-effect-free `createApp()`
-factory (no `listen`, no database connection), while [`index.js`](server/index.js)
+On the server, [`app.ts`](server/app.ts) exports a side-effect-free `createApp()`
+factory (no `listen`, no database connection), while [`index.ts`](server/index.ts)
 owns the bootstrap: validate environment, connect to MongoDB, listen, attach
 Socket.IO, and shut down gracefully on `SIGINT`/`SIGTERM`.
+
+### One contract, two packages
+
+[`server/shared/api.d.ts`](server/shared/api.d.ts) declares every request and
+response shape the HTTP API uses. Both packages compile against that one file —
+the server directly, the client through a `@shared/*` path in its `tsconfig.json`
+— so a response cannot change on one side without the other failing to
+type-check.
+
+It is a declaration file on purpose: types and nothing else, erased entirely at
+compile time. Neither package gains a runtime dependency on the other.
+
+The request shapes are not written twice either.
+[`server/types/contracts.ts`](server/types/contracts.ts) asserts at compile time
+that everything the client may send is something the endpoint's Zod schema will
+accept, so tightening a schema without updating the contract fails the build
+rather than a request in production.
 
 ---
 
@@ -139,56 +157,66 @@ MernBookstore/
 │   ├── src/
 │   │   ├── components/          # Reusable UI (chat window, table, spinner…)
 │   │   ├── config/
-│   │   │   ├── api.js           # API origin + authenticated fetch/axios
-│   │   │   └── queryClient.js   # TanStack Query defaults
+│   │   │   ├── api.ts           # API origin + authenticated fetch/axios
+│   │   │   └── queryClient.ts   # TanStack Query defaults
 │   │   ├── hooks/
-│   │   │   └── queries.js       # One place for every query and mutation
+│   │   │   └── queries.ts       # One place for every query and mutation
 │   │   ├── pages/               # Route-level screens
 │   │   │   ├── admin/           # Admin-only screens
 │   │   │   └── buyer/           # Buyer-only screens
 │   │   ├── styles/              # Shared stylesheets
 │   │   ├── utils/               # Socket.IO singleton, safe image sources
-│   │   ├── App.jsx              # Router and route guards
-│   │   └── main.jsx             # React entry point
+│   │   ├── App.tsx              # Router and route guards
+│   │   └── main.tsx             # React entry point
 │   ├── .env.example
 │   ├── eslint.config.js
 │   ├── index.html
-│   └── vite.config.js
+│   ├── tsconfig.json            # Type-check settings (Vite does the building)
+│   └── vite.config.ts
 │
 ├── server/                      # Express REST API + Socket.IO gateway
 │   ├── config/
-│   │   ├── cors.js              # Origin allow-list
-│   │   ├── database.js          # Mongoose connection lifecycle
-│   │   ├── env.js               # Typed, validated environment config
-│   │   ├── logger.js            # pino instance and redaction rules
-│   │   └── sentry.js            # Optional error reporting
+│   │   ├── cors.ts              # Origin allow-list
+│   │   ├── database.ts          # Mongoose connection lifecycle
+│   │   ├── env.ts               # Typed, validated environment config
+│   │   ├── logger.ts            # pino instance and redaction rules
+│   │   ├── paths.ts             # Package root, uploads and client bundle
+│   │   └── sentry.ts            # Optional error reporting
 │   ├── controllers/             # Request handlers, one per domain
 │   ├── middleware/
-│   │   ├── auth.js              # Token verification, role and owner guards
-│   │   ├── errorHandler.js      # 404 + centralised error responses
-│   │   ├── rateLimit.js         # Per-IP request ceilings
-│   │   ├── requestLogger.js     # One line per request, with a request id
-│   │   ├── validate.js          # Zod validation for body, query and params
-│   │   └── sanitizeRequest.js   # Strips Mongo operator keys from input
+│   │   ├── auth.ts              # Token verification, role and owner guards
+│   │   ├── errorHandler.ts      # 404 + centralised error responses
+│   │   ├── rateLimit.ts         # Per-IP request ceilings
+│   │   ├── requestLogger.ts     # One line per request, with a request id
+│   │   ├── validate.ts          # Zod validation for body, query and params
+│   │   └── sanitizeRequest.ts   # Strips Mongo operator keys from input
 │   ├── models/                  # Mongoose schemas, incl. RefreshToken
 │   ├── routes/                  # Express routers, one per domain
 │   ├── schemas/                 # One Zod schema per endpoint
-│   │   ├── common.js            # Shared primitives (email, objectId, ints)
-│   │   └── index.js             # Grouped by domain
+│   │   ├── common.ts            # Shared primitives (email, objectId, ints)
+│   │   └── index.ts             # Grouped by domain, plus inferred types
 │   ├── scripts/
-│   │   └── seed.js              # Demo accounts and catalogue
+│   │   └── seed.ts              # Demo accounts and catalogue
+│   ├── shared/
+│   │   └── api.d.ts             # The wire contract, shared with the client
 │   ├── sockets/
-│   │   └── chatSocket.js        # Socket.IO room and message handling
+│   │   └── chatSocket.ts        # Socket.IO room and message handling
 │   ├── tests/                   # Vitest + Supertest suites
 │   │   ├── helpers/             # App bootstrap and data factories
 │   │   └── setup/               # Shared in-memory MongoDB
+│   ├── types/
+│   │   ├── contracts.ts         # Compile-time schema/contract assertions
+│   │   ├── express.d.ts         # req.user, set by the auth middleware
+│   │   └── vitest.d.ts          # What globalSetup provides to the suites
 │   ├── utils/
-│   │   ├── error.js             # Error factory used by controllers
-│   │   ├── jwt.js               # Access token signing and verification
-│   │   └── sanitize.js          # Narrows request values before a query
+│   │   ├── error.ts             # Error factory used by controllers
+│   │   ├── jwt.ts               # Access token signing and verification
+│   │   └── refreshToken.ts      # Issue, rotate and revoke refresh tokens
 │   ├── .env.example
-│   ├── app.js                   # createApp() factory
-│   └── index.js                 # Bootstrap and graceful shutdown
+│   ├── app.ts                   # createApp() factory
+│   ├── index.ts                 # Bootstrap and graceful shutdown
+│   ├── tsconfig.json            # Type-check settings, including the tests
+│   └── tsconfig.build.json      # What `npm run build` compiles into dist/
 │
 ├── .github/
 │   ├── ISSUE_TEMPLATE/
@@ -353,11 +381,14 @@ Run these from the repository root:
 | --------------------- | ----------------------------------------------------- |
 | `npm run install:all` | Installs dependencies in both `client/` and `server/` |
 | `npm run dev`         | Runs the API and the client together                  |
-| `npm run dev:server`  | Runs the API alone with hot reload (nodemon)          |
+| `npm run dev:server`  | Runs the API alone with hot reload (nodemon + tsx)    |
 | `npm run dev:client`  | Runs the Vite dev server alone                        |
-| `npm run build`       | Produces the production client bundle                 |
+| `npm run build`       | Compiles the API to `server/dist` and bundles the client |
+| `npm run build:server` / `build:client` | One package only                    |
 | `npm run preview`     | Serves the built client locally                       |
-| `npm start`           | Starts the API in production mode                     |
+| `npm start`           | Starts the API from `server/dist` (build first)       |
+| `npm run typecheck`   | Type-checks both packages, tests included             |
+| `npm run typecheck:server` / `typecheck:client` | One package only            |
 | `npm run lint`        | Lints both packages                                   |
 | `npm run lint:server` / `lint:client` | One package only                      |
 | `npm test`            | Runs the server and client test suites                |
@@ -366,6 +397,11 @@ Run these from the repository root:
 | `npm run test:watch`  | Re-runs on change (inside `client/` or `server/`)     |
 | `npm run seed`        | Seeds demo data (run inside `server/`)                |
 | `npm run migrate:images` | Moves base64 covers to Cloudinary (in `server/`)    |
+
+> The API runs from TypeScript sources in development — nodemon watches, `tsx`
+> executes — and from the compiled output in production. `npm run typecheck` is
+> what actually checks the types: neither `tsx` nor Vite does, they only strip
+> them.
 
 ---
 
@@ -463,7 +499,7 @@ run and shared by every file; each file connects to its own database on that
 instance, so files stay independent and run in parallel. Nothing external
 needs to be installed or running.
 
-`tests/regressions.test.js` is worth knowing about: every case in it maps to a
+`tests/regressions.test.ts` is worth knowing about: every case in it maps to a
 defect that actually shipped — the cart that stayed full after checkout, the
 authentication bypass, contact details readable by anyone. A failure there
 means a real bug has come back.
@@ -489,7 +525,7 @@ Base URL: `http://localhost:5173/api` in development (proxied), or
 `http://localhost:4000/api` straight to the API.
 
 All routes sit behind a per-IP rate limiter (see
-[`server/middleware/rateLimit.js`](server/middleware/rateLimit.js)); `/auth` is
+[`server/middleware/rateLimit.ts`](server/middleware/rateLimit.ts)); `/auth` is
 held to a tighter ceiling than the rest. Responses carry `RateLimit-*` headers,
 and an exhausted limit returns `429`.
 
@@ -709,10 +745,13 @@ Both services are intended for [Render](https://render.com).
 | Setting        | Value                                                      |
 | -------------- | ---------------------------------------------------------- |
 | Root directory | `server`                                                   |
-| Build command  | `npm ci`                                                   |
+| Build command  | `npm ci && npm run build`                                  |
 | Start command  | `npm start`                                                |
 | Health check   | `/health`                                                  |
 | Environment    | everything in [`server/.env.example`](server/.env.example) |
+
+The build step compiles TypeScript into `server/dist`, which is what
+`npm start` runs. `npm ci` on its own is no longer enough.
 
 `MONGO` and `JWT_SECRET` are required — the service will not boot without
 them. Generate the secret with `openssl rand -hex 48`.
@@ -730,18 +769,20 @@ Add a rewrite of `/*` to `/index.html` so client-side routes survive a page
 refresh, and add the deployed client origin to `CORS_ORIGINS` on the server,
 with no trailing slash — browsers send the `Origin` header without one.
 
-> Serving the client and API from one origin is planned (see
-> [`docs/ROADMAP.md`](docs/ROADMAP.md), task 2), which removes the CORS
-> configuration and makes an httpOnly refresh cookie workable.
+> The client and the API are same-origin in development and in the Docker
+> stacks, which is what makes the httpOnly refresh cookie first-party. Deploying
+> them as two Render services keeps them cross-origin, so the refresh cookie
+> will not survive; set `SERVE_CLIENT=true` and serve `client/dist` from the API
+> as a single Web Service to keep sessions alive across an expired access token.
 
 ---
 
 ## Roadmap
 
-Planned upgrades, in the order they will be tackled, are in
-[`docs/ROADMAP.md`](docs/ROADMAP.md): automated tests, Docker Compose,
-structured logging, Zod validation, refresh tokens, Cloudinary image storage,
-TanStack Query, and an incremental TypeScript migration.
+All eight planned upgrades are done. [`docs/ROADMAP.md`](docs/ROADMAP.md)
+records what each one changed and what was learned doing it: automated tests,
+Docker Compose, structured logging, Zod validation, refresh tokens, Cloudinary
+image storage, TanStack Query, and the TypeScript migration.
 
 ---
 

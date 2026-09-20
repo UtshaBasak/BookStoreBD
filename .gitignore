@@ -12,6 +12,7 @@ dist/
 dist-ssr/
 build/
 *.local
+*.tsbuildinfo
 
 # ---------------------------------------------------------------------------
 # Environment & secrets

@@ -80,10 +80,15 @@ Run both checks locally — CI runs the same ones and will block the merge
 otherwise:
 
 ```bash
-npm run lint    # ESLint across client/ and server/
-npm test        # server + client suites
-npm run build   # production client bundle
+npm run lint       # ESLint across client/ and server/
+npm run typecheck  # tsc on both packages, tests included
+npm test           # server + client suites
+npm run build      # compiles the API and bundles the client
 ```
+
+`npm run typecheck` is the one that actually checks types. `tsx` and Vite both
+strip them without looking, so a type error will not show up in `npm run dev`
+or in the client bundle.
 
 Then confirm:
 
@@ -92,7 +97,8 @@ Then confirm:
 - Any new environment variable is documented in the matching `.env.example`
   **and** in the README's environment table
 - New endpoints are added to the README's API reference
-- The client uses `API_BASE_URL` from `src/config/api.js` — never a hardcoded host
+- The client uses `API_BASE_URL` from `src/config/api.ts` — never a hardcoded host
+- A changed request or response shape is reflected in `server/shared/api.d.ts`
 
 Open the PR against `master` and fill in the template.
 
@@ -124,12 +130,20 @@ Open the PR against `master` and fill in the template.
 
 ### Server
 
-- One router and one controller per domain, named `<domain>.route.js` and
-  `<domain>.controller.js`.
+- One router and one controller per domain, named `<domain>.route.ts` and
+  `<domain>.controller.ts`.
 - Routers stay thin — request handling logic belongs in the controller.
-- `app.js` must remain side-effect free: no `listen`, no database connection.
-  Anything that starts the process belongs in `index.js`.
-- Read configuration through `config/env.js`, never `process.env` directly.
+- `app.ts` must remain side-effect free: no `listen`, no database connection.
+  Anything that starts the process belongs in `index.ts`.
+- Read configuration through `config/env.ts`, never `process.env` directly.
+- Relative imports keep the `.js` extension (`./app.js` for `app.ts`). The
+  specifier describes the module that gets emitted, which is what lets the
+  build change shape without touching a single import.
+- Take request body, query and param types from the schema with `z.infer`
+  rather than writing them out again — `schemas/index.ts` exports one per
+  endpoint.
+- Take the acting user with `actingUser(req)`, which is typed and throws if the
+  route was mounted without `requireAuth`.
 - Never return a stack trace, raw error object or password field in a response.
 - **Take the acting user from `req.user`, never from a request parameter.** An
   `?email=` or a body field is supplied by the caller and proves nothing. Guard
@@ -143,7 +157,9 @@ Open the PR against `master` and fill in the template.
 ### Client
 
 - Route-level screens go in `src/pages/`, shared UI in `src/components/`.
-- Every network call resolves its origin through `src/config/api.js`, and uses
+- Response types come from `@shared/api.js` — the contract in
+  `server/shared/api.d.ts` — rather than being described again per page.
+- Every network call resolves its origin through `src/config/api.ts`, and uses
   `apiFetch` (or axios, which has an interceptor) so the bearer token is
   attached. A bare `fetch` to the API will be anonymous and get a `401`.
 - Client-side route guards decide what to *render*. They are not a security
