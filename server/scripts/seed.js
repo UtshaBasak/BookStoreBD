@@ -175,6 +175,9 @@ export const runSeed = async ({ withReset = false } = {}) => {
   await seedBooks();
 
   log('');
+  // Printing the password is the entire point of this script: it is a known
+  // demo value for local accounts, and you cannot sign in without being told
+  // it. A scanner will flag it as clear-text logging regardless.
   log('Sign in with any of these:');
   for (const account of ACCOUNTS) {
     log(`  ${account.role.padEnd(5)}  ${account.email}  /  ${DEMO_PASSWORD}`);

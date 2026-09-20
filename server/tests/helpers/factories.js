@@ -1,3 +1,5 @@
+import { randomUUID } from 'crypto';
+
 import bcryptjs from 'bcryptjs';
 
 export const PASSWORD = 'correct-horse-battery';
@@ -5,7 +7,7 @@ export const PASSWORD = 'correct-horse-battery';
 /** Creates a user directly, bypassing the OTP flow that sign-up requires. */
 export const createUser = async (overrides = {}) => {
   const User = (await import('../../models/user.model.js')).default;
-  const suffix = Math.random().toString(36).slice(2, 8);
+  const suffix = randomUUID().slice(0, 8);
 
   return User.create({
     username: overrides.username ?? `user_${suffix}`,

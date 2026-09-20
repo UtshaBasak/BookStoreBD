@@ -235,6 +235,44 @@ describe('password reset ends every session', () => {
   });
 });
 
+describe('the cookie authenticates nothing on its own', () => {
+  /**
+   * This is what makes CSRF a non-issue here, and it is worth pinning.
+   *
+   * The refresh cookie is SameSite=Lax, so a browser will not attach it to a
+   * cross-site POST, and /auth/refresh and /auth/logout are both POST. Every
+   * other endpoint authenticates from the Authorization header, which a
+   * third-party page cannot set. So possession of the cookie alone gets an
+   * attacker nothing beyond the refresh endpoint.
+   */
+  it('a protected endpoint rejects a request carrying only the cookie', async () => {
+    await createUser({ email: 'alice@test.com' });
+    const { cookie } = await signIn();
+
+    for (const path of ['/cart', '/wishlist', '/order/buyer', '/user']) {
+      const res = await request.get(path).set('Cookie', cookie);
+      expect(res.status, `${path} accepted the cookie as authentication`).toBe(401);
+    }
+  });
+
+  it('a state-changing endpoint rejects a request carrying only the cookie', async () => {
+    await createUser({ email: 'alice@test.com' });
+    const { cookie } = await signIn();
+
+    const res = await request.post('/cart/clear').set('Cookie', cookie);
+
+    expect(res.status).toBe(401);
+  });
+
+  it('only the refresh and logout endpoints act on the cookie', async () => {
+    await createUser({ email: 'alice@test.com' });
+    const { cookie } = await signIn();
+
+    expect((await request.post('/auth/refresh').set('Cookie', cookie)).status).toBe(200);
+    expect((await request.post('/auth/logout').set('Cookie', cookie)).status).toBe(204);
+  });
+});
+
 describe('access token lifetime', () => {
   it('is short, so a stolen one is useful only briefly', async () => {
     const { config } = await import('../config/env.js');

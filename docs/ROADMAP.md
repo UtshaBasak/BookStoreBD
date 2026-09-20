@@ -4,6 +4,21 @@ Eight upgrades that move BookStoreBD closer to how a comparable service would
 be built and run in industry. Each is self-contained and lands as its own
 commit, so any one of them can be reverted without unpicking the others.
 
+## Known CodeQL findings
+
+All current alerts are false positives that need dismissing in the Security
+tab rather than fixing in code. Recorded here so the list stays short enough
+that a real finding is noticeable.
+
+| Rule | Count | Why it is not a defect |
+| ---- | ----: | ---------------------- |
+| `js/sql-injection` | 14 | Every site sits behind a Zod schema that narrows the value to a primitive, so an operator object can never reach Mongoose. CodeQL cannot see through a schema. Adding a generic narrowing pass to `validate.js` was tried and did not clear them, so it was reverted rather than left in as code with a justification that is not true. |
+| `js/xss-through-dom` | 5 | `URL.createObjectURL` can only produce a `blob:` URL; CodeQL models it as taint-propagating regardless. The only barriers the query accepts would corrupt a `blob:` or `data:` URL. |
+| `js/missing-token-validation` | 1 | The refresh cookie is `SameSite=Lax` and both endpoints that read it are POST, so a browser will not attach it cross-site. Every other endpoint authenticates from the `Authorization` header, which a third-party page cannot set. Pinned by tests asserting the cookie alone authenticates nothing. |
+| `js/clear-text-logging` | 1 | `scripts/seed.js` prints the demo password on purpose — you cannot sign in to a seeded account without being told it. |
+
+---
+
 **Current baseline.** Lint, build and boot are green from a clean `npm ci`;
 all three package roots report zero dependency vulnerabilities; CodeQL reports
 five findings, all confirmed false positives in the same rule

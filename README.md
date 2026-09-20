@@ -324,6 +324,7 @@ check. `JWT_SECRET` is required; Compose refuses to start without it.
 | `LOG_LEVEL`        |          | `debug` dev / `info` prod                              | pino level; `silent` under test                         |
 | `SENTRY_DSN`       |          | —                                                      | Enables error reporting; off entirely when unset        |
 | `SENTRY_TRACES_SAMPLE_RATE` |  | `0`                                                    | Fraction of transactions traced                         |
+| `SEED_PASSWORD`    |          | `***REMOVED***`                                         | Password given to the seeded demo accounts              |
 | `MAX_UPLOAD_BYTES` |          | `5242880`                                              | Per-file upload ceiling (5 MB)                          |
 | `MAX_UPLOAD_FILES` |          | `10`                                                   | Files accepted per multi-upload request                 |
 
@@ -354,9 +355,11 @@ Run these from the repository root:
 | `npm run preview`     | Serves the built client locally                       |
 | `npm start`           | Starts the API in production mode                     |
 | `npm run lint`        | Lints both packages                                   |
+| `npm run lint:server` / `lint:client` | One package only                      |
 | `npm test`            | Runs the server and client test suites                |
 | `npm run test:server` | Server suite only                                     |
 | `npm run test:client` | Client suite only                                     |
+| `npm run test:watch`  | Re-runs on change (inside `client/` or `server/`)     |
 | `npm run seed`        | Seeds demo data (run inside `server/`)                |
 | `npm run migrate:images` | Moves base64 covers to Cloudinary (in `server/`)    |
 
@@ -583,10 +586,13 @@ administrator without a migration.
 | Method   | Endpoint              | Description                                   |
 | -------- | --------------------- | --------------------------------------------- |
 | `GET`    | `/user`               | List all users (admin)                        |
+| `GET`    | `/user/test`          | Liveness probe for the user router            |
 | `GET`    | `/user/profile`       | Fetch a profile by `?email=`                  |
 | `PUT`    | `/user/profile`       | Update a profile (multipart, optional avatar) |
 | `POST`   | `/user/add-book`      | Create a listing with up to 10 images         |
 | `POST`   | `/user/upload-images` | Upload images for the return form             |
+| `POST`   | `/user/signup`        | Alias of `/auth/signup`, kept for older callers |
+| `POST`   | `/user/signin`        | Alias of `/auth/signin`, kept for older callers |
 | `DELETE` | `/user/:id`           | Delete a user (admin)                         |
 
 ### Books — `/book` and `/filter`
@@ -636,6 +642,12 @@ administrator without a migration.
 | `PATCH` | `/return/requests/:id` | Approve or reject a request (admin)           |
 | `GET`   | `/purchase?email=`     | Purchase history for one user                 |
 | `POST`  | `/purchase`            | Record a purchase                             |
+
+### Uploads — `/upload`
+
+| Method | Endpoint             | Description                                          |
+| ------ | -------------------- | ---------------------------------------------------- |
+| `GET`  | `/upload/signature`  | Signs a direct browser upload; `503` when unconfigured |
 
 ### Chat — `/chat`
 
