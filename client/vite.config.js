@@ -2,6 +2,36 @@ import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react-swc';
 import tailwindcss from '@tailwindcss/vite';
 
+// Keep the vendor libraries in their own chunks so app code can be re-deployed
+// without busting the whole bundle cache.
+const REACT_CHUNK = ['react', 'react-dom', 'react-router', 'react-router-dom', 'scheduler'];
+const VENDOR_CHUNK = [
+  'axios',
+  'notistack',
+  'react-icons',
+  'socket.io-client',
+  'socket.io-parser',
+  'engine.io-client',
+  'engine.io-parser',
+];
+
+/**
+ * Vite 8 builds with Rolldown, which accepts only the function form of
+ * `manualChunks` — the object form throws "manualChunks is not a function".
+ */
+const manualChunks = (id) => {
+  const normalized = id.split('\\').join('/');
+  if (!normalized.includes('/node_modules/')) return undefined;
+
+  const match = normalized.match(/\/node_modules\/(?:\.pnpm\/)?((?:@[^/]+\/)?[^/]+)/);
+  const pkg = match?.[1];
+  if (!pkg) return undefined;
+
+  if (REACT_CHUNK.includes(pkg)) return 'react';
+  if (VENDOR_CHUNK.includes(pkg)) return 'vendor';
+  return undefined;
+};
+
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [react(), tailwindcss()],
@@ -14,14 +44,7 @@ export default defineConfig({
     sourcemap: false,
     chunkSizeWarningLimit: 900,
     rollupOptions: {
-      output: {
-        // Keep the vendor libraries in their own chunk so app code can be
-        // re-deployed without busting the whole bundle cache.
-        manualChunks: {
-          react: ['react', 'react-dom', 'react-router-dom'],
-          vendor: ['axios', 'socket.io-client', 'notistack', 'react-icons'],
-        },
-      },
+      output: { manualChunks },
     },
   },
 });
