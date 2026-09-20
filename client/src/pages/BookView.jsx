@@ -3,6 +3,7 @@ import { useParams, useNavigate, Link } from 'react-router-dom';
 import { FaHeart, FaRegHeart, FaChevronLeft, FaChevronRight, FaComments, FaBell } from 'react-icons/fa';
 import socket from '../utils/socket';  // Add this import
 import ChatWindow from '../components/ChatWindow';
+import { API_BASE_URL } from '../config/api.js';
 
 export default function BookView() {
     const [book, setBook] = useState(null);
@@ -28,7 +29,7 @@ export default function BookView() {
         const fetchBook = async () => {
             try {
                 setLoading(true);
-                const response = await fetch(`https://bookstorebd.onrender.com/book/${id}`);
+                const response = await fetch(`${API_BASE_URL}/book/${id}`);
                 if (!response.ok) {
                     throw new Error('Failed to fetch book');
                 }
@@ -51,7 +52,7 @@ export default function BookView() {
     // Fetch seller info
     useEffect(() => {
         if (book?.sellerEmail) {
-            fetch(`https://bookstorebd.onrender.com/user/profile?email=${book.sellerEmail}`)
+            fetch(`${API_BASE_URL}/user/profile?email=${book.sellerEmail}`)
                 .then(res => res.json())
                 .then(data => setSellerInfo(data));
         }
@@ -62,7 +63,7 @@ export default function BookView() {
         const email = localStorage.getItem('userEmail');
         if (email) {
             setUser({ email });
-            fetch(`https://bookstorebd.onrender.com/user/profile?email=${email}`)
+            fetch(`${API_BASE_URL}/user/profile?email=${email}`)
                 .then(res => res.ok ? res.json() : null)
                 .then(data => {
                     if (data) {
@@ -76,7 +77,7 @@ export default function BookView() {
     // Add/update cart state loading
     useEffect(() => {
         if (!userEmail) return;
-        fetch(`https://bookstorebd.onrender.com/cart?email=${encodeURIComponent(userEmail)}`)
+        fetch(`${API_BASE_URL}/cart?email=${encodeURIComponent(userEmail)}`)
             .then(res => res.json())
             .then(data => {
                 const cartMap = {};
@@ -88,7 +89,7 @@ export default function BookView() {
     // Add/update wishlist state loading
     useEffect(() => {
         if (!userEmail) return;
-        fetch(`https://bookstorebd.onrender.com/wishlist?email=${encodeURIComponent(userEmail)}`)
+        fetch(`${API_BASE_URL}/wishlist?email=${encodeURIComponent(userEmail)}`)
             .then(res => res.json())
             .then(data => {
                 const wishMap = {};
@@ -102,7 +103,7 @@ export default function BookView() {
         if (!userEmail) return;
 
         // Fetch initial unread count
-        fetch(`https://bookstorebd.onrender.com/chat/unread/${userEmail}`)
+        fetch(`${API_BASE_URL}/chat/unread/${userEmail}`)
             .then(res => res.json())
             .then(data => setUnreadCount(data.count));
 
@@ -133,7 +134,7 @@ export default function BookView() {
 
         try {
             const isInCart = !!cart[bookId];
-            const response = await fetch(`https://bookstorebd.onrender.com/cart/${isInCart ? 'remove' : 'add'}/${bookId}`, {
+            const response = await fetch(`${API_BASE_URL}/cart/${isInCart ? 'remove' : 'add'}/${bookId}`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ email: userEmail })
@@ -163,7 +164,7 @@ export default function BookView() {
 
         try {
             const isInWishlist = !!wishlist[bookId];
-            const response = await fetch(`https://bookstorebd.onrender.com/wishlist/${isInWishlist ? 'remove' : 'add'}/${bookId}`, {
+            const response = await fetch(`${API_BASE_URL}/wishlist/${isInWishlist ? 'remove' : 'add'}/${bookId}`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ email: userEmail })
@@ -216,7 +217,7 @@ export default function BookView() {
         if (!img) return 'https://via.placeholder.com/300x450?text=No+Image';
         if (img.startsWith('data:image/')) return img;
         if (/^https?:\/\//.test(img)) return img;
-        return `https://bookstorebd.onrender.com/uploads/${img}`;
+        return `${API_BASE_URL}/uploads/${img}`;
     };
 
     if (loading) {

@@ -76,3 +76,11 @@ button:focus-visible {
     background-color: #f9f9f9;
   }
 }
+
+/* Sticky site header, previously inlined in index.html. */
+.header {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  background: #fff;
+}

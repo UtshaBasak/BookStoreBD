@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { FaTimes, FaPaperPlane, FaImage } from 'react-icons/fa';
 import io from 'socket.io-client';
+import { API_BASE_URL } from '../config/api.js';
 
 export default function ChatWindow({ receiver, receiverName, onClose }) {
   const [message, setMessage] = useState('');
@@ -13,11 +14,11 @@ export default function ChatWindow({ receiver, receiverName, onClose }) {
 
   useEffect(() => {
     // Initialize socket connection
-    const newSocket = io('https://bookstorebd.onrender.com'); //render
+    const newSocket = io(API_BASE_URL);
     setSocket(newSocket);
 
     // Mark messages as read
-    fetch('https://bookstorebd.onrender.com/chat/read', { //render
+    fetch(`${API_BASE_URL}/chat/read`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -31,7 +32,7 @@ export default function ChatWindow({ receiver, receiverName, onClose }) {
     newSocket.emit('join_chat', room);
 
     // Load chat history
-    fetch(`https://bookstorebd.onrender.com/chat/messages?sender=${userEmail}&receiver=${receiver}`)
+    fetch(`${API_BASE_URL}/chat/messages?sender=${userEmail}&receiver=${receiver}`)
       .then(res => res.json())
       .then(data => {
         if (data && data.messages) {
@@ -81,7 +82,7 @@ export default function ChatWindow({ receiver, receiverName, onClose }) {
         formData.append('image', selectedImage);
       }
 
-      const res = await fetch('https://bookstorebd.onrender.com/chat/message', {
+      const res = await fetch(`${API_BASE_URL}/chat/message`, {
         method: 'POST',
         body: formData
       });

@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { FaTrash, FaHome, FaHeart, FaRegHeart } from 'react-icons/fa';
 import { useNavigate, Link } from 'react-router-dom';
+import { API_BASE_URL } from '../config/api.js';
 
 export default function Cart() {
   const [cartBooks, setCartBooks] = useState([]);
@@ -12,7 +13,7 @@ export default function Cart() {
   // Load cart from backend
   useEffect(() => {
     if (!userEmail) return;
-    fetch(`https://bookstorebd.onrender.com/cart?email=${encodeURIComponent(userEmail)}`)
+    fetch(`${API_BASE_URL}/cart?email=${encodeURIComponent(userEmail)}`)
       .then(res => res.json())
       .then(data => setCartBooks(Array.isArray(data) ? data : []))
       .catch(() => setError('Failed to load cart.'));
@@ -21,7 +22,7 @@ export default function Cart() {
   // Load wishlist for icon state
   useEffect(() => {
     if (!userEmail) return;
-    fetch(`https://bookstorebd.onrender.com/wishlist?email=${encodeURIComponent(userEmail)}`)
+    fetch(`${API_BASE_URL}/wishlist?email=${encodeURIComponent(userEmail)}`)
       .then(res => res.json())
       .then(data => {
         const wishMap = {};
@@ -32,7 +33,7 @@ export default function Cart() {
 
   // Remove from cart
   const handleRemoveFromCart = (id) => {
-    fetch(`https://bookstorebd.onrender.com/cart/remove/${id}`, {
+    fetch(`${API_BASE_URL}/cart/remove/${id}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email: userEmail })
@@ -48,7 +49,7 @@ export default function Cart() {
       return;
     }
     const inWishlist = !!wishlist[id];
-    fetch(`https://bookstorebd.onrender.com/wishlist/${inWishlist ? 'remove' : 'add'}/${id}`, {
+    fetch(`${API_BASE_URL}/wishlist/${inWishlist ? 'remove' : 'add'}/${id}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email: userEmail })
@@ -67,7 +68,7 @@ export default function Cart() {
     if (!img) return 'https://via.placeholder.com/80x120?text=No+Image';
     if (img.startsWith('data:image/')) return img;
     if (/^https?:\/\//.test(img)) return img;
-    return `https://bookstorebd.onrender.com/uploads/${img}`;
+    return `${API_BASE_URL}/uploads/${img}`;
   };
 
   if (!userEmail) {

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { API_BASE_URL } from '../config/api.js';
 
 export default function SignUp() {
     const [formData, setFormData] = useState({});
@@ -26,7 +27,7 @@ export default function SignUp() {
 
     const handleSendOtp = async (email) => {
         setOtpMsg('');
-        const res = await fetch('https://bookstorebd.onrender.com/auth/send-otp', {
+        const res = await fetch(`${API_BASE_URL}/auth/send-otp`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ email, username: formData.username, purpose: 'register' }) // include purpose
@@ -43,7 +44,7 @@ export default function SignUp() {
 
     const handleVerifyOtp = async () => {
         setOtpMsg('');
-        const res = await fetch('https://bookstorebd.onrender.com/auth/verify-otp', {
+        const res = await fetch(`${API_BASE_URL}/auth/verify-otp`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ email: emailForOtp, code: otp })
@@ -72,7 +73,7 @@ export default function SignUp() {
     const handleSubmitFinal = async () => {
         // ...existing code...
         try {
-            const res = await fetch('https://bookstorebd.onrender.com/auth/signup', {
+            const res = await fetch(`${API_BASE_URL}/auth/signup`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ ...formData, otp }),
@@ -247,7 +248,7 @@ export default function SignUp() {
         </p> */}
                 <p style={{ marginTop: '1rem', fontSize: '0.9rem' }}>
                     Already registered?{' '}
-                    <Link to="/sign-in" style={{ color: 'white', textDecoration: 'underline', textDecoration: 'none', backgroundColor: '#8B6F6F' }}>
+                    <Link to="/sign-in" style={{ color: 'white', textDecoration: 'none', backgroundColor: '#8B6F6F' }}>
                         <b>SIGN IN</b>
                     </Link>
                 </p>

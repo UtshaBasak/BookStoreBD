@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { API_BASE_URL } from '../config/api.js';
 
 const PROMO_CODE = 'BookStore';
 const PROMO_DISCOUNT = 50.00;
@@ -54,7 +55,7 @@ export default function Payment() {
 
     // Fetch latest profile from backend to get updated phone
     if (profile.email) {
-      fetch(`https://bookstorebd.onrender.com/user/profile?email=${encodeURIComponent(profile.email)}`)
+      fetch(`${API_BASE_URL}/user/profile?email=${encodeURIComponent(profile.email)}`)
         .then(res => res.json())
         .then(data => {
           setUser(u => ({
@@ -102,7 +103,7 @@ export default function Payment() {
     }
 
     // If not confirmed, load cart as usual
-    fetch(`https://bookstorebd.onrender.com/cart?email=${encodeURIComponent(email)}`)
+    fetch(`${API_BASE_URL}/cart?email=${encodeURIComponent(email)}`)
       .then(res => res.json())
       .then(data => {
         setCartBooks(Array.isArray(data) ? data : []);
@@ -150,7 +151,7 @@ export default function Payment() {
     if (!img) return 'https://via.placeholder.com/80x120?text=No+Image';
     if (img.startsWith('data:image/')) return img;
     if (/^https?:\/\//.test(img)) return img;
-    return `https://bookstorebd.onrender.com/uploads/${img}`;
+    return `${API_BASE_URL}/uploads/${img}`;
   };
 
   // Helper for sticker color
@@ -170,7 +171,7 @@ export default function Payment() {
 
   const handleRemoveBook = (bookId) => {
     const email = user.email;
-    fetch(`https://bookstorebd.onrender.com/cart/remove/${bookId}`, {
+    fetch(`${API_BASE_URL}/cart/remove/${bookId}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email })
@@ -255,7 +256,7 @@ export default function Payment() {
     setQuantities(latestQuantities);
 
     // Decrease stock in backend and clear cart
-    fetch(`https://bookstorebd.onrender.com/order/decrease-stock`, {
+    fetch(`${API_BASE_URL}/order/decrease-stock`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -303,7 +304,7 @@ export default function Payment() {
     });
 
     // Clear the cart for the user after order confirmation
-    fetch(`https://bookstorebd.onrender.com/cart/clear`, {
+    fetch(`${API_BASE_URL}/cart/clear`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email: user.email })

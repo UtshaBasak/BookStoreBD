@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { API_BASE_URL } from '../config/api.js';
 
 export default function BookList() {
   const [books, setBooks] = useState([]);
@@ -9,11 +10,11 @@ export default function BookList() {
   // Fetch books and users
   const fetchData = () => {
     setLoading(true);
-    fetch('https://bookstorebd.onrender.com/book')
+    fetch(`${API_BASE_URL}/book`)
       .then((res) => res.json())
       .then((data) => setBooks(data))
       .catch((err) => console.error(err));
-    fetch('https://bookstorebd.onrender.com/user')
+    fetch(`${API_BASE_URL}/user`)
       .then(res => res.json())
       .then(data => {
         const map = {};
@@ -31,7 +32,7 @@ export default function BookList() {
   }, []);
 
   const deleteBook = (id) => {
-    fetch(`https://bookstorebd.onrender.com/book/${id}`, { method: 'DELETE' })
+    fetch(`${API_BASE_URL}/book/${id}`, { method: 'DELETE' })
       .then(() => setBooks(books.filter((book) => book._id !== id)))
       .catch((err) => console.error('Error deleting book:', err));
   };

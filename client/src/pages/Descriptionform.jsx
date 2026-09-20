@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useParams } from 'react-router-dom';
+import { API_BASE_URL } from '../config/api.js';
 
 export default function DescriptionForm() {
   const [description, setDescription] = useState('');
@@ -14,7 +15,7 @@ export default function DescriptionForm() {
     e.preventDefault();
 
     try {
-      const res = await fetch('https://bookstorebd.onrender.com/return', {
+      const res = await fetch(`${API_BASE_URL}/return`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -59,7 +60,7 @@ export default function DescriptionForm() {
     formData.append('userEmail', userEmail);
 
     try {
-      const res = await fetch('https://bookstorebd.onrender.com/upload-images', {
+      const res = await fetch(`${API_BASE_URL}/user/upload-images`, {
         method: 'POST',
         body: formData,
       });

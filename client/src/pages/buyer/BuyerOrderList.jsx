@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
+import { API_BASE_URL } from '../../config/api.js';
 
 export default function BuyerOrderList() {
   const [orders, setOrders] = useState([]);
@@ -24,7 +25,7 @@ export default function BuyerOrderList() {
 
   const fetchOrders = () => {
     setRefreshing(true);
-    axios.get(`https://bookstorebd.onrender.com/order/buyer?email=${encodeURIComponent(userEmail)}`)
+    axios.get(`${API_BASE_URL}/order/buyer?email=${encodeURIComponent(userEmail)}`)
       .then(res => {
         setOrders(Array.isArray(res.data) ? res.data : []);
         setLoading(false);

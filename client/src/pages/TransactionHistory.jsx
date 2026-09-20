@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { API_BASE_URL } from '../config/api.js';
 
 // Utility to format date as dd/mm/yyyy
 function formatDate(dateStr) {
@@ -19,7 +20,7 @@ export default function TransactionHistory() {
   // Fetch all orders for admin
   const fetchOrders = () => {
     setRefreshing(true);
-    fetch('https://bookstorebd.onrender.com/order/admin/all')
+    fetch(`${API_BASE_URL}/order/admin/all`)
       .then((res) => res.json())
       .then((data) => setOrders(Array.isArray(data) ? data : []))
       .catch((err) => console.error(err))

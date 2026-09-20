@@ -1,81 +1,416 @@
+<div align="center">
+
 # 📚 BookStoreBD
 
-A full-featured **BookStoreBD** with authentication, role-based access (Admin, Seller, Buyer), cart & wishlist, order tracking, real-time chat, and protected routes.  
+**A MERN marketplace for new and second-hand books — with role-based access, order tracking and real-time buyer–seller chat.**
 
+[![CI](https://github.com/UtshaBasak/MernBookstore/actions/workflows/ci.yml/badge.svg)](https://github.com/UtshaBasak/MernBookstore/actions/workflows/ci.yml)
+[![CodeQL](https://github.com/UtshaBasak/MernBookstore/actions/workflows/codeql.yml/badge.svg)](https://github.com/UtshaBasak/MernBookstore/actions/workflows/codeql.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+[![Node](https://img.shields.io/badge/node-%3E%3D18-brightgreen.svg)](.nvmrc)
 
-### 🌐 Website Link: https://bookstorebd.vercel.app 
+[**Live demo**](https://bookstorebd.vercel.app) · [Report a bug](https://github.com/UtshaBasak/MernBookstore/issues/new?template=bug_report.md) · [Request a feature](https://github.com/UtshaBasak/MernBookstore/issues/new?template=feature_request.md)
 
----
-
-## 🚀 Features
-
-### 🔑 Authentication & Access
-- Email/password sign in & sign up  
-- Protected routes with public-only guards  
-- Role-based access (Admin, Seller, Buyer)  
-- Simple admin gate (by email) with redirects
-- Email verification
-
-### 📖 Catalog
-- Browse and filter books  
-- Add seller listings  
-- Book description form (title, author, price, category, etc.)  
-- Image and metadata support  
-
-### 🛒 Buyer Flows
-- Wishlist management  
-- Cart and checkout (payment stub)  
-- Buyer order list  
-- Order tracking via order number  
-
-### 🏪 Seller Flows
-- Seller’s own book listings  
-- Seller orders list  
-- Seller order tracking  
-
-### 🛠️ Admin Panel
-- Users management panel  
-- Admin order tracking
-- Return book management
-- Admin-only routes (guarded at router level)  
-
-### 💬 Real-Time Chat
-- Buyer–Seller messaging using **Socket.IO**  
-- Connect, message listeners, and cleanup handlers  
-- Live order status updates  
+</div>
 
 ---
 
-## 🛠️ Tech Stack
+## Table of contents
 
-**Frontend** : React
-  
-**Backend**  : Node.js & Express (REST API)
-  
-**Database**  : MongoDB with Mongoose
-
-**Realtime**  : socket.io-client (frontend), socket.io (backend)  
+- [Overview](#overview)
+- [Features](#features)
+- [Tech stack](#tech-stack)
+- [Architecture](#architecture)
+- [Project structure](#project-structure)
+- [Getting started](#getting-started)
+- [Environment variables](#environment-variables)
+- [Available scripts](#available-scripts)
+- [API reference](#api-reference)
+- [Real-time events](#real-time-events)
+- [Data models](#data-models)
+- [Deployment](#deployment)
+- [Contributing](#contributing)
+- [License](#license)
 
 ---
-## 📂 Project Structure
+
+## Overview
+
+BookStoreBD is a full-stack marketplace where readers in Bangladesh can buy and sell
+both new and used books. It ships three distinct experiences from one codebase:
+
+| Role       | What they can do                                                                 |
+| ---------- | -------------------------------------------------------------------------------- |
+| **Buyer**  | Browse and filter the catalogue, keep a wishlist and cart, check out, track orders, request returns, and chat with sellers |
+| **Seller** | List books with photos and condition details, manage stock and pricing, view orders, and answer buyer messages |
+| **Admin**  | Manage users, review every order, moderate listings, and approve or reject return requests |
+
+---
+
+## Features
+
+### Authentication and access control
+
+- Email/password sign-up and sign-in, with passwords hashed using `bcryptjs`
+- Email verification and password reset via one-time codes delivered over SMTP
+- Route guards on the client: protected, public-only, and admin-only routes
+
+### Catalogue
+
+- Full book listings with author, publisher, ISBN, language, page count and condition
+- Category filtering and case-insensitive title search
+- Multi-image upload, stored as base64 data URIs on the document
+- Stock tracking, with out-of-stock titles automatically dropped from every cart
+
+### Commerce
+
+- Wishlist and cart, both scoped per user
+- Checkout capturing delivery division, district, address, contact and payment method
+- Promo codes, shipping charges and discounts applied at the order level
+- A 16-character order number shared by every line item in a single order
+- Order tracking for buyers, sellers and admins, each with its own view
+- Return requests with a defect description and supporting photos
+
+### Real-time chat
+
+- Buyer–seller messaging over Socket.IO, with room-based delivery
+- Text and image messages, unread counts, and read receipts
+- Conversation history with pagination
+
+---
+
+## Tech stack
+
+| Layer        | Technology                                              |
+| ------------ | ------------------------------------------------------- |
+| Frontend     | React 19, React Router 7, Vite 6, Tailwind CSS 4         |
+| Backend      | Node.js, Express 5                                       |
+| Database     | MongoDB with Mongoose 8                                  |
+| Real-time    | Socket.IO 4                                              |
+| HTTP clients | Axios and the native `fetch` API                         |
+| Uploads      | Multer (in-memory, persisted as base64)                  |
+| Email        | Nodemailer                                               |
+| Tooling      | ESLint 9, GitHub Actions, CodeQL                         |
+
+---
+
+## Architecture
+
+```text
+┌──────────────────┐   REST over HTTPS   ┌──────────────────┐        ┌───────────┐
+│                  │ ──────────────────► │                  │        │           │
+│   React client   │                     │   Express API    │ ─────► │  MongoDB  │
+│   (Vite SPA)     │ ◄────────────────── │                  │        │  (Atlas)  │
+│                  │                     │                  │        │           │
+└────────┬─────────┘                     └─────────┬────────┘        └───────────┘
+         │                                         │
+         │            WebSocket (Socket.IO)        │
+         └─────────────────────────────────────────┘
 ```
-MERNBOOKSTORE/
-├── client/ # React frontend
-│ ├── src/
-│ │ ├── assets/
-│ │ ├── components/
-│ │ ├── pages/
-│ │ ├── styles/
-│ │ └── utils/
-│ └── package.json
+
+The client never hardcodes the backend origin. Every request resolves through
+[`client/src/config/api.js`](client/src/config/api.js), which reads `VITE_API_URL`
+and falls back to the deployed API — so pointing the app at a local server is a
+one-line change in `client/.env`.
+
+On the server, [`app.js`](server/app.js) exports a side-effect-free `createApp()`
+factory (no `listen`, no database connection), while [`index.js`](server/index.js)
+owns the bootstrap: validate environment, connect to MongoDB, listen, attach
+Socket.IO, and shut down gracefully on `SIGINT`/`SIGTERM`.
+
+---
+
+## Project structure
+
+```text
+MernBookstore/
+├── client/                      # React + Vite single-page app
+│   ├── public/                  # Static assets served as-is
+│   ├── src/
+│   │   ├── components/          # Reusable UI (chat window, table, spinner…)
+│   │   ├── config/
+│   │   │   └── api.js           # Single source of truth for the API origin
+│   │   ├── pages/               # Route-level screens
+│   │   │   ├── admin/           # Admin-only screens
+│   │   │   └── buyer/           # Buyer-only screens
+│   │   ├── styles/              # Shared stylesheets
+│   │   ├── utils/               # Socket.IO singleton and helpers
+│   │   ├── App.jsx              # Router and route guards
+│   │   └── main.jsx             # React entry point
+│   ├── .env.example
+│   ├── eslint.config.js
+│   ├── index.html
+│   └── vite.config.js
 │
-├── nodeserver/ # Backend
-│ ├── controllers/
-│ ├── middlewares/
-│ ├── models/
-│ ├── routes/
-│ └── package.json
+├── server/                      # Express REST API + Socket.IO gateway
+│   ├── config/
+│   │   ├── cors.js              # Origin allow-list
+│   │   ├── database.js          # Mongoose connection lifecycle
+│   │   └── env.js               # Typed, validated environment config
+│   ├── controllers/             # Request handlers, one per domain
+│   ├── middleware/
+│   │   └── errorHandler.js      # 404 + centralised error responses
+│   ├── models/                  # Mongoose schemas
+│   ├── routes/                  # Express routers, one per domain
+│   ├── sockets/
+│   │   └── chatSocket.js        # Socket.IO room and message handling
+│   ├── utils/
+│   ├── .env.example
+│   ├── app.js                   # createApp() factory
+│   └── index.js                 # Bootstrap and graceful shutdown
 │
-└── README.md
+├── .github/
+│   ├── ISSUE_TEMPLATE/
+│   └── workflows/               # CI and CodeQL
+├── .editorconfig
+├── .nvmrc
+├── LICENSE
+└── package.json                 # Root scripts that drive both packages
 ```
 
+---
+
+## Getting started
+
+### Prerequisites
+
+- **Node.js 18 or newer** (`nvm use` picks up [`.nvmrc`](.nvmrc))
+- **MongoDB** — a local instance or a free [MongoDB Atlas](https://www.mongodb.com/atlas) cluster
+- An **SMTP account** for one-time-code emails (Gmail works with an [App Password](https://support.google.com/accounts/answer/185833))
+
+### 1. Clone and install
+
+```bash
+git clone https://github.com/UtshaBasak/MernBookstore.git
+cd MernBookstore
+npm install          # root tooling
+npm run install:all  # client + server dependencies
+```
+
+### 2. Configure the environment
+
+```bash
+cp server/.env.example server/.env
+cp client/.env.example client/.env
+```
+
+Then fill in `server/.env` — at minimum `MONGO`, `SMTP_USER` and `SMTP_PASS`.
+The server refuses to start with a clear error message if `MONGO` is missing.
+
+### 3. Run both apps
+
+```bash
+npm run dev
+```
+
+| Service | URL                          |
+| ------- | ---------------------------- |
+| Client  | <http://localhost:5173>        |
+| API     | <http://localhost:4000>        |
+| Health  | <http://localhost:4000/health> |
+
+To run them separately, use `npm run dev:server` and `npm run dev:client`.
+
+---
+
+## Environment variables
+
+### `server/.env`
+
+| Variable           | Required | Default                                                | Description                                             |
+| ------------------ | :------: | ------------------------------------------------------ | ------------------------------------------------------- |
+| `MONGO`            |    ✅    | —                                                      | MongoDB connection string                               |
+| `PORT`             |          | `4000`                                                 | Port the API listens on                                 |
+| `NODE_ENV`         |          | `development`                                          | `development` or `production`                           |
+| `CORS_ORIGINS`     |          | `http://localhost:5173,https://bookstorebd.vercel.app` | Comma-separated browser origins allowed to call the API |
+| `SMTP_SERVICE`     |          | `gmail`                                                | Nodemailer service name                                 |
+| `SMTP_USER`        |   ✅ ¹   | —                                                      | SMTP account used as the sender                         |
+| `SMTP_PASS`        |   ✅ ¹   | —                                                      | SMTP password or app password                           |
+| `MAX_UPLOAD_BYTES` |          | `5242880`                                              | Per-file upload ceiling (5 MB)                          |
+| `MAX_UPLOAD_FILES` |          | `10`                                                   | Files accepted per multi-upload request                 |
+
+¹ Required only for the OTP flows (sign-up verification and password reset).
+
+### `client/.env`
+
+| Variable       | Required | Default                            | Description         |
+| -------------- | :------: | ---------------------------------- | ------------------- |
+| `VITE_API_URL` |          | `https://bookstorebd.onrender.com` | Base URL of the API |
+
+> Only variables prefixed with `VITE_` reach the browser bundle. Never put a
+> secret in `client/.env`.
+
+---
+
+## Available scripts
+
+Run these from the repository root:
+
+| Script                | What it does                                          |
+| --------------------- | ----------------------------------------------------- |
+| `npm run install:all` | Installs dependencies in both `client/` and `server/` |
+| `npm run dev`         | Runs the API and the client together                  |
+| `npm run dev:server`  | Runs the API alone with hot reload (nodemon)          |
+| `npm run dev:client`  | Runs the Vite dev server alone                        |
+| `npm run build`       | Produces the production client bundle                 |
+| `npm run preview`     | Serves the built client locally                       |
+| `npm start`           | Starts the API in production mode                     |
+| `npm run lint`        | Lints both packages                                   |
+
+---
+
+## API reference
+
+Base URL: `http://localhost:4000` in development.
+
+### Health
+
+| Method | Endpoint  | Description                       |
+| ------ | --------- | --------------------------------- |
+| `GET`  | `/health` | Liveness probe and process uptime |
+
+### Authentication — `/auth`
+
+| Method | Endpoint               | Description                                             |
+| ------ | ---------------------- | ------------------------------------------------------- |
+| `POST` | `/auth/signup`         | Create an account (requires a verified OTP)             |
+| `POST` | `/auth/signin`         | Sign in with email and password                         |
+| `POST` | `/auth/send-otp`       | Send a one-time code (`purpose`: `register` or `reset`) |
+| `POST` | `/auth/verify-otp`     | Verify a one-time code                                  |
+| `POST` | `/auth/reset-password` | Reset a password using a valid OTP                      |
+
+### Users — `/user`
+
+| Method   | Endpoint              | Description                                   |
+| -------- | --------------------- | --------------------------------------------- |
+| `GET`    | `/user`               | List all users (admin)                        |
+| `GET`    | `/user/profile`       | Fetch a profile by `?email=`                  |
+| `PUT`    | `/user/profile`       | Update a profile (multipart, optional avatar) |
+| `POST`   | `/user/add-book`      | Create a listing with up to 10 images         |
+| `POST`   | `/user/upload-images` | Upload images for the return form             |
+| `DELETE` | `/user/:id`           | Delete a user (admin)                         |
+
+### Books — `/book` and `/filter`
+
+| Method   | Endpoint                  | Description                            |
+| -------- | ------------------------- | -------------------------------------- |
+| `GET`    | `/book`                   | List every book                        |
+| `GET`    | `/book/:id`               | Book detail plus related titles        |
+| `GET`    | `/book/seller/:email`     | Every listing by one seller            |
+| `PUT`    | `/book/update-stock/:id`  | Set stock; clears carts when it hits 0 |
+| `PUT`    | `/book/update-price/:id`  | Set price                              |
+| `DELETE` | `/book/:id`               | Delete a listing                       |
+| `GET`    | `/filter/booklist`        | List every book                        |
+| `POST`   | `/filter/booklist_filter` | Filter by a whitelisted field          |
+| `POST`   | `/filter/booklist_search` | Case-insensitive title search          |
+
+### Cart and wishlist
+
+| Method | Endpoint               | Description                            |
+| ------ | ---------------------- | -------------------------------------- |
+| `GET`  | `/cart?email=`         | Items in a user's cart (in-stock only) |
+| `POST` | `/cart/add/:id`        | Add a book to the cart                 |
+| `POST` | `/cart/remove/:id`     | Remove a book from the cart            |
+| `GET`  | `/wishlist?email=`     | Items in a user's wishlist             |
+| `POST` | `/wishlist/add/:id`    | Add a book to the wishlist             |
+| `POST` | `/wishlist/remove/:id` | Remove a book from the wishlist        |
+
+### Orders — `/order`
+
+| Method   | Endpoint                     | Description                                 |
+| -------- | ---------------------------- | ------------------------------------------- |
+| `POST`   | `/order/decrease-stock`      | Place an order and atomically reserve stock |
+| `GET`    | `/order/buyer?email=`        | A buyer's orders, grouped with totals       |
+| `GET`    | `/order/seller?email=`       | A seller's orders                           |
+| `GET`    | `/order/admin/all`           | Every order (admin)                         |
+| `GET`    | `/order/:orderNumber`        | One order with its line items and totals    |
+| `PATCH`  | `/order/status/:orderNumber` | Update the status of every item in an order |
+| `DELETE` | `/order/:id`                 | Delete a single line item                   |
+
+### Returns and purchases
+
+| Method  | Endpoint               | Description                                   |
+| ------- | ---------------------- | --------------------------------------------- |
+| `POST`  | `/return`              | Submit a return request                       |
+| `GET`   | `/return/requests`     | List return requests (`?userEmail=` to scope) |
+| `PATCH` | `/return/requests/:id` | Approve or reject a request (admin)           |
+| `GET`   | `/purchase?email=`     | Purchase history for one user                 |
+| `POST`  | `/purchase`            | Record a purchase                             |
+
+### Chat — `/chat`
+
+| Method   | Endpoint               | Description                                          |
+| -------- | ---------------------- | ---------------------------------------------------- |
+| `GET`    | `/chat/messages`       | Paginated thread (`?sender=&receiver=&page=&limit=`) |
+| `GET`    | `/chat/history/:email` | Conversation list with unread counts                 |
+| `GET`    | `/chat/unread/:email`  | Total unread message count                           |
+| `POST`   | `/chat/message`        | Send a message, optionally with an image             |
+| `POST`   | `/chat/read`           | Mark a thread as read                                |
+| `DELETE` | `/chat/delete`         | Delete a conversation between two users              |
+
+---
+
+## Real-time events
+
+The Socket.IO gateway is mounted on the same HTTP server as the REST API.
+
+| Direction       | Event             | Payload                                       | Meaning                          |
+| --------------- | ----------------- | --------------------------------------------- | -------------------------------- |
+| client → server | `join_chat`       | `room: string`                                | Subscribe to a conversation room |
+| client → server | `send_message`    | `{ room, sender, receiver, message, image? }` | Broadcast to the room            |
+| server → client | `receive_message` | the payload above                             | A new message arrived            |
+
+---
+
+## Data models
+
+| Model           | Collection       | Purpose                                                   |
+| --------------- | ---------------- | --------------------------------------------------------- |
+| `UserTable`     | `usertables`     | Accounts, profile details, avatar                         |
+| `AddBook`       | `addbooks`       | Listings: metadata, images, price, stock, seller          |
+| `Cart`          | `carts`          | User → book, unique per pair                              |
+| `Wishlist`      | `wishlists`      | User → book, unique per pair                              |
+| `Order`         | `orders`         | One document per line item, grouped by `orderNumber`      |
+| `Purchase`      | `purchases`      | Purchase history                                          |
+| `ReturnRequest` | `returnrequests` | Return requests with defect details and status            |
+| `ChatMessage`   | `chatmessages`   | Messages with read state, indexed by sender/receiver/time |
+
+---
+
+## Deployment
+
+The project is deployed as two independent services.
+
+**Client → [Vercel](https://vercel.com)**
+
+| Setting          | Value                       |
+| ---------------- | --------------------------- |
+| Root directory   | `client`                    |
+| Build command    | `npm run build`             |
+| Output directory | `dist`                      |
+| Environment      | `VITE_API_URL=<api origin>` |
+
+**Server → [Render](https://render.com)**
+
+| Setting        | Value                                                      |
+| -------------- | ---------------------------------------------------------- |
+| Root directory | `server`                                                   |
+| Build command  | `npm ci`                                                   |
+| Start command  | `npm start`                                                |
+| Environment    | everything in [`server/.env.example`](server/.env.example) |
+
+Add the deployed client origin to `CORS_ORIGINS` on the server, without a
+trailing slash — browsers send the `Origin` header without one.
+
+---
+
+## Contributing
+
+Contributions are welcome. See [CONTRIBUTING.md](CONTRIBUTING.md) for the branch
+naming convention, commit style, and the checks that run in CI.
+
+---
+
+## License
+
+Released under the [MIT License](LICENSE).

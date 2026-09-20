@@ -1,0 +1,10 @@
+# Normalise line endings so Windows and Linux contributors do not produce
+# whole-file diffs.
+* text=auto eol=lf
+
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.svg text

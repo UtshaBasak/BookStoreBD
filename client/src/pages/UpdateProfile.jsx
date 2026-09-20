@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { API_BASE_URL } from '../config/api.js';
 
 export default function UpdateProfile() {
     const [formData, setFormData] = useState({
@@ -21,7 +22,7 @@ export default function UpdateProfile() {
         const fetchProfile = async () => {
             try {
                 const userEmail = localStorage.getItem('userEmail') || 'user@example.com';
-                const res = await fetch(`https://bookstorebd.onrender.com/user/profile?email=${userEmail}`);
+                const res = await fetch(`${API_BASE_URL}/user/profile?email=${userEmail}`);
                 if (!res.ok) {
                     console.error(`Failed to fetch profile: ${res.statusText}`);
                     return;
@@ -113,7 +114,7 @@ export default function UpdateProfile() {
                 formDataToSend.append('profilePicture', '');
             }
 
-            const res = await fetch('https://bookstorebd.onrender.com/user/profile', {
+            const res = await fetch(`${API_BASE_URL}/user/profile`, {
                 method: 'PUT',
                 body: formDataToSend,
             });

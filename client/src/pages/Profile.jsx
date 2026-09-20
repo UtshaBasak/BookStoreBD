@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { FaHome, FaHeart, FaShoppingCart } from 'react-icons/fa';
+import { API_BASE_URL } from '../config/api.js';
 
 export default function Profile() {
     const [profileData, setProfileData] = useState({
@@ -19,7 +20,7 @@ export default function Profile() {
                     return;
                 }
                 
-                const res = await fetch(`https://bookstorebd.onrender.com/user/profile?email=${userEmail}`);
+                const res = await fetch(`${API_BASE_URL}/user/profile?email=${userEmail}`);
                 if (!res.ok) {
                     throw new Error(`Failed to fetch profile: ${res.statusText}`);
                 }

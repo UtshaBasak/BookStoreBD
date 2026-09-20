@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import axios from 'axios';
 import '../styles/orderTracking.css';
+import { API_BASE_URL } from '../config/api.js';
 
 const ORDER_STAGES = [
   'Order Confirmed',
@@ -21,7 +22,7 @@ export default function SellerOrderTrackingPage() {
 
   useEffect(() => {
     if (!orderNumber) return;
-    axios.get(`https://bookstorebd.onrender.com/order/${orderNumber}`)
+    axios.get(`${API_BASE_URL}/order/${orderNumber}`)
       .then(res => setOrder(res.data))
       .catch(() => setOrder(null));
   }, [orderNumber]);
@@ -31,7 +32,7 @@ export default function SellerOrderTrackingPage() {
     setUpdating(true);
     setError('');
     try {
-      const res = await axios.patch(`https://bookstorebd.onrender.com/order/status/${orderNumber}`, { status: newStatus });
+      const res = await axios.patch(`${API_BASE_URL}/order/status/${orderNumber}`, { status: newStatus });
       setOrder(res.data);
     } catch {
       setError('Failed to update status');

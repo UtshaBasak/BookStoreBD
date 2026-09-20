@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
+import { API_BASE_URL } from '../config/api.js';
 
 const categoriesList = [
   "Fiction", 
@@ -155,7 +156,7 @@ const AddBooks = () => {
     formData.append('sellerEmail', localStorage.getItem('userEmail'));
 
     try {
-      const res = await axios.post("https://bookstorebd.onrender.com/user/add-book", formData, { headers });
+      const res = await axios.post(`${API_BASE_URL}/user/add-book`, formData, { headers });
       setFeedbackMessage(res.data.message);
       setIsError(false);
       setData({ 

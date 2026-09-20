@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import './UserManagement.css';
+import { API_BASE_URL } from '../config/api.js';
 
 const ADMIN_EMAIL = 'utsha23basak@gmail.com';
 
@@ -12,7 +13,7 @@ export default function UserManagement() {
 
   const fetchUsers = () => {
     setRefreshing(true);
-    fetch('https://bookstorebd.onrender.com/user')
+    fetch(`${API_BASE_URL}/user`)
       .then((res) => {
         if (!res.ok) throw new Error('Failed to fetch users');
         return res.json();
@@ -36,7 +37,7 @@ export default function UserManagement() {
 
   const deleteUser = async (id) => {
     try {
-      const response = await fetch(`https://bookstorebd.onrender.com/user/${id}`, {
+      const response = await fetch(`${API_BASE_URL}/user/${id}`, {
         method: 'DELETE',
         headers: {
           'Content-Type': 'application/json',

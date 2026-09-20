@@ -1,12 +1,17 @@
 {
-  "name": "client",
+  "name": "@bookstorebd/client",
   "private": true,
-  "version": "0.0.0",
+  "version": "1.0.0",
+  "description": "React + Vite single-page frontend for BookStoreBD",
   "type": "module",
+  "engines": {
+    "node": ">=18.0.0"
+  },
   "scripts": {
     "dev": "vite",
     "build": "vite build",
     "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
     "preview": "vite preview"
   },
   "dependencies": {

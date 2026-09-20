@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import '../styles/orderTracking.css';
+import { API_BASE_URL } from '../config/api.js';
 
 const ORDER_STAGES = [
   'Order Confirmed',
@@ -27,7 +28,7 @@ export default function AdminOrderTrackingPage() {
   const [statusValue, setStatusValue] = useState('');
   useEffect(() => {
     if (!orderNumber) return;
-    axios.get(`https://bookstorebd.onrender.com/order/${orderNumber}`)
+    axios.get(`${API_BASE_URL}/order/${orderNumber}`)
       .then(res => {
         setOrder(res.data);
         setStatusValue(res.data.status || 'Order Confirmed');
@@ -39,9 +40,9 @@ export default function AdminOrderTrackingPage() {
     setStatusValue(newStatus);
     setError('');
     try {
-      await axios.patch(`https://bookstorebd.onrender.com/order/status/${orderNumber}`, { status: newStatus });
+      await axios.patch(`${API_BASE_URL}/order/status/${orderNumber}`, { status: newStatus });
       // Refetch all books for this order after successful update
-      const res = await axios.get(`https://bookstorebd.onrender.com/order/${orderNumber}`);
+      const res = await axios.get(`${API_BASE_URL}/order/${orderNumber}`);
       setOrder(res.data);
       setStatusValue(res.data.status);
       setError('');

@@ -1,7 +1,42 @@
 {
-  "dependencies": {
-    "html2canvas": "^1.4.1",
-    "jspdf": "^3.0.1",
-    "socket.io": "^4.8.1"
+  "name": "mern-bookstore",
+  "version": "1.0.0",
+  "private": true,
+  "description": "BookStoreBD - a MERN marketplace for new and second-hand books, with role-based access, order tracking and real-time buyer-seller chat.",
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "scripts": {
+    "install:all": "npm --prefix client install && npm --prefix server install",
+    "dev": "concurrently --names \"SERVER,CLIENT\" --prefix-colors \"cyan,magenta\" \"npm:dev:server\" \"npm:dev:client\"",
+    "dev:client": "npm --prefix client run dev",
+    "dev:server": "npm --prefix server run dev",
+    "start": "npm --prefix server start",
+    "build": "npm --prefix client run build",
+    "preview": "npm --prefix client run preview",
+    "lint": "npm --prefix client run lint && npm --prefix server run lint",
+    "lint:client": "npm --prefix client run lint",
+    "lint:server": "npm --prefix server run lint"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/UtshaBasak/MernBookstore.git"
+  },
+  "keywords": [
+    "mern",
+    "react",
+    "express",
+    "mongodb",
+    "socket.io",
+    "bookstore",
+    "e-commerce"
+  ],
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/UtshaBasak/MernBookstore/issues"
+  },
+  "homepage": "https://github.com/UtshaBasak/MernBookstore#readme",
+  "devDependencies": {
+    "concurrently": "^9.1.2"
   }
 }

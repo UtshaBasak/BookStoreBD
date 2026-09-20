@@ -1,11 +1,12 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
+import { API_BASE_URL } from '../../config/api.js';
 
 export default function TransactionHistory() {
   const [orders, setOrders] = useState([]);
 
   useEffect(() => {
-    axios.get('https://bookstorebd.onrender.com/order/admin/all')
+    axios.get(`${API_BASE_URL}/order/admin/all`)
       .then(res => setOrders(Array.isArray(res.data) ? res.data : []));
   }, []);
 

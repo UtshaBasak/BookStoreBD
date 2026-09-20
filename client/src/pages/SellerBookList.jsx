@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { API_BASE_URL } from '../config/api.js';
 
 export default function SellerBookList() {
   const [books, setBooks] = useState([]);
@@ -13,7 +14,7 @@ export default function SellerBookList() {
 
   const fetchBooks = React.useCallback(() => {
     setRefreshing(true);
-    fetch(`https://bookstorebd.onrender.com/book/seller/${encodeURIComponent(sellerEmail)}`)
+    fetch(`${API_BASE_URL}/book/seller/${encodeURIComponent(sellerEmail)}`)
       .then(res => res.json())
       .then(data => {
         setBooks(data);
@@ -43,14 +44,14 @@ export default function SellerBookList() {
       const updates = Object.entries(edit);
       for (const [id, changes] of updates) {
         if (changes.price !== undefined) {
-          await fetch(`https://bookstorebd.onrender.com/book/update-price/${id}`, {
+          await fetch(`${API_BASE_URL}/book/update-price/${id}`, {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ price: parseInt(changes.price, 10) })
           });
         }
         if (changes.stock !== undefined) {
-          await fetch(`https://bookstorebd.onrender.com/book/update-stock/${id}`, {
+          await fetch(`${API_BASE_URL}/book/update-stock/${id}`, {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ stock: parseInt(changes.stock, 10) })
@@ -71,7 +72,7 @@ export default function SellerBookList() {
     if (!window.confirm('Are you sure you want to delete this book?')) return;
     setLoading(true);
     try {
-      const res = await fetch(`https://bookstorebd.onrender.com/book/${id}`, {
+      const res = await fetch(`${API_BASE_URL}/book/${id}`, {
         method: 'DELETE'
       });
       if (!res.ok) {
