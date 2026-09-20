@@ -4,6 +4,7 @@ import AddBook from '../models/AddBook.model.js';
 import Cart from '../models/Cart.model.js';
 import { getBookById } from '../controllers/book.controller.js';
 import { requireAuth } from '../middleware/auth.js';
+import { destroyAssets } from '../config/cloudinary.js';
 import { LIST_IMAGE_PROJECTION } from '../utils/projections.js';
 import { validate } from '../middleware/validate.js';
 import { bookSchemas } from '../schemas/index.js';
@@ -100,6 +101,8 @@ router.delete('/:id', requireAuth, validate(bookSchemas.byId), async (req, res) 
 
     await book.deleteOne();
     await Cart.deleteMany({ book: book._id });
+    // Otherwise the assets linger in the account, billed for, forever.
+    await destroyAssets(book.imagePublicIds);
 
     return res.status(200).json({ message: 'Book deleted successfully' });
   } catch (error) {

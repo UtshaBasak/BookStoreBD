@@ -34,4 +34,4 @@ RefreshTokenSchema.methods.isUsable = function isUsable() {
   return !this.revokedAt && !this.rotatedAt && this.expiresAt > new Date();
 };
 
-export default mongoose.model('RefreshToken', RefreshTokenSchema);
+export default mongoose.models.RefreshToken || mongoose.model('RefreshToken', RefreshTokenSchema);

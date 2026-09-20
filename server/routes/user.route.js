@@ -12,6 +12,7 @@ import AddBook from '../models/AddBook.model.js';
 import User from '../models/user.model.js';
 import { config } from '../config/env.js';
 import { requireAuth, requireAdmin, optionalAuth } from '../middleware/auth.js';
+import { isOwnedCloudinaryUrl } from '../config/cloudinary.js';
 import { createLogger } from '../config/logger.js';
 import { validate } from '../middleware/validate.js';
 import { userSchemas } from '../schemas/index.js';
@@ -19,6 +20,22 @@ import { userSchemas } from '../schemas/index.js';
 const log = createLogger('user-routes');
 
 const router = express.Router();
+
+/**
+ * Reads back the Cloudinary URLs the browser reports after a direct upload.
+ *
+ * Each one is checked against this account's delivery host. The client is
+ * telling the server what to store, so without that check a caller could pin
+ * any URL they liked to a listing and have it rendered to every visitor.
+ */
+const collectHostedImages = (body) => {
+  const toArray = (value) => (Array.isArray(value) ? value : value ? [value] : []);
+
+  const urls = toArray(body.images).filter(isOwnedCloudinaryUrl);
+  const ids = toArray(body.imagePublicIds).filter((id) => typeof id === 'string' && id);
+
+  return { images: urls, publicIds: urls.length ? ids.slice(0, urls.length) : [] };
+};
 
 // Images are held in memory and persisted on the document as base64 data URIs.
 const upload = multer({
@@ -59,11 +76,18 @@ router.post(
   upload.array('images', config.uploads.maxFilesPerRequest),
   async (req, res) => {
     try {
+      // Two ways in. When image hosting is configured the browser has already
+      // uploaded to Cloudinary and sends back the URLs; otherwise the files
+      // arrive here and are stored inline as before.
+      const hosted = collectHostedImages(req.body);
+      const inline = req.files
+        ? req.files.map((file) => `data:${file.mimetype};base64,${file.buffer.toString('base64')}`)
+        : [];
+
       const bookData = {
         ...req.body,
-        images: req.files
-          ? req.files.map((file) => `data:${file.mimetype};base64,${file.buffer.toString('base64')}`)
-          : [],
+        images: hosted.images.length ? hosted.images : inline,
+        imagePublicIds: hosted.publicIds,
         // The seller is the signed-in user. Taking this from the body would let
         // anyone publish a listing under someone else's name.
         sellerEmail: req.user.email,

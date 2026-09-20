@@ -26,6 +26,7 @@
 - [Running with Docker](#running-with-docker)
 - [Environment variables](#environment-variables)
 - [Available scripts](#available-scripts)
+- [Image hosting](#image-hosting)
 - [Observability](#observability)
 - [Testing](#testing)
 - [API reference](#api-reference)
@@ -94,7 +95,7 @@ both new and used books. It ships three distinct experiences from one codebase:
 | Database     | MongoDB with Mongoose 9                                  |
 | Real-time    | Socket.IO 4                                              |
 | HTTP clients | Axios and the native `fetch` API                         |
-| Uploads      | Multer (in-memory, persisted as base64)                  |
+| Uploads      | Cloudinary direct upload, Multer fallback                |
 | Validation   | Zod schemas on every request                             |
 | Hardening    | express-rate-limit, request sanitisation                 |
 | Email        | Nodemailer                                               |
@@ -310,6 +311,9 @@ check. `JWT_SECRET` is required; Compose refuses to start without it.
 | `COOKIE_SECURE`    |          | on in production                                       | `Secure` flag on the refresh cookie                     |
 | `COOKIE_SAME_SITE` |          | `lax`                                                  | `SameSite` on the refresh cookie                        |
 | `SERVE_CLIENT`     |          | on in production                                       | Serve `client/dist` from the API process                |
+| `CLOUDINARY_CLOUD_NAME` |     | —                                                      | Enables image hosting; unset keeps covers inline        |
+| `CLOUDINARY_API_KEY` |       | —                                                      | Cloudinary API key                                      |
+| `CLOUDINARY_API_SECRET` |    | —                                                      | Signs uploads. Secret — never commit                    |
 | `ADMIN_EMAILS`     |          | —                                                      | Comma-separated e-mails promoted to admin on sign-in    |
 | `SMTP_SERVICE`     |          | `gmail`                                                | Nodemailer service name                                 |
 | `SMTP_USER`        |   ✅ ¹   | —                                                      | SMTP account used as the sender                         |
@@ -351,6 +355,7 @@ Run these from the repository root:
 | `npm run test:server` | Server suite only                                     |
 | `npm run test:client` | Client suite only                                     |
 | `npm run seed`        | Seeds demo data (run inside `server/`)                |
+| `npm run migrate:images` | Moves base64 covers to Cloudinary (in `server/`)    |
 
 ---
 
@@ -383,6 +388,47 @@ with no DSN, nothing is initialised and nothing leaves the process.
 
 On the client, an error boundary wraps the app, so a render error shows a
 recovery screen rather than a blank white page.
+
+---
+
+## Image hosting
+
+Book covers can be stored two ways, and the app picks automatically.
+
+**Without `CLOUDINARY_*` set** — covers are stored as base64 on the document,
+which is how the project started and what a fresh clone does. No account
+needed.
+
+**With `CLOUDINARY_*` set** — the browser uploads straight to Cloudinary and
+only the URL is stored:
+
+```
+Browser ──"I want to upload"──▶ API        (signs the request)
+Browser ◀──signature + timestamp── API
+Browser ────────── file ──────────────────▶ Cloudinary
+Browser ◀───────── URL + public_id ───────  Cloudinary
+Browser ──"here is the URL"──▶ API         (stores the URL only)
+```
+
+The bytes never pass through the API, so a ten-image upload costs it two small
+JSON requests instead of several megabytes of memory and request time.
+
+A returned URL is checked against this account's delivery host before it is
+stored. Without that, a caller could pin any URL they liked to a listing and
+have it served to every visitor. Deleting a listing removes its assets, so the
+account does not fill up with orphans.
+
+To move existing records across:
+
+```bash
+npm run migrate:images -- --dry-run     # report only
+npm run migrate:images -- --limit 10    # a cautious first batch
+npm run migrate:images                  # the rest
+```
+
+It is idempotent, and a listing is only rewritten once every one of its uploads
+has succeeded — an interrupted run leaves the original base64 intact rather
+than a listing with half its covers missing.
 
 ---
 

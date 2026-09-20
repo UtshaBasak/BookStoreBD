@@ -52,6 +52,7 @@ export default defineConfig({
         '/order',
         '/purchase',
         '/return',
+        '/upload',
         '/uploads',
         '/user',
         '/wishlist',

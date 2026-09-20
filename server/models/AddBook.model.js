@@ -14,11 +14,16 @@ const AddBookSchema = new mongoose.Schema({
   bookType: { type: String, enum: ['new', 'old'], required: true },
   condition: { type: String },
   conditionDetails: { type: String },
-  images: [{ type: String }], // Now stores base64 strings
+  // Either a Cloudinary delivery URL or, for records predating image hosting,
+  // a base64 data URI.
+  images: [{ type: String }],
+  // Parallel to `images`, and only populated for hosted images. Needed to
+  // remove the asset when a listing is deleted.
+  imagePublicIds: [{ type: String }],
   createdAt: { type: Date, default: Date.now },
   sellerEmail: { type: String, required: true }, // NEW: track seller
   stock: { type: Number, default: 1, min: 0 }    // allow zero
 });
 
-const AddBook = mongoose.model('AddBook', AddBookSchema);
+const AddBook = mongoose.models.AddBook || mongoose.model('AddBook', AddBookSchema);
 export default AddBook;

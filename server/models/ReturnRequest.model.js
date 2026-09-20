@@ -11,4 +11,4 @@ const returnRequestSchema = new mongoose.Schema({
   createdAt: { type: Date, default: Date.now }
 });
 
-export default mongoose.model('ReturnRequest', returnRequestSchema);
+export default mongoose.models.ReturnRequest || mongoose.model('ReturnRequest', returnRequestSchema);

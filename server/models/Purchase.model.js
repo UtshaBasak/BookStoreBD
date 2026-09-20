@@ -7,4 +7,4 @@ const purchaseSchema = new mongoose.Schema({
   isReturned: { type: Boolean, default: false },
 });
 
-export default mongoose.model('Purchase', purchaseSchema);
+export default mongoose.models.Purchase || mongoose.model('Purchase', purchaseSchema);

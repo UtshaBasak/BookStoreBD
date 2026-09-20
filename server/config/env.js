@@ -51,6 +51,13 @@ export const config = {
     .split(',')
     .map((email) => email.trim().toLowerCase())
     .filter(Boolean),
+  // Optional image hosting. With none of these set the app stores covers as
+  // base64 on the document, exactly as it did before.
+  cloudinary: {
+    cloudName: process.env.CLOUDINARY_CLOUD_NAME,
+    apiKey: process.env.CLOUDINARY_API_KEY,
+    apiSecret: process.env.CLOUDINARY_API_SECRET,
+  },
   smtp: {
     user: process.env.SMTP_USER,
     pass: process.env.SMTP_PASS,

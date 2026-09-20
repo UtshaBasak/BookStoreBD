@@ -15,6 +15,7 @@ export const API_PATH_PREFIXES = [
   '/order',
   '/purchase',
   '/return',
+  '/upload',
   '/uploads',
   '/user',
   '/wishlist',

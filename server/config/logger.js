@@ -19,6 +19,9 @@ const REDACTED_PATHS = [
   'token',
   'JWT_SECRET',
   'SMTP_PASS',
+  'CLOUDINARY_API_SECRET',
+  'apiSecret',
+  'api_secret',
 ];
 
 const isTest = config.env === 'test';

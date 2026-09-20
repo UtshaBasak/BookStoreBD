@@ -43,6 +43,10 @@ services:
       ADMIN_EMAILS: ${ADMIN_EMAILS:-admin@bookstorebd.local}
       # The browser runs on the host, so the client's origin is localhost.
       CORS_ORIGINS: http://localhost:5173
+      # Optional image hosting; unset means covers stay inline.
+      CLOUDINARY_CLOUD_NAME: ${CLOUDINARY_CLOUD_NAME:-}
+      CLOUDINARY_API_KEY: ${CLOUDINARY_API_KEY:-}
+      CLOUDINARY_API_SECRET: ${CLOUDINARY_API_SECRET:-}
       SMTP_SERVICE: ${SMTP_SERVICE:-gmail}
       SMTP_USER: ${SMTP_USER:-}
       SMTP_PASS: ${SMTP_PASS:-}

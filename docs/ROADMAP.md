@@ -9,10 +9,11 @@ all three package roots report zero dependency vulnerabilities; CodeQL reports
 five findings, all confirmed false positives in the same rule
 (`js/xss-through-dom`). Authentication and authorisation are enforced
 server-side, sessions use short access tokens with rotating refresh tokens, and
-every endpoint validates its input against a Zod schema. Tasks 1, 7, 5, 3 and 2
-are complete: **183 tests** (129 server, 54 client) gate every push, `docker
+every endpoint validates its input against a Zod schema. Six of the eight tasks
+are complete: **200 tests** (146 server, 54 client) gate every push, `docker
 compose up` brings the whole stack up with no local Node or MongoDB install,
-and the API emits structured logs with a correlation id per request.
+the API emits structured logs with a correlation id per request, and book
+covers can be hosted on a CDN instead of living in the database.
 
 ---
 
@@ -28,7 +29,7 @@ before any deployment work resumes.
 | ~~3~~ | ~~[Structured logging](#5--structured-logging-and-error-tracking)~~ (task 5) **done** | Foundation | — | Low |
 | ~~4~~ | ~~[Zod validation](#3--request-validation-with-zod)~~ (task 3) **done** | Hardening | 1 | Medium |
 | ~~5~~ | ~~[Refresh tokens](#2--refresh-tokens-and-logout)~~ (task 2) **done** | Hardening | 1 | High |
-| 6 | [Cloudinary image storage](#4--move-images-out-of-mongodb-cloudinary) (task 4) | Larger | 1 | Medium |
+| ~~6~~ | ~~[Cloudinary image storage](#4--move-images-out-of-mongodb-cloudinary)~~ (task 4) **done** | Larger | 1 | Medium |
 | 7 | [TanStack Query](#6--tanstack-query-and-the-17-lint-warnings) (task 6) | Larger | 1 | Medium-high |
 | 8 | [TypeScript](#8--typescript) | Larger | 1, 4 | High volume |
 
@@ -283,7 +284,10 @@ Two things worth recording:
 
 ---
 
-## 4 · Move images out of MongoDB (Cloudinary)
+## 4 · Move images out of MongoDB (Cloudinary) — done
+
+*Landed. Signed direct uploads, ownership-checked URLs, asset cleanup on
+delete, and a re-runnable migration.*
 
 Book covers are currently base64 data URIs stored on the document.
 
@@ -310,6 +314,25 @@ Book covers are currently base64 data URIs stored on the document.
 
 New environment variables: `CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_API_KEY`,
 `CLOUDINARY_API_SECRET`.
+
+**Done.** Entirely optional: with none of them set the app stores covers inline
+exactly as before, so a fresh clone still runs with no account.
+
+Worth recording:
+
+- Cloudinary's own docs describe the signing rule — sorted params, secret
+  appended, then hash — but never say *which* hash. It is SHA-1, confirmed
+  empirically. The SDK's `api_sign_request` does the signing either way, which
+  is the point of not hand-rolling it.
+- The client tells the server which URL to store, so each one is checked
+  against this account's delivery host. Without that a caller could pin any URL
+  to a listing and have it rendered to every visitor.
+- Verified against the real Cloudinary API with a placeholder secret: the
+  rejection quotes the string to sign, which matched exactly. Only the secret
+  was wrong, which is what proves the rest right.
+- `vi.resetModules()` in the tests surfaced that most models registered
+  unguarded, so re-importing one threw `OverwriteModelError`. Two already used
+  the `mongoose.models.X ||` guard; all nine now do.
 
 ---
 

@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import { API_BASE_URL } from '../config/api.js';
+import { uploadImages } from '../utils/uploadImages.js';
 
 const categoriesList = [
   "Fiction", 
@@ -151,11 +152,22 @@ const AddBooks = () => {
       }
       // If optional field is empty, do not append at all
     });
-    images.forEach(img => formData.append('images', img));
-    // Add sellerEmail from localStorage
-    formData.append('sellerEmail', localStorage.getItem('userEmail'));
-
     try {
+      // When image hosting is configured the files go straight to Cloudinary
+      // and only the resulting URLs are posted here; otherwise they are sent
+      // to the API and stored inline, as before.
+      const uploaded = await uploadImages(images, {
+        onProgress: ({ completed, total }) =>
+          setFeedbackMessage(`Uploading image ${completed} of ${total}...`),
+      });
+
+      if (uploaded.hosted) {
+        uploaded.images.forEach((url) => formData.append('images', url));
+        uploaded.publicIds.forEach((id) => formData.append('imagePublicIds', id));
+      } else {
+        images.forEach((img) => formData.append('images', img));
+      }
+
       const res = await axios.post(`${API_BASE_URL}/user/add-book`, formData, { headers });
       setFeedbackMessage(res.data.message);
       setIsError(false);

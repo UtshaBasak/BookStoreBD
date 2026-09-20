@@ -38,6 +38,10 @@ services:
       ADMIN_EMAILS: ${ADMIN_EMAILS:-}
       # Same-origin through nginx, so CORS is not exercised at all.
       CORS_ORIGINS: http://localhost:8080
+      # Optional image hosting; unset means covers stay inline.
+      CLOUDINARY_CLOUD_NAME: ${CLOUDINARY_CLOUD_NAME:-}
+      CLOUDINARY_API_KEY: ${CLOUDINARY_API_KEY:-}
+      CLOUDINARY_API_SECRET: ${CLOUDINARY_API_SECRET:-}
       SMTP_SERVICE: ${SMTP_SERVICE:-gmail}
       SMTP_USER: ${SMTP_USER:-}
       SMTP_PASS: ${SMTP_PASS:-}

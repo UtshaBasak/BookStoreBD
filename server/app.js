@@ -22,6 +22,7 @@ import filterRouter from './routes/filter.route.js';
 import orderRouter from './routes/order.route.js';
 import purchaseRouter from './routes/purchase.route.js';
 import returnRouter from './routes/return.route.js';
+import uploadRouter from './routes/upload.route.js';
 import userRouter from './routes/user.route.js';
 import wishlistRouter from './routes/wishlist.route.js';
 
@@ -68,6 +69,7 @@ export const createApp = () => {
   app.use('/order', orderRouter);
   app.use('/purchase', purchaseRouter);
   app.use('/return', writeLimiter, returnRouter);
+  app.use('/upload', writeLimiter, uploadRouter);
   app.use('/user', writeLimiter, userRouter);
   app.use('/wishlist', wishlistRouter);
 
