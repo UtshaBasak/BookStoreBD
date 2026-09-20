@@ -4,7 +4,6 @@ import cors from 'cors';
 import dotenv from 'dotenv';
 import bodyParser from 'body-parser';
 dotenv.config();
-// import Bookdetails from './models/bookdetails.model.js';
 import AddBook from './models/AddBook.model.js';
 import Cart from './models/Cart.model.js';
 import { Cart_clear } from './controllers/cart.controller.js';
@@ -16,7 +15,7 @@ mongoose.connect(process.env.MONGO, {
   useNewUrlParser: true,
   useUnifiedTopology: true,
 })
-.then(() => {
+.then(async () => {
   console.log('MongoDB connected');
 })
 .catch((err) => {
@@ -176,26 +175,11 @@ app.use((err,req,res,next) => {
 const port = 4000;
 const server = app.listen(port,()=> console.log(`Listening on port ${port}...`));
  
-
-// Health checkup endpoint
-
-app.get('/', (_req, res) => res.status(200).send('BookstoreBD API is running'));
-app.get('/api/health', (_req, res) => {
-  res.status(200).json({ ok: true, uptime: process.uptime(), ts: Date.now() });
-});
-
-import mongoose from 'mongoose';
-app.get('/api/health/db', (_req, res) => {
-  const state = mongoose.connection.readyState; // 1 = connected
-  res.status(state === 1 ? 200 : 500).json({ mongo: state });
-});
-
-
 // Socket.IO setup
 import { Server } from 'socket.io';
 const io = new Server(server, {
   cors: {
-    origin: 'http://localhost:5173',
+    origin: ['http://localhost:5173', 'https://bookstorebd.vercel.app/'],
     methods: ['GET', 'POST'],
   },
 });
