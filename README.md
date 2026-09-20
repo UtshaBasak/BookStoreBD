@@ -9,7 +9,7 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Node](https://img.shields.io/badge/node-%3E%3D20.19-brightgreen.svg)](.nvmrc)
 
-[**Live demo**](https://bookstorebd.vercel.app) · [Report a bug](https://github.com/UtshaBasak/MernBookstore/issues/new?template=bug_report.md) · [Request a feature](https://github.com/UtshaBasak/MernBookstore/issues/new?template=feature_request.md)
+[Report a bug](https://github.com/UtshaBasak/MernBookstore/issues/new?template=bug_report.md) · [Request a feature](https://github.com/UtshaBasak/MernBookstore/issues/new?template=feature_request.md)
 
 </div>
 
@@ -29,6 +29,7 @@
 - [Real-time events](#real-time-events)
 - [Data models](#data-models)
 - [Deployment](#deployment)
+- [Roadmap](#roadmap)
 - [Contributing](#contributing)
 - [License](#license)
 
@@ -233,7 +234,7 @@ To run them separately, use `npm run dev:server` and `npm run dev:client`.
 | `MONGO`            |    ✅    | —                                                      | MongoDB connection string                               |
 | `PORT`             |          | `4000`                                                 | Port the API listens on                                 |
 | `NODE_ENV`         |          | `development`                                          | `development` or `production`                           |
-| `CORS_ORIGINS`     |          | `http://localhost:5173,https://bookstorebd.vercel.app` | Comma-separated browser origins allowed to call the API |
+| `CORS_ORIGINS`     |          | `http://localhost:5173`                                | Comma-separated browser origins allowed to call the API |
 | `JWT_SECRET`       |    ✅    | —                                                      | Signs access tokens; must be 32+ chars, else start fails |
 | `JWT_EXPIRES_IN`   |          | `7d`                                                   | Access token lifetime                                   |
 | `ADMIN_EMAILS`     |          | —                                                      | Comma-separated e-mails promoted to admin on sign-in    |
@@ -431,28 +432,46 @@ The Socket.IO gateway is mounted on the same HTTP server as the REST API.
 
 ## Deployment
 
-The project is deployed as two independent services.
+Both services are intended for [Render](https://render.com).
 
-**Client → [Vercel](https://vercel.com)**
-
-| Setting          | Value                       |
-| ---------------- | --------------------------- |
-| Root directory   | `client`                    |
-| Build command    | `npm run build`             |
-| Output directory | `dist`                      |
-| Environment      | `VITE_API_URL=<api origin>` |
-
-**Server → [Render](https://render.com)**
+**Server — Web Service**
 
 | Setting        | Value                                                      |
 | -------------- | ---------------------------------------------------------- |
 | Root directory | `server`                                                   |
 | Build command  | `npm ci`                                                   |
 | Start command  | `npm start`                                                |
+| Health check   | `/health`                                                  |
 | Environment    | everything in [`server/.env.example`](server/.env.example) |
 
-Add the deployed client origin to `CORS_ORIGINS` on the server, without a
-trailing slash — browsers send the `Origin` header without one.
+`MONGO` and `JWT_SECRET` are required — the service will not boot without
+them. Generate the secret with `openssl rand -hex 48`.
+
+**Client — Static Site**
+
+| Setting           | Value                       |
+| ----------------- | --------------------------- |
+| Root directory    | `client`                    |
+| Build command     | `npm ci && npm run build`   |
+| Publish directory | `dist`                      |
+| Environment       | `VITE_API_URL=<api origin>` |
+
+Add a rewrite of `/*` to `/index.html` so client-side routes survive a page
+refresh, and add the deployed client origin to `CORS_ORIGINS` on the server,
+with no trailing slash — browsers send the `Origin` header without one.
+
+> Serving the client and API from one origin is planned (see
+> [`docs/ROADMAP.md`](docs/ROADMAP.md), task 2), which removes the CORS
+> configuration and makes an httpOnly refresh cookie workable.
+
+---
+
+## Roadmap
+
+Planned upgrades, in the order they will be tackled, are in
+[`docs/ROADMAP.md`](docs/ROADMAP.md): automated tests, Docker Compose,
+structured logging, Zod validation, refresh tokens, Cloudinary image storage,
+TanStack Query, and an incremental TypeScript migration.
 
 ---
 

@@ -9,7 +9,7 @@ const parseOrigins = (value) =>
     .map((origin) => origin.trim().replace(/\/+$/, ''))
     .filter(Boolean);
 
-const DEFAULT_ORIGINS = ['http://localhost:5173', 'https://bookstorebd.vercel.app'];
+const DEFAULT_ORIGINS = ['http://localhost:5173'];
 
 export const config = {
   env: process.env.NODE_ENV ?? 'development',
