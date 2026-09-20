@@ -1,7 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { FaSearch, FaHome, FaStar, FaHeart, FaRegHeart, FaShoppingCart } from 'react-icons/fa';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { API_BASE_URL, apiFetch } from '../config/api.js';
+import { useCatalogue } from '../hooks/queries.js';
 
 const categories = [
   'Fiction',
@@ -21,50 +22,62 @@ const categories = [
 ];
 
 export default function BookFilter() {
-  const [searchTerm, setSearchTerm] = useState('');
-  const [bookList, setBookList] = useState([]);
-  const [filteredBooks, setFilteredBooks] = useState([]);
   const [priceFilter, setPriceFilter] = useState({ from: '', to: '' });
-  const [searchInput, setSearchInput] = useState('');
-  const [filters, setFilters] = useState({
-    bookType: '',
-    condition: '',
-    category: [], // now an array for multi-select
-    rating: 0,
-  });
+
   const [sortOption, setSortOption] = useState('popular');
   const [wishlist, setWishlist] = useState({});
   const [cart, setCart] = useState({});
-  const [inStockOnly, setInStockOnly] = useState(false);
   const userEmail = localStorage.getItem('userEmail');
   const location = useLocation();
   const navigate = useNavigate();
 
-  // Parse ?search=..., ?bookType=..., ?category=..., ?inStock=1 from URL on mount
-  useEffect(() => {
+  /**
+   * The URL is the source of truth for the search and filters, so they are
+   * derived during render rather than copied into state by an effect.
+   *
+   * Edits made on the page are kept as an override tagged with the URL they
+   * belong to, so navigating to a new search resets them without any effect
+   * having to run.
+   */
+  const fromUrl = useMemo(() => {
     const params = new URLSearchParams(location.search);
     const query = params.get('search') || '';
     const bookType = params.get('bookType') || '';
     const category = params.get('category') || '';
-    setSearchInput(query);
-    setSearchTerm(query);
-    setFilters(prev => ({
-      ...prev,
-      bookType: bookType ? bookType.toLowerCase() : '',
-      category: category ? [category.toLowerCase()] : [],
-    }));
-    setInStockOnly(params.get('inStock') === '1');
+    return {
+      searchInput: query,
+      searchTerm: query,
+      inStockOnly: params.get('inStock') === '1',
+      filters: {
+        bookType: bookType ? bookType.toLowerCase() : '',
+        condition: '',
+        category: category ? [category.toLowerCase()] : [],
+        rating: 0,
+      },
+    };
   }, [location.search]);
 
-  useEffect(() => {
-    apiFetch(`${API_BASE_URL}/filter/booklist`)
-      .then((res) => res.json())
-      .then((data) => {
-        setBookList(data);
-        setFilteredBooks(data);
-      })
-      .catch((err) => console.error('Error fetching books:', err));
-  }, []);
+  const [edits, setEdits] = useState({ key: null, value: {} });
+  const active = edits.key === location.search ? edits.value : {};
+  const update = (patch) =>
+    setEdits((prev) => ({
+      key: location.search,
+      value: { ...(prev.key === location.search ? prev.value : {}), ...patch },
+    }));
+
+  const searchInput = active.searchInput ?? fromUrl.searchInput;
+  const searchTerm = active.searchTerm ?? fromUrl.searchTerm;
+  const inStockOnly = active.inStockOnly ?? fromUrl.inStockOnly;
+  const filters = active.filters ?? fromUrl.filters;
+
+  const setSearchInput = (value) => update({ searchInput: value });
+  const setSearchTerm = (value) => update({ searchTerm: value });
+  const setInStockOnly = (value) =>
+    update({ inStockOnly: typeof value === 'function' ? value(inStockOnly) : value });
+  const setFilters = (value) =>
+    update({ filters: typeof value === 'function' ? value(filters) : value });
+
+  const { data: bookList = [] } = useCatalogue();
 
   // Fetch wishlist and cart for toggle buttons
   useEffect(() => {
@@ -86,7 +99,7 @@ export default function BookFilter() {
   }, [userEmail]);
 
   // Filtering logic
-  useEffect(() => {
+  const filteredBooks = useMemo(() => {
     let filtered = [...bookList];
 
     // Search filter
@@ -159,7 +172,7 @@ export default function BookFilter() {
       });
     }
 
-    setFilteredBooks(filtered);
+    return filtered;
   }, [bookList, searchTerm, filters, priceFilter, sortOption, inStockOnly]);
 
   const handleSearch = () => {

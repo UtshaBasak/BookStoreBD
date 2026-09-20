@@ -1,59 +1,21 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import './UserManagement.css';
-import { API_BASE_URL, apiFetch } from '../config/api.js';
-
+import { useUsers, useDeleteUser } from '../hooks/queries.js';
 
 export default function UserManagement() {
-  const [users, setUsers] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false); // For refresh button
-  const [error, setError] = useState(null);
   const [search, setSearch] = useState('');
 
-  const fetchUsers = () => {
-    setRefreshing(true);
-    apiFetch(`${API_BASE_URL}/user`)
-      .then((res) => {
-        if (!res.ok) throw new Error('Failed to fetch users');
-        return res.json();
-      })
-      .then((data) => {
-        // Administrators are not listed as deletable rows.
-        const filtered = data.filter(user => user.role !== 'admin');
-        setUsers(filtered);
-        setLoading(false);
-        setRefreshing(false);
-      })
-      .catch((err) => {
-        setError(err.message);
-        setLoading(false);
-        setRefreshing(false);
-      });
-  };
+  // Loading, error and refetch state come from the query rather than being
+  // reimplemented with four useState flags per page.
+  const { data, isPending, isFetching, error, refetch } = useUsers({
+    // Administrators are not listed as deletable rows.
+    select: (list) => list.filter((user) => user.role !== 'admin'),
+  });
+  const users = data ?? [];
 
-  useEffect(() => {
-    fetchUsers();
-  }, []);
+  const { mutate: removeUser, error: deleteError } = useDeleteUser();
 
-  const deleteUser = async (id) => {
-    try {
-      const response = await apiFetch(`${API_BASE_URL}/user/${id}`, {
-        method: 'DELETE',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      });
-      if (!response.ok) {
-        throw new Error('Failed to delete user');
-      }
-
-      await response.json();
-      setUsers(users.filter((user) => user._id !== id));
-    } catch (err) {
-      setError(err.message);
-      alert('Failed to delete user: ' + err.message);
-    }
-  };
+  const deleteUser = (id) => removeUser(id);
 
   const filteredUsers = users.filter(
     user =>
@@ -61,27 +23,27 @@ export default function UserManagement() {
       user.email?.toLowerCase().includes(search.toLowerCase())
   );
 
-  if (loading) return <div>Loading...</div>;
-  if (error) return <div>Error: {error}</div>;
+  if (isPending) return <div>Loading...</div>;
+  if (error) return <div>Error: {error.message}</div>;
 
   return (
     <div className="user-management">
       <header className="user-management-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <h1>User Management</h1>
         <button
-          onClick={fetchUsers}
-          disabled={refreshing}
+          onClick={() => refetch()}
+          disabled={isFetching}
           style={{
             backgroundColor: '#43a047',
             color: 'white',
             padding: '0.5rem 1.5rem',
             border: 'none',
             borderRadius: '4px',
-            cursor: refreshing ? 'not-allowed' : 'pointer',
+            cursor: isFetching ? 'not-allowed' : 'pointer',
             fontWeight: 'bold'
           }}
         >
-          {refreshing ? 'Refreshing...' : 'Refresh'}
+          {isFetching ? 'Refreshing...' : 'Refresh'}
         </button>
       </header>
       {/* Search input */}
@@ -94,6 +56,11 @@ export default function UserManagement() {
           style={{ padding: 8, width: 300, borderRadius: 4, border: '1px solid #ccc' }}
         />
       </div>
+      {deleteError && (
+        <p role="alert" style={{ color: '#c0392b' }}>
+          Could not delete that user: {deleteError.message}
+        </p>
+      )}
       <table className="styled-table">
         <thead>
           <tr>

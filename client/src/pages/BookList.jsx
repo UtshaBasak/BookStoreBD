@@ -1,41 +1,31 @@
-import React, { useState, useEffect } from 'react';
-import { API_BASE_URL, apiFetch } from '../config/api.js';
+import React, { useState } from 'react';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
+
+import { useBooks, useUsers, keys, apiRequest } from '../hooks/queries.js';
 
 export default function BookList() {
-  const [books, setBooks] = useState([]);
-  const [users, setUsers] = useState({}); // Map: email -> user name
   const [search, setSearch] = useState('');
-  const [loading, setLoading] = useState(false); // For refresh button
 
-  // Fetch books and users
-  const fetchData = () => {
-    setLoading(true);
-    apiFetch(`${API_BASE_URL}/book`)
-      .then((res) => res.json())
-      .then((data) => setBooks(data))
-      .catch((err) => console.error(err));
-    apiFetch(`${API_BASE_URL}/user`)
-      .then(res => res.json())
-      .then(data => {
-        const map = {};
-        (Array.isArray(data) ? data : []).forEach(u => {
-          map[u.email] = u.name || u.email;
-        });
-        setUsers(map);
-        setLoading(false);
-      })
-      .catch(() => setLoading(false));
-  };
+  const booksQuery = useBooks();
+  const books = booksQuery.data ?? [];
 
-  useEffect(() => {
-    fetchData();
-  }, []);
+  // Shaped into an email -> display name map by the query, so the component
+  // only ever sees the form it renders.
+  const { data: users = {} } = useUsers({
+    select: (list) =>
+      Object.fromEntries(
+        (Array.isArray(list) ? list : []).map((u) => [u.email, u.name || u.email])
+      ),
+  });
 
-  const deleteBook = (id) => {
-    apiFetch(`${API_BASE_URL}/book/${id}`, { method: 'DELETE' })
-      .then(() => setBooks(books.filter((book) => book._id !== id)))
-      .catch((err) => console.error('Error deleting book:', err));
-  };
+  const loading = booksQuery.isFetching;
+  const fetchData = () => booksQuery.refetch();
+
+  const client = useQueryClient();
+  const { mutate: deleteBook } = useMutation({
+    mutationFn: (id) => apiRequest(`/book/${id}`, { method: 'DELETE' }),
+    onSuccess: () => client.invalidateQueries({ queryKey: keys.books }),
+  });
 
   // Filter books by search query (title or author)
   const filteredBooks = books.filter(book => {

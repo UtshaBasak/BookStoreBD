@@ -5,16 +5,20 @@ import { authHeaders, clearSession, getToken, setSession } from '../utils/auth.j
 /**
  * Where the API lives.
  *
- * Empty by default, which means same-origin: the Vite dev server proxies the
- * API prefixes in development, and Express serves the built client alongside
- * the API in production. Same-origin is what makes the refresh cookie
- * first-party, so none of the third-party cookie restrictions apply.
+ * `/api` by default, which means same-origin: the Vite dev server proxies that
+ * prefix in development and nginx does in production. Same-origin is what makes
+ * the refresh cookie first-party, so none of the third-party cookie
+ * restrictions apply.
+ *
+ * The namespace matters. Without it the API and the client-side routes collide
+ * — `/cart`, `/wishlist`, `/book`, `/chat` and `/filter` are each both a page
+ * and an endpoint, and the proxy cannot tell which is wanted.
  *
  * `VITE_API_URL` overrides it for the cross-origin case — a client deployed
  * separately from the API. The refresh cookie will not survive that, so the
  * session ends when the access token expires.
  */
-export const API_BASE_URL = (import.meta.env.VITE_API_URL || '').replace(/\/+$/, '');
+export const API_BASE_URL = (import.meta.env.VITE_API_URL || '/api').replace(/\/+$/, '');
 
 /** Builds an API URL from a root-relative path. */
 export const apiUrl = (path = '') =>

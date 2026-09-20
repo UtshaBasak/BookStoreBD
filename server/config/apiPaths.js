@@ -1,30 +1,22 @@
 /**
- * Every path the API owns.
+ * The API lives under a single prefix.
  *
- * Shared so the three places that must agree cannot drift: the routers mounted
- * in app.js, the SPA fallback that must not swallow an API call, and the Vite
- * dev-server proxy that makes the client same-origin while developing.
+ * Client-side routes and API routes share an origin, so without a namespace
+ * they collide: `/cart`, `/wishlist`, `/book`, `/chat` and `/filter` are all
+ * both a page and an endpoint. Namespacing the API means a path is
+ * unambiguously one or the other.
+ *
+ * `/health` stays at the root because that is where a platform health check
+ * looks for it, and no page uses that path.
  */
-export const API_PATH_PREFIXES = [
-  '/auth',
-  '/book',
-  '/cart',
-  '/chat',
-  '/filter',
-  '/health',
-  '/order',
-  '/purchase',
-  '/return',
-  '/upload',
-  '/uploads',
-  '/user',
-  '/wishlist',
-];
+export const API_PREFIX = '/api';
+
+export const ROOT_PATHS = ['/health'];
 
 /** True when a path belongs to the API rather than to a client-side route. */
 export const isApiPath = (pathname) =>
-  API_PATH_PREFIXES.some(
-    (prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`)
-  );
+  pathname === API_PREFIX ||
+  pathname.startsWith(`${API_PREFIX}/`) ||
+  ROOT_PATHS.includes(pathname);
 
-export default API_PATH_PREFIXES;
+export default API_PREFIX;

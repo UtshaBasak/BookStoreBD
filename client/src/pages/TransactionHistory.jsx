@@ -1,5 +1,6 @@
-import React, { useState, useEffect } from 'react';
-import { API_BASE_URL, apiFetch } from '../config/api.js';
+import React, { useState } from 'react';
+
+import { useAllOrders } from '../hooks/queries.js';
 
 // Utility to format date as dd/mm/yyyy
 function formatDate(dateStr) {
@@ -13,23 +14,14 @@ function formatDate(dateStr) {
 }
 
 export default function TransactionHistory() {
-  const [orders, setOrders] = useState([]);
   const [search, setSearch] = useState('');
-  const [refreshing, setRefreshing] = useState(false);
 
-  // Fetch all orders for admin
-  const fetchOrders = () => {
-    setRefreshing(true);
-    apiFetch(`${API_BASE_URL}/order/admin/all`)
-      .then((res) => res.json())
-      .then((data) => setOrders(Array.isArray(data) ? data : []))
-      .catch((err) => console.error(err))
-      .finally(() => setRefreshing(false));
-  };
-
-  useEffect(() => {
-    fetchOrders();
-  }, []);
+  const ordersQuery = useAllOrders({
+    select: (data) => (Array.isArray(data) ? data : []),
+  });
+  const orders = ordersQuery.data ?? [];
+  const refreshing = ordersQuery.isFetching;
+  const fetchOrders = () => ordersQuery.refetch();
 
   // Group orders by orderNumber (if present), else fallback to _id
   function groupOrdersByOrderNumber(orders) {

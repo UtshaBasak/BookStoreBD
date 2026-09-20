@@ -1,66 +1,30 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { API_BASE_URL, apiFetch } from '../config/api.js';
+
+import { useBuyerOrders, useReturnRequests } from '../hooks/queries.js';
 
 export default function BuyerBookList() {
-  const [_books, _setBooks] = useState([]);
-  const [orders, setOrders] = useState([]);
-  const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
-  const [refreshing, setRefreshing] = useState(false);
-  const [returnStatuses, setReturnStatuses] = useState({});
-  const buyerEmail = localStorage.getItem('userEmail');
-  const userEmail = localStorage.getItem('userEmail');
   const navigate = useNavigate();
 
-  // Fetch orders from the server
-  const fetchOrders = () => {
-    setRefreshing(true);
-    apiFetch(`${API_BASE_URL}/order/buyer?email=${encodeURIComponent(userEmail)}`)
-      .then(res => res.json())
-      .then(data => {
-        setOrders(Array.isArray(data) ? data : []);
-        setLoading(false);
-        setRefreshing(false);
-      });
-  };
+  const ordersQuery = useBuyerOrders({
+    select: (data) => (Array.isArray(data) ? data : []),
+  });
+  const orders = ordersQuery.data ?? [];
+  const loading = ordersQuery.isPending;
 
-  // Fetch return statuses from the server
-  const fetchReturnStatuses = async () => {
-    try {
-      const response = await apiFetch(`${API_BASE_URL}/return/requests?userEmail=${encodeURIComponent(userEmail)}`, {
-        credentials: 'include'
-      });
-      const data = await response.json();
-      // Create a map of bookId -> status
-      const statusMap = {};
-      data.forEach(request => {
-        statusMap[request.bookId] = request.status;
-      });
-      setReturnStatuses(statusMap);
-    } catch (error) {
-      console.error('Error fetching return statuses:', error);
-    }
-  };
+  // The server scopes return requests to the caller, so no e-mail is passed.
+  const { data: returnStatuses = {} } = useReturnRequests({
+    select: (list) =>
+      Object.fromEntries((list ?? []).map((request) => [request.bookId, request.status])),
+  });
 
-  // Handler for refresh button
-  const handleRefresh = () => {
-    fetchOrders();
-    fetchReturnStatuses();
-  };
-
-  useEffect(() => {
-    fetchOrders();
-    fetchReturnStatuses();
-    // eslint-disable-next-line
-  }, [buyerEmail]);
+  const refreshing = ordersQuery.isFetching;
+  const handleRefresh = () => ordersQuery.refetch();
 
   const handleReturn = (bookId, order) => {
-    setOrders(prevOrders =>
-      prevOrders.map(o =>
-        o._id === order._id ? { ...o, isReturned: true } : o
-      )
-    );
+    // The optimistic local edit is gone: the return is actually submitted on
+    // the next page, and the orders query is the single source for this list.
     navigate(`/description-form/${bookId}`, { 
       state: {
         orderId: order._id,

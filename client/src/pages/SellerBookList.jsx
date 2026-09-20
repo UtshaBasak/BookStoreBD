@@ -1,34 +1,22 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+
 import { API_BASE_URL, apiFetch } from '../config/api.js';
+import { useSellerBooks } from '../hooks/queries.js';
+import { getUserEmail } from '../utils/auth.js';
 
 export default function SellerBookList() {
-  const [books, setBooks] = useState([]);
   const [edit, setEdit] = useState({});
   const [loading, setLoading] = useState(false);
-  const [refreshing, setRefreshing] = useState(false); // For refresh button
   const [search, setSearch] = useState('');
 
-  const sellerEmail = localStorage.getItem('userEmail');
+  const sellerEmail = getUserEmail();
   const navigate = useNavigate();
 
-  const fetchBooks = React.useCallback(() => {
-    setRefreshing(true);
-    apiFetch(`${API_BASE_URL}/book/seller/${encodeURIComponent(sellerEmail)}`)
-      .then(res => res.json())
-      .then(data => {
-        setBooks(data);
-        setRefreshing(false);
-      })
-      .catch(err => {
-        setRefreshing(false);
-        console.error(err);
-      });
-  }, [sellerEmail]);
-
-  useEffect(() => {
-    fetchBooks();
-  }, [fetchBooks]);
+  const booksQuery = useSellerBooks(sellerEmail);
+  const books = booksQuery.data ?? [];
+  const refreshing = booksQuery.isFetching;
+  const fetchBooks = () => booksQuery.refetch();
 
   const handleEditChange = (id, field, value) => {
     if (!/^\d*$/.test(value)) return;
@@ -79,7 +67,8 @@ export default function SellerBookList() {
         const data = await res.json();
         alert(data.message || 'Delete failed');
       } else {
-        setBooks(books => books.filter(b => b._id !== id));
+        // The query owns the list; refetching keeps it the single source.
+        await booksQuery.refetch();
       }
     } catch {
       alert('Delete failed');

@@ -24,8 +24,8 @@ all three package roots report zero dependency vulnerabilities; CodeQL reports
 five findings, all confirmed false positives in the same rule
 (`js/xss-through-dom`). Authentication and authorisation are enforced
 server-side, sessions use short access tokens with rotating refresh tokens, and
-every endpoint validates its input against a Zod schema. Six of the eight tasks
-are complete: **200 tests** (146 server, 54 client) gate every push, `docker
+every endpoint validates its input against a Zod schema. Seven of the eight tasks
+are complete: **203 tests** (146 server, 54 client) gate every push, `docker
 compose up` brings the whole stack up with no local Node or MongoDB install,
 the API emits structured logs with a correlation id per request, and book
 covers can be hosted on a CDN instead of living in the database.
@@ -45,7 +45,7 @@ before any deployment work resumes.
 | ~~4~~ | ~~[Zod validation](#3--request-validation-with-zod)~~ (task 3) **done** | Hardening | 1 | Medium |
 | ~~5~~ | ~~[Refresh tokens](#2--refresh-tokens-and-logout)~~ (task 2) **done** | Hardening | 1 | High |
 | ~~6~~ | ~~[Cloudinary image storage](#4--move-images-out-of-mongodb-cloudinary)~~ (task 4) **done** | Larger | 1 | Medium |
-| 7 | [TanStack Query](#6--tanstack-query-and-the-17-lint-warnings) (task 6) | Larger | 1 | Medium-high |
+| ~~7~~ | ~~[TanStack Query](#6--tanstack-query-and-the-17-lint-warnings)~~ (task 6) **done** | Larger | 1 | Medium-high |
 | 8 | [TypeScript](#8--typescript) | Larger | 1, 4 | High volume |
 
 Task numbers are stable throughout this document — only the running order
@@ -351,7 +351,10 @@ Worth recording:
 
 ---
 
-## 6 · TanStack Query and the 17 lint warnings
+## 6 · TanStack Query and the 17 lint warnings — done
+
+*Landed. Zero warnings, both rules back at `error`, and the API namespaced
+under `/api` after the migration exposed a routing collision.*
 
 Every page fetches with `useEffect` → `fetch` → `setState`. That pattern is
 what `eslint-plugin-react-hooks` v7 flags 17 times across 15 files, currently
@@ -366,8 +369,21 @@ demoted to warnings so CI can pass.
 - Promote `react-hooks/set-state-in-effect` and `react-hooks/immutability`
   back to `error` once the count reaches zero
 
-**Done when** `npm run lint` reports zero warnings with both rules at
-`error`.
+**Done.** `npm run lint` reports zero warnings with both rules at `error`.
+`hooks/queries.js` holds every query and mutation, with the cache keys in one
+place so an invalidation cannot miss by typo. Pages that fetched in an effect
+now read from a query; the rest of the flagged state is computed during render
+(a `useMemo` for the filtered catalogue, URL-derived filters, and React's
+documented compare-with-previous pattern for resetting a chat thread).
+
+The migration exposed a real bug that predated it. Making the app same-origin
+in task 2 put the API at the root alongside the client routes, and five of them
+collide: `/cart`, `/wishlist`, `/book`, `/chat` and `/filter` are each both a
+page and an endpoint. Opening the cart in a browser returned
+`{"message":"Authentication required"}` instead of the page. The API now lives
+under `/api`, which removes the whole class of collision, and the refresh
+cookie's path moved with it — scoped to `/auth` it would never have been sent
+to `/api/auth/refresh`.
 
 ---
 

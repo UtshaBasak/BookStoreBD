@@ -20,9 +20,31 @@ export const createTestContext = async () => {
 
   // Imported after connecting so the models bind to this connection.
   const { createApp } = await import('../../app.js');
-  const request = supertest(createApp());
+  const { API_PREFIX, ROOT_PATHS } = await import('../../config/apiPaths.js');
 
-  return { request, mongoose };
+  const agent = supertest(createApp());
+
+  /**
+   * Prefixes API paths so tests can keep saying `/cart` rather than
+   * `/api/cart`. The namespace is a routing decision, not something every
+   * assertion should have to restate.
+   */
+  const withPrefix = (path) => {
+    if (typeof path !== 'string') return path;
+    const [pathname] = path.split('?');
+    if (ROOT_PATHS.includes(pathname) || path.startsWith(API_PREFIX)) return path;
+    return `${API_PREFIX}${path}`;
+  };
+
+  const request = ['get', 'post', 'put', 'patch', 'delete', 'head'].reduce(
+    (acc, method) => {
+      acc[method] = (path, ...rest) => agent[method](withPrefix(path), ...rest);
+      return acc;
+    },
+    {}
+  );
+
+  return { request, agent, mongoose };
 };
 
 /** Empties every collection between tests. */

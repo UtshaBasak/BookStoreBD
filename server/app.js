@@ -8,7 +8,7 @@ import cookieParser from 'cookie-parser';
 
 import { config } from './config/env.js';
 import { corsOptions } from './config/cors.js';
-import { isApiPath } from './config/apiPaths.js';
+import { isApiPath, API_PREFIX } from './config/apiPaths.js';
 import { errorHandler, notFoundHandler } from './middleware/errorHandler.js';
 import { sanitizeRequest } from './middleware/sanitizeRequest.js';
 import { requestLogger } from './middleware/requestLogger.js';
@@ -53,7 +53,7 @@ export const createApp = () => {
   // falls back to `/uploads/<filename>` for older records that hold a bare
   // filename, so the directory stays served.
   const currentDir = path.dirname(fileURLToPath(import.meta.url));
-  app.use('/uploads', express.static(path.join(currentDir, 'uploads')));
+  app.use(`${API_PREFIX}/uploads`, express.static(path.join(currentDir, 'uploads')));
 
   app.get('/health', (req, res) => {
     res.status(200).json({ status: 'ok', uptime: process.uptime() });
@@ -61,17 +61,17 @@ export const createApp = () => {
 
   app.use(apiLimiter);
 
-  app.use('/auth', authLimiter, authRouter);
-  app.use('/book', bookRouter);
-  app.use('/cart', cartRouter);
-  app.use('/chat', writeLimiter, chatRouter);
-  app.use('/filter', filterRouter);
-  app.use('/order', orderRouter);
-  app.use('/purchase', purchaseRouter);
-  app.use('/return', writeLimiter, returnRouter);
-  app.use('/upload', writeLimiter, uploadRouter);
-  app.use('/user', writeLimiter, userRouter);
-  app.use('/wishlist', wishlistRouter);
+  app.use(`${API_PREFIX}/auth`, authLimiter, authRouter);
+  app.use(`${API_PREFIX}/book`, bookRouter);
+  app.use(`${API_PREFIX}/cart`, cartRouter);
+  app.use(`${API_PREFIX}/chat`, writeLimiter, chatRouter);
+  app.use(`${API_PREFIX}/filter`, filterRouter);
+  app.use(`${API_PREFIX}/order`, orderRouter);
+  app.use(`${API_PREFIX}/purchase`, purchaseRouter);
+  app.use(`${API_PREFIX}/return`, writeLimiter, returnRouter);
+  app.use(`${API_PREFIX}/upload`, writeLimiter, uploadRouter);
+  app.use(`${API_PREFIX}/user`, writeLimiter, userRouter);
+  app.use(`${API_PREFIX}/wishlist`, wishlistRouter);
 
   // ------------------------------------------------------------------------
   // Single-page app

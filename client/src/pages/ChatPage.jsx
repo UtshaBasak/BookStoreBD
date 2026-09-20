@@ -53,6 +53,17 @@ export default function ChatPage() {
         };
     }, [userEmail]);
 
+    // Switching conversation resets the thread. Done during render, comparing
+    // against the previous selection, which is the documented alternative to
+    // resetting state from an effect.
+    const [shownUser, setShownUser] = useState(selectedUser?.email ?? null);
+    if ((selectedUser?.email ?? null) !== shownUser) {
+        setShownUser(selectedUser?.email ?? null);
+        setMessages([]);
+        setPage(1);
+        setHasMore(true);
+    }
+
     useEffect(() => {
         if (selectedUser && userEmail) {
             // Mark messages as read when chat is opened
@@ -66,11 +77,6 @@ export default function ChatPage() {
                     receiver: userEmail
                 })
             });
-
-            // Only reset messages if switching user
-            setMessages([]);
-            setPage(1);
-            setHasMore(true);
 
             const room = [userEmail, selectedUser.email].sort().join('-');
             socketRef.current.emit('join_chat', room);

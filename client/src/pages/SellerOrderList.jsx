@@ -1,14 +1,19 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { API_BASE_URL, apiFetch } from '../config/api.js';
+
+import { useSellerOrders } from '../hooks/queries.js';
 
 export default function SellerOrderList() {
-  const [orders, setOrders] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
   const [search, setSearch] = useState('');
-  const sellerEmail = localStorage.getItem('userEmail');
   const navigate = useNavigate();
+
+  const ordersQuery = useSellerOrders({
+    select: (data) => (Array.isArray(data) ? data : []),
+  });
+  const orders = ordersQuery.data ?? [];
+  const loading = ordersQuery.isPending;
+  const refreshing = ordersQuery.isFetching;
+  const fetchOrders = () => ordersQuery.refetch();
 
   // Group orders by orderNumber (if present), else fallback to _id
   function groupOrdersByOrderNumber(orders) {
@@ -21,22 +26,6 @@ export default function SellerOrderList() {
     });
     return map;
   }
-
-  const fetchOrders = () => {
-    setRefreshing(true);
-    apiFetch(`${API_BASE_URL}/order/seller?email=${encodeURIComponent(sellerEmail)}`)
-      .then(res => res.json())
-      .then(data => {
-        setOrders(Array.isArray(data) ? data : []);
-        setLoading(false);
-        setRefreshing(false);
-      });
-  };
-
-  useEffect(() => {
-    fetchOrders();
-    // eslint-disable-next-line
-  }, [sellerEmail]);
 
   // Filter by search (title, author, buyer)
   const filteredOrders = orders.filter(

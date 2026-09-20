@@ -44,7 +44,7 @@ describe('sign-in issues both tokens', () => {
     expect(JSON.stringify(res.body)).not.toContain(refreshValue);
   });
 
-  it('marks the cookie httpOnly and scopes it to /auth', async () => {
+  it('marks the cookie httpOnly and scopes it to the auth routes', async () => {
     await createUser({ email: 'alice@test.com' });
 
     const res = await request.post('/auth/signin').send({ email: 'alice@test.com', password: PASSWORD });
@@ -52,7 +52,8 @@ describe('sign-in issues both tokens', () => {
 
     // httpOnly is what stops page JavaScript reading a long-lived credential.
     expect(raw).toMatch(/HttpOnly/i);
-    expect(raw).toMatch(/Path=\/auth/i);
+    // Scoped to where the auth routes live, so the browser actually sends it.
+    expect(raw).toMatch(/Path=\/api\/auth/i);
     expect(raw).toMatch(/SameSite=Lax/i);
   });
 

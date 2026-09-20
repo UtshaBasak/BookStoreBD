@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { API_BASE_URL, apiFetch } from '../config/api.js';
+import { useCart, useProfile } from '../hooks/queries.js';
 import { safeImageSrc, PLACEHOLDER_IMAGE } from '../utils/safeImageSrc.js';
 
 const PROMO_CODE = 'BookStore';
@@ -19,22 +20,69 @@ const setFirstOrderUsed = () => {
   localStorage.setItem('isFirstOrder', 'false');
 };
 
+/**
+ * Reads a previously confirmed order back out of storage.
+ *
+ * Used as a lazy initialiser so the restored values are present on the very
+ * first render. Pushing them in from an effect meant rendering an empty page
+ * and then immediately re-rendering a full one.
+ */
+const restoreConfirmedOrder = () => {
+  try {
+    const raw = localStorage.getItem('confirmedOrder');
+    if (!raw) return null;
+    const order = JSON.parse(raw);
+    const email = localStorage.getItem('userEmail');
+    return order && order.email && order.email === email ? order : null;
+  } catch {
+    return null;
+  }
+};
+
 export default function Payment() {
   const navigate = useNavigate();
-  const [user, setUser] = useState({ name: '', email: '', phone: '', isFirstOrder: true });
-  const [division, setDivision] = useState('');
-  const [district, setDistrict] = useState('');
-  const [address, setAddress] = useState('');
-  const [promo, setPromo] = useState('');
+  const restored = useMemo(() => restoreConfirmedOrder(), []);
+
+  const [storedUser, setUser] = useState(getUserProfile);
+  const [division, setDivision] = useState(restored?.division ?? '');
+  const [district, setDistrict] = useState(restored?.district ?? '');
+  const [address, setAddress] = useState(restored?.address ?? '');
+  const [promo, setPromo] = useState(restored?.promo ?? '');
   const [promoMsg, setPromoMsg] = useState('');
-  const [promoApplied, setPromoApplied] = useState(false);
-  const [discount, setDiscount] = useState(0);
-  const [orderNumber, setOrderNumber] = useState('');
-  const [cartBooks, setCartBooks] = useState([]);
-  const [quantities, setQuantities] = useState({});
-  const [loading, setLoading] = useState(true);
-  const [orderConfirmed, setOrderConfirmed] = useState(false);
+  const [promoApplied, setPromoApplied] = useState(restored?.promoApplied ?? false);
+  const [discount, setDiscount] = useState(restored?.discount ?? 0);
+  const [orderNumber, setOrderNumber] = useState(restored?.orderNumber ?? '');
+  const [confirmedBooks, setConfirmedBooks] = useState(restored?.cartBooks ?? null);
+  const [confirmedQuantities, setConfirmedQuantities] = useState(restored?.quantities ?? null);
+  // Named for clarity at the call site that freezes the basket on confirmation.
+  const freezeQuantities = setConfirmedQuantities;
+  const [orderConfirmed, setOrderConfirmed] = useState(Boolean(restored));
   const [confirmError, setConfirmError] = useState('');
+
+  // The live cart only matters until an order is confirmed; after that the
+  // page shows what was actually bought.
+  const cartQuery = useCart({ enabled: !orderConfirmed && Boolean(storedUser.email) });
+  const liveCart = cartQuery.data ?? [];
+
+  const cartBooks = confirmedBooks ?? liveCart;
+  const loading = orderConfirmed ? false : cartQuery.isPending;
+
+  // The profile query fills in details that may have changed since sign-in.
+  const { data: profile } = useProfile(storedUser.email, {
+    enabled: Boolean(storedUser.email),
+  });
+  const user = {
+    ...storedUser,
+    name: profile?.username || storedUser.name,
+    phone: profile?.phone || storedUser.phone,
+  };
+
+  const [quantityOverrides, setQuantityOverrides] = useState({});
+  const quantities =
+    confirmedQuantities ??
+    Object.fromEntries(liveCart.map((book) => [book._id, quantityOverrides[book._id] ?? 1]));
+  const setQuantities = setQuantityOverrides;
+  const setCartBooks = setConfirmedBooks;
 
   const divisions = [
     "Dhaka", "Chattogram", "Khulna", "Rajshahi", "Barisal", "Sylhet", "Rangpur", "Mymensingh"
@@ -51,100 +99,9 @@ export default function Payment() {
   };
 
   useEffect(() => {
-    const profile = getUserProfile();
-    setUser(profile);
-
-    // Fetch latest profile from backend to get updated phone
-    if (profile.email) {
-      apiFetch(`${API_BASE_URL}/user/profile?email=${encodeURIComponent(profile.email)}`)
-        .then(res => res.json())
-        .then(data => {
-          setUser(u => ({
-            ...u,
-            name: data.username || u.name,
-            phone: data.phone || u.phone,
-          }));
-          // Optionally update localStorage for consistency
-          if (data.phone) localStorage.setItem('userPhone', data.phone);
-          if (data.username) localStorage.setItem('username', data.username);
-        })
-        .catch(() => {});
-    }
-
-    const email = profile.email;
-    if (!email) {
-      setCartBooks([]);
-      setLoading(false);
-      return;
-    }
-
-    // Restore confirmed order if present
-    const orderDataRaw = localStorage.getItem('confirmedOrder');
-    if (orderDataRaw) {
-      try {
-        const orderData = JSON.parse(orderDataRaw);
-        if (orderData && orderData.email === email) {
-          setOrderConfirmed(true);
-          setOrderNumber(orderData.orderNumber);
-          setDivision(orderData.division);
-          setDistrict(orderData.district);
-          setAddress(orderData.address);
-          setDiscount(orderData.discount);
-          setPromo(orderData.promo);
-          setPromoApplied(orderData.promoApplied);
-          setQuantities(orderData.quantities || {});
-          setCartBooks(orderData.cartBooks || []);
-          setLoading(false);
-          return;
-        }
-      } catch (error) {
-        // Ignore JSON parse errors from invalid localStorage data
-        console.debug('Failed to parse order data:', error);
-      }
-    }
-
-    // If not confirmed, load cart as usual
-    apiFetch(`${API_BASE_URL}/cart?email=${encodeURIComponent(email)}`)
-      .then(res => res.json())
-      .then(data => {
-        setCartBooks(Array.isArray(data) ? data : []);
-        const q = {};
-        (Array.isArray(data) ? data : []).forEach(book => { q[book._id] = 1; });
-        setQuantities(q);
-        setLoading(false);
-      });
-  }, []);
-
-  useEffect(() => {
     const onStorage = () => setUser(getUserProfile());
     window.addEventListener('storage', onStorage);
     return () => window.removeEventListener('storage', onStorage);
-  }, []);
-
-  useEffect(() => {
-    const email = localStorage.getItem('userEmail');
-    if (!email) return;
-    const orderDataRaw = localStorage.getItem('confirmedOrder');
-    if (orderDataRaw) {
-      try {
-        const orderData = JSON.parse(orderDataRaw);
-        if (orderData && orderData.email === email) {
-          setOrderConfirmed(true);
-          setOrderNumber(orderData.orderNumber);
-          setDivision(orderData.division);
-          setDistrict(orderData.district);
-          setAddress(orderData.address);
-          setDiscount(orderData.discount);
-          setPromo(orderData.promo);
-          setPromoApplied(orderData.promoApplied);
-          setQuantities(orderData.quantities || {});
-          setCartBooks(orderData.cartBooks || []);
-        }
-      } catch (error) {
-        // Ignore JSON parse errors from invalid localStorage data
-        console.debug('Failed to parse order data:', error);
-      }
-    }
   }, []);
 
   const getBookImageSrc = (book) => {
@@ -256,8 +213,10 @@ export default function Payment() {
       latestQuantities[book._id] = quantities[book._id] || 1;
     });
 
+    // Freeze what was actually bought, so the confirmation page keeps showing
+    // it after the cart itself is cleared.
     setCartBooks(latestCartBooks);
-    setQuantities(latestQuantities);
+    freezeQuantities(latestQuantities);
 
     // Decrease stock in backend and clear cart
     apiFetch(`${API_BASE_URL}/order/decrease-stock`, {

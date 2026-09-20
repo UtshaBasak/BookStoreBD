@@ -1,15 +1,19 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import axios from 'axios';
-import { API_BASE_URL } from '../../config/api.js';
+
+import { useBuyerOrders } from '../../hooks/queries.js';
 
 export default function BuyerOrderList() {
-  const [orders, setOrders] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
   const [search, setSearch] = useState('');
-  const userEmail = localStorage.getItem('userEmail');
   const navigate = useNavigate();
+
+  const ordersQuery = useBuyerOrders({
+    select: (data) => (Array.isArray(data) ? data : []),
+  });
+  const orders = ordersQuery.data ?? [];
+  const loading = ordersQuery.isPending;
+  const refreshing = ordersQuery.isFetching;
+  const fetchOrders = () => ordersQuery.refetch();
 
   // Group orders by orderNumber (if present), else fallback to _id
   function groupOrdersByOrderNumber(orders) {
@@ -23,21 +27,7 @@ export default function BuyerOrderList() {
     return map;
   }
 
-  const fetchOrders = () => {
-    setRefreshing(true);
-    axios.get(`${API_BASE_URL}/order/buyer?email=${encodeURIComponent(userEmail)}`)
-      .then(res => {
-        setOrders(Array.isArray(res.data) ? res.data : []);
-        setLoading(false);
-        setRefreshing(false);
-      });
-  };
 
-  useEffect(() => {
-    if (!userEmail) return;
-    fetchOrders();
-    // eslint-disable-next-line
-  }, [userEmail]);
 
   // Filter by search (title, author, seller, order number)
   const filteredOrders = orders.filter(

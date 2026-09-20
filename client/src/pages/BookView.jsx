@@ -4,12 +4,10 @@ import { FaHeart, FaRegHeart, FaChevronLeft, FaChevronRight, FaComments, FaBell 
 import socket from '../utils/socket';  // Add this import
 import ChatWindow from '../components/ChatWindow';
 import { API_BASE_URL, apiFetch, signOut } from '../config/api.js';
+import { useProfile } from '../hooks/queries.js';
 
 export default function BookView() {
     const [book, setBook] = useState(null);
-    const [user, setUser] = useState(null);
-    const [profilePic, setProfilePic] = useState(null);
-    const [username, setUsername] = useState('');
     const [showDropdown, setShowDropdown] = useState(false);
     const [wishlist, setWishlist] = useState({});
     const [cart, setCart] = useState({});
@@ -58,21 +56,11 @@ export default function BookView() {
         }
     }, [book?.sellerEmail]);
 
-    // Get user data
-    useEffect(() => {
-        const email = localStorage.getItem('userEmail');
-        if (email) {
-            setUser({ email });
-            apiFetch(`${API_BASE_URL}/user/profile?email=${email}`)
-                .then(res => res.ok ? res.json() : null)
-                .then(data => {
-                    if (data) {
-                        if (data.profilePicture) setProfilePic(data.profilePicture);
-                        if (data.username) setUsername(data.username);
-                    }
-                });
-        }
-    }, []);
+    // Derived from a query rather than copied into state by an effect.
+    const { data: profile } = useProfile(userEmail, { enabled: Boolean(userEmail) });
+    const profilePic = profile?.profilePicture ?? null;
+    const username = profile?.username ?? '';
+    const user = userEmail ? { email: userEmail } : null;
 
     // Add/update cart state loading
     useEffect(() => {
@@ -188,8 +176,6 @@ export default function BookView() {
 
     const handleSignOut = async () => {
         await signOut();
-        setUser(null);
-        setProfilePic(null);
         setShowDropdown(false);
         navigate('/sign-in');
     };

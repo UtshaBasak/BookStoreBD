@@ -36,16 +36,11 @@ export default [
       'no-unused-vars': ['error', { varsIgnorePattern: '^[A-Z_]' }],
       'react-refresh/only-export-components': ['warn', { allowConstantExport: true }],
 
-      // eslint-plugin-react-hooks v7 turned on the React Compiler rules. They
-      // flag the fetch-in-useEffect-then-setState pattern that every page here
-      // uses, so 17 call sites report as errors on a codebase that works.
-      //
-      // Warnings rather than off: the findings stay visible so they can be
-      // worked through page by page, but they do not fail CI in the meantime.
-      // Promote both back to 'error' once the pages fetch their data outside
-      // of effects. See https://react.dev/learn/you-might-not-need-an-effect
-      'react-hooks/set-state-in-effect': 'warn',
-      'react-hooks/immutability': 'warn',
+      // Back at 'error' now that data fetching has moved to TanStack Query and
+      // the remaining derived state is computed during render. These were
+      // demoted to warnings while 17 call sites still fetched inside effects.
+      'react-hooks/set-state-in-effect': 'error',
+      'react-hooks/immutability': 'error',
     },
   },
 ];

@@ -1,60 +1,21 @@
-import React, { useState, useEffect } from 'react';
-import { API_BASE_URL, apiFetch } from '../../config/api.js';
+import React from 'react';
+
+import { useReturnRequests, useUpdateReturnStatus } from '../../hooks/queries.js';
 
 export default function ReturnManagement() {
-  const [returnRequests, setReturnRequests] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const requestsQuery = useReturnRequests();
+  const returnRequests = requestsQuery.data ?? [];
+  const loading = requestsQuery.isPending;
 
-  useEffect(() => {
-    fetchReturnRequests();
-  }, []);
-
-  const fetchReturnRequests = async () => { 
-    try {
-      const response = await apiFetch(`${API_BASE_URL}/return/requests`, {
-        credentials: 'include', // Add this to include cookies
-      });
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      const data = await response.json();
-      console.log('Fetched return requests:', data); // Debug log
-      setReturnRequests(data);
-      setLoading(false);
-    } catch (error) {
-      console.error('Error fetching return requests:', error);
-      setLoading(false);
-    }
-  };
+  const { mutateAsync: updateStatus } = useUpdateReturnStatus();
 
   const handleStatusUpdate = async (requestId, status) => {
     try {
-      const response = await apiFetch(`${API_BASE_URL}/return/requests/${requestId}`, {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        credentials: 'include',
-        body: JSON.stringify({ status }),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || 'Failed to update status');
-      }
-
-      const updatedRequest = await response.json();
-      setReturnRequests(prevRequests =>
-        prevRequests.map(req =>
-          req._id === requestId ? updatedRequest : req
-        )
-      );
-      
+      // The mutation invalidates the list, so the table reflects the change
+      // without this component keeping its own copy in sync.
+      await updateStatus({ id: requestId, status });
       alert(`Return request ${status} successfully`);
     } catch (error) {
-      console.error('Error updating return request:', error);
       alert(error.message || 'Failed to update return request');
     }
   };

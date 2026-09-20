@@ -11,12 +11,14 @@ export default function ChatWindow({ receiver, receiverName, onClose }) {
   const messagesEndRef = useRef(null);
   const fileInputRef = useRef(null);
   const userEmail = localStorage.getItem('userEmail');
-  const [socket, setSocket] = useState(null);
+  // A ref rather than state: the socket is an imperative handle that nothing
+  // renders, so storing it in state only caused an extra render on mount.
+  const socketRef = useRef(null);
 
   useEffect(() => {
     // Initialize socket connection
-    const newSocket = io(API_BASE_URL);
-    setSocket(newSocket);
+    const newSocket = io(API_BASE_URL || window.location.origin);
+    socketRef.current = newSocket;
 
     // Mark messages as read
     apiFetch(`${API_BASE_URL}/chat/read`, {
@@ -94,7 +96,7 @@ export default function ChatWindow({ receiver, receiverName, onClose }) {
 
       // Send through socket
       const room = [userEmail, receiver].sort().join('-');
-      socket.emit('send_message', { ...messageData, room });
+      socketRef.current?.emit('send_message', { ...messageData, room });
 
       setMessages(prev => [...prev, messageData]);
       setMessage('');

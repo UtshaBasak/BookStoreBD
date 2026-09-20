@@ -1,8 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import axios from 'axios';
 import '../styles/orderTracking.css';
-import { API_BASE_URL } from '../config/api.js';
+import { useOrder, useUpdateOrderStatus } from '../hooks/queries.js';
 import { isAdmin } from '../utils/auth.js';
 
 const ORDER_STAGES = [
@@ -24,33 +23,30 @@ export default function AdminOrderTrackingPage() {
   }, [navigate]);
   const [_error, setError] = useState('');
 
-  const [statusValue, setStatusValue] = useState('');
-  useEffect(() => {
-    if (!orderNumber) return;
-    axios.get(`${API_BASE_URL}/order/${orderNumber}`)
-      .then(res => {
-        setOrder(res.data);
-        setStatusValue(res.data.status || 'Order Confirmed');
-      })
-      .catch(() => setOrder(null));
-  }, [orderNumber]);
+  const orderQuery = useOrder(orderNumber);
+  const order = orderQuery.data ?? null;
+  const { mutateAsync: updateStatus } = useUpdateOrderStatus(orderNumber);
+
+  // The select reflects the order until an admin picks something else. Derived
+  // from the query rather than mirrored into state by an effect, which is what
+  // the cascading-render warning was about.
+  const [statusOverride, setStatusOverride] = useState(null);
+  const statusValue = statusOverride ?? order?.status ?? 'Order Confirmed';
+
   const handleStatusChange = async (e) => {
     const newStatus = e.target.value;
-    setStatusValue(newStatus);
+    setStatusOverride(newStatus);
     setError('');
     try {
-      await axios.patch(`${API_BASE_URL}/order/status/${orderNumber}`, { status: newStatus });
-      // Refetch all books for this order after successful update
-      const res = await axios.get(`${API_BASE_URL}/order/${orderNumber}`);
-      setOrder(res.data);
-      setStatusValue(res.data.status);
-      setError('');
+      // The mutation invalidates this order, so the refetch is automatic.
+      await updateStatus(newStatus);
+      setStatusOverride(null);
     } catch (error) {
       setError('Failed to update status: ' + error.message);
+      setStatusOverride(null);
     }
   };
 
-  const [order, setOrder] = useState(null);
 
   if (!order) return <div>Loading...</div>;
 

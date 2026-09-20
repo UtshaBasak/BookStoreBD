@@ -18,6 +18,7 @@
   },
   "dependencies": {
     "@tailwindcss/vite": "^4.3.3",
+    "@tanstack/react-query": "^5.103.1",
     "axios": "^1.20.0",
     "notistack": "^3.0.2",
     "react": "^19.3.0",

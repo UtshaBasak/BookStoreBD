@@ -3,7 +3,16 @@ import { Link, useNavigate } from 'react-router-dom';
 import { FaChevronLeft, FaChevronRight, FaHeart, FaRegHeart, FaBell, FaComments } from 'react-icons/fa';
 import './Homepage.css';
 import { io } from 'socket.io-client';
-import { API_BASE_URL, apiFetch, signOut } from '../config/api.js';
+import { API_BASE_URL, signOut } from '../config/api.js';
+import {
+  useProfile,
+  useBooks,
+  useWishlist,
+  useCart,
+  useUnreadChatCount,
+  useToggleCart,
+  useToggleWishlist,
+} from '../hooks/queries.js';
 
 const genres = [
   'Fiction',
@@ -23,84 +32,55 @@ const genres = [
 ];
 
 export default function Homepage() {
-  const [user, setUser] = useState(null);
-  const [profilePic, setProfilePic] = useState(null);
-  const [username, setUsername] = useState('');
   const [showDropdown, setShowDropdown] = useState(false);
-  const [popularBooks, setPopularBooks] = useState([]);
-  const [wishlist, setWishlist] = useState({});
-  const [cart, setCart] = useState({});
   const [searchInput, setSearchInput] = useState('');
-  const [unreadCount, setUnreadCount] = useState(0);
   const scrollRef = React.useRef();
   const navigate = useNavigate();
   const userEmail = localStorage.getItem('userEmail');
 
-  useEffect(() => {
-    const email = localStorage.getItem('userEmail');
-    if (email) {
-      setUser({ email });
-      apiFetch(`${API_BASE_URL}/user/profile?email=${email}`)
-        .then(res => res.ok ? res.json() : null)
-        .then(data => {
-          if (data) {
-            if (data.profilePicture) setProfilePic(data.profilePicture);
-            if (data.username) setUsername(data.username);
-          }
-        });
-    }
-  }, []);
+  // Everything below is derived from queries rather than copied into state by
+  // an effect. Two pages asking for the cart now share one request and one
+  // answer, and none of them reimplements a loading flag.
+  const { data: profile } = useProfile(userEmail, { enabled: Boolean(userEmail) });
+  const profilePic = profile?.profilePicture ?? null;
+  const username = profile?.username ?? '';
+  const user = userEmail ? { email: userEmail } : null;
+
+  const { data: popularBooks = [] } = useBooks({
+    select: (data) => {
+      if (!Array.isArray(data)) return [];
+      const seen = new Set();
+      const flat = [];
+      for (const book of data) {
+        const key = `${book.title}__${book.bookType}`;
+        if (seen.has(key)) continue;
+        seen.add(key);
+        flat.push(book);
+      }
+      flat.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+      return flat.slice(0, 10);
+    },
+  });
+
+  const toMap = (list) => Object.fromEntries((list ?? []).map((book) => [book._id, true]));
+  const { data: wishlist = {} } = useWishlist({ enabled: Boolean(userEmail), select: toMap });
+  const { data: cart = {} } = useCart({ enabled: Boolean(userEmail), select: toMap });
+
+  const { mutate: toggleWishlistMutation } = useToggleWishlist();
+  const { mutate: toggleCartMutation } = useToggleCart();
+
+  const { data: unread } = useUnreadChatCount(Boolean(userEmail));
+  // Live arrivals bump the badge on top of whatever the query last returned.
+  const [liveUnread, setLiveUnread] = useState(0);
+  const unreadCount = (unread?.count ?? 0) + liveUnread;
 
   useEffect(() => {
-    apiFetch(`${API_BASE_URL}/book`)
-      .then(res => res.ok ? res.json() : [])
-      .then(data => {
-        if (!Array.isArray(data)) return setPopularBooks([]);
-        const seen = new Set();
-        const flat = [];
-        data.forEach(book => {
-          const key = `${book.title}__${book.bookType}`;
-          if (!seen.has(key)) {
-            seen.add(key);
-            flat.push(book);
-          }
-        });
-        flat.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-        setPopularBooks(flat.slice(0, 10));
-      });
-  }, []);
+    if (!userEmail) return undefined;
 
-  useEffect(() => {
-    if (!userEmail) return;
-    apiFetch(`${API_BASE_URL}/wishlist?email=${encodeURIComponent(userEmail)}`)
-      .then(res => res.json())
-      .then(data => {
-        const wishMap = {};
-        data.forEach(book => { wishMap[book._id] = true; });
-        setWishlist(wishMap);
-      });
-    apiFetch(`${API_BASE_URL}/cart?email=${encodeURIComponent(userEmail)}`)
-      .then(res => res.json())
-      .then(data => {
-        const cartObj = {};
-        data.forEach(book => { cartObj[book._id] = true; });
-        setCart(cartObj);
-      });
-  }, [userEmail]);
-
-  useEffect(() => {
-    if (!userEmail) return;
-
-    // Fetch initial unread count
-    apiFetch(`${API_BASE_URL}/chat/unread/${userEmail}`)
-      .then(res => res.json())
-      .then(data => setUnreadCount(data.count));
-
-    // Listen for new messages
-    const socket = io(API_BASE_URL);
+    const socket = io(API_BASE_URL || window.location.origin);
     socket.on('receive_message', (data) => {
       if (data.receiver === userEmail && !window.location.pathname.includes('/chat')) {
-        setUnreadCount(prev => prev + 1);
+        setLiveUnread((count) => count + 1);
       }
     });
 
@@ -109,8 +89,6 @@ export default function Homepage() {
 
   const handleSignOut = async () => {
     await signOut();
-    setUser(null);
-    setProfilePic(null);
     setShowDropdown(false);
     navigate('/sign-in');
   };
@@ -125,18 +103,8 @@ export default function Homepage() {
       alert('Please sign in to use wishlist.');
       return;
     }
-    const isInWishlist = !!wishlist[bookId];
-    apiFetch(`${API_BASE_URL}/wishlist/${isInWishlist ? 'remove' : 'add'}/${bookId}`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email: userEmail })
-    })
-      .then(res => res.json())
-      .then(data => {
-        const wishMap = {};
-        data.forEach(book => { wishMap[book._id] = true; });
-        setWishlist(wishMap);
-      });
+    // The mutation invalidates the wishlist, so every page showing it updates.
+    toggleWishlistMutation({ bookId, inWishlist: Boolean(wishlist[bookId]) });
   };
 
   const toggleCart = (bookId) => {
@@ -144,25 +112,10 @@ export default function Homepage() {
       alert('Please sign in to use cart.');
       return;
     }
-    const isInCart = !!cart[bookId];
-    apiFetch(`${API_BASE_URL}/cart/${isInCart ? 'remove' : 'add'}/${bookId}`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email: userEmail })
-    })
-      .then(res => {
-        if (!res.ok) throw new Error('Failed to update cart');
-        return res.json();
-      })
-      .then(data => {
-        const cartMap = {};
-        data.forEach(book => { cartMap[book._id] = true; });
-        setCart(cartMap);
-      })
-      .catch(error => {
-        console.error('Cart operation failed:', error);
-        alert('Failed to update cart. Please try again.');
-      });
+    toggleCartMutation(
+      { bookId, inCart: Boolean(cart[bookId]) },
+      { onError: () => alert('Failed to update cart. Please try again.') }
+    );
   };
 
   const scrollAmount = 320;

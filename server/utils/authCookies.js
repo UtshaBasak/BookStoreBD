@@ -1,4 +1,5 @@
 import { config } from '../config/env.js';
+import { API_PREFIX } from '../config/apiPaths.js';
 
 /**
  * The refresh token lives in an httpOnly cookie so page JavaScript cannot read
@@ -9,7 +10,10 @@ import { config } from '../config/env.js';
  * so it is not attached to every ordinary API call.
  */
 export const REFRESH_COOKIE = 'refreshToken';
-export const REFRESH_COOKIE_PATH = '/auth';
+// Must match where the auth routes actually live: a browser only sends a
+// cookie whose Path is a prefix of the request path, so scoping it to
+// '/auth' while the endpoint sits at '/api/auth' means it is never sent.
+export const REFRESH_COOKIE_PATH = `${API_PREFIX}/auth`;
 
 const baseOptions = () => ({
   httpOnly: true,

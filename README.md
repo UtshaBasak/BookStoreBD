@@ -91,6 +91,7 @@ both new and used books. It ships three distinct experiences from one codebase:
 | Layer        | Technology                                              |
 | ------------ | ------------------------------------------------------- |
 | Frontend     | React 19, React Router 7, Vite 8, Tailwind CSS 4         |
+| Data fetching| TanStack Query                                           |
 | Backend      | Node.js, Express 5                                       |
 | Database     | MongoDB with Mongoose 9                                  |
 | Real-time    | Socket.IO 4                                              |
@@ -138,7 +139,10 @@ MernBookstore/
 │   ├── src/
 │   │   ├── components/          # Reusable UI (chat window, table, spinner…)
 │   │   ├── config/
-│   │   │   └── api.js           # API origin + authenticated fetch/axios
+│   │   │   ├── api.js           # API origin + authenticated fetch/axios
+│   │   │   └── queryClient.js   # TanStack Query defaults
+│   │   ├── hooks/
+│   │   │   └── queries.js       # One place for every query and mutation
 │   │   ├── pages/               # Route-level screens
 │   │   │   ├── admin/           # Admin-only screens
 │   │   │   └── buyer/           # Buyer-only screens
@@ -475,7 +479,14 @@ Cloudinary would be worse than no suite at all.
 
 ## API reference
 
-Base URL: `http://localhost:4000` in development.
+All endpoints live under **`/api`**, with `/health` at the root.
+
+The namespace is not decoration: the client and API share an origin, and
+`/cart`, `/wishlist`, `/book`, `/chat` and `/filter` are each both a page and
+an endpoint. Without it a proxy cannot tell which one a request wants.
+
+Base URL: `http://localhost:5173/api` in development (proxied), or
+`http://localhost:4000/api` straight to the API.
 
 All routes sit behind a per-IP rate limiter (see
 [`server/middleware/rateLimit.js`](server/middleware/rateLimit.js)); `/auth` is
