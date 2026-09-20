@@ -10,10 +10,18 @@ concurrency:
   group: ci-${{ github.ref }}
   cancel-in-progress: true
 
+# Without this, the workflow inherits the repository default, which is usually
+# write access to every scope. These jobs only check out the code and run npm,
+# so read access to the contents is all they need.
+permissions:
+  contents: read
+
 jobs:
   client:
     name: Client (lint + build)
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     defaults:
       run:
         working-directory: client
@@ -38,6 +46,8 @@ jobs:
   server:
     name: Server (lint + smoke)
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     defaults:
       run:
         working-directory: server
