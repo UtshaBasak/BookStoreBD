@@ -1,0 +1,136 @@
+# Dependabot version updates
+# https://docs.github.com/code-security/dependabot/dependabot-version-updates/configuration-options-for-the-dependabot.yml-file
+#
+# This repository has three npm manifests (root tooling, client, server), so
+# each one needs its own entry — Dependabot does not recurse into directories.
+
+version: 2
+
+updates:
+  # ---------------------------------------------------------------------------
+  # Root: shared tooling only (concurrently)
+  # ---------------------------------------------------------------------------
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      time: "06:00"
+      timezone: Asia/Dhaka
+    open-pull-requests-limit: 5
+    labels:
+      - dependencies
+    commit-message:
+      prefix: "chore(deps)"
+      prefix-development: "chore(deps-dev)"
+      include: scope
+    groups:
+      root-tooling:
+        patterns:
+          - "*"
+        update-types:
+          - minor
+          - patch
+
+  # ---------------------------------------------------------------------------
+  # Client: React + Vite frontend
+  # ---------------------------------------------------------------------------
+  - package-ecosystem: npm
+    directory: /client
+    schedule:
+      interval: weekly
+      day: monday
+      time: "06:00"
+      timezone: Asia/Dhaka
+    open-pull-requests-limit: 10
+    labels:
+      - dependencies
+      - client
+    commit-message:
+      prefix: "chore(deps)"
+      prefix-development: "chore(deps-dev)"
+      include: scope
+    groups:
+      # Keep React and the router in lockstep — they are released together and
+      # a partial bump is the usual cause of a broken build.
+      react:
+        patterns:
+          - react
+          - react-dom
+          - react-router-dom
+          - "@types/react"
+          - "@types/react-dom"
+      # Vite, the SWC plugin and Tailwind are tightly coupled to each other.
+      build-tooling:
+        patterns:
+          - vite
+          - "@vitejs/*"
+          - tailwindcss
+          - "@tailwindcss/*"
+          - postcss
+          - autoprefixer
+      linting:
+        patterns:
+          - eslint
+          - "@eslint/*"
+          - eslint-plugin-*
+          - globals
+      minor-and-patch:
+        patterns:
+          - "*"
+        update-types:
+          - minor
+          - patch
+
+  # ---------------------------------------------------------------------------
+  # Server: Express + MongoDB API
+  # ---------------------------------------------------------------------------
+  - package-ecosystem: npm
+    directory: /server
+    schedule:
+      interval: weekly
+      day: monday
+      time: "06:00"
+      timezone: Asia/Dhaka
+    open-pull-requests-limit: 10
+    labels:
+      - dependencies
+      - server
+    commit-message:
+      prefix: "chore(deps)"
+      prefix-development: "chore(deps-dev)"
+      include: scope
+    groups:
+      linting:
+        patterns:
+          - eslint
+          - "@eslint/*"
+          - globals
+      minor-and-patch:
+        patterns:
+          - "*"
+        update-types:
+          - minor
+          - patch
+
+  # ---------------------------------------------------------------------------
+  # GitHub Actions used by the CI and CodeQL workflows
+  # ---------------------------------------------------------------------------
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      time: "06:00"
+      timezone: Asia/Dhaka
+    open-pull-requests-limit: 5
+    labels:
+      - dependencies
+      - github-actions
+    commit-message:
+      prefix: "chore(ci)"
+      include: scope
+    groups:
+      actions:
+        patterns:
+          - "*"
