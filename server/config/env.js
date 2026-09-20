@@ -1,7 +1,12 @@
 import dotenv from 'dotenv';
 
-// quiet: dotenv 17+ otherwise prints a promotional banner on every boot.
-dotenv.config({ quiet: true });
+// Skipped under Vitest so tests are hermetic. Without this a developer's own
+// server/.env would leak in and a suite could pass or fail depending on which
+// optional integrations they happened to have configured.
+if (!process.env.VITEST) {
+  // quiet: dotenv 17+ otherwise prints a promotional banner on every boot.
+  dotenv.config({ quiet: true });
+}
 
 const parseOrigins = (value) =>
   (value ?? '')

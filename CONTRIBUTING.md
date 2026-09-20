@@ -112,6 +112,10 @@ Open the PR against `master` and fill in the template.
   `vitest` explicitly rather than relying on globals, so ESLint stays happy.
   Server tests use the helpers in `server/tests/helpers/`; do not start your
   own MongoDB instance, one is shared across the run.
+- **Tests are hermetic.** `server/.env` is not read under Vitest, and the
+  optional integration variables are cleared in every worker, so a suite cannot
+  pass or fail based on which services a given developer happens to have
+  configured. A test that needs one sets it itself.
 
 ---
 

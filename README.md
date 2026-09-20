@@ -460,6 +460,11 @@ means a real bug has come back.
 
 Both suites run in CI on every push and pull request.
 
+The server suite is hermetic: `server/.env` is deliberately not read under
+Vitest, and optional integration variables are cleared in each worker. A suite
+that passed or failed depending on whether a developer had configured
+Cloudinary would be worse than no suite at all.
+
 ---
 
 ## API reference
