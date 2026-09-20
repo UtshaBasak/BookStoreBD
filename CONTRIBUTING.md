@@ -95,7 +95,7 @@ Open the PR against `master` and fill in the template.
 - **Formatting:** 2-space indent, single quotes, semicolons, LF line endings.
   [`.editorconfig`](.editorconfig) and [`.gitattributes`](.gitattributes) enforce
   the whitespace rules automatically in most editors.
-- **Linting:** ESLint 9 flat config, one per package. Fix warnings rather than
+- **Linting:** ESLint 10 flat config, one per package. Fix warnings rather than
   disabling rules; if a disable is genuinely needed, add a comment explaining why.
 
 ---

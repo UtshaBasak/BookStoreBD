@@ -173,19 +173,6 @@ export const getOrderByOrderNumber = async (req, res) => {
   }
 };
 
-// Update order status
-export const updateOrderStatus = async (req, res) => {
-  try {
-    const id = asTrimmedString(req.params.id);
-    const status = asTrimmedString(req.body.status);
-    const order = await Order.findByIdAndUpdate(id, { status }, { returnDocument: 'after' });
-    if (!order) return res.status(404).json({ message: 'Order not found' });
-    res.status(200).json(order);
-  } catch (err) {
-    res.status(500).json({ message: err.message });
-  }
-};
-
 // Update order status by orderNumber (for all books in the order)
 export const updateOrderStatusByOrderNumber = async (req, res) => {
   try {

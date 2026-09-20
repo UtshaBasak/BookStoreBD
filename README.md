@@ -83,14 +83,15 @@ both new and used books. It ships three distinct experiences from one codebase:
 
 | Layer        | Technology                                              |
 | ------------ | ------------------------------------------------------- |
-| Frontend     | React 19, React Router 7, Vite 6, Tailwind CSS 4         |
+| Frontend     | React 19, React Router 7, Vite 8, Tailwind CSS 4         |
 | Backend      | Node.js, Express 5                                       |
-| Database     | MongoDB with Mongoose 8                                  |
+| Database     | MongoDB with Mongoose 9                                  |
 | Real-time    | Socket.IO 4                                              |
 | HTTP clients | Axios and the native `fetch` API                         |
 | Uploads      | Multer (in-memory, persisted as base64)                  |
+| Hardening    | express-rate-limit, request sanitisation                 |
 | Email        | Nodemailer                                               |
-| Tooling      | ESLint 9, GitHub Actions, CodeQL                         |
+| Tooling      | ESLint 10, GitHub Actions, CodeQL                       |
 
 ---
 
@@ -134,7 +135,7 @@ MernBookstore/
 │   │   │   ├── admin/           # Admin-only screens
 │   │   │   └── buyer/           # Buyer-only screens
 │   │   ├── styles/              # Shared stylesheets
-│   │   ├── utils/               # Socket.IO singleton and helpers
+│   │   ├── utils/               # Socket.IO singleton, safe image sources
 │   │   ├── App.jsx              # Router and route guards
 │   │   └── main.jsx             # React entry point
 │   ├── .env.example
@@ -149,12 +150,16 @@ MernBookstore/
 │   │   └── env.js               # Typed, validated environment config
 │   ├── controllers/             # Request handlers, one per domain
 │   ├── middleware/
-│   │   └── errorHandler.js      # 404 + centralised error responses
+│   │   ├── errorHandler.js      # 404 + centralised error responses
+│   │   ├── rateLimit.js         # Per-IP request ceilings
+│   │   └── sanitizeRequest.js   # Strips Mongo operator keys from input
 │   ├── models/                  # Mongoose schemas
 │   ├── routes/                  # Express routers, one per domain
 │   ├── sockets/
 │   │   └── chatSocket.js        # Socket.IO room and message handling
 │   ├── utils/
+│   │   ├── error.js             # Error factory used by controllers
+│   │   └── sanitize.js          # Narrows request values before a query
 │   ├── .env.example
 │   ├── app.js                   # createApp() factory
 │   └── index.js                 # Bootstrap and graceful shutdown
@@ -263,6 +268,11 @@ Run these from the repository root:
 
 Base URL: `http://localhost:4000` in development.
 
+All routes sit behind a per-IP rate limiter (see
+[`server/middleware/rateLimit.js`](server/middleware/rateLimit.js)); `/auth` is
+held to a tighter ceiling than the rest. Responses carry `RateLimit-*` headers,
+and an exhausted limit returns `429`.
+
 ### Health
 
 | Method | Endpoint  | Description                       |
@@ -311,6 +321,7 @@ Base URL: `http://localhost:4000` in development.
 | `GET`  | `/cart?email=`         | Items in a user's cart (in-stock only) |
 | `POST` | `/cart/add/:id`        | Add a book to the cart                 |
 | `POST` | `/cart/remove/:id`     | Remove a book from the cart            |
+| `POST` | `/cart/clear`          | Empty a cart, called after checkout    |
 | `GET`  | `/wishlist?email=`     | Items in a user's wishlist             |
 | `POST` | `/wishlist/add/:id`    | Add a book to the wishlist             |
 | `POST` | `/wishlist/remove/:id` | Remove a book from the wishlist        |

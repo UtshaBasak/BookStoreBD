@@ -1,3 +1,6 @@
+import path from 'path';
+import { fileURLToPath } from 'url';
+
 import express from 'express';
 import cors from 'cors';
 
@@ -34,6 +37,12 @@ export const createApp = () => {
   app.use(express.json({ limit: '25mb' }));
   app.use(express.urlencoded({ extended: true, limit: '25mb' }));
   app.use(sanitizeRequest);
+
+  // Book covers are stored on the document as base64, but the client still
+  // falls back to `/uploads/<filename>` for older records that hold a bare
+  // filename, so the directory stays served.
+  const currentDir = path.dirname(fileURLToPath(import.meta.url));
+  app.use('/uploads', express.static(path.join(currentDir, 'uploads')));
 
   app.get('/health', (req, res) => {
     res.status(200).json({ status: 'ok', uptime: process.uptime() });
