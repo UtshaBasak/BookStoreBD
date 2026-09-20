@@ -120,6 +120,8 @@ const BOOKS = [
   },
 ];
 
+// Deliberately console rather than the pino logger: this is a CLI whose
+// output is read by a person, and structured JSON would be worse here.
 const log = (...args) => console.log('[seed]', ...args);
 
 const seedAccounts = async () => {

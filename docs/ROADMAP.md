@@ -8,9 +8,10 @@ commit, so any one of them can be reverted without unpicking the others.
 all three package roots report zero dependency vulnerabilities; CodeQL reports
 five findings, all confirmed false positives in the same rule
 (`js/xss-through-dom`). Authentication and authorisation are enforced
-server-side. Tasks 1 and 7 are complete: **120 tests** (76 server, 44 client)
-gate every push, and `docker compose up` brings the whole stack up with no
-local Node or MongoDB install.
+server-side. Tasks 1, 7 and 5 are complete: **144 tests** (93 server, 51
+client) gate every push, `docker compose up` brings the whole stack up with no
+local Node or MongoDB install, and the API emits structured logs with a
+correlation id per request.
 
 ---
 
@@ -23,7 +24,7 @@ before any deployment work resumes.
 | ----: | ---- | ----- | ---------- | ---- |
 | ~~1~~ | ~~[Automated tests](#1--automated-tests)~~ **done** | Foundation | — | Low |
 | ~~2~~ | ~~[Docker Compose](#7--docker-compose)~~ (task 7) **done** | Foundation | — | Low |
-| 3 | [Structured logging](#5--structured-logging-and-error-tracking) (task 5) | Foundation | — | Low |
+| ~~3~~ | ~~[Structured logging](#5--structured-logging-and-error-tracking)~~ (task 5) **done** | Foundation | — | Low |
 | 4 | [Zod validation](#3--request-validation-with-zod) (task 3) | Hardening | 1 | Medium |
 | 5 | [Refresh tokens](#2--refresh-tokens-and-logout) (task 2) | Hardening | 1 | High |
 | 6 | [Cloudinary image storage](#4--move-images-out-of-mongodb-cloudinary) (task 4) | Larger | 1 | Medium |
@@ -136,10 +137,10 @@ server.
 
 ---
 
-## 5 · Structured logging and error tracking
+## 5 · Structured logging and error tracking — done
 
-*Runs third — low risk, quick, and it makes everything after it easier to
-debug.*
+*Landed. One structured line per request with a correlation id, secrets
+redacted, and optional Sentry reporting.*
 
 **Scope**
 
@@ -150,6 +151,22 @@ debug.*
 
 Log levels via `LOG_LEVEL`, defaulting to `info` in production and `debug` in
 development.
+
+**Done.** All 27 `console` calls in the application replaced with named child
+loggers. Each request carries a correlation id, returned as `X-Request-Id` and
+reused if an upstream proxy supplied one. `Authorization`, cookies, passwords,
+OTP codes and tokens are redacted before anything is written. Health checks are
+excluded from the access log. Sentry is wired but entirely optional: with no
+`SENTRY_DSN` nothing is initialised and nothing leaves the process. On the
+client, an error boundary replaces the blank white page a render error used to
+produce.
+
+One bug found by reading the real output: the access log said `GET /` for every
+routed request, because Express rewrites `req.url` relative to a router's mount
+point. It uses `req.originalUrl` now, and a test pins it.
+
+`scripts/seed.js` deliberately keeps `console`, being a CLI whose output is read
+by a person.
 
 ---
 

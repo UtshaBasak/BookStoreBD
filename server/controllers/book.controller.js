@@ -1,5 +1,8 @@
 import AddBook from '../models/AddBook.model.js';
 import { LIST_IMAGE_PROJECTION } from '../utils/projections.js';
+import { createLogger } from '../config/logger.js';
+
+const log = createLogger('book');
 
 // Get book details with related books
 export const getBookById = async (req, res) => {
@@ -29,7 +32,7 @@ export const getBookById = async (req, res) => {
 
         res.status(200).json(bookResponse);
     } catch (error) {
-        console.error('Error fetching book:', error);
+        log.error({ err: error }, 'Error fetching book');
         res.status(500).json({ message: 'Error fetching book details' });
     }
 };

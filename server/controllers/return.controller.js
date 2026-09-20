@@ -2,6 +2,9 @@ import Order from '../models/Order.model.js';
 import ReturnRequest from '../models/ReturnRequest.model.js';
 import AddBook from '../models/AddBook.model.js';
 import { asTrimmedString } from '../utils/sanitize.js';
+import { createLogger } from '../config/logger.js';
+
+const log = createLogger('return');
 
 export const returnBook = async (req, res) => {
   try {
@@ -38,7 +41,7 @@ export const returnBook = async (req, res) => {
       returnId: returnRequest._id
     });
   } catch (error) {
-    console.error('Return Error:', error);
+    log.error({ err: error }, 'Failed to process return request');
     res.status(500).json({ message: 'Failed to process return request' });
   }
 };
@@ -50,7 +53,7 @@ export const getReturnRequests = async (req, res) => {
     const requests = await ReturnRequest.find(query).sort({ createdAt: -1 });
     res.json(requests);
   } catch (error) {
-    console.error('Error fetching return requests:', error);
+    log.error({ err: error }, 'Error fetching return requests');
     res.status(500).json({ message: 'Error fetching return requests' });
   }
 };
@@ -72,7 +75,7 @@ export const updateReturnStatus = async (req, res) => {
 
     res.json(updatedRequest);
   } catch (error) {
-    console.error('Error updating return request:', error);
+    log.error({ err: error }, 'Error updating return request');
     res.status(500).json({ message: 'Error updating return request' });
   }
 };

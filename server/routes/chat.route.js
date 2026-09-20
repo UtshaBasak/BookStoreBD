@@ -5,6 +5,9 @@ import User from '../models/user.model.js';
 import { config } from '../config/env.js';
 import { asTrimmedString } from '../utils/sanitize.js';
 import { requireAuth } from '../middleware/auth.js';
+import { createLogger } from '../config/logger.js';
+
+const log = createLogger('chat');
 
 const router = express.Router();
 
@@ -108,7 +111,7 @@ router.get('/history/:email', async (req, res) => {
 
         res.json(chatUsers);
     } catch (error) {
-        console.error('Chat history error:', error);
+        log.error({ err: error }, 'Chat history error');
         res.status(500).json({ message: error.message });
     }
 });
@@ -141,7 +144,7 @@ router.post('/message', upload.single('image'), async (req, res) => {
         await newMessage.save();
         res.status(201).json(newMessage);
     } catch (error) {
-        console.error('Chat message error:', error);
+        log.error({ err: error }, 'Chat message error');
         res.status(500).json({ message: error.message });
     }
 });

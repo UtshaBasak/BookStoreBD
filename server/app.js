@@ -7,6 +7,7 @@ import cors from 'cors';
 import { corsOptions } from './config/cors.js';
 import { errorHandler, notFoundHandler } from './middleware/errorHandler.js';
 import { sanitizeRequest } from './middleware/sanitizeRequest.js';
+import { requestLogger } from './middleware/requestLogger.js';
 import { apiLimiter, authLimiter, writeLimiter } from './middleware/rateLimit.js';
 
 import authRouter from './routes/auth.route.js';
@@ -30,6 +31,10 @@ export const createApp = () => {
   // Behind Render's proxy, so the rate limiter keys on the real client IP
   // rather than on the proxy's.
   app.set('trust proxy', 1);
+
+  // First, so every downstream log line carries the request id and a failure
+  // during body parsing is still recorded.
+  app.use(requestLogger);
 
   app.use(cors(corsOptions));
   // Book covers and chat attachments are sent as base64, so the default 100kb

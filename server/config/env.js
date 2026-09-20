@@ -18,6 +18,10 @@ export const config = {
   corsOrigins: parseOrigins(process.env.CORS_ORIGINS).length
     ? parseOrigins(process.env.CORS_ORIGINS)
     : DEFAULT_ORIGINS,
+  // Explicit level wins; otherwise logger.js picks one from the environment.
+  logLevel: process.env.LOG_LEVEL,
+  // Optional. Error reporting stays switched off when this is unset.
+  sentryDsn: process.env.SENTRY_DSN,
   jwt: {
     secret: process.env.JWT_SECRET,
     expiresIn: process.env.JWT_EXPIRES_IN ?? '7d',

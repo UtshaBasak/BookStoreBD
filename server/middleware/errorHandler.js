@@ -1,3 +1,6 @@
+import { logger } from '../config/logger.js';
+import { captureException } from '../config/sentry.js';
+
 /** Catch-all for unmatched routes. Runs before the error handler below. */
 export const notFoundHandler = (req, res) => {
   res.status(404).json({
@@ -14,7 +17,11 @@ export const errorHandler = (err, req, res, next) => {
   const message = err.message || 'Internal Server Error';
 
   if (statusCode >= 500) {
-    console.error('Unhandled error:', err);
+    // req.log carries the request id, so the stack ties back to the access
+    // log line for the same request.
+    (req.log ?? logger).error({ err }, 'Unhandled error');
+    // No-op unless SENTRY_DSN is configured.
+    captureException(err, { requestId: req.id, method: req.method, url: req.originalUrl });
   }
 
   res.status(statusCode).json({

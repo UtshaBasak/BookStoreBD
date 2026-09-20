@@ -1,6 +1,9 @@
 import AddBook from '../models/AddBook.model.js';
 import Order from '../models/Order.model.js';
 import { asTrimmedString } from '../utils/sanitize.js';
+import { createLogger } from '../config/logger.js';
+
+const log = createLogger('order');
 
 // Generate a unique 16-character order number (uppercase letters and numbers)
 async function generateUniqueOrderNumber() {
@@ -224,7 +227,7 @@ export const getAllOrders = async (req, res) => {
     res.status(200).json(orders);
   } catch (err) {
     // Log the error for debugging
-    console.error('Error in getAllOrders:', err);
+    log.error({ err }, 'Error in getAllOrders');
     res.status(500).json({ message: err.message || 'Internal Server Error' });
   }
 };

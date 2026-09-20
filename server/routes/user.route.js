@@ -13,6 +13,9 @@ import User from '../models/user.model.js';
 import { config } from '../config/env.js';
 import { asTrimmedString } from '../utils/sanitize.js';
 import { requireAuth, requireAdmin, optionalAuth } from '../middleware/auth.js';
+import { createLogger } from '../config/logger.js';
+
+const log = createLogger('user-routes');
 
 const router = express.Router();
 
@@ -69,7 +72,7 @@ router.post(
       await newBook.save();
       res.status(201).json({ message: 'Book added successfully!', book: newBook });
     } catch (error) {
-      console.error('AddBook error:', error);
+      log.error({ err: error }, 'AddBook error');
       // Stack traces must never be returned to clients.
       res.status(500).json({ message: 'Failed to add book', error: error.message });
     }
@@ -92,7 +95,7 @@ router.get('/', requireAuth, requireAdmin, async (req, res) => {
     const users = await User.find({}).select('-password');
     res.status(200).json(users);
   } catch (error) {
-    console.error('Error fetching users:', error);
+    log.error({ err: error }, 'Error fetching users');
     res.status(500).json({ message: 'Failed to fetch users', error: error.message });
   }
 });
@@ -110,7 +113,7 @@ router.delete('/:id', requireAuth, requireAdmin, async (req, res) => {
     }
     return res.status(200).json({ message: 'User deleted successfully' });
   } catch (error) {
-    console.error('Error deleting user:', error);
+    log.error({ err: error }, 'Error deleting user');
     return res.status(500).json({ message: 'Failed to delete user', error: error.message });
   }
 });

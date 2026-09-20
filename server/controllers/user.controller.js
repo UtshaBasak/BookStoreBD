@@ -1,6 +1,9 @@
 import bcryptjs from 'bcryptjs';
 import User from '../models/user.model.js';
 import { asTrimmedString } from '../utils/sanitize.js';
+import { createLogger } from '../config/logger.js';
+
+const log = createLogger('user');
 
 export const test = (req,res) =>{
     res.json({
@@ -48,7 +51,7 @@ export const getUserProfile = async (req, res) => {
                 : publicProfile
         );
     } catch (error) {
-        console.error('Error fetching profile:', error);
+        log.error({ err: error }, 'Error fetching profile');
         return res.status(500).json({ message: 'Server error' });
     }
 };
@@ -162,7 +165,7 @@ export const uploadDescriptionImages = async (req, res) => {
 
         res.status(200).json({ message: 'Images uploaded successfully', images: uploadedImages });
     } catch (error) {
-        console.error('Error uploading images:', error);
+        log.error({ err: error }, 'Error uploading images');
         res.status(500).json({ message: 'Failed to upload images', error });
     }
 };

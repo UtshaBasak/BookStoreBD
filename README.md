@@ -26,6 +26,7 @@
 - [Running with Docker](#running-with-docker)
 - [Environment variables](#environment-variables)
 - [Available scripts](#available-scripts)
+- [Observability](#observability)
 - [Testing](#testing)
 - [API reference](#api-reference)
 - [Real-time events](#real-time-events)
@@ -152,12 +153,15 @@ MernBookstore/
 │   ├── config/
 │   │   ├── cors.js              # Origin allow-list
 │   │   ├── database.js          # Mongoose connection lifecycle
-│   │   └── env.js               # Typed, validated environment config
+│   │   ├── env.js               # Typed, validated environment config
+│   │   ├── logger.js            # pino instance and redaction rules
+│   │   └── sentry.js            # Optional error reporting
 │   ├── controllers/             # Request handlers, one per domain
 │   ├── middleware/
 │   │   ├── auth.js              # Token verification, role and owner guards
 │   │   ├── errorHandler.js      # 404 + centralised error responses
 │   │   ├── rateLimit.js         # Per-IP request ceilings
+│   │   ├── requestLogger.js     # One line per request, with a request id
 │   │   └── sanitizeRequest.js   # Strips Mongo operator keys from input
 │   ├── models/                  # Mongoose schemas
 │   ├── routes/                  # Express routers, one per domain
@@ -301,6 +305,9 @@ check. `JWT_SECRET` is required; Compose refuses to start without it.
 | `SMTP_SERVICE`     |          | `gmail`                                                | Nodemailer service name                                 |
 | `SMTP_USER`        |   ✅ ¹   | —                                                      | SMTP account used as the sender                         |
 | `SMTP_PASS`        |   ✅ ¹   | —                                                      | SMTP password or app password                           |
+| `LOG_LEVEL`        |          | `debug` dev / `info` prod                              | pino level; `silent` under test                         |
+| `SENTRY_DSN`       |          | —                                                      | Enables error reporting; off entirely when unset        |
+| `SENTRY_TRACES_SAMPLE_RATE` |  | `0`                                                    | Fraction of transactions traced                         |
 | `MAX_UPLOAD_BYTES` |          | `5242880`                                              | Per-file upload ceiling (5 MB)                          |
 | `MAX_UPLOAD_FILES` |          | `10`                                                   | Files accepted per multi-upload request                 |
 
@@ -335,6 +342,38 @@ Run these from the repository root:
 | `npm run test:server` | Server suite only                                     |
 | `npm run test:client` | Client suite only                                     |
 | `npm run seed`        | Seeds demo data (run inside `server/`)                |
+
+---
+
+## Observability
+
+The API logs one structured line per request through
+[pino](https://getpino.io), pretty-printed while developing and newline-delimited
+JSON everywhere else.
+
+Every request carries a correlation id, returned as `X-Request-Id` and attached
+to each line logged while handling it. An id supplied upstream is reused, so a
+trace survives a proxy hop. A report of "it broke around 14:32" can then be tied
+to an exact request instead of guessed at from timestamps.
+
+`Authorization` headers, cookies, passwords, OTP codes and tokens are redacted
+before anything is written — logs get shared in issues and pasted into chat far
+more readily than a database does.
+
+```jsonc
+{"level":30,"time":"...","name":"auth","req":{"id":"6b1c…","method":"POST","url":"/auth/signin"},"res":{"statusCode":200},"msg":"POST /auth/signin 200"}
+```
+
+Health checks are excluded, since a container polls them constantly and they
+say nothing useful. Set `LOG_LEVEL` to override the default for the
+environment.
+
+Unhandled 5xx errors are additionally reported to
+[Sentry](https://sentry.io) when `SENTRY_DSN` is set. It is entirely optional —
+with no DSN, nothing is initialised and nothing leaves the process.
+
+On the client, an error boundary wraps the app, so a render error shows a
+recovery screen rather than a blank white page.
 
 ---
 

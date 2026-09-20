@@ -1,16 +1,19 @@
 import { Server } from 'socket.io';
 import { socketCorsOptions } from '../config/cors.js';
+import { createLogger } from '../config/logger.js';
+
+const log = createLogger('socket');
 
 /** Wires the buyer/seller chat rooms onto an existing HTTP server. */
 export const registerChatSocket = (httpServer) => {
   const io = new Server(httpServer, { cors: socketCorsOptions });
 
   io.on('connection', (socket) => {
-    console.log('User connected:', socket.id);
+    log.debug({ socketId: socket.id }, 'Socket connected');
 
     socket.on('join_chat', (room) => {
       socket.join(room);
-      console.log(`User ${socket.id} joined room: ${room}`);
+      log.debug({ socketId: socket.id, room }, 'Socket joined room');
     });
 
     socket.on('send_message', (data) => {
@@ -18,7 +21,7 @@ export const registerChatSocket = (httpServer) => {
     });
 
     socket.on('disconnect', () => {
-      console.log('User disconnected:', socket.id);
+      log.debug({ socketId: socket.id }, 'Socket disconnected');
     });
   });
 

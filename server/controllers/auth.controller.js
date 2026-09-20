@@ -7,6 +7,9 @@ import { errorHandler } from '../utils/error.js';
 import { config } from '../config/env.js';
 import { asTrimmedString } from '../utils/sanitize.js';
 import { signAccessToken } from '../utils/jwt.js';
+import { createLogger } from '../config/logger.js';
+
+const log = createLogger('auth');
 
 /**
  * Shapes the sign-in / sign-up response. The token is what authorises every
@@ -93,17 +96,17 @@ export const sendOtp = async (req, res) => {
         otpStore.set(email, { code, expiresAt: Date.now() + OTP_TTL_MS, verified: false });
         try {
             if (!config.smtp.user || !config.smtp.pass) {
-                console.error('SMTP credentials missing');
+                log.error('SMTP credentials missing; cannot send OTP');
                 return res.status(500).json({ message: "Email service not configured" });
             }
             await sendEmail(email, "Your OTP Code", `Your verification code is: ${code}`);
             res.json({ message: "OTP sent to email" });
         } catch (err) {
-            console.error('[sendOtp] Failed to send OTP:', err);
+            log.error({ err }, 'Failed to send OTP');
             res.status(500).json({ message: "Failed to send OTP" });
         }
     } catch (error) {
-        console.error('[sendOtp] Error:', error);
+        log.error({ err: error }, 'sendOtp failed');
         res.status(500).json({ message: "Internal server error" });
     }
 };
