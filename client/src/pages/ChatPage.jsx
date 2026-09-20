@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { FaHome, FaArrowLeft, FaPaperPlane, FaComments, FaTrash, FaImage } from 'react-icons/fa';
 import io from 'socket.io-client';
 import { API_BASE_URL } from '../config/api.js';
+import { safeObjectUrl } from '../utils/safeImageSrc.js';
 
 export default function ChatPage() {
     const [conversations, setConversations] = useState([]);
@@ -485,7 +486,7 @@ export default function ChatPage() {
                                         height: 40 
                                     }}>
                                         <img
-                                            src={URL.createObjectURL(selectedImage)}
+                                            src={safeObjectUrl(selectedImage)}
                                             alt="Selected"
                                             style={{
                                                 width: '100%',

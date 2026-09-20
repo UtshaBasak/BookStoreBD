@@ -1,6 +1,7 @@
 import express from 'express';
 import AddBook from '../models/AddBook.model.js';
 import { getBookById } from '../controllers/book.controller.js';
+import { asTrimmedString, asNonNegativeInt } from '../utils/sanitize.js';
 
 const router = express.Router();
 
@@ -17,7 +18,7 @@ router.get('/', async (req, res) => {
 // Fetch books by seller email
 router.get('/seller/:email', async (req, res) => {
   try {
-    const books = await AddBook.find({ sellerEmail: req.params.email });
+    const books = await AddBook.find({ sellerEmail: asTrimmedString(req.params.email) });
     res.status(200).json(books);
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -27,12 +28,12 @@ router.get('/seller/:email', async (req, res) => {
 // Update stock (non-negative integer only)
 router.put('/update-stock/:id', async (req, res) => {
   try {
-    const { stock } = req.body;
-    if (!Number.isInteger(stock) || stock < 0) {
+    const stock = asNonNegativeInt(req.body.stock);
+    if (stock === null) {
       return res.status(400).json({ message: 'Stock must be a non-negative integer' });
     }
     const book = await AddBook.findByIdAndUpdate(
-      req.params.id,
+      asTrimmedString(req.params.id),
       { stock },
       { returnDocument: 'after' }
     );
@@ -53,12 +54,12 @@ router.put('/update-stock/:id', async (req, res) => {
 // Update price (non-negative integer only)
 router.put('/update-price/:id', async (req, res) => {
   try {
-    const { price } = req.body;
-    if (!Number.isInteger(price) || price < 0) {
+    const price = asNonNegativeInt(req.body.price);
+    if (price === null) {
       return res.status(400).json({ message: 'Price must be a non-negative integer' });
     }
     const book = await AddBook.findByIdAndUpdate(
-      req.params.id,
+      asTrimmedString(req.params.id),
       { price },
       { returnDocument: 'after' }
     );
@@ -72,7 +73,7 @@ router.put('/update-price/:id', async (req, res) => {
 // Delete book by ID
 router.delete('/:id', async (req, res) => {
   try {
-    await AddBook.findByIdAndDelete(req.params.id);
+    await AddBook.findByIdAndDelete(asTrimmedString(req.params.id));
     res.status(200).json({ message: 'Book deleted successfully' });
   } catch (error) {
     res.status(500).json({ message: error.message });

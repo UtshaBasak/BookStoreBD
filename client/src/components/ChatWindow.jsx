@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { FaTimes, FaPaperPlane, FaImage } from 'react-icons/fa';
 import io from 'socket.io-client';
 import { API_BASE_URL } from '../config/api.js';
+import { safeObjectUrl } from '../utils/safeImageSrc.js';
 
 export default function ChatWindow({ receiver, receiverName, onClose }) {
   const [message, setMessage] = useState('');
@@ -222,7 +223,7 @@ export default function ChatWindow({ receiver, receiverName, onClose }) {
             height: 40
           }}>
             <img
-              src={URL.createObjectURL(selectedImage)}
+              src={safeObjectUrl(selectedImage)}
               alt="Selected"
               style={{
                 width: '100%',

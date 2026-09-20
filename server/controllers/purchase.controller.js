@@ -1,7 +1,8 @@
 import Purchase from '../models/Purchase.model.js';
+import { asTrimmedString } from '../utils/sanitize.js';
 
 export const getPurchasesByUser = async (req, res) => {
-  const { email } = req.query;
+  const email = asTrimmedString(req.query.email);
 
   try {
     const purchases = await Purchase.find({ userEmail: email }).populate('bookId');
@@ -11,7 +12,9 @@ export const getPurchasesByUser = async (req, res) => {
   }
 };
 export const createPurchase = async (req, res) => {
-  const { bookId, userEmail, quantity } = req.body;
+  const bookId = asTrimmedString(req.body.bookId);
+  const userEmail = asTrimmedString(req.body.userEmail);
+  const { quantity } = req.body;
 
   try {
     const newPurchase = new Purchase({

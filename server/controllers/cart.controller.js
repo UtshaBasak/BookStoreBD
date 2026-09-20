@@ -1,9 +1,10 @@
 import Cart from '../models/Cart.model.js';
 import User from '../models/user.model.js';
+import { asTrimmedString } from '../utils/sanitize.js';
 
 export const Cart_get = async (req, res) => {
   try {
-    const { email } = req.query;
+    const email = asTrimmedString(req.query.email);
     if (!email) return res.status(400).json({ message: 'Email required' });
     const user = await User.findOne({ email });
     if (!user) return res.status(404).json({ message: 'User not found' });
@@ -21,8 +22,8 @@ export const Cart_get = async (req, res) => {
 
 export const Cart_add = async (req, res) => {
   try {
-    const { email } = req.body;
-    const { id: bookId } = req.params;
+    const email = asTrimmedString(req.body.email);
+    const bookId = asTrimmedString(req.params.id);
     if (!email) return res.status(400).json({ message: 'Email required' });
     const user = await User.findOne({ email });
     if (!user) return res.status(404).json({ message: 'User not found' });
@@ -45,8 +46,8 @@ export const Cart_add = async (req, res) => {
 
 export const Cart_remove = async (req, res) => {
   try {
-    const { email } = req.body;
-    const { id: bookId } = req.params;
+    const email = asTrimmedString(req.body.email);
+    const bookId = asTrimmedString(req.params.id);
     if (!email) return res.status(400).json({ message: 'Email required' });
     const user = await User.findOne({ email });
     if (!user) return res.status(404).json({ message: 'User not found' });
@@ -65,7 +66,7 @@ export const Cart_remove = async (req, res) => {
 
 export const Cart_clear = async (req, res) => {
   try {
-    const { email } = req.body;
+    const email = asTrimmedString(req.body.email);
     if (!email) return res.status(400).json({ message: 'Email required' });
     const user = await User.findOne({ email });
     if (!user) return res.status(404).json({ message: 'User not found' });

@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { API_BASE_URL } from '../config/api.js';
+import { safeImageSrc, PLACEHOLDER_IMAGE } from '../utils/safeImageSrc.js';
 
 const PROMO_CODE = 'BookStore';
 const PROMO_DISCOUNT = 50.00;
@@ -148,10 +149,13 @@ export default function Payment() {
 
   const getBookImageSrc = (book) => {
     const img = book.images?.[0];
-    if (!img) return 'https://via.placeholder.com/80x120?text=No+Image';
-    if (img.startsWith('data:image/')) return img;
-    if (/^https?:\/\//.test(img)) return img;
-    return `${API_BASE_URL}/uploads/${img}`;
+    if (typeof img !== 'string' || !img) return PLACEHOLDER_IMAGE;
+    // The order is restored from localStorage, so the stored value is not
+    // trusted: validate the scheme before it reaches an <img src>.
+    if (img.startsWith('data:image/') || /^https?:\/\//.test(img)) {
+      return safeImageSrc(img, PLACEHOLDER_IMAGE);
+    }
+    return safeImageSrc(`${API_BASE_URL}/uploads/${encodeURIComponent(img)}`, PLACEHOLDER_IMAGE);
   };
 
   // Helper for sticker color

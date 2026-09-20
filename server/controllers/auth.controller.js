@@ -5,10 +5,13 @@ import nodemailer from 'nodemailer';
 import User from '../models/user.model.js';
 import { errorHandler } from '../utils/error.js';
 import { config } from '../config/env.js';
+import { asTrimmedString } from '../utils/sanitize.js';
 
-// In-memory OTP store: { email: { code, expiresAt, verified } }.
-// Fine for a single instance; move to Redis before scaling horizontally.
-const otpStore = {};
+// In-memory OTP store keyed by e-mail. A Map rather than a plain object: an
+// attacker who signs up as "__proto__" would otherwise assign through to
+// Object.prototype. Fine for a single instance; move to Redis before scaling
+// horizontally.
+const otpStore = new Map();
 
 const OTP_TTL_MS = 10 * 60 * 1000;
 
@@ -39,7 +42,9 @@ async function sendEmail(email, subject, text) {
 // Send OTP for registration or password reset
 export const sendOtp = async (req, res) => {
     try {
-        const { username, email, purpose } = req.body;
+        const username = asTrimmedString(req.body.username);
+        const email = asTrimmedString(req.body.email);
+        const purpose = asTrimmedString(req.body.purpose);
         if (!email) return res.status(400).json({ message: "Email is required" });
 
         if (purpose === 'register') {
@@ -61,7 +66,7 @@ export const sendOtp = async (req, res) => {
         }
 
         const code = generateOTP();
-        otpStore[email] = { code, expiresAt: Date.now() + OTP_TTL_MS };
+        otpStore.set(email, { code, expiresAt: Date.now() + OTP_TTL_MS, verified: false });
         try {
             if (!config.smtp.user || !config.smtp.pass) {
                 console.error('SMTP credentials missing');
@@ -81,22 +86,25 @@ export const sendOtp = async (req, res) => {
 
 // Verify OTP
 export const verifyOtp = (req, res) => {
-    const { email, code } = req.body;
+    const email = asTrimmedString(req.body.email);
+    const code = asTrimmedString(req.body.code);
     if (!email || !code) return res.status(400).json({ message: "Email and code required" });
-    const record = otpStore[email];
+    const record = otpStore.get(email);
     if (!record || record.code !== code || Date.now() > record.expiresAt) {
         return res.status(400).json({ message: "Invalid or expired OTP" });
     }
-    otpStore[email].verified = true;
+    record.verified = true;
     res.json({ message: "OTP verified" });
 };
 
 // Signup with OTP verification
 export const signup = async(req,res,next) =>{
-    const { username, email, password } = req.body;
+    const username = asTrimmedString(req.body.username);
+    const email = asTrimmedString(req.body.email);
+    const password = asTrimmedString(req.body.password);
     try {
         // Check OTP
-        if (!otpStore[email] || !otpStore[email].verified) {
+        if (!otpStore.get(email)?.verified) {
             return res.status(400).json({ message: "Email not verified. Please verify OTP." });
         }
         // Check for existing username or email
@@ -112,7 +120,7 @@ export const signup = async(req,res,next) =>{
         const hashedPassword = bcryptjs.hashSync(password,10);
         const newUser = new User ({username,email,password:hashedPassword});
         await newUser.save();
-        delete otpStore[email];
+        otpStore.delete(email);
         res.status(201).json("User created successfully")
     } catch (error) {
         // Handle duplicate key error (in case of race condition)
@@ -130,7 +138,8 @@ export const signup = async(req,res,next) =>{
 
 // Signin (no change)
 export const signin = async(req,res,next) =>{
-    const {email,password} = req.body;
+    const email = asTrimmedString(req.body.email);
+    const password = asTrimmedString(req.body.password);
     try{
         const validUser = await User.findOne({email});
         if (!validUser) return next (errorHandler(404,'User not found!'));
@@ -146,9 +155,11 @@ export const signin = async(req,res,next) =>{
 
 // Forgot password: send OTP (reuse sendOtp), verify OTP (reuse verifyOtp), then reset password
 export const resetPassword = async (req, res) => {
-    const { email, otp, newPassword } = req.body;
+    const email = asTrimmedString(req.body.email);
+    const otp = asTrimmedString(req.body.otp);
+    const newPassword = asTrimmedString(req.body.newPassword);
     if (!email || !otp || !newPassword) return res.status(400).json({ message: "All fields required" });
-    const record = otpStore[email];
+    const record = otpStore.get(email);
     if (!record || record.code !== otp || Date.now() > record.expiresAt) {
         return res.status(400).json({ message: "Invalid or expired OTP" });
     }
@@ -156,7 +167,7 @@ export const resetPassword = async (req, res) => {
     if (!user) return res.status(404).json({ message: "User not found" });
     user.password = bcryptjs.hashSync(newPassword, 10);
     await user.save();
-    delete otpStore[email];
+    otpStore.delete(email);
     res.json({ message: "Password reset successful" });
 };
 

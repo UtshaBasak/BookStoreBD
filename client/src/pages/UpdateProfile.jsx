@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { API_BASE_URL } from '../config/api.js';
+import { safeImageSrc, safeObjectUrl } from '../utils/safeImageSrc.js';
 
 export default function UpdateProfile() {
     const [formData, setFormData] = useState({
@@ -79,7 +80,7 @@ export default function UpdateProfile() {
         const file = e.target.files[0];
         setProfilePicture(file);
         if (file) {
-            setProfilePicturePreview(URL.createObjectURL(file));
+            setProfilePicturePreview(safeObjectUrl(file));
             setRemoveProfilePicture(false); // uploading a new one cancels removal
         }
     };
@@ -188,7 +189,7 @@ export default function UpdateProfile() {
                     {profilePicturePreview ? (
                         <>
                             <img
-                                src={profilePicturePreview}
+                                src={safeImageSrc(profilePicturePreview)}
                                 alt="Profile Preview"
                                 style={{
                                     width: '100px',

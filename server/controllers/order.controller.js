@@ -1,5 +1,6 @@
 import AddBook from '../models/AddBook.model.js';
 import Order from '../models/Order.model.js';
+import { asTrimmedString } from '../utils/sanitize.js';
 
 // Generate a unique 16-character order number (uppercase letters and numbers)
 async function generateUniqueOrderNumber() {
@@ -19,7 +20,9 @@ async function generateUniqueOrderNumber() {
 
 export const decreaseStock = async (req, res) => {
   try {
-    const { items, email, shippingCharge, discount, promo, promoApplied } = req.body;
+    const { items, shippingCharge, discount, promoApplied } = req.body;
+    const email = asTrimmedString(req.body.email);
+    const promo = asTrimmedString(req.body.promo);
     if (!Array.isArray(items)) return res.status(400).json({ message: 'Invalid items' });
 
     // Generate unique order number
@@ -29,8 +32,9 @@ export const decreaseStock = async (req, res) => {
 
     // Save order(s)
     for (const item of items) {
-      const { bookId, quantity } = item;
-      if (!bookId || !quantity || quantity < 1) continue;
+      const bookId = asTrimmedString(item?.bookId);
+      const quantity = Number(item?.quantity);
+      if (!bookId || !Number.isInteger(quantity) || quantity < 1) continue;
       const book = await AddBook.findById(bookId);
       if (!book) continue;
 
@@ -88,7 +92,7 @@ export const decreaseStock = async (req, res) => {
 // Get all orders for a buyer
 export const getOrdersByBuyer = async (req, res) => {
   try {
-    const { email } = req.query;
+    const email = asTrimmedString(req.query.email);
     if (!email) return res.status(400).json({ message: 'Email required' });
     const orders = await Order.find({ buyerEmail: email }).sort({ createdAt: -1 }).lean();
     // Group by orderNumber
@@ -127,7 +131,7 @@ export const getOrdersByBuyer = async (req, res) => {
 // Get all orders for a seller
 export const getOrdersBySeller = async (req, res) => {
   try {
-    const { email } = req.query;
+    const email = asTrimmedString(req.query.email);
     if (!email) return res.status(400).json({ message: 'Email required' });
     const orders = await Order.find({ sellerEmail: email }).sort({ createdAt: -1 });
     res.status(200).json(orders);
@@ -139,7 +143,7 @@ export const getOrdersBySeller = async (req, res) => {
 // Get order by orderNumber
 export const getOrderByOrderNumber = async (req, res) => {
   try {
-    const { orderNumber } = req.params;
+    const orderNumber = asTrimmedString(req.params.orderNumber);
     if (!orderNumber) return res.status(400).json({ message: 'Order number required' });
     const orders = await Order.find({ orderNumber }).lean();
     if (!orders || orders.length === 0) return res.status(404).json({ message: 'Order not found' });
@@ -172,8 +176,8 @@ export const getOrderByOrderNumber = async (req, res) => {
 // Update order status
 export const updateOrderStatus = async (req, res) => {
   try {
-    const { id } = req.params;
-    const { status } = req.body;
+    const id = asTrimmedString(req.params.id);
+    const status = asTrimmedString(req.body.status);
     const order = await Order.findByIdAndUpdate(id, { status }, { returnDocument: 'after' });
     if (!order) return res.status(404).json({ message: 'Order not found' });
     res.status(200).json(order);
@@ -185,8 +189,8 @@ export const updateOrderStatus = async (req, res) => {
 // Update order status by orderNumber (for all books in the order)
 export const updateOrderStatusByOrderNumber = async (req, res) => {
   try {
-    const { orderNumber } = req.params;
-    const { status } = req.body;
+    const orderNumber = asTrimmedString(req.params.orderNumber);
+    const status = asTrimmedString(req.body.status);
     const orders = await Order.updateMany({ orderNumber }, { status });
     if (!orders || orders.matchedCount === 0) {
       return res.status(404).json({ message: 'Order not found' });
@@ -202,7 +206,7 @@ export const updateOrderStatusByOrderNumber = async (req, res) => {
 // Add delete order by id
 export const deleteOrder = async (req, res) => {
   try {
-    const { id } = req.params;
+    const id = asTrimmedString(req.params.id);
     await Order.findByIdAndDelete(id);
     res.status(200).json({ message: 'Order deleted' });
   } catch (err) {

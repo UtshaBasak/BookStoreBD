@@ -3,6 +3,8 @@ import cors from 'cors';
 
 import { corsOptions } from './config/cors.js';
 import { errorHandler, notFoundHandler } from './middleware/errorHandler.js';
+import { sanitizeRequest } from './middleware/sanitizeRequest.js';
+import { apiLimiter, authLimiter, writeLimiter } from './middleware/rateLimit.js';
 
 import authRouter from './routes/auth.route.js';
 import bookRouter from './routes/book.route.js';
@@ -22,25 +24,32 @@ import wishlistRouter from './routes/wishlist.route.js';
 export const createApp = () => {
   const app = express();
 
+  // Behind Render's proxy, so the rate limiter keys on the real client IP
+  // rather than on the proxy's.
+  app.set('trust proxy', 1);
+
   app.use(cors(corsOptions));
   // Book covers and chat attachments are sent as base64, so the default 100kb
   // body limit is far too small.
   app.use(express.json({ limit: '25mb' }));
   app.use(express.urlencoded({ extended: true, limit: '25mb' }));
+  app.use(sanitizeRequest);
 
   app.get('/health', (req, res) => {
     res.status(200).json({ status: 'ok', uptime: process.uptime() });
   });
 
-  app.use('/auth', authRouter);
+  app.use(apiLimiter);
+
+  app.use('/auth', authLimiter, authRouter);
   app.use('/book', bookRouter);
   app.use('/cart', cartRouter);
-  app.use('/chat', chatRouter);
+  app.use('/chat', writeLimiter, chatRouter);
   app.use('/filter', filterRouter);
   app.use('/order', orderRouter);
   app.use('/purchase', purchaseRouter);
-  app.use('/return', returnRouter);
-  app.use('/user', userRouter);
+  app.use('/return', writeLimiter, returnRouter);
+  app.use('/user', writeLimiter, userRouter);
   app.use('/wishlist', wishlistRouter);
 
   app.use(notFoundHandler);

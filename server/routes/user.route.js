@@ -11,6 +11,7 @@ import {
 import AddBook from '../models/AddBook.model.js';
 import User from '../models/user.model.js';
 import { config } from '../config/env.js';
+import { asTrimmedString } from '../utils/sanitize.js';
 
 const router = express.Router();
 
@@ -75,7 +76,7 @@ router.get('/', async (req, res) => {
 // Admin: delete user
 router.delete('/:id', async (req, res) => {
   try {
-    const user = await User.findByIdAndDelete(req.params.id);
+    const user = await User.findByIdAndDelete(asTrimmedString(req.params.id));
     if (!user) {
       return res.status(404).json({ message: 'User not found' });
     }

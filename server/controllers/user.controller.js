@@ -1,5 +1,6 @@
 import bcryptjs from 'bcryptjs';
 import User from '../models/user.model.js';
+import { asTrimmedString } from '../utils/sanitize.js';
 
 export const test = (req,res) =>{
     res.json({
@@ -11,7 +12,7 @@ export const test = (req,res) =>{
 // Fetch user profile
 export const getUserProfile = async (req, res) => {
     try {
-        const { email } = req.query; // Get email from query parameters
+        const email = asTrimmedString(req.query.email);
         const user = await User.findOne({ email });
         if (!user) {
             return res.status(404).json({ message: 'User not found' });
@@ -34,7 +35,7 @@ export const getUserProfile = async (req, res) => {
 // Update user profile
 export const updateUserProfile = async (req, res) => {
     try {
-        const { email } = req.body;
+        const email = asTrimmedString(req.body.email);
         if (!email) {
             return res.status(400).json({ message: 'Email is required' });
         }

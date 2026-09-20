@@ -3,6 +3,7 @@ import multer from 'multer';
 import ChatMessage from '../models/Chat.model.js';
 import User from '../models/user.model.js';
 import { config } from '../config/env.js';
+import { asTrimmedString } from '../utils/sanitize.js';
 
 const router = express.Router();
 
@@ -14,7 +15,8 @@ const upload = multer({
 // Get chat messages between two users
 router.get('/messages', async (req, res) => {
     try {
-        const { sender, receiver } = req.query;
+        const sender = asTrimmedString(req.query.sender);
+        const receiver = asTrimmedString(req.query.receiver);
         if (!sender || !receiver) {
             return res.status(400).json({ message: 'sender and receiver are required' });
         }
@@ -49,8 +51,8 @@ router.get('/messages', async (req, res) => {
 // Get chat history/users
 router.get('/history/:email', async (req, res) => {
     try {
-        const { email } = req.params;
-        
+        const email = asTrimmedString(req.params.email);
+
         // Find all messages where user is sender or receiver
         const messages = await ChatMessage.find({
             $or: [{ sender: email }, { receiver: email }]
@@ -102,7 +104,9 @@ router.get('/history/:email', async (req, res) => {
 // Save new message (handles both text and image messages)
 router.post('/message', upload.single('image'), async (req, res) => {
     try {
-        const { sender, receiver, message } = req.body;
+        const sender = asTrimmedString(req.body.sender);
+        const receiver = asTrimmedString(req.body.receiver);
+        const message = asTrimmedString(req.body.message);
         if (!sender || !receiver) {
             return res.status(400).json({ message: 'Sender and receiver are required' });
         }
@@ -131,7 +135,8 @@ router.post('/message', upload.single('image'), async (req, res) => {
 // Delete conversation between two users
 router.delete('/delete', async (req, res) => {
     try {
-        const { user1, user2 } = req.body;
+        const user1 = asTrimmedString(req.body.user1);
+        const user2 = asTrimmedString(req.body.user2);
         if (!user1 || !user2) {
             return res.status(400).json({ message: 'user1 and user2 are required' });
         }
@@ -152,7 +157,7 @@ router.delete('/delete', async (req, res) => {
 // Get unread message count for a user
 router.get('/unread/:email', async (req, res) => {
   try {
-    const { email } = req.params;
+    const email = asTrimmedString(req.params.email);
     const unreadMessages = await ChatMessage.countDocuments({
       receiver: email,
       read: false
@@ -166,7 +171,8 @@ router.get('/unread/:email', async (req, res) => {
 // Mark messages as read
 router.post('/read', async (req, res) => {
   try {
-    const { sender, receiver } = req.body;
+    const sender = asTrimmedString(req.body.sender);
+    const receiver = asTrimmedString(req.body.receiver);
     await ChatMessage.updateMany(
       { sender, receiver, read: false },
       { $set: { read: true } }

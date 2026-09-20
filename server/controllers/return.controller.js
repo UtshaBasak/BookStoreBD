@@ -1,10 +1,13 @@
 import Order from '../models/Order.model.js';
 import ReturnRequest from '../models/ReturnRequest.model.js';
 import AddBook from '../models/AddBook.model.js';
+import { asTrimmedString } from '../utils/sanitize.js';
 
 export const returnBook = async (req, res) => {
   try {
-    const { bookId, userEmail, defectDescription } = req.body;
+    const bookId = asTrimmedString(req.body.bookId);
+    const userEmail = asTrimmedString(req.body.userEmail);
+    const defectDescription = asTrimmedString(req.body.defectDescription);
     
     // Get the book details
     const book = await AddBook.findById(bookId);
@@ -42,7 +45,7 @@ export const returnBook = async (req, res) => {
 
 export const getReturnRequests = async (req, res) => {
   try {
-    const { userEmail } = req.query;
+    const userEmail = asTrimmedString(req.query.userEmail);
     const query = userEmail ? { userEmail } : {};
     const requests = await ReturnRequest.find(query).sort({ createdAt: -1 });
     res.json(requests);
@@ -54,9 +57,9 @@ export const getReturnRequests = async (req, res) => {
 
 export const updateReturnStatus = async (req, res) => {
   try {
-    const { id } = req.params;
-    const { status } = req.body;
-    
+    const id = asTrimmedString(req.params.id);
+    const status = asTrimmedString(req.body.status);
+
     const updatedRequest = await ReturnRequest.findByIdAndUpdate(
       id,
       { status },
