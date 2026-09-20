@@ -1,6 +1,7 @@
 import dotenv from 'dotenv';
 
-dotenv.config();
+// quiet: dotenv 17+ otherwise prints a promotional banner on every boot.
+dotenv.config({ quiet: true });
 
 const parseOrigins = (value) =>
   (value ?? '')
