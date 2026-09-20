@@ -32,7 +32,7 @@ export const Wishlist_add = async (req, res) => {
     await Wishlist.findOneAndUpdate(
       { user: user._id, book: bookId },
       { user: user._id, book: bookId },
-      { upsert: true, new: true }
+      { upsert: true, returnDocument: 'after' }
     );
 
     // Return updated wishlist

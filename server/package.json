@@ -6,7 +6,7 @@
   "main": "index.js",
   "type": "module",
   "engines": {
-    "node": ">=18.0.0"
+    "node": ">=20.19.0"
   },
   "scripts": {
     "dev": "nodemon index.js",
@@ -36,7 +36,7 @@
     "cors": "^2.8.5",
     "dotenv": "^17.4.2",
     "express": "^5.1.0",
-    "mongoose": "^8.13.2",
+    "mongoose": "^9.10.1",
     "multer": "^2.0.2",
     "nodemailer": "^10.0.10",
     "socket.io": "^4.8.1"

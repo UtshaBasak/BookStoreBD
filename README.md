@@ -7,7 +7,7 @@
 [![CI](https://github.com/UtshaBasak/MernBookstore/actions/workflows/ci.yml/badge.svg)](https://github.com/UtshaBasak/MernBookstore/actions/workflows/ci.yml)
 [![CodeQL](https://github.com/UtshaBasak/MernBookstore/actions/workflows/codeql.yml/badge.svg)](https://github.com/UtshaBasak/MernBookstore/actions/workflows/codeql.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
-[![Node](https://img.shields.io/badge/node-%3E%3D18-brightgreen.svg)](.nvmrc)
+[![Node](https://img.shields.io/badge/node-%3E%3D20.19-brightgreen.svg)](.nvmrc)
 
 [**Live demo**](https://bookstorebd.vercel.app) · [Report a bug](https://github.com/UtshaBasak/MernBookstore/issues/new?template=bug_report.md) · [Request a feature](https://github.com/UtshaBasak/MernBookstore/issues/new?template=feature_request.md)
 
@@ -174,7 +174,7 @@ MernBookstore/
 
 ### Prerequisites
 
-- **Node.js 18 or newer** (`nvm use` picks up [`.nvmrc`](.nvmrc))
+- **Node.js 20.19 or newer** (`nvm use` picks up [`.nvmrc`](.nvmrc)) — required by Mongoose 9
 - **MongoDB** — a local instance or a free [MongoDB Atlas](https://www.mongodb.com/atlas) cluster
 - An **SMTP account** for one-time-code emails (Gmail works with an [App Password](https://support.google.com/accounts/answer/185833))
 

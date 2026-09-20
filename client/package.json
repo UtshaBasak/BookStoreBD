@@ -5,7 +5,7 @@
   "description": "React + Vite single-page frontend for BookStoreBD",
   "type": "module",
   "engines": {
-    "node": ">=18.0.0"
+    "node": ">=20.19.0"
   },
   "scripts": {
     "dev": "vite",

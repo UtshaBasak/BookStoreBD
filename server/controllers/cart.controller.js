@@ -30,7 +30,7 @@ export const Cart_add = async (req, res) => {
     await Cart.findOneAndUpdate(
       { user: user._id, book: bookId },
       { user: user._id, book: bookId },
-      { upsert: true, new: true }
+      { upsert: true, returnDocument: 'after' }
     );
 
     const cartEntries = await Cart.find({ user: user._id }).populate('book');

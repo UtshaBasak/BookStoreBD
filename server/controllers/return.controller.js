@@ -60,7 +60,7 @@ export const updateReturnStatus = async (req, res) => {
     const updatedRequest = await ReturnRequest.findByIdAndUpdate(
       id,
       { status },
-      { new: true }
+      { returnDocument: 'after' }
     );
 
     if (!updatedRequest) {

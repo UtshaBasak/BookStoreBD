@@ -108,7 +108,7 @@ export const updateUserProfile = async (req, res) => {
         const user = await User.findOneAndUpdate(
             { email },
             updateQuery,
-            { new: true }
+            { returnDocument: 'after' }
         );
         if (!user) {
             return res.status(404).json({ message: 'User not found' });

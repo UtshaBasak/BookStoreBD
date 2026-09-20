@@ -34,7 +34,7 @@ router.put('/update-stock/:id', async (req, res) => {
     const book = await AddBook.findByIdAndUpdate(
       req.params.id,
       { stock },
-      { new: true }
+      { returnDocument: 'after' }
     );
     if (!book) return res.status(404).json({ message: 'Book not found' });
 
@@ -60,7 +60,7 @@ router.put('/update-price/:id', async (req, res) => {
     const book = await AddBook.findByIdAndUpdate(
       req.params.id,
       { price },
-      { new: true }
+      { returnDocument: 'after' }
     );
     if (!book) return res.status(404).json({ message: 'Book not found' });
     res.status(200).json({ message: 'Price updated', book });
