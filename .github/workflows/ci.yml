@@ -40,6 +40,9 @@ jobs:
       - name: Lint
         run: npm run lint
 
+      - name: Test
+        run: npm test
+
       - name: Build
         run: npm run build
 
@@ -66,5 +69,11 @@ jobs:
       - name: Lint
         run: npm run lint
 
-      - name: Verify the app builds and every router imports
-        run: node -e "import('./app.js').then(m => { m.createApp(); console.log('createApp() OK'); })"
+      - name: Cache MongoDB binary
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/mongodb-binaries
+          key: mongodb-binaries-${{ runner.os }}
+
+      - name: Test
+        run: npm test

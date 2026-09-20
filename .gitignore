@@ -38,6 +38,9 @@ server/uploads/
 coverage/
 .nyc_output/
 
+# mongodb-memory-server downloads a mongod binary on first test run
+.cache/mongodb-binaries/
+
 # ---------------------------------------------------------------------------
 # Editors & OS
 # ---------------------------------------------------------------------------

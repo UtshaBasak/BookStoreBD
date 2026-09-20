@@ -16,7 +16,10 @@
     "preview": "npm --prefix client run preview",
     "lint": "npm --prefix client run lint && npm --prefix server run lint",
     "lint:client": "npm --prefix client run lint",
-    "lint:server": "npm --prefix server run lint"
+    "lint:server": "npm --prefix server run lint",
+    "test": "npm --prefix server run test && npm --prefix client run test",
+    "test:server": "npm --prefix server run test",
+    "test:client": "npm --prefix client run test"
   },
   "repository": {
     "type": "git",

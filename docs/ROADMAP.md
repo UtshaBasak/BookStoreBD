@@ -8,7 +8,8 @@ commit, so any one of them can be reverted without unpicking the others.
 all three package roots report zero dependency vulnerabilities; CodeQL reports
 five findings, all confirmed false positives in the same rule
 (`js/xss-through-dom`). Authentication and authorisation are enforced
-server-side. There are **no automated tests** — which is why that is task 1.
+server-side. Task 1 is complete: **110 tests** (66 server, 44 client) run in
+about 14 seconds and gate every push.
 
 ---
 
@@ -19,7 +20,7 @@ before any deployment work resumes.
 
 | Order | Task | Phase | Depends on | Risk |
 | ----: | ---- | ----- | ---------- | ---- |
-| 1 | [Automated tests](#1--automated-tests) | Foundation | — | Low |
+| ~~1~~ | ~~[Automated tests](#1--automated-tests)~~ **done** | Foundation | — | Low |
 | 2 | [Docker Compose](#7--docker-compose) (task 7) | Foundation | — | Low |
 | 3 | [Structured logging](#5--structured-logging-and-error-tracking) (task 5) | Foundation | — | Low |
 | 4 | [Zod validation](#3--request-validation-with-zod) (task 3) | Hardening | 1 | Medium |
@@ -33,7 +34,9 @@ differs from the numbering.
 
 ---
 
-## 1 · Automated tests
+## 1 · Automated tests — done
+
+*Landed. 66 server tests and 44 client tests, ~14s, wired into CI.*
 
 The single biggest gap. Every bug found during the recent audit — a 404 on
 `/cart/clear` after checkout, an authentication bypass, PII readable by
@@ -77,8 +80,15 @@ build or CodeQL.
   initially — a failing build over a coverage percentage on day one trains
   people to ignore CI.
 
-**Done when** `npm test` runs both suites from the repository root, CI fails
-on a red test, and every defect found in the audit has a regression test.
+**Done.** `npm test` runs both suites from the repository root, CI fails on a
+red test, and `server/tests/regressions.test.js` covers every defect found in
+the audit: the missing `/cart/clear`, the oversell race, the authentication
+bypass, the profile PII leak, and the two chat endpoints that used to fail
+outright.
+
+Not covered yet, and worth adding as the code changes: page-level component
+tests beyond the smoke level, and the OTP e-mail flow, which needs the SMTP
+transport stubbed.
 
 ---
 

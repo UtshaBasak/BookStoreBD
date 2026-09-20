@@ -25,6 +25,7 @@
 - [Getting started](#getting-started)
 - [Environment variables](#environment-variables)
 - [Available scripts](#available-scripts)
+- [Testing](#testing)
 - [API reference](#api-reference)
 - [Real-time events](#real-time-events)
 - [Data models](#data-models)
@@ -161,6 +162,9 @@ MernBookstore/
 │   ├── routes/                  # Express routers, one per domain
 │   ├── sockets/
 │   │   └── chatSocket.js        # Socket.IO room and message handling
+│   ├── tests/                   # Vitest + Supertest suites
+│   │   ├── helpers/             # App bootstrap and data factories
+│   │   └── setup/               # Shared in-memory MongoDB
 │   ├── utils/
 │   │   ├── error.js             # Error factory used by controllers
 │   │   ├── jwt.js               # Access token signing and verification
@@ -271,6 +275,39 @@ Run these from the repository root:
 | `npm run preview`     | Serves the built client locally                       |
 | `npm start`           | Starts the API in production mode                     |
 | `npm run lint`        | Lints both packages                                   |
+| `npm test`            | Runs the server and client test suites                |
+| `npm run test:server` | Server suite only                                     |
+| `npm run test:client` | Client suite only                                     |
+
+---
+
+## Testing
+
+```bash
+npm test              # both suites
+npm run test:server   # server only
+npm run test:client   # client only
+```
+
+| | Server | Client |
+| --- | --- | --- |
+| Runner | Vitest | Vitest |
+| Environment | node | jsdom |
+| HTTP | Supertest against `createApp()` | — |
+| Database | `mongodb-memory-server` | — |
+| Components | — | Testing Library |
+
+The server suite runs against a **real MongoDB**, started once for the whole
+run and shared by every file; each file connects to its own database on that
+instance, so files stay independent and run in parallel. Nothing external
+needs to be installed or running.
+
+`tests/regressions.test.js` is worth knowing about: every case in it maps to a
+defect that actually shipped — the cart that stayed full after checkout, the
+authentication bypass, contact details readable by anyone. A failure there
+means a real bug has come back.
+
+Both suites run in CI on every push and pull request.
 
 ---
 

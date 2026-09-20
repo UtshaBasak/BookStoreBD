@@ -73,11 +73,13 @@ otherwise:
 
 ```bash
 npm run lint    # ESLint across client/ and server/
+npm test        # server + client suites
 npm run build   # production client bundle
 ```
 
 Then confirm:
 
+- New behaviour has a test, and a fixed bug has a regression test
 - No `.env` file, secret, credential or `node_modules` directory is staged
 - Any new environment variable is documented in the matching `.env.example`
   **and** in the README's environment table
@@ -98,6 +100,10 @@ Open the PR against `master` and fill in the template.
   the whitespace rules automatically in most editors.
 - **Linting:** ESLint 10 flat config, one per package. Fix warnings rather than
   disabling rules; if a disable is genuinely needed, add a comment explaining why.
+- **Tests:** Vitest in both packages. Import `describe`/`it`/`expect` from
+  `vitest` explicitly rather than relying on globals, so ESLint stays happy.
+  Server tests use the helpers in `server/tests/helpers/`; do not start your
+  own MongoDB instance, one is shared across the run.
 
 ---
 
