@@ -1,8 +1,8 @@
 # syntax=docker/dockerfile:1
 
-# Node 20 to match .nvmrc and the engines field; Mongoose 9 and ESLint 10 both
-# require >= 20.19, which any current 20.x satisfies.
-FROM node:20-alpine AS base
+# Node 24 is the Active LTS. Node 20 reached end of life in April 2026, so
+# pinning to it meant building on a runtime with no security updates.
+FROM node:24-alpine AS base
 WORKDIR /app
 # NODE_ENV is deliberately not set here: it would reach the dependency stages
 # and make `npm ci` skip devDependencies, so the dev image would have no

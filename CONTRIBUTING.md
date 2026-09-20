@@ -100,6 +100,7 @@ Open the PR against `master` and fill in the template.
 
 ## Code style
 
+- **Node:** 24 (Active LTS), or 22.13+. `nvm use` reads [`.nvmrc`](.nvmrc).
 - **Modules:** ES modules everywhere (`import`/`export`), on both client and server.
   The server's `package.json` sets `"type": "module"`, so CommonJS `require`
   will fail at runtime.

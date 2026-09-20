@@ -26,6 +26,7 @@ services:
       start_period: 20s
 
   server:
+    image: bookstorebd-server:dev
     build:
       context: ./server
       target: development
@@ -57,6 +58,11 @@ services:
       - ./server:/app
       # Keeps the image's Linux-built node_modules instead of letting the host
       # directory shadow it.
+      #
+      # This volume is created once from the image and then kept, so after any
+      # dependency change run `docker compose down -v` before `up --build` -
+      # otherwise the container runs against the old node_modules and fails
+      # with "Cannot find package".
       - /app/node_modules
     depends_on:
       mongo:
@@ -74,6 +80,9 @@ services:
       VITE_API_URL: http://localhost:4000
       # Same watcher problem as the server; see the note on its command.
       VITE_USE_POLLING: 'true'
+      # The dev-server proxy runs inside this container, so it resolves the API
+      # by service name. `localhost` here would be the client container itself.
+      VITE_PROXY_TARGET: http://server:4000
     volumes:
       - ./client:/app
       - /app/node_modules
@@ -85,6 +94,9 @@ services:
   # mongodb-memory-server has no mongod build for Alpine, so the suite points
   # at the MongoDB service instead. Each test file still uses its own database.
   test:
+    # Same image as the server, so one build refreshes both. Separate images
+    # would leave this one stale whenever dependencies changed.
+    image: bookstorebd-server:dev
     build:
       context: ./server
       target: development
@@ -102,6 +114,7 @@ services:
 
   # One-shot helper: `docker compose run --rm seed`
   seed:
+    image: bookstorebd-server:dev
     build:
       context: ./server
       target: development

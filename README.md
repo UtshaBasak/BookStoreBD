@@ -7,7 +7,7 @@
 [![CI](https://github.com/UtshaBasak/MernBookstore/actions/workflows/ci.yml/badge.svg)](https://github.com/UtshaBasak/MernBookstore/actions/workflows/ci.yml)
 [![CodeQL](https://github.com/UtshaBasak/MernBookstore/actions/workflows/codeql.yml/badge.svg)](https://github.com/UtshaBasak/MernBookstore/actions/workflows/codeql.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
-[![Node](https://img.shields.io/badge/node-%3E%3D20.19-brightgreen.svg)](.nvmrc)
+[![Node](https://img.shields.io/badge/node-22.13%2B%20%7C%2024%20LTS-brightgreen.svg)](.nvmrc)
 
 [Report a bug](https://github.com/UtshaBasak/MernBookstore/issues/new?template=bug_report.md) · [Request a feature](https://github.com/UtshaBasak/MernBookstore/issues/new?template=feature_request.md)
 
@@ -203,7 +203,10 @@ MernBookstore/
 
 ### Prerequisites
 
-- **Node.js 20.19 or newer** (`nvm use` picks up [`.nvmrc`](.nvmrc)) — required by Mongoose 9
+- **Node.js 24** (Active LTS) — `nvm use` picks it up from [`.nvmrc`](.nvmrc).
+  Node 22.13+ also works; the floor is `^22.13.0 || >=24.0.0`, which is what
+  Vitest and ESLint between them require. Node 20 reached end of life in
+  April 2026 and is no longer supported here.
 - **MongoDB** — a local instance or a free [MongoDB Atlas](https://www.mongodb.com/atlas) cluster
 - An **SMTP account** for one-time-code emails (Gmail works with an [App Password](https://support.google.com/accounts/answer/185833))
 

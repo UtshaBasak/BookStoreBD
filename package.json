@@ -4,7 +4,7 @@
   "private": true,
   "description": "BookStoreBD - a MERN marketplace for new and second-hand books, with role-based access, order tracking and real-time buyer-seller chat.",
   "engines": {
-    "node": ">=20.19.0"
+    "node": "^22.13.0 || >=24.0.0"
   },
   "scripts": {
     "install:all": "npm --prefix client install && npm --prefix server install",
