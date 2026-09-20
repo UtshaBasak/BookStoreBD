@@ -18,13 +18,32 @@ export const config = {
   corsOrigins: parseOrigins(process.env.CORS_ORIGINS).length
     ? parseOrigins(process.env.CORS_ORIGINS)
     : DEFAULT_ORIGINS,
+  // Serve the built client from this process, making the app same-origin.
+  // On in production; in development the Vite dev server proxies instead, and
+  // under test it stays off so route behaviour does not depend on whether a
+  // build happens to be sitting on disk.
+  serveClient: process.env.SERVE_CLIENT
+    ? process.env.SERVE_CLIENT === 'true'
+    : process.env.NODE_ENV === 'production',
   // Explicit level wins; otherwise logger.js picks one from the environment.
   logLevel: process.env.LOG_LEVEL,
   // Optional. Error reporting stays switched off when this is unset.
   sentryDsn: process.env.SENTRY_DSN,
   jwt: {
     secret: process.env.JWT_SECRET,
-    expiresIn: process.env.JWT_EXPIRES_IN ?? '7d',
+    // Short-lived on purpose: an access token cannot be revoked, so the window
+    // in which a stolen one is useful should be small. The refresh token,
+    // which can be revoked, is what keeps a session alive.
+    expiresIn: process.env.JWT_EXPIRES_IN ?? '15m',
+    refreshTtlMs: Number(process.env.REFRESH_TOKEN_TTL_DAYS ?? 30) * 24 * 60 * 60 * 1000,
+  },
+  cookies: {
+    // Same-origin in every environment, so Lax is enough and the third-party
+    // cookie restrictions in Safari and Firefox never come into play.
+    secure: process.env.COOKIE_SECURE
+      ? process.env.COOKIE_SECURE === 'true'
+      : process.env.NODE_ENV === 'production',
+    sameSite: process.env.COOKIE_SAME_SITE ?? 'lax',
   },
   // Accounts promoted to admin the first time they sign in. Lets the existing
   // deployment keep its administrator without a database migration.

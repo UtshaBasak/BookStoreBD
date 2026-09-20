@@ -82,7 +82,7 @@ describe('apiFetch', () => {
     expect(fetchMock.mock.calls[0][1].headers.get('Authorization')).toBe('Bearer explicit');
   });
 
-  it('clears the session and redirects on 401', async () => {
+  it('clears the session and redirects when a refresh also fails', async () => {
     setSession({ token: 'expired', user: { email: 'a@test.com', role: 'user' } });
     vi.spyOn(globalThis, 'fetch').mockResolvedValue(respond(401, { message: 'Authentication required' }));
 
@@ -91,6 +91,85 @@ describe('apiFetch', () => {
     expect(res.status).toBe(401);
     expect(getToken()).toBeNull();
     expect(assign).toHaveBeenCalledWith('/sign-in');
+  });
+
+  it('refreshes once on a 401 and retries the original request', async () => {
+    setSession({ token: 'expired', user: { email: 'a@test.com', role: 'user' } });
+
+    const calls = [];
+    vi.spyOn(globalThis, 'fetch').mockImplementation((url, init) => {
+      calls.push({ url: String(url), auth: init?.headers?.get?.('Authorization') });
+
+      if (String(url).includes('/auth/refresh')) {
+        return Promise.resolve(
+          respond(200, { token: 'fresh-token', user: { email: 'a@test.com', role: 'user' } })
+        );
+      }
+      // Expired first, fine once the new token is presented.
+      return Promise.resolve(
+        init?.headers?.get?.('Authorization') === 'Bearer fresh-token'
+          ? respond(200, { ok: true })
+          : respond(401)
+      );
+    });
+
+    const res = await apiFetch(`${API_BASE_URL}/cart`);
+
+    expect(res.status).toBe(200);
+    expect(getToken()).toBe('fresh-token');
+    expect(calls.map((c) => c.url.replace(API_BASE_URL, ''))).toEqual([
+      '/cart',
+      '/auth/refresh',
+      '/cart',
+    ]);
+    expect(assign).not.toHaveBeenCalled();
+  });
+
+  it('does not try to refresh a failed refresh', async () => {
+    setSession({ token: 'expired', user: { email: 'a@test.com', role: 'user' } });
+    const fetchMock = vi.spyOn(globalThis, 'fetch').mockResolvedValue(respond(401));
+
+    await apiFetch(`${API_BASE_URL}/auth/refresh`, { method: 'POST' });
+
+    // One call only: no recursion.
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('shares one refresh across concurrent requests', async () => {
+    setSession({ token: 'expired', user: { email: 'a@test.com', role: 'user' } });
+
+    let refreshCalls = 0;
+    vi.spyOn(globalThis, 'fetch').mockImplementation((url, init) => {
+      if (String(url).includes('/auth/refresh')) {
+        refreshCalls += 1;
+        return new Promise((resolve) =>
+          setTimeout(
+            () =>
+              resolve(
+                respond(200, { token: 'fresh-token', user: { email: 'a@test.com', role: 'user' } })
+              ),
+            10
+          )
+        );
+      }
+      return Promise.resolve(
+        init?.headers?.get?.('Authorization') === 'Bearer fresh-token'
+          ? respond(200, { ok: true })
+          : respond(401)
+      );
+    });
+
+    const results = await Promise.all([
+      apiFetch(`${API_BASE_URL}/cart`),
+      apiFetch(`${API_BASE_URL}/wishlist`),
+      apiFetch(`${API_BASE_URL}/order/buyer`),
+    ]);
+
+    // Refresh tokens rotate, so a second concurrent refresh would present an
+    // already-exchanged token and the server would revoke the whole family -
+    // signing the user out for the crime of loading a busy page.
+    expect(refreshCalls).toBe(1);
+    expect(results.every((r) => r.status === 200)).toBe(true);
   });
 
   it('does not redirect when already on the sign-in page', async () => {

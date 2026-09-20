@@ -39,7 +39,7 @@ services:
       MONGO: mongodb://mongo:27017/bookstorebd
       # Development only. Production reads a real secret from the environment.
       JWT_SECRET: ${JWT_SECRET:-***REMOVED***}
-      JWT_EXPIRES_IN: ${JWT_EXPIRES_IN:-7d}
+      JWT_EXPIRES_IN: ${JWT_EXPIRES_IN:-15m}
       ADMIN_EMAILS: ${ADMIN_EMAILS:-admin@bookstorebd.local}
       # The browser runs on the host, so the client's origin is localhost.
       CORS_ORIGINS: http://localhost:5173

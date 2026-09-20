@@ -17,7 +17,7 @@ export default class ErrorBoundary extends React.Component {
   }
 
   componentDidCatch(error, info) {
-    // eslint-disable-next-line no-console -- the browser console is the log here
+    // The browser console is the log of record on the client.
     console.error('Unhandled render error:', error, info?.componentStack);
     this.props.onError?.(error, info);
   }

@@ -6,15 +6,27 @@ import User from '../models/user.model.js';
 import { errorHandler } from '../utils/error.js';
 import { config } from '../config/env.js';
 import { signAccessToken } from '../utils/jwt.js';
+import {
+  issueRefreshToken,
+  rotateRefreshToken,
+  revokeFamily,
+} from '../utils/refreshToken.js';
+import {
+  setRefreshCookie,
+  clearRefreshCookie,
+  readRefreshCookie,
+} from '../utils/authCookies.js';
+import RefreshToken from '../models/RefreshToken.model.js';
 import { createLogger } from '../config/logger.js';
 
 const log = createLogger('auth');
 
 /**
- * Shapes the sign-in / sign-up response. The token is what authorises every
- * later request; the user object is only for rendering.
+ * The body carries the short-lived access token and the details needed to
+ * render; the refresh token goes back only in an httpOnly cookie, so page
+ * JavaScript can never read it.
  */
-const sessionResponse = (user) => ({
+const sessionBody = (user) => ({
   token: signAccessToken(user),
   user: {
     id: String(user._id),
@@ -23,6 +35,13 @@ const sessionResponse = (user) => ({
     role: user.role,
   },
 });
+
+/** Starts a session: a new refresh family plus a fresh access token. */
+const startSession = async (res, user) => {
+  const { token: refresh } = await issueRefreshToken(user._id);
+  setRefreshCookie(res, refresh);
+  return sessionBody(user);
+};
 
 /** Promotes accounts listed in ADMIN_EMAILS, so the deployment keeps its admin. */
 const applyAdminBootstrap = async (user) => {
@@ -148,7 +167,7 @@ export const signup = async(req,res,next) =>{
         await newUser.save();
         await applyAdminBootstrap(newUser);
         otpStore.delete(email);
-        res.status(201).json(sessionResponse(newUser));
+        res.status(201).json(await startSession(res, newUser));
     } catch (error) {
         // Handle duplicate key error (in case of race condition)
         if (error.code === 11000) {
@@ -174,7 +193,7 @@ export const signin = async(req,res,next) =>{
         if (!validPassword) return next (errorHandler(401,'Wrong credentials!'));
 
         await applyAdminBootstrap(validUser);
-        res.status(200).json(sessionResponse(validUser));
+        res.status(200).json(await startSession(res, validUser));
     } catch (error){
         next(error);
     }
@@ -195,6 +214,62 @@ export const resetPassword = async (req, res) => {
     user.password = bcryptjs.hashSync(newPassword, 10);
     await user.save();
     otpStore.delete(email);
+
+    // Anyone already signed in with the old password is signed out: a reset is
+    // the usual response to a suspected compromise.
+    const { revokeAllForUser } = await import('../utils/refreshToken.js');
+    await revokeAllForUser(user._id);
+    clearRefreshCookie(res);
+
     res.json({ message: "Password reset successful" });
 };
 
+/**
+ * Exchanges the refresh cookie for a new access token and a rotated refresh
+ * token. Every failure answers the same way, so a caller learns nothing about
+ * whether a token was unknown, expired, revoked or replayed.
+ */
+export const refresh = async (req, res, next) => {
+  try {
+    const presented = readRefreshCookie(req);
+    const result = await rotateRefreshToken(presented);
+
+    if (!result.ok) {
+      clearRefreshCookie(res);
+      log.info({ reason: result.reason }, 'Refresh rejected');
+      return res.status(401).json({ message: 'Session expired, please sign in again' });
+    }
+
+    const user = await User.findById(result.userId);
+    if (!user) {
+      // The account went away between issuing and refreshing.
+      await revokeFamily(result.family);
+      clearRefreshCookie(res);
+      return res.status(401).json({ message: 'Session expired, please sign in again' });
+    }
+
+    setRefreshCookie(res, result.token);
+    return res.status(200).json(sessionBody(user));
+  } catch (error) {
+    return next(error);
+  }
+};
+
+/** Ends the session that presented the cookie, and clears it. */
+export const logout = async (req, res, next) => {
+  try {
+    const presented = readRefreshCookie(req);
+
+    if (presented) {
+      const { hashToken } = await import('../utils/refreshToken.js');
+      const stored = await RefreshToken.findOne({ tokenHash: hashToken(presented) });
+      if (stored) await revokeFamily(stored.family);
+    }
+
+    clearRefreshCookie(res);
+    // Always 204, whether or not there was a session to end.
+    return res.status(204).end();
+  } catch (error) {
+    return next(error);
+  }
+};

@@ -34,8 +34,9 @@ services:
       # Supply a real secret here; the server refuses to start without one of
       # at least 32 characters.
       JWT_SECRET: ${JWT_SECRET:?set JWT_SECRET, e.g. openssl rand -hex 48}
-      JWT_EXPIRES_IN: ${JWT_EXPIRES_IN:-7d}
+      JWT_EXPIRES_IN: ${JWT_EXPIRES_IN:-15m}
       ADMIN_EMAILS: ${ADMIN_EMAILS:-}
+      # Same-origin through nginx, so CORS is not exercised at all.
       CORS_ORIGINS: http://localhost:8080
       SMTP_SERVICE: ${SMTP_SERVICE:-gmail}
       SMTP_USER: ${SMTP_USER:-}
@@ -59,8 +60,9 @@ services:
       context: ./client
       target: production
       args:
-        # Read by the browser, so it points at the published API port.
-        VITE_API_URL: ${VITE_API_URL:-http://localhost:4000}
+        # Empty on purpose: nginx proxies the API, so the client calls its own
+        # origin and the refresh cookie stays first-party.
+        VITE_API_URL: ${VITE_API_URL:-}
     restart: unless-stopped
     ports:
       - '8080:80'

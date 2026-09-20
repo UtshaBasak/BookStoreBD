@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { FaHome, FaHeart, FaShoppingCart } from 'react-icons/fa';
-import { API_BASE_URL, apiFetch } from '../config/api.js';
-import { clearSession, isAdmin } from '../utils/auth.js';
+import { API_BASE_URL, apiFetch, signOut } from '../config/api.js';
+import { isAdmin } from '../utils/auth.js';
 
 export default function Profile() {
     const [profileData, setProfileData] = useState({
@@ -294,8 +294,8 @@ export default function Profile() {
                         Book List
                     </button>
                     <button
-                        onClick={() => {
-                            clearSession();
+                        onClick={async () => {
+                            await signOut();
                             window.location.href = '/sign-in';
                         }}
                         style={{

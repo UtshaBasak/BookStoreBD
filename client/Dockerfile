@@ -24,7 +24,8 @@ RUN npm ci
 COPY . .
 # Baked into the bundle at build time, so it must be supplied here rather than
 # at run time.
-ARG VITE_API_URL=http://localhost:4000
+# Empty means same-origin; nginx proxies the API in front of this.
+ARG VITE_API_URL=
 ENV VITE_API_URL=$VITE_API_URL
 RUN npm run build
 

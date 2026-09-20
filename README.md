@@ -165,7 +165,7 @@ MernBookstore/
 │   │   ├── requestLogger.js     # One line per request, with a request id
 │   │   ├── validate.js          # Zod validation for body, query and params
 │   │   └── sanitizeRequest.js   # Strips Mongo operator keys from input
-│   ├── models/                  # Mongoose schemas
+│   ├── models/                  # Mongoose schemas, incl. RefreshToken
 │   ├── routes/                  # Express routers, one per domain
 │   ├── schemas/                 # One Zod schema per endpoint
 │   │   ├── common.js            # Shared primitives (email, objectId, ints)
@@ -305,7 +305,11 @@ check. `JWT_SECRET` is required; Compose refuses to start without it.
 | `NODE_ENV`         |          | `development`                                          | `development` or `production`                           |
 | `CORS_ORIGINS`     |          | `http://localhost:5173`                                | Comma-separated browser origins allowed to call the API |
 | `JWT_SECRET`       |    ✅    | —                                                      | Signs access tokens; must be 32+ chars, else start fails |
-| `JWT_EXPIRES_IN`   |          | `7d`                                                   | Access token lifetime                                   |
+| `JWT_EXPIRES_IN`   |          | `15m`                                                  | Access token lifetime                                   |
+| `REFRESH_TOKEN_TTL_DAYS` |    | `30`                                                   | Refresh token lifetime                                  |
+| `COOKIE_SECURE`    |          | on in production                                       | `Secure` flag on the refresh cookie                     |
+| `COOKIE_SAME_SITE` |          | `lax`                                                  | `SameSite` on the refresh cookie                        |
+| `SERVE_CLIENT`     |          | on in production                                       | Serve `client/dist` from the API process                |
 | `ADMIN_EMAILS`     |          | —                                                      | Comma-separated e-mails promoted to admin on sign-in    |
 | `SMTP_SERVICE`     |          | `gmail`                                                | Nodemailer service name                                 |
 | `SMTP_USER`        |   ✅ ¹   | —                                                      | SMTP account used as the sender                         |
@@ -444,17 +448,45 @@ Mongoose — a field declared `z.string()` can never arrive as `{ "$ne": null }`
 
 ### Authentication
 
-`POST /auth/signin` and `POST /auth/signup` return a signed JWT:
+`POST /auth/signin` and `POST /auth/signup` return a short-lived access token
+in the body, and set a refresh token in an httpOnly cookie:
 
 ```json
 { "token": "eyJhbGciOi...", "user": { "id": "...", "username": "...", "email": "...", "role": "user" } }
 ```
 
-Send it on every protected request:
+Send the access token on every protected request:
 
 ```
 Authorization: Bearer <token>
 ```
+
+| | Access token | Refresh token |
+| --- | --- | --- |
+| Lifetime | 15 minutes | 30 days |
+| Stored | Response body, then `localStorage` | httpOnly cookie, scoped to `/auth` |
+| Readable by page JavaScript | Yes | **No** |
+| Revocable | No | Yes |
+
+The split is the point. The access token cannot be revoked, so it is short.
+The refresh token lives long enough to keep a session alive, and because it is
+httpOnly an XSS bug cannot lift it. Only its SHA-256 is stored, so a database
+dump yields nothing presentable to `/auth/refresh`.
+
+`POST /auth/refresh` exchanges the cookie for a new access token and **rotates**
+the refresh token. Presenting an already-exchanged token — the signature of a
+stolen one — revokes the entire token family, ending that session everywhere.
+`POST /auth/logout` revokes the family and clears the cookie. Resetting a
+password revokes every session for the account.
+
+The client refreshes automatically on a `401` and retries the original request,
+sharing one refresh across concurrent requests so rotation cannot trip over
+itself.
+
+Cookies are first-party because the client and API share an origin: the Vite
+dev server proxies the API in development, and nginx does in the production
+compose stack. `SERVE_CLIENT=true` makes the API serve the built client itself,
+for a single-service deployment.
 
 The server resolves the caller from that token and **ignores any identity in
 the request itself**. An `?email=` in a query string is supplied by the caller
@@ -488,7 +520,9 @@ administrator without a migration.
 | `POST` | `/auth/signin`         | Sign in with email and password                         |
 | `POST` | `/auth/send-otp`       | Send a one-time code (`purpose`: `register` or `reset`) |
 | `POST` | `/auth/verify-otp`     | Verify a one-time code                                  |
-| `POST` | `/auth/reset-password` | Reset a password using a valid OTP                      |
+| `POST` | `/auth/reset-password` | Reset a password using a valid OTP; ends every session   |
+| `POST` | `/auth/refresh`        | Rotate the refresh cookie, return a new access token     |
+| `POST` | `/auth/logout`         | Revoke the session and clear the cookie                  |
 
 ### Users — `/user`
 

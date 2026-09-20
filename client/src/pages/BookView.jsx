@@ -3,8 +3,7 @@ import { useParams, useNavigate, Link } from 'react-router-dom';
 import { FaHeart, FaRegHeart, FaChevronLeft, FaChevronRight, FaComments, FaBell } from 'react-icons/fa';
 import socket from '../utils/socket';  // Add this import
 import ChatWindow from '../components/ChatWindow';
-import { API_BASE_URL, apiFetch } from '../config/api.js';
-import { clearSession } from '../utils/auth.js';
+import { API_BASE_URL, apiFetch, signOut } from '../config/api.js';
 
 export default function BookView() {
     const [book, setBook] = useState(null);
@@ -187,8 +186,8 @@ export default function BookView() {
         }
     };
 
-    const handleSignOut = () => {
-        clearSession();
+    const handleSignOut = async () => {
+        await signOut();
         setUser(null);
         setProfilePic(null);
         setShowDropdown(false);

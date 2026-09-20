@@ -38,6 +38,32 @@ export default defineConfig({
   server: {
     port: 5173,
     hmr: { overlay: false },
+    // Proxying the API through the dev server makes development same-origin,
+    // which is what lets the refresh cookie be first-party here as well as in
+    // production. Keep this list in step with server/config/apiPaths.js.
+    proxy: Object.fromEntries(
+      [
+        '/auth',
+        '/book',
+        '/cart',
+        '/chat',
+        '/filter',
+        '/health',
+        '/order',
+        '/purchase',
+        '/return',
+        '/uploads',
+        '/user',
+        '/wishlist',
+      ].map((prefix) => [
+        prefix,
+        {
+          target: process.env.VITE_PROXY_TARGET || 'http://localhost:4000',
+          changeOrigin: true,
+          ws: prefix === '/socket.io',
+        },
+      ])
+    ),
     watch: {
       // Filesystem events do not cross a Windows bind mount into a Linux
       // container, so hot reload needs polling there. Off by default, since

@@ -3,8 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { FaChevronLeft, FaChevronRight, FaHeart, FaRegHeart, FaBell, FaComments } from 'react-icons/fa';
 import './Homepage.css';
 import { io } from 'socket.io-client';
-import { API_BASE_URL, apiFetch } from '../config/api.js';
-import { clearSession } from '../utils/auth.js';
+import { API_BASE_URL, apiFetch, signOut } from '../config/api.js';
 
 const genres = [
   'Fiction',
@@ -108,8 +107,8 @@ export default function Homepage() {
     return () => socket.disconnect();
   }, [userEmail]);
 
-  const handleSignOut = () => {
-    clearSession();
+  const handleSignOut = async () => {
+    await signOut();
     setUser(null);
     setProfilePic(null);
     setShowDropdown(false);

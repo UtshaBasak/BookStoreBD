@@ -1,10 +1,14 @@
 import path from 'path';
+import { existsSync } from 'fs';
 import { fileURLToPath } from 'url';
 
 import express from 'express';
 import cors from 'cors';
+import cookieParser from 'cookie-parser';
 
+import { config } from './config/env.js';
 import { corsOptions } from './config/cors.js';
+import { isApiPath } from './config/apiPaths.js';
 import { errorHandler, notFoundHandler } from './middleware/errorHandler.js';
 import { sanitizeRequest } from './middleware/sanitizeRequest.js';
 import { requestLogger } from './middleware/requestLogger.js';
@@ -41,6 +45,7 @@ export const createApp = () => {
   // body limit is far too small.
   app.use(express.json({ limit: '25mb' }));
   app.use(express.urlencoded({ extended: true, limit: '25mb' }));
+  app.use(cookieParser());
   app.use(sanitizeRequest);
 
   // Book covers are stored on the document as base64, but the client still
@@ -65,6 +70,27 @@ export const createApp = () => {
   app.use('/return', writeLimiter, returnRouter);
   app.use('/user', writeLimiter, userRouter);
   app.use('/wishlist', wishlistRouter);
+
+  // ------------------------------------------------------------------------
+  // Single-page app
+  //
+  // Serving the built client from the same origin as the API is what makes the
+  // refresh cookie first-party: no CORS, no third-party cookie restrictions.
+  // Registered after the routers, so an API path is never swallowed by the
+  // fallback below.
+  // ------------------------------------------------------------------------
+  const clientDist = path.resolve(currentDir, '..', 'client', 'dist');
+
+  if (config.serveClient && existsSync(clientDist)) {
+    app.use(express.static(clientDist));
+
+    app.get(/.*/, (req, res, next) => {
+      // A miss under an API prefix is a 404, not the app shell — otherwise a
+      // typo'd endpoint would return HTML and a fetch would fail confusingly.
+      if (isApiPath(req.path)) return next();
+      return res.sendFile(path.join(clientDist, 'index.html'));
+    });
+  }
 
   app.use(notFoundHandler);
   app.use(errorHandler);

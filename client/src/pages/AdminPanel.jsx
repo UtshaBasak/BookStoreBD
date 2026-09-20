@@ -6,7 +6,8 @@ import TransactionHistory from './TransactionHistory';
 import BookList from './BookList';
 import ReturnManagement from './admin/ReturnManagement';
 import { FaHome } from 'react-icons/fa';
-import { clearSession, isAdmin } from '../utils/auth.js';
+import { isAdmin } from '../utils/auth.js';
+import { signOut } from '../config/api.js';
 
 export default function AdminPanel() {
   const navigate = useNavigate();
@@ -66,8 +67,8 @@ export default function AdminPanel() {
             cursor: 'pointer',
             fontWeight: 'bold'
           }}
-          onClick={() => {
-            clearSession();
+          onClick={async () => {
+            await signOut();
             window.location.href = '/sign-in';
           }}
         >

@@ -8,11 +8,11 @@ commit, so any one of them can be reverted without unpicking the others.
 all three package roots report zero dependency vulnerabilities; CodeQL reports
 five findings, all confirmed false positives in the same rule
 (`js/xss-through-dom`). Authentication and authorisation are enforced
-server-side, and every endpoint validates its input against a Zod schema.
-Tasks 1, 7, 5 and 3 are complete: **161 tests** (110 server, 51 client) gate
-every push, `docker compose up` brings the whole stack up with no local Node or
-MongoDB install, and the API emits structured logs with a correlation id per
-request.
+server-side, sessions use short access tokens with rotating refresh tokens, and
+every endpoint validates its input against a Zod schema. Tasks 1, 7, 5, 3 and 2
+are complete: **183 tests** (129 server, 54 client) gate every push, `docker
+compose up` brings the whole stack up with no local Node or MongoDB install,
+and the API emits structured logs with a correlation id per request.
 
 ---
 
@@ -27,7 +27,7 @@ before any deployment work resumes.
 | ~~2~~ | ~~[Docker Compose](#7--docker-compose)~~ (task 7) **done** | Foundation | — | Low |
 | ~~3~~ | ~~[Structured logging](#5--structured-logging-and-error-tracking)~~ (task 5) **done** | Foundation | — | Low |
 | ~~4~~ | ~~[Zod validation](#3--request-validation-with-zod)~~ (task 3) **done** | Hardening | 1 | Medium |
-| 5 | [Refresh tokens](#2--refresh-tokens-and-logout) (task 2) | Hardening | 1 | High |
+| ~~5~~ | ~~[Refresh tokens](#2--refresh-tokens-and-logout)~~ (task 2) **done** | Hardening | 1 | High |
 | 6 | [Cloudinary image storage](#4--move-images-out-of-mongodb-cloudinary) (task 4) | Larger | 1 | Medium |
 | 7 | [TanStack Query](#6--tanstack-query-and-the-17-lint-warnings) (task 6) | Larger | 1 | Medium-high |
 | 8 | [TypeScript](#8--typescript) | Larger | 1, 4 | High volume |
@@ -219,7 +219,10 @@ coerce to an empty string and return `200` with no results. It now returns
 
 ---
 
-## 2 · Refresh tokens and logout
+## 2 · Refresh tokens and logout — done
+
+*Landed. 15-minute access tokens, rotating refresh tokens in an httpOnly
+cookie, replay detection, and a real logout — all same-origin.*
 
 Today a single access token lives for seven days and cannot be revoked. There
 is no real logout — the client just forgets the token.
@@ -253,6 +256,30 @@ cross-site variant risky does not arise.
 
 **Risk is highest of the eight** — a mistake signs everyone out, or worse,
 fails to sign anyone out. Do it after tests exist.
+
+**Done.** Access tokens dropped from 7 days to 15 minutes; sessions are kept
+alive by an opaque refresh token stored only as a SHA-256, rotated on every
+use, in an httpOnly cookie scoped to `/auth`. Presenting an already-exchanged
+token revokes the whole family. `/auth/logout` revokes and clears; a password
+reset revokes every session for the account.
+
+Same-origin was reached through the proxy route rather than by folding the
+client into the API image: the Vite dev server proxies the API prefixes in
+development and nginx does in the production stack, so the browser only ever
+sees one origin. `SERVE_CLIENT=true` additionally makes Express serve
+`client/dist` for a single-service deployment; both shapes were exercised.
+
+Two things worth recording:
+
+- The client shares one in-flight refresh across concurrent requests. Without
+  that, a page firing several requests at once would trigger several refreshes,
+  the second would present an already-rotated token, and the reuse detection
+  would sign the user out for loading a busy page.
+- `client/dist` is not inside the server image, so the first attempt at
+  same-origin quietly did nothing in Docker — `GET /` returned 404 while the
+  tests passed. Serving the client is now gated behind an explicit
+  `SERVE_CLIENT` switch rather than an `existsSync` check, so behaviour no
+  longer depends on whether a build happens to be on disk.
 
 ---
 
