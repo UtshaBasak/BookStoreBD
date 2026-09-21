@@ -165,7 +165,7 @@ export default function BookView() {
     }
 
     return (
-        <div style={{ minHeight: '100vh', width: '100vw', display: 'flex', flexDirection: 'column' }}>
+        <div style={{ minHeight: '100vh', width: '100%', display: 'flex', flexDirection: 'column' }}>
             <header className="header">
                 <div className="logo">
                     <span
@@ -341,11 +341,17 @@ export default function BookView() {
             </header>
 
             {/* Main Content */}
-            <div style={{ flex: 1, padding: '2rem', backgroundColor: '#f5f5f5' }}>
-                <div style={{ maxWidth: '1200px', margin: '0 auto', background: 'white', padding: '2rem', borderRadius: '8px', boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}>
-                    <div style={{ display: 'flex', gap: '2rem', flexWrap: 'wrap' }}>
-                        {/* Left Column */}
-                        <div style={{ flex: '0 0 300px' }}>
+            <div className="flex-1 p-4 sm:p-8" style={{ backgroundColor: '#f5f5f5' }}>
+                <div
+                    className="mx-auto max-w-[1200px] rounded-lg bg-white p-4 sm:p-8"
+                    style={{ boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}
+                >
+                    <div className="flex flex-wrap gap-6 sm:gap-8">
+                        {/* The cover column: full width on a phone, a fixed 300px
+                            beside the details once there is room. It was 300px
+                            at every width, which is wider than a 360px screen
+                            once the page padding is taken off. */}
+                        <div className="w-full sm:w-[300px] sm:shrink-0">
                             <div style={{ position: 'relative' }}>
                                 <img
                                     src={getBookImageSrc(book)}

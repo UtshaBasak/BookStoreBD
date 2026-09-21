@@ -151,7 +151,7 @@ export default function Homepage() {
   };
 
   return (
-    <div className="homepage" style={{ width: '100vw', minHeight: '100vh' }}>
+    <div className="homepage" style={{ width: '100%', minHeight: '100vh' }}>
       <header className="header">
         <div className="logo">
           <span

@@ -251,43 +251,25 @@ export default function BookFilter() {
   };
 
   return (
+    // Layout in Tailwind classes from here down, rather than in inline style
+    // objects: a media query is the one thing an inline style cannot express,
+    // and this page was 682px wider than a phone because of it.
     <div
+      className="min-h-screen w-full bg-cover bg-fixed bg-center bg-no-repeat p-4 text-white sm:p-8"
       style={{
         backgroundImage: `url('https://images.unsplash.com/photo-1524995997946-a1c2e315a42f?auto=format&fit=crop&w=1950&q=80')`,
-        backgroundSize: 'cover',
-        backgroundPosition: 'center',
-        backgroundAttachment: 'fixed',
-        backgroundRepeat: 'no-repeat',
-        minHeight: '100vh',
-        width: '100vw',
-        padding: '2rem',
         boxSizing: 'border-box',
         fontFamily: 'Arial, sans-serif',
-        color: 'white',
       }}
     >
-      <div
-        style={{
-          display: 'flex',
-          gap: '2rem',
-        }}
-      >
+      {/* One column on a phone, sidebar beside the results from `lg` up. */}
+      <div className="flex flex-col gap-6 lg:flex-row lg:gap-8">
         {/* Filter Section */}
         <div
-          style={{
-            display: 'flex',
-            flexDirection: 'column',
-            gap: '1rem',
-            width: '250px',
-            backgroundColor: 'rgba(0, 0, 0, 0.4)',
-            padding: '1rem',
-            borderRadius: '12px',
-            height: 'fit-content',
-            position: 'sticky',
-            top: 24,
-            alignSelf: 'flex-start',
-            zIndex: 30
-          }}
+          // Full width above the results on a phone; a sticky 250px column
+          // beside them on a desktop, where there is room for one.
+          className="z-30 flex h-fit w-full flex-col gap-4 self-start rounded-xl p-4 lg:sticky lg:top-6 lg:w-[250px] lg:shrink-0"
+          style={{ backgroundColor: 'rgba(0, 0, 0, 0.4)' }}
         >
           {/* Book Type (as button list, equal boxes) */}
           <div style={{ backgroundColor: 'rgba(0,0,0,0.6)', borderRadius: '12px', padding: '1rem' }}>
@@ -488,19 +470,14 @@ export default function BookFilter() {
         </div>
 
         {/* Right Side: Search + Results */}
-        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-          {/* Search Bar and Sort */}
-          <div
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              width: '100%',
-              gap: '1rem',
-              position: 'relative'
-            }}
-          >
+        {/* `min-w-0`: without it a flex child refuses to shrink below the
+            width of its content, which is how a two-column grid of book cards
+            pushed the page sideways. */}
+        <div className="flex min-w-0 flex-1 flex-col gap-4">
+          {/* Search, sort and home. Wraps onto a second line when it has to. */}
+          <div className="relative flex w-full flex-wrap items-center gap-4">
             {/* Search Bar */}
-            <div style={{ flex: 1, position: 'relative', display: 'flex', alignItems: 'center' }}>
+            <div className="relative flex min-w-[180px] flex-1 items-center">
               <input
                 type="text"
                 placeholder="Search books or authors..."
@@ -559,7 +536,6 @@ export default function BookFilter() {
                 fontWeight: 500,
                 fontSize: 15,
                 cursor: 'pointer',
-                marginLeft: 8
               }}
               title="Sort books"
             >
@@ -569,14 +545,14 @@ export default function BookFilter() {
             </select>
             {/* Home Button (right, separated) */}
             <button
+              className="ml-auto"
               style={{
-                marginLeft: 16,
                 background: '#fff',
                 color: '#222',
                 border: 'none',
                 borderRadius: '50%',
-                width: 36,
-                height: 36,
+                width: 40,
+                height: 40,
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
@@ -592,16 +568,11 @@ export default function BookFilter() {
           </div>
 
           {/* Book List */}
+          {/* One card per row on a phone, two from `md` up. It was always two,
+              and two cards of this width do not fit in 360px. */}
           <div
-            style={{
-              width: '100%',
-              display: 'grid',
-              gridTemplateColumns: '1fr 1fr',
-              gap: '1.5rem',
-              backgroundColor: 'rgba(0, 0, 0, 0.4)',
-              padding: '1rem',
-              borderRadius: '12px',
-            }}
+            className="grid w-full grid-cols-1 gap-6 rounded-xl p-4 md:grid-cols-2"
+            style={{ backgroundColor: 'rgba(0, 0, 0, 0.4)' }}
           >
             {filteredBooks.length === 0 ? (
               <p style={{ gridColumn: '1 / -1' }}>No book or author found</p>
@@ -613,22 +584,16 @@ export default function BookFilter() {
                 return (
                   <div
                     key={book._id}
+                    className="relative flex min-w-0 cursor-pointer items-start gap-4 rounded-xl p-4 sm:gap-6"
                     style={{
-                      display: 'flex',
                       backgroundColor: 'rgba(255, 255, 255, 0.15)',
-                      borderRadius: '12px',
-                      padding: '1rem',
                       boxShadow: '0 4px 8px rgba(0, 0, 0, 0.3)',
-                      alignItems: 'flex-start',
-                      gap: '1.5rem',
-                      position: 'relative',
-                      minHeight: 180,
-                      cursor: 'pointer'
+                      minHeight: 180
                     }}
                     onClick={() => navigate(`/book/${book._id}`)}
                   >
                     {/* Book Image with sticker */}
-                    <div style={{ position: 'relative', width: 100, height: 150 }}>
+                    <div className="relative shrink-0" style={{ width: 100, height: 150 }}>
                       <img
                         src={book.images && book.images[0] ? book.images[0] : PLACEHOLDER_IMAGE}
                         alt={book.title}
@@ -660,8 +625,8 @@ export default function BookFilter() {
                       </span>
                     </div>
                     {/* Book Info */}
-                    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 4 }}>
-                      <div style={{ fontWeight: 'bold', fontSize: '1.2rem' }}>
+                    <div className="flex min-w-0 flex-1 flex-col gap-1">
+                      <div className="break-words text-lg font-bold">
                         {book.title}
                       </div>
                       <div>Author: {book.author}</div>
@@ -681,7 +646,10 @@ export default function BookFilter() {
                         </span>
                       </div>
                       {/* Action Buttons */}
-                      <div style={{ display: 'flex', gap: 12, marginTop: 8 }}>
+                      {/* Wraps: at 360px the two controls together are wider
+                          than the card, which was the last of this page's
+                          sideways scroll. */}
+                      <div className="mt-2 flex flex-wrap gap-3">
                         {/* Wishlist toggle */}
                         <button
                           onClick={(e) => {

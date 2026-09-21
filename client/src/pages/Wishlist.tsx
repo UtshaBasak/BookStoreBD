@@ -72,7 +72,7 @@ export default function Wishlist() {
         backgroundSize: 'cover',
         backgroundPosition: 'center',
         minHeight: '100vh',
-        width: '100vw',
+        width: '100%',
         padding: '2rem',
         fontFamily: 'Arial, sans-serif',
         color: 'white',

@@ -9,7 +9,7 @@ body {
   .admin-panel {
     display: flex;
     height: 100vh;
-    width: 100vw; /* Ensure full width */
+    width: 100%; /* Ensure full width */
   }
   
   /* Sidebar Styles */

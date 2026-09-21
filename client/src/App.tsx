@@ -65,6 +65,11 @@ export default function App() {
         {/* Public routes */}
         <Route path="/" element={<HomePage />} />
         <Route path="/book" element={<BookView />} />
+        {/* A shop that will not show a book without an account cannot sell one.
+            Every card on the homepage links here, the API already serves the
+            listing to anyone, and the actions that do need an account - cart,
+            wishlist, chat - ask for it at the point they are used. */}
+        <Route path="/book/:id" element={<BookView />} />
         <Route path="/filter" element={<Filter />} />
         {/* Information and policy pages, reachable without an account - a
             shopper should be able to read the returns policy before signing up. */}
@@ -183,14 +188,6 @@ export default function App() {
           element={
             <ProtectedRoute>
               <AdminOrderTrackingPage />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/book/:id"
-          element={
-            <ProtectedRoute>
-              <BookView />
             </ProtectedRoute>
           }
         />

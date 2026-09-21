@@ -42,7 +42,7 @@ export default function SellerOrderList() {
   const grouped = groupOrdersByOrderNumber(filteredOrders);
 
   return (
-    <div style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', background: '#fff', overflowY: 'auto' }}>
+    <div style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100vh', background: '#fff', overflowY: 'auto' }}>
       <div style={{ width: '100%', minHeight: '100vh', boxSizing: 'border-box', padding: '2rem', maxWidth: 1400, margin: '0 auto' }}>
         <div style={{ marginBottom: '1rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <button

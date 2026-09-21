@@ -111,7 +111,7 @@ export default function SignUp() {
                 backgroundSize: 'cover',
                 backgroundPosition: 'center',
                 height: '100vh',
-                width: '100vw',
+                width: '100%',
                 margin: 0,
                 padding: 0,
                 display: 'flex',

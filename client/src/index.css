@@ -1,13 +1,37 @@
 @import "tailwindcss";
 
+/* ------------------------------------------------------------------ theme
+   The palette, as the pages actually use it. Counted before writing it down:
+   #e65100 appears 75 times across the source, #8B6F6F 47, #43a047 and #e74c3c
+   20 each. As literals, a change of brand colour means a find-and-replace
+   across two dozen files; as tokens it is this block.
+
+   Tailwind 4 reads its theme from CSS rather than from `tailwind.config.js`,
+   so these names become utilities: `bg-brand`, `text-accent`, `border-danger`. */
+@theme {
+  --color-brand: #8b6f6f;
+  --color-brand-dark: #6d5454;
+  --color-brand-tint: #f5f0ee;
+  --color-accent: #e65100;
+  --color-success: #43a047;
+  --color-danger: #e74c3c;
+  --color-ink: #222222;
+  --color-ink-soft: #444444;
+  --color-ink-muted: #6b6b6b;
+  --color-page: #faf8f7;
+}
+
 :root {
   font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
   line-height: 1.5;
   font-weight: 400;
 
-  color-scheme: light dark;
-  color: rgba(255, 255, 255, 0.87);
-  background-color: #242424;
+  /* The site is a light one. `color-scheme: light dark` came from the Vite
+     template and told the browser to paint form controls and scrollbars dark
+     for anyone whose system is in dark mode, over a white page. */
+  color-scheme: light;
+  color: var(--color-ink);
+  background-color: #ffffff;
 
   font-synthesis: none;
   text-rendering: optimizeLegibility;
@@ -15,34 +39,59 @@
   -moz-osx-font-smoothing: grayscale;
 }
 
-a {
-  font-weight: 500;
-  color: #646cff;
-  text-decoration: inherit;
-}
-a:hover {
-  color: #535bf2;
-}
-
-html, body {
+html,
+body {
   height: 100%;
   margin: 0;
   padding: 0;
 }
 
+html {
+  /* Stops iOS Safari inflating text when the phone is turned sideways. */
+  -webkit-text-size-adjust: 100%;
+}
 
 body {
-  margin: 0;
-  display: flex;
-  place-items: center;
-  min-width: 320px;
+  /* Was `display: flex; place-items: center`, from the Vite starter. That made
+     #root a flex item that shrank to its content, which is why eighteen places
+     across the app had reached for `width: 100vw` to get a full-width page
+     back - and `100vw` counts the scrollbar, so every one of those pages then
+     scrolled sideways by about 15px on a desktop. */
+  display: block;
   min-height: 100vh;
-  background: #fff !important;
+  background: #fff;
+
+  /* A page cannot be wider than the window. Defensive rather than a fix: the
+     causes are being removed page by page, and until they all are, a stray
+     fixed width should not produce a sideways scroll on a phone. */
+  overflow-x: hidden;
+}
+
+#root {
+  min-height: 100%;
+}
+
+a {
+  font-weight: 500;
+  color: var(--color-brand);
+  text-decoration: inherit;
+}
+a:hover {
+  color: var(--color-brand-dark);
 }
 
 h1 {
-  font-size: 3.2em;
-  line-height: 1.1;
+  /* Was a flat 3.2em, which is 51px on a phone. */
+  font-size: clamp(1.75rem, 1.2rem + 2.5vw, 2.5rem);
+  line-height: 1.15;
+}
+
+img,
+video {
+  /* Neither can be wider than what contains it. An image with its own inline
+     width keeps it, because an inline style wins over a stylesheet. */
+  max-width: 100%;
+  height: auto;
 }
 
 button {
@@ -52,28 +101,29 @@ button {
   font-size: 1em;
   font-weight: 500;
   font-family: inherit;
-  background-color: #1a1a1a;
+  /* Was #1a1a1a - near-black buttons on a white page, again from the starter.
+     Kept visible rather than transparent so that a button with no styling of
+     its own still reads as a button. */
+  background-color: var(--color-brand-tint);
+  color: var(--color-ink);
   cursor: pointer;
   transition: border-color 0.25s;
 }
 button:hover {
-  border-color: #646cff;
+  border-color: var(--color-brand);
 }
 button:focus,
 button:focus-visible {
-  outline: 4px auto -webkit-focus-ring-color;
+  outline: 2px solid var(--color-brand);
+  outline-offset: 2px;
 }
 
-@media (prefers-color-scheme: light) {
-  :root {
-    color: #213547;
-    background-color: #ffffff;
-  }
-  a:hover {
-    color: #747bff;
-  }
-  button {
-    background-color: #f9f9f9;
+/* On a touch screen a control has to be big enough to hit. Applied only where
+   the pointer is coarse, so a mouse-driven layout is left as it is. */
+@media (pointer: coarse) {
+  button,
+  [role='button'] {
+    min-height: 40px;
   }
 }
 

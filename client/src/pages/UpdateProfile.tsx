@@ -129,7 +129,7 @@ export default function UpdateProfile() {
             alignItems: 'center',
             padding: '2rem',
             color: '#fff',
-            width: '100vw',
+            width: '100%',
         }}>
             <div style={{ position: 'absolute', top: 24, left: 24 }}>
                 <button

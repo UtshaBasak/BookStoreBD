@@ -310,18 +310,61 @@ a filter that silently does nothing is worse than no filter.
 
 | Observation | Measured |
 | ----------- | -------- |
-| Inline `style={{…}}` vs `className` | 648 vs 124 |
-| Responsive breakpoints in the whole app | 2 Tailwind utilities, 3 media queries |
-| `100vw` usages (cause horizontal scroll) | 15 |
+| Inline `style={{…}}` vs `className` | 648 vs 124 → **639 vs 153** |
+| Responsive breakpoints in the whole app | 2 Tailwind utilities → **19**, 3 media queries |
+| ~~`100vw` usages (cause horizontal scroll)~~ | ~~15~~ **0** |
 | ~~`alert()`~~ / `window.confirm` | ~~38~~ **0** / 2 |
 | `notistack` (installed, provider mounted) | ~~0 uses~~ **13 files** |
 | Inputs vs labels | 49 vs 25 |
 | Images without `alt` | 4 of 21 |
 
-**Not responsive.** This is the most consequential item on the list. Tailwind 4
-is installed and configured and then barely used; layout lives in 648 inline
-style objects with fixed pixel widths. For a Bangladeshi book marketplace most
-traffic will be on a phone, and the site currently assumes a desktop viewport.
+**Not responsive.** The most consequential item on the list, and the one that
+takes the longest. Tailwind 4 is installed and then barely used; layout lives in
+639 inline style objects with fixed pixel widths. For a Bangladeshi book
+marketplace most traffic will be on a phone, and the site was written for a
+desktop viewport.
+
+**Phase 1 is done: nothing scrolls sideways any more.** Measured with
+[`scripts/responsivecheck.mjs`](../scripts/responsivecheck.mjs), which drives
+headless Chrome at three widths and reports what sticks out past the right
+edge, how many controls are too small for a thumb, and the smallest type on the
+page. Reading the CSS cannot answer any of those: a fixed width only overflows
+once it meets a viewport, and `100vw` only overflows once there is a scrollbar.
+
+| page | 360px | 768px | 1280px |
+| ---- | ----- | ----- | ------ |
+| `/` | none | ~~+15px~~ none | ~~+15px~~ none |
+| `/filter` | ~~**+682px**~~ none | ~~+289px~~ none | ~~+15px~~ none |
+| `/book/:id` | ~~+4px~~ none | ~~+15px~~ none | ~~+15px~~ none |
+| `/cart`, `/wishlist`, `/profile` | none | ~~+15px~~ none | ~~+15px~~ none |
+
+Three causes, all now gone:
+
+- **`body { display: flex; place-items: center }`**, straight from the Vite
+  starter, made `#root` a flex item that shrank to its content. Eighteen places
+  had reached for `width: 100vw` to get a full-width page back - and `100vw`
+  counts the scrollbar, which is where the flat +15px on every desktop page
+  came from. The body is a block again and all eighteen are `100%`.
+- **`/filter` was built as a fixed 250px sidebar beside a two-column grid**, at
+  every width. Two of those cards do not fit in 360px, and a grid track will not
+  shrink below its content, so the page was 682px wider than the phone showing
+  it. It is now one column on a phone and the sidebar moves above the results.
+- **The book cover column was a flat 300px**, wider than a 360px screen once the
+  page padding is taken off.
+
+Also cleared out on the way: `src/App.css` (the Vite logo-spin template, never
+imported) and `tailwind.config.js` (Tailwind 4 reads its theme from CSS, so the
+file was inert). The palette that was repeated as literals - `#e65100` 75 times,
+`#8B6F6F` 47 - is now `@theme` tokens, so `bg-brand` and `text-accent` work and
+a change of brand colour is one block rather than a find-and-replace across two
+dozen files.
+
+**What phase 1 did not do.** The 639 inline style objects are still inline; the
+pages converted so far are the ones that were broken. Tap targets are the next
+measurable defect - at 360px the homepage still has 13 controls under 40px, the
+filter page 21 - and much of it is inline `minHeight: 36`, which beats the
+stylesheet rule that would otherwise fix them in one place. Body text bottoms
+out at 12-13px in several places, which is small for a phone.
 
 ~~**Blocking dialogs for every message.**~~ **done.** 38 `alert()` calls —
 including for routine successes like "Added to cart successfully!" — each one a
@@ -350,6 +393,14 @@ signed-out visitor — and `no-alert` is now an ESLint error, which is what stop
 it coming back. Two `window.confirm` calls stay, with the rule disabled and a
 reason given on each: a confirmation needs an answer, and there is no dialog
 component yet.
+
+**The book page was behind a sign-in wall.** `/book/:id` sat inside
+`ProtectedRoute`, so a visitor who clicked any card on the homepage was bounced
+to the sign-in form - while the API had been serving that same listing to anyone
+who asked. A shop that will not show a book without an account cannot sell one,
+and a catalogue no search engine can reach cannot be found (item 6). The route
+is public now; the actions that genuinely need an account ask for it at the
+point they are used, which is what the toasts from item 4 are for.
 
 **No design system.** Colours (`#8B6F6F`, `#e65100`, `#43a047`) and spacing are
 repeated as literals across dozens of files. Moving them into Tailwind theme
@@ -412,7 +463,7 @@ Cheap and high-value first, so each step is shippable on its own.
 | ~~2~~ | ~~Kill the dead placeholder, real footer pages (P1)~~ **done** | Visibly broken and visibly untrustworthy |
 | ~~3~~ | ~~Uniform auth responses (S2)~~ **done** | A few lines; removes a privacy leak |
 | ~~4~~ | ~~Toasts instead of `alert()`~~ **done** | The single biggest change in how the product feels |
-| 5 | Responsive pass with Tailwind tokens | Largest effort, largest payoff; most traffic is mobile |
+| 5 | Responsive pass with Tailwind tokens — **phase 1 done** (no page scrolls sideways; tap targets and the remaining inline styles are next) | Largest effort, largest payoff; most traffic is mobile |
 | 6 | SEO metadata, sitemap, `robots.txt` | Growth work, meaningless before the site is presentable |
 | 7 | Upload validation, OTP attempt limits (S4, S5) | Hardening, once the surface is settled |
 | 8 | Account deletion and export (P2), audit log (P3) | Compliance before real users arrive |

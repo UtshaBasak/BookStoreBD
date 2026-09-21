@@ -52,7 +52,7 @@ export default function BuyerBookList() {
   );
 
   return (
-    <div style={{ width: '100vw', minHeight: '100vh', boxSizing: 'border-box', padding: '2rem', background: '#fff', overflowX: 'hidden' }}>
+    <div style={{ width: '100%', minHeight: '100vh', boxSizing: 'border-box', padding: '2rem', background: '#fff', overflowX: 'hidden' }}>
       <div style={{ marginBottom: '1rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <button
           onClick={() => navigate('/profile')}

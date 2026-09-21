@@ -41,7 +41,7 @@ export default function Profile() {
                 alignItems: 'center',
                 padding: '2rem',
                 color: '#fff',
-                width: '100vw',
+                width: '100%',
                 position: 'relative'
             }}
         >
