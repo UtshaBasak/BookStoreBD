@@ -6,24 +6,46 @@ commit, so any one of them can be reverted without unpicking the others.
 
 ## Known CodeQL findings
 
-All current alerts are false positives that need dismissing in the Security
-tab rather than fixing in code. Recorded here so the list stays short enough
-that a real finding is noticeable.
+**18 findings, all false positives**, to be dismissed in the Security tab
+rather than fixed in code. Recorded here so the list stays short enough that a
+real finding is noticeable.
+
+Measured locally against commit `54c4876` with CodeQL CLI 2.27.0 and query pack
+`codeql/javascript-queries` 2.4.5, using the same `javascript-code-scanning`
+suite and `javascript-typescript` language the workflow runs. Re-measure with a
+clean clone rather than the working tree, so `node_modules` cannot skew it.
 
 | Rule | Count | Why it is not a defect |
 | ---- | ----: | ---------------------- |
 | `js/sql-injection` | 14 | Every site sits behind a Zod schema that narrows the value to a primitive, so an operator object can never reach Mongoose. CodeQL cannot see through a schema. Adding a generic narrowing pass to `validate.ts` was tried and did not clear them, so it was reverted rather than left in as code with a justification that is not true. |
-| `js/xss-through-dom` | 5 | `URL.createObjectURL` can only produce a `blob:` URL; CodeQL models it as taint-propagating regardless. The only barriers the query accepts would corrupt a `blob:` or `data:` URL. |
+| `js/xss-through-dom` | 3 | `URL.createObjectURL` can only produce a `blob:` URL; CodeQL models it as taint-propagating regardless. The only barriers the query accepts would corrupt a `blob:` or `data:` URL. The three sites are the file pickers in `ChatWindow`, `ChatPage` and `UpdateProfile`. |
 | `js/missing-token-validation` | 1 | The refresh cookie is `SameSite=Lax` and both endpoints that read it are POST, so a browser will not attach it cross-site. Every other endpoint authenticates from the `Authorization` header, which a third-party page cannot set. Pinned by tests asserting the cookie alone authenticates nothing. |
-| `js/clear-text-logging` | 1 | `scripts/seed.ts` prints the demo password on purpose — you cannot sign in to a seeded account without being told it. |
+
+### What changed since the last measurement
+
+The count in this table used to read 21. Two separate drifts, both now checked
+rather than assumed:
+
+- `js/xss-through-dom` was recorded as 5. It had already fallen to 3 by
+  `45a7472`, before the TypeScript work: `Payment` stopped minting object URLs
+  and renders a validated stored URL instead. The table was simply stale.
+- `js/clear-text-logging` was 1 and is now 0 — and this one deserves suspicion
+  rather than credit. **The behaviour it flagged is unchanged**: `scripts/seed.ts`
+  still prints the demo password on purpose, because you cannot sign in to a
+  seeded account without being told it. Running the query alone against a
+  database built from `45a7472` finds the flow
+  (`process.env.SEED_PASSWORD` → `DEMO_PASSWORD` → template literal → `log()` →
+  `console.log`) and against the current code does not, on the same CLI and the
+  same query pack. Dropping the `unknown[]` annotation on `log` does not bring
+  it back, so the annotation alone is not the trigger. Treat it as the analyser
+  losing a flow, not as a risk that went away.
 
 ---
 
 **Current baseline.** Lint, type-check, build and boot are green from a clean
 `npm ci`, and all three package roots report zero dependency vulnerabilities.
-The CodeQL findings are the ones in the table above, all confirmed false
-positives; they have not been re-run since the TypeScript migration, so that
-count is the last measured one rather than a current one. Authentication and
+CodeQL reports 18 findings, all confirmed false positives, measured against
+the current commit and itemised in the table above. Authentication and
 authorisation are enforced server-side, sessions use short access tokens with
 rotating refresh tokens, and every endpoint that reads a body, query or param
 validates it against a Zod schema. All eight tasks are complete: the whole
