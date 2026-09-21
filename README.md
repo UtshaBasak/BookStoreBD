@@ -785,6 +785,11 @@ records what each one changed and what was learned doing it: automated tests,
 Docker Compose, structured logging, Zod validation, refresh tokens, Cloudinary
 image storage, TanStack Query, and the TypeScript migration.
 
+[`docs/AUDIT.md`](docs/AUDIT.md) is the next step: a production-readiness audit
+measured against the running application, covering the security headers and
+privacy obligations a consumer marketplace is expected to meet, and the
+interface work that stands between this and something that reads as a business.
+
 ---
 
 ## Contributing
