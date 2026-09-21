@@ -46,6 +46,14 @@ export default tseslint.config(
 
       'react-refresh/only-export-components': ['warn', { allowConstantExport: true }],
 
+      // `alert()` blocked the whole tab until it was dismissed, could not be
+      // styled, and announced a successful add-to-cart with the same modal
+      // interruption as a failure. Everything user-facing goes through
+      // `useToast` now, and this is what stops it coming back. The rule also
+      // covers `confirm`, which two call sites still use deliberately - a
+      // confirmation needs an answer, and there is no dialog component yet.
+      'no-alert': 'error',
+
       // Back at 'error' now that data fetching has moved to TanStack Query and
       // the remaining derived state is computed during render. These were
       // demoted to warnings while 17 call sites still fetched inside effects.

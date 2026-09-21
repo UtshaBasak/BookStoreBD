@@ -26,7 +26,7 @@ Yes. Nothing is broken.
 | ----- | ------ |
 | Lint, both packages | clean |
 | Type-check under TypeScript 6.0.3 | clean |
-| Tests | 242 passing (177 server, 65 client) |
+| Tests | 254 passing (177 server, 77 client) |
 | `npm audit`, all three roots | 0 vulnerabilities |
 | Builds | API compiles to `dist/`, client bundles |
 | Production stack | browse, detail, cart, wishlist, profile, orders, clear — all `200` |
@@ -313,8 +313,8 @@ a filter that silently does nothing is worse than no filter.
 | Inline `style={{…}}` vs `className` | 648 vs 124 |
 | Responsive breakpoints in the whole app | 2 Tailwind utilities, 3 media queries |
 | `100vw` usages (cause horizontal scroll) | 15 |
-| `alert()` / `window.confirm` | 38 / 2 |
-| `notistack` (installed, provider mounted) | 0 uses |
+| ~~`alert()`~~ / `window.confirm` | ~~38~~ **0** / 2 |
+| `notistack` (installed, provider mounted) | ~~0 uses~~ **13 files** |
 | Inputs vs labels | 49 vs 25 |
 | Images without `alt` | 4 of 21 |
 
@@ -323,11 +323,33 @@ is installed and configured and then barely used; layout lives in 648 inline
 style objects with fixed pixel widths. For a Bangladeshi book marketplace most
 traffic will be on a phone, and the site currently assumes a desktop viewport.
 
-**Blocking dialogs for every message.** 38 `alert()` calls — including for
-routine successes like "Added to cart successfully!". `notistack` is already
-installed and its provider already wraps the app; nothing uses it. Replacing
-`alert()` with toasts is a small change with a large effect on how the product
-feels.
+~~**Blocking dialogs for every message.**~~ **done.** 38 `alert()` calls —
+including for routine successes like "Added to cart successfully!" — each one a
+modal box that froze the tab until it was dismissed, could not be styled, and
+could not carry an action. `notistack` was installed and its provider already
+wrapped the app; nothing used it.
+
+All 38 now go through `useToast`, a small wrapper that decides the four kinds
+and how long each stays: a confirmation is read at a glance (3s), a failure
+needs longer (6s). The wording was rewritten with them — sentence case, no
+exclamation marks, and saying what happened rather than shouting about it.
+
+The one that matters commercially: "Please sign in to use cart." was a dead end
+with no way to sign in, shown at the exact moment somebody wanted to buy
+something. It is now "Sign in to use your cart." **with a Sign in button**, and
+`promptSignIn` puts that in one place for the five pages that need it.
+
+Verified in headless Chrome against the production build: the toast appears
+bottom-right with the site's corner radius, the page underneath stays usable
+while it is up (the old `alert()` froze it), the button reaches `/sign-in`, and
+at 390px the message sits inside 8px gutters instead of running off the side.
+No CSP violations.
+
+Twelve tests cover it — nine on the hook, three driving the homepage as a
+signed-out visitor — and `no-alert` is now an ESLint error, which is what stops
+it coming back. Two `window.confirm` calls stay, with the rule disabled and a
+reason given on each: a confirmation needs an answer, and there is no dialog
+component yet.
 
 **No design system.** Colours (`#8B6F6F`, `#e65100`, `#43a047`) and spacing are
 repeated as literals across dozens of files. Moving them into Tailwind theme
@@ -389,7 +411,7 @@ Cheap and high-value first, so each step is shippable on its own.
 | ~~1~~ | ~~Security headers (S1, S6)~~ **done** | One dependency and a few nginx lines; closed the largest gap |
 | ~~2~~ | ~~Kill the dead placeholder, real footer pages (P1)~~ **done** | Visibly broken and visibly untrustworthy |
 | ~~3~~ | ~~Uniform auth responses (S2)~~ **done** | A few lines; removes a privacy leak |
-| 4 | Toasts instead of `alert()` | The single biggest change in how the product feels |
+| ~~4~~ | ~~Toasts instead of `alert()`~~ **done** | The single biggest change in how the product feels |
 | 5 | Responsive pass with Tailwind tokens | Largest effort, largest payoff; most traffic is mobile |
 | 6 | SEO metadata, sitemap, `robots.txt` | Growth work, meaningless before the site is presentable |
 | 7 | Upload validation, OTP attempt limits (S4, S5) | Hardening, once the surface is settled |

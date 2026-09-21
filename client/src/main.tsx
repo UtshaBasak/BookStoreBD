@@ -16,7 +16,17 @@ createRoot(container).render(
   <StrictMode>
     <ErrorBoundary>
       <QueryClientProvider client={queryClient}>
-        <SnackbarProvider>
+        {/*
+          Toasts. `useToast` picks the variant and how long each one stays;
+          what is decided here is everything that should look the same across
+          the site - where they appear, how many stack up, and that clicking a
+          button twice does not produce the same message twice.
+        */}
+        <SnackbarProvider
+          maxSnack={3}
+          preventDuplicate
+          anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+        >
           <App />
         </SnackbarProvider>
       </QueryClientProvider>

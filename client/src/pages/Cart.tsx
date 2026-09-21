@@ -5,12 +5,14 @@ import type { Book } from '@shared/api.js';
 
 import { API_BASE_URL } from '../config/api.js';
 import { useCart, useToggleCart, useToggleWishlist, useWishlist } from '../hooks/queries.js';
+import { promptSignIn, useToast } from '../hooks/useToast.js';
 import { getUserEmail } from '../utils/auth.js';
 import { flagsFor } from '../utils/bookFlags.js';
 import { PLACEHOLDER_IMAGE } from '../utils/safeImageSrc.js';
 
 export default function Cart() {
   const navigate = useNavigate();
+  const toast = useToast();
   const userEmail = getUserEmail();
   const signedIn = Boolean(userEmail);
 
@@ -33,7 +35,7 @@ export default function Cart() {
 
   const handleToggleWishlist = (id: string) => {
     if (!userEmail) {
-      alert('Please sign in to use wishlist.');
+      promptSignIn(toast, () => navigate('/sign-in'), 'wishlist');
       return;
     }
     toggleWishlist({ bookId: id, inWishlist: Boolean(wishlist[id]) });

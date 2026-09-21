@@ -16,6 +16,7 @@ import {
   useToggleCart,
   useToggleWishlist,
 } from '../hooks/queries.js';
+import { promptSignIn, useToast } from '../hooks/useToast.js';
 import Footer from '../components/Footer.js';
 import { getUserEmail } from '../utils/auth.js';
 import { flagsFor } from '../utils/bookFlags.js';
@@ -43,6 +44,7 @@ export default function Homepage() {
   const [searchInput, setSearchInput] = useState('');
   const scrollRef = useRef<HTMLDivElement | null>(null);
   const navigate = useNavigate();
+  const toast = useToast();
   const userEmail = getUserEmail();
 
   // Everything below is derived from queries rather than copied into state by
@@ -112,7 +114,7 @@ export default function Homepage() {
 
   const toggleWishlist = (bookId: string) => {
     if (!userEmail) {
-      alert('Please sign in to use wishlist.');
+      promptSignIn(toast, () => navigate('/sign-in'), 'wishlist');
       return;
     }
     // The mutation invalidates the wishlist, so every page showing it updates.
@@ -121,12 +123,12 @@ export default function Homepage() {
 
   const toggleCart = (bookId: string) => {
     if (!userEmail) {
-      alert('Please sign in to use cart.');
+      promptSignIn(toast, () => navigate('/sign-in'), 'cart');
       return;
     }
     toggleCartMutation(
       { bookId, inCart: Boolean(cart[bookId]) },
-      { onError: () => alert('Failed to update cart. Please try again.') }
+      { onError: () => toast.error('Could not update your cart. Please try again.') }
     );
   };
 
@@ -222,7 +224,7 @@ export default function Homepage() {
             style={{ cursor: 'pointer', marginRight: '0.5rem', fontSize: 22, color: '#8B6F6F', display: 'inline-flex', alignItems: 'center' }}
             title="Notifications"
             tabIndex={0}
-            onClick={() => alert('No notifications')}
+            onClick={() => toast.info('No new notifications.')}
             aria-label="Notifications"
           >
             <FaBell />

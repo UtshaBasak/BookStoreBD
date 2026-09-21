@@ -1,6 +1,7 @@
 import type { Id, ReturnStatus } from '@shared/api.js';
 
 import { useReturnRequests, useUpdateReturnStatus } from '../../hooks/queries.js';
+import { useToast } from '../../hooks/useToast.js';
 import { messageOf } from '../../utils/apiError.js';
 
 export default function ReturnManagement() {
@@ -9,15 +10,16 @@ export default function ReturnManagement() {
   const loading = requestsQuery.isPending;
 
   const { mutateAsync: updateStatus } = useUpdateReturnStatus();
+  const toast = useToast();
 
   const handleStatusUpdate = async (requestId: Id, status: ReturnStatus) => {
     try {
       // The mutation invalidates the list, so the table reflects the change
       // without this component keeping its own copy in sync.
       await updateStatus({ id: requestId, status });
-      alert(`Return request ${status} successfully`);
+      toast.success(`Return request ${status}.`);
     } catch (error) {
-      alert(messageOf(error) || 'Failed to update return request');
+      toast.error(messageOf(error) || 'Could not update the return request.');
     }
   };
 

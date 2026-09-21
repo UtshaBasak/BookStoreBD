@@ -5,6 +5,7 @@ import type { Id } from '@shared/api.js';
 
 import { API_BASE_URL, apiFetch } from '../config/api.js';
 import { useSellerBooks } from '../hooks/queries.js';
+import { useToast } from '../hooks/useToast.js';
 import { getUserEmail } from '../utils/auth.js';
 
 export default function SellerBookList() {
@@ -15,6 +16,7 @@ export default function SellerBookList() {
 
   const sellerEmail = getUserEmail();
   const navigate = useNavigate();
+  const toast = useToast();
 
   const booksQuery = useSellerBooks(sellerEmail);
   const books = booksQuery.data ?? [];
@@ -51,15 +53,16 @@ export default function SellerBookList() {
       }
       fetchBooks();
       setEdit({});
-      alert('All changes saved!');
+      toast.success('All changes saved.');
     } catch {
-      alert('Save failed');
+      toast.error('Could not save your changes.');
     } finally {
       setLoading(false);
     }
   };
 
   const handleDelete = async (id: Id) => {
+    // eslint-disable-next-line no-alert -- a confirmation needs an answer; replacing it needs a dialog component
     if (!window.confirm('Are you sure you want to delete this book?')) return;
     setLoading(true);
     try {
@@ -68,13 +71,13 @@ export default function SellerBookList() {
       });
       if (!res.ok) {
         const data = await res.json();
-        alert(data.message || 'Delete failed');
+        toast.error(data.message || 'Could not delete the book.');
       } else {
         // The query owns the list; refetching keeps it the single source.
         await booksQuery.refetch();
       }
     } catch {
-      alert('Delete failed');
+      toast.error('Could not delete the book.');
     } finally {
       setLoading(false);
     }

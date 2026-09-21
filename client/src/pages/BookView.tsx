@@ -16,6 +16,7 @@ import {
     useUnreadChatCount,
     useWishlist,
 } from '../hooks/queries.js';
+import { promptSignIn, useToast } from '../hooks/useToast.js';
 import { messageOf } from '../utils/apiError.js';
 import { getUserEmail } from '../utils/auth.js';
 import { flagsFor } from '../utils/bookFlags.js';
@@ -27,6 +28,7 @@ export default function BookView() {
     const [showChat, setShowChat] = useState(false);
     const { id } = useParams();
     const navigate = useNavigate();
+    const toast = useToast();
     const userEmail = getUserEmail();
     const signedIn = Boolean(userEmail);
     const scrollRef = useRef<HTMLDivElement | null>(null);
@@ -79,12 +81,12 @@ export default function BookView() {
 
     const toggleCart = async (bookId: string) => {
         if (!userEmail) {
-            alert('Please sign in to use cart.');
+            promptSignIn(toast, () => navigate('/sign-in'), 'cart');
             return;
         }
 
         if (!book || book.stock <= 0) {
-            alert('Sorry, this book is out of stock!');
+            toast.warning('This book is out of stock.');
             return;
         }
 
@@ -93,26 +95,28 @@ export default function BookView() {
             // The mutation invalidates the cart, so every page showing it - the
             // badge here included - updates without this one tracking a copy.
             await toggleCartMutation({ bookId, inCart: isInCart });
-            alert(isInCart ? 'Removed from cart!' : 'Added to cart successfully!');
+            toast.success(isInCart ? 'Removed from your cart.' : 'Added to your cart.');
         } catch (error) {
             console.error('Cart error:', error);
-            alert(messageOf(error) || 'Failed to update cart');
+            toast.error(messageOf(error) || 'Could not update your cart.');
         }
     };
 
     const toggleWishlist = async (bookId: string) => {
         if (!userEmail) {
-            alert('Please sign in to use wishlist.');
+            promptSignIn(toast, () => navigate('/sign-in'), 'wishlist');
             return;
         }
 
         const isInWishlist = Boolean(wishlist[bookId]);
         try {
             await toggleWishlistMutation({ bookId, inWishlist: isInWishlist });
-            alert(isInWishlist ? 'Removed from wishlist!' : 'Added to wishlist successfully!');
+            toast.success(
+                isInWishlist ? 'Removed from your wishlist.' : 'Added to your wishlist.'
+            );
         } catch (error) {
             console.error('Wishlist error:', error);
-            alert(messageOf(error) || 'Failed to update wishlist');
+            toast.error(messageOf(error) || 'Could not update your wishlist.');
         }
     };
 
@@ -237,7 +241,7 @@ export default function BookView() {
                         style={{ cursor: 'pointer', marginRight: '0.5rem', fontSize: 22, color: '#8B6F6F', display: 'inline-flex', alignItems: 'center' }}
                         title="Notifications"
                         tabIndex={0}
-                        onClick={() => alert('No notifications')}
+                        onClick={() => toast.info('No new notifications.')}
                         aria-label="Notifications"
                     >
                         <FaBell />

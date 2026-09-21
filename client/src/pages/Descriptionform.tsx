@@ -4,6 +4,7 @@ import { useParams } from 'react-router-dom';
 import type { Book, MessageResponse } from '@shared/api.js';
 
 import { API_BASE_URL, apiFetch } from '../config/api.js';
+import { useToast } from '../hooks/useToast.js';
 import { getUserEmail } from '../utils/auth.js';
 
 export default function DescriptionForm() {
@@ -12,6 +13,7 @@ export default function DescriptionForm() {
   const [images, setImages] = useState<File[]>([]);
   const userEmail = getUserEmail();
   const { bookId } = useParams();
+  const toast = useToast();
 
   const handleDescriptionSubmit = async (e: FormEvent) => {
     e.preventDefault();
@@ -27,14 +29,14 @@ export default function DescriptionForm() {
 
       const data = (await res.json()) as MessageResponse;
       if (res.ok) {
-        alert(data.message);
+        toast.success(data.message);
         setBooks((prevBooks) => prevBooks.filter((book) => book._id !== bookId));
       } else {
-        alert(data.message);
+        toast.error(data.message);
       }
     } catch (error) {
       console.error('Error returning book:', error);
-      alert('Failed to return the book. Please try again.');
+      toast.error('Could not send the return request. Please try again.');
     }
   };
 
@@ -46,12 +48,12 @@ export default function DescriptionForm() {
     e.preventDefault();
 
     if (images.length === 0) {
-      alert('Please select at least one image to upload.');
+      toast.warning('Please choose at least one image.');
       return;
     }
 
     if (images.length > 10) {
-      alert('You can upload a maximum of 10 images.');
+      toast.warning('Ten images at most, please.');
       return;
     }
 
@@ -68,14 +70,14 @@ export default function DescriptionForm() {
 
       const data = await res.json();
       if (res.ok) {
-        alert('Images uploaded successfully!');
+        toast.success('Images uploaded.');
         setImages([]); // Clear images after successful upload
       } else {
-        alert(data.message || 'Failed to upload images.');
+        toast.error(data.message || 'Could not upload the images.');
       }
     } catch (error) {
       console.error('Error uploading images:', error);
-      alert('Failed to upload images. Please try again.');
+      toast.error('Could not upload the images. Please try again.');
     }
   };
 

@@ -4,7 +4,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import type { ApiError, SessionResponse } from '@shared/api.js';
 
 import { API_BASE_URL, apiFetch } from '../config/api.js';
-import { messageOf } from '../utils/apiError.js';
+import { useToast } from '../hooks/useToast.js';
 import { isAdmin, isAuthenticated, setSession } from '../utils/auth.js';
 
 /** The sign-up form, filled in one field at a time. */
@@ -21,6 +21,7 @@ export default function SignUp() {
     const [otpMsg, setOtpMsg] = useState('');
     const [emailForOtp, setEmailForOtp] = useState('');
     const navigate = useNavigate();
+    const toast = useToast();
 
     useEffect(() => {
         if (isAuthenticated()) {
@@ -72,7 +73,7 @@ export default function SignUp() {
     const handleSubmit = async (e: FormEvent) => {
         e.preventDefault();
         if (!formData.email || !formData.username || !formData.password) {
-            alert('Please fill all fields.');
+            toast.warning('Please fill in every field.');
             return;
         }
         // Prevent sending OTP if already in OTP step
@@ -95,11 +96,11 @@ export default function SignUp() {
                 setTimeout(() => navigate('/'), 1000);
             } else {
                 const failure = (await res.json()) as ApiError;
-                alert(failure.message || 'Sign up failed. Please try again.');
+                toast.error(failure.message || 'Could not create your account.');
             }
         } catch (error) {
             console.error('Error submitting form:', error);
-            alert('Error submitting form: ' + messageOf(error));
+            toast.error('Could not reach the server. Please check your connection.');
         }
     };
 

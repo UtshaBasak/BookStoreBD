@@ -5,6 +5,7 @@ import { io, type Socket } from 'socket.io-client';
 import type { ChatMessage, ChatMessagesResponse } from '@shared/api.js';
 
 import { API_BASE_URL, apiFetch } from '../config/api.js';
+import { useToast } from '../hooks/useToast.js';
 import { getUserEmail } from '../utils/auth.js';
 import { safeObjectUrl } from '../utils/safeImageSrc.js';
 
@@ -21,6 +22,7 @@ export default function ChatWindow({ receiver, receiverName, onClose }: ChatWind
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const userEmail = getUserEmail();
+  const toast = useToast();
   // A ref rather than state: the socket is an imperative handle that nothing
   // renders, so storing it in state only caused an extra render on mount.
   const socketRef = useRef<Socket | null>(null);
@@ -113,7 +115,7 @@ export default function ChatWindow({ receiver, receiverName, onClose }: ChatWind
       setSelectedImage(null);
     } catch (err) {
       console.error('Error sending message:', err);
-      alert('Failed to send message. Please try again.');
+      toast.error('Message not sent. Please try again.');
     }
   };
 

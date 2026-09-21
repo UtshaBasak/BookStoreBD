@@ -4,11 +4,12 @@ import { Link, useNavigate } from 'react-router-dom';
 import type { ApiError } from '@shared/api.js';
 
 import { API_BASE_URL, apiFetch } from '../config/api.js';
-import { messageOf } from '../utils/apiError.js';
+import { useToast } from '../hooks/useToast.js';
 import { isAdmin, isAuthenticated, setSession } from '../utils/auth.js';
 
 export default function SignIn() {
     const navigate = useNavigate();
+    const toast = useToast();
     const [formData, setFormData] = useState({});
     const [showForgot, setShowForgot] = useState(false);
     const [forgotEmail, setForgotEmail] = useState('');
@@ -48,14 +49,16 @@ export default function SignIn() {
                 setSession(data);
                 navigate('/'); // Redirect to homepage after sign in
             } else {
-                // The sentence, not the envelope. Both ways of failing now
+                // The sentence, not the envelope. Both ways of failing
                 // answer the same on purpose, and `JSON.stringify` used to put
                 // `{"success":false,"statusCode":401,...}` in front of the user.
-                alert((data as ApiError).message || 'Sign in failed. Please try again.');
+                toast.error((data as ApiError).message || 'Could not sign you in.');
             }
         } catch (err) {
+            // The detail belongs in the console; what reaches the visitor is
+            // something they can act on.
             console.error('Error submitting form:', err);
-            alert('Error submitting form: ' + messageOf(err));
+            toast.error('Could not reach the server. Please check your connection.');
         }
     };
 

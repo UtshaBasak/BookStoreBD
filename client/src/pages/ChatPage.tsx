@@ -6,6 +6,7 @@ import { io, type Socket } from 'socket.io-client';
 import type { ChatMessage, ChatMessagesResponse, ChatSummary } from '@shared/api.js';
 
 import { API_BASE_URL, apiFetch } from '../config/api.js';
+import { useToast } from '../hooks/useToast.js';
 import { getUserEmail } from '../utils/auth.js';
 import { safeObjectUrl } from '../utils/safeImageSrc.js';
 
@@ -21,6 +22,7 @@ export default function ChatPage() {
     const socketRef = useRef<Socket | null>(null);
     const fileInputRef = useRef<HTMLInputElement | null>(null);
     const navigate = useNavigate();
+    const toast = useToast();
     const userEmail = getUserEmail();
     const messagesEndRef = useRef<HTMLDivElement | null>(null);
     const messagesContainerRef = useRef<HTMLDivElement | null>(null);
@@ -199,11 +201,12 @@ export default function ChatPage() {
             scrollToBottom();
         } catch (err) {
             console.error('Error sending message:', err);
-            alert('Failed to send message. Please try again.');
+            toast.error('Message not sent. Please try again.');
         }
     };
 
     const deleteConversation = async (userToDelete: ChatSummary) => {
+        // eslint-disable-next-line no-alert -- a confirmation needs an answer; replacing it needs a dialog component
         if (!window.confirm('Are you sure you want to delete this conversation?')) return;
         
         try {

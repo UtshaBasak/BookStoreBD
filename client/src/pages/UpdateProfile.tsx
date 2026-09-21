@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 
 import { API_BASE_URL, apiFetch } from '../config/api.js';
 import { useProfile } from '../hooks/queries.js';
+import { useToast } from '../hooks/useToast.js';
 import { getUserEmail } from '../utils/auth.js';
 import { isOwnProfile } from '../utils/profile.js';
 import { safeImageSrc, safeObjectUrl } from '../utils/safeImageSrc.js';
@@ -23,6 +24,7 @@ export default function UpdateProfile() {
     const [removeProfilePicture, setRemoveProfilePicture] = useState(false);
     const [errorMsg, setErrorMsg] = useState('');
     const navigate = useNavigate();
+    const toast = useToast();
     const userEmail = getUserEmail();
 
     const { data: profile } = useProfile(userEmail, { enabled: Boolean(userEmail) });
@@ -108,7 +110,7 @@ export default function UpdateProfile() {
                 }
                 return;
             }
-            alert('Profile updated successfully!');
+            toast.success('Profile updated.');
             navigate('/profile');
         } catch (err) {
             console.error('Error updating profile:', err);

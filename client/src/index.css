@@ -84,3 +84,50 @@ button:focus-visible {
   z-index: 100;
   background: #fff;
 }
+
+/* ------------------------------------------------------------------ toasts
+   notistack's own class names. Its defaults are close, but square-cornered and
+   in the browser's font rather than the site's. The narrow-screen rule stops a
+   long message running off the side of a phone, which is where most of the
+   traffic is. */
+/* `div.` rather than the bare class: notistack injects its own styles into the
+   head at run time, after this stylesheet, so at equal specificity theirs win.
+   Measured in a real browser - the corners stayed at notistack's 4px until the
+   element was added to the selector. */
+div.notistack-MuiContent {
+  border-radius: 10px;
+  font-family: inherit;
+  font-size: 0.95rem;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.18);
+}
+
+/* The button a toast can carry, such as "Sign in" on the prompt an anonymous
+   visitor gets when they try to add something to the cart. Declared here
+   because the global `button` rule above would otherwise paint it black. */
+.toast-action {
+  background: rgba(255, 255, 255, 0.18);
+  border: 1px solid rgba(255, 255, 255, 0.55);
+  border-radius: 6px;
+  color: inherit;
+  font: inherit;
+  font-weight: 600;
+  padding: 0.25rem 0.75rem;
+  cursor: pointer;
+}
+.toast-action:hover {
+  background: rgba(255, 255, 255, 0.3);
+  border-color: #fff;
+}
+
+@media (max-width: 600px) {
+  div.notistack-SnackbarContainer {
+    left: 8px;
+    right: 8px;
+    width: auto;
+  }
+  div.notistack-Snackbar,
+  div.notistack-MuiContent {
+    width: 100%;
+    min-width: 0;
+  }
+}

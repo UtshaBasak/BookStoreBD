@@ -11,6 +11,7 @@ import {
   useToggleWishlist,
   useWishlist,
 } from '../hooks/queries.js';
+import { promptSignIn, useToast } from '../hooks/useToast.js';
 import { getUserEmail } from '../utils/auth.js';
 import { flagsFor } from '../utils/bookFlags.js';
 import { PLACEHOLDER_IMAGE } from '../utils/safeImageSrc.js';
@@ -65,6 +66,7 @@ export default function BookFilter() {
   const signedIn = Boolean(userEmail);
   const location = useLocation();
   const navigate = useNavigate();
+  const toast = useToast();
 
   /**
    * The URL is the source of truth for the search and filters, so they are
@@ -233,7 +235,7 @@ export default function BookFilter() {
   // Wishlist toggle
   const handleToggleWishlist = (bookId: string) => {
     if (!userEmail) {
-      alert('Please sign in to use wishlist.');
+      promptSignIn(toast, () => navigate('/sign-in'), 'wishlist');
       return;
     }
     toggleWishlistMutation({ bookId, inWishlist: Boolean(wishlist[bookId]) });
@@ -242,7 +244,7 @@ export default function BookFilter() {
   // Cart toggle
   const handleToggleCart = (bookId: string) => {
     if (!userEmail) {
-      alert('Please sign in to use cart.');
+      promptSignIn(toast, () => navigate('/sign-in'), 'cart');
       return;
     }
     toggleCartMutation({ bookId, inCart: Boolean(cart[bookId]) });
