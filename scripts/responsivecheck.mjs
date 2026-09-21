@@ -12,7 +12,14 @@
  *
  * Environment:
  *   AUTH_TOKEN, AUTH_EMAIL, AUTH_ROLE   seeded into localStorage, for the
- *                                       routes behind a sign-in guard
+ *                                       routes behind a sign-in guard. Mint the
+ *                                       token immediately before the run: an
+ *                                       access token lasts fifteen minutes, and
+ *                                       an expired one signs the app out to
+ *                                       `/sign-in`, so every route measures the
+ *                                       sign-in page. The `page` column names
+ *                                       what was actually measured, which is
+ *                                       how to spot it.
  *   WIDTHS                              comma-separated, default 360,390,768,1280
  */
 const port = process.argv[2];

@@ -1,9 +1,7 @@
-/* General Styles */
-body {
-    margin: 0;
-    font-family: Arial, sans-serif;
-    background-color: #f4f4f9;
-  }
+/*
+ * Scoped to `.admin-panel`. This file used to restyle `body` for the whole
+ * application, because a page's stylesheet is global once it is in the bundle.
+ */
   
   /* Admin Panel Layout */
   .admin-panel {

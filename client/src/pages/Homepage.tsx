@@ -20,6 +20,7 @@ import { promptSignIn, useToast } from '../hooks/useToast.js';
 import Footer from '../components/Footer.js';
 import { getUserEmail } from '../utils/auth.js';
 import { flagsFor } from '../utils/bookFlags.js';
+import { PLACEHOLDER_IMAGE } from '../utils/safeImageSrc.js';
 
 const genres = [
   'Fiction',
@@ -154,16 +155,29 @@ export default function Homepage() {
     <div className="homepage" style={{ width: '100%', minHeight: '100vh' }}>
       <header className="header">
         <div className="logo">
-          <span
-            style={{ cursor: 'pointer', color: '#8B6F6F', fontSize: '2rem', fontWeight: 'bold', userSelect: 'none' }}
-            onClick={() => { navigate('/'); window.location.reload(); }}
-            tabIndex={0}
-            onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { navigate('/'); window.location.reload(); } }}
+          {/* A button rather than a span with a hand-rolled keydown handler.
+              The reload has gone with it: the queries refetch on their own, and
+              throwing away the whole page to get back to it was a second of
+              white screen every time somebody tapped the name of the shop. */}
+          <button
+            type="button"
+            className="p-0 text-3xl font-bold"
+            // Inline, because a page stylesheet's plain `button` rule beats a
+            // Tailwind utility: Tailwind 4 puts its own rules in a cascade
+            // layer, and an unlayered rule wins over a layered one whatever
+            // the specificity says.
+            style={{
+              background: 'transparent',
+              border: 'none',
+              color: '#8B6F6F',
+              cursor: 'pointer',
+              userSelect: 'none',
+            }}
+            onClick={() => navigate('/')}
             aria-label="Go to homepage"
-            role="button"
           >
             BookStore
-          </span>
+          </button>
         </div>
         <div className="search-bar">
           <input
@@ -180,20 +194,12 @@ export default function Homepage() {
         <div className="user-options" style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: '1.5rem' }}>
 
         {user && (
-            <span
-              className="chat-icon"
-              style={{
-                cursor: 'pointer',
-                marginRight: '0.5rem',
-                fontSize: 22,
-                color: '#8B6F6F',
-                display: 'inline-flex',
-                alignItems: 'center',
-                position: 'relative'
-              }}
+            <button
+              type="button"
+              className="chat-icon icon-button"
+              style={{ color: '#8B6F6F' }}
               onClick={() => navigate('/chat')}
               title="Chat"
-              tabIndex={0}
               aria-label="Chat"
             >
               <FaComments />
@@ -216,31 +222,31 @@ export default function Homepage() {
                   {unreadCount > 99 ? '99+' : unreadCount}
                 </span>
               )}
-            </span>
+            </button>
           )}
 
-          <span
-            className="notification-icon"
-            style={{ cursor: 'pointer', marginRight: '0.5rem', fontSize: 22, color: '#8B6F6F', display: 'inline-flex', alignItems: 'center' }}
+          <button
+            type="button"
+            className="notification-icon icon-button"
+            style={{ color: '#8B6F6F' }}
             title="Notifications"
-            tabIndex={0}
             onClick={() => toast.info('No new notifications.')}
             aria-label="Notifications"
           >
             <FaBell />
-          </span>
+          </button>
 
-          <span
-            className="wishlist-icon"
-            style={{ cursor: 'pointer', marginRight: '0.5rem', fontSize: 22, color: '#e65100', display: 'inline-flex', alignItems: 'center' }}
+          <button
+            type="button"
+            className="wishlist-icon icon-button"
+            style={{ color: '#e65100' }}
             onClick={() => navigate('/wishlist')}
             title="Wishlist"
-            tabIndex={0}
             aria-label="Wishlist"
           >
             <FaHeart />
-          </span>
-          <Link to="/cart" style={{ color: '#8B6F6F', fontSize: 22, display: 'inline-flex', alignItems: 'center', textDecoration: 'none' }} title="Cart" aria-label="Cart">
+          </button>
+          <Link to="/cart" className="icon-link" style={{ color: '#8B6F6F' }} title="Cart" aria-label="Cart">
             🛒
           </Link>
           {user ? (
@@ -325,7 +331,11 @@ export default function Homepage() {
               )}
             </div>
           ) : (
-            <Link to="/sign-in" style={{ color: '#8B6F6F', fontWeight: 600, textDecoration: 'none', fontSize: 16 }}>
+            <Link
+              to="/sign-in"
+              className="inline-flex min-h-[44px] items-center px-2"
+              style={{ color: '#8B6F6F', fontWeight: 600, textDecoration: 'none', fontSize: 16 }}
+            >
               Sign In
             </Link>
           )}
@@ -423,11 +433,12 @@ export default function Homepage() {
         </span>
       </nav>
 
+      {/* The `src` here was commented out, so this was a 400px-tall empty box
+          with a broken image in it - the whole of the first screen on a phone,
+          above everything a shopper came for. banner.png was sitting unused in
+          public/ the whole time. */}
       <div className="hero-banner" style={{ zIndex: 1, position: 'relative' }}>
-        <img
-          // src="https://a-static.besthdwallpaper.com/a-peaceful-library-with-a-variety-of-books-on-the-shelves-wallpaper-1280x720-98073_45.jpg"
-          alt="Book Store Banner"
-        />
+        <img src="/banner.png" alt="Books for sale at BookStore" />
       </div>
 
       <div style={{
@@ -443,7 +454,6 @@ export default function Homepage() {
         background: '#fff'
       }}>
         <img
-          // src="https://images.unsplash.com/photo-1512820790803-83ca734da794?auto=format&fit=crop&w=1200&q=80"
           src="/banner1.png"
           alt="Books Banner"
           style={{
@@ -474,8 +484,8 @@ export default function Homepage() {
               border: 'none',
               borderRadius: '50%',
               boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
-              width: 36,
-              height: 36,
+              width: 44,
+              height: 44,
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
@@ -532,7 +542,10 @@ export default function Homepage() {
                     src={
                       Array.isArray(book.images) && book.images.length > 0 && book.images[0]
                         ? book.images[0]
-                        : '/books/default-book.jpg'
+                        // Was '/books/default-book.jpg', which is not in
+                        // public/ - so a book with no cover rendered as a
+                        // broken image on the busiest page on the site.
+                        : PLACEHOLDER_IMAGE
                     }
                     alt={book.title}
                     style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: 4 }}
@@ -638,8 +651,8 @@ export default function Homepage() {
               border: 'none',
               borderRadius: '50%',
               boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
-              width: 36,
-              height: 36,
+              width: 44,
+              height: 44,
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',

@@ -1,9 +1,13 @@
-/* General Styles */
-body {
-  margin: 0;
-  font-family: Arial, sans-serif;
-  background-color: #f9f9f9;
-}
+/*
+ * Every rule here is scoped to `.user-management`.
+ *
+ * A stylesheet imported by a page is not scoped to it: Vite puts it in the one
+ * bundle, and a bare `button { background-color: #e74c3c }` in this file was
+ * painting every button in the application red - which is most of the reason
+ * the rest of the app sets `background` inline on each one. It also beat the
+ * Tailwind utilities, because Tailwind 4 puts its own rules in a cascade layer
+ * and an unlayered rule wins over a layered one whatever the specificity.
+ */
 
 /* User Management Container */
 .user-management {
@@ -43,33 +47,33 @@ body {
   background-color: #2980b9;
 }
 
-/* Table Styles */
-table {
+.user-management table {
   width: 100%;
   border-collapse: collapse;
   margin-top: 20px;
 }
 
-thead {
+.user-management thead {
   background-color: #34495e;
   color: white;
 }
 
-th, td {
+.user-management th,
+.user-management td {
   padding: 10px;
   text-align: left;
   border: 1px solid #ddd;
 }
 
-tbody tr:nth-child(even) {
+.user-management tbody tr:nth-child(even) {
   background-color: #f2f2f2;
 }
 
-tbody tr:hover {
+.user-management tbody tr:hover {
   background-color: #f1f1f1;
 }
 
-button {
+.user-management button {
   padding: 5px 10px;
   background-color: #e74c3c;
   color: white;
@@ -79,6 +83,6 @@ button {
   transition: background-color 0.3s ease;
 }
 
-button:hover {
+.user-management button:hover {
   background-color: #c0392b;
 }

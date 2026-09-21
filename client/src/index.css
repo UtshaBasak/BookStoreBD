@@ -97,7 +97,10 @@ video {
 button {
   border-radius: 8px;
   border: 1px solid transparent;
-  padding: 0.6em 1.2em;
+  /* No padding here. The starter's `0.6em 1.2em` left a 40px-wide icon button
+     about 2px of content box, so its icon rendered as a dot - measured at
+     2x16px in the browser. Buttons that want padding set their own, and every
+     one in this app already does. */
   font-size: 1em;
   font-weight: 500;
   font-family: inherit;
@@ -125,6 +128,57 @@ button:focus-visible {
   [role='button'] {
     min-height: 40px;
   }
+}
+
+/* An icon that acts as a control. These were <span>s carrying an onClick and a
+   tabIndex: focusable, but pressing Enter did nothing at all, and a 22px glyph
+   is about half the width of a thumb. As <button>s the keyboard works for free
+   and the 44px below gives the finger something to aim at. */
+.icon-button,
+.icon-link {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 44px;
+  min-height: 44px;
+  padding: 0;
+  background: transparent;
+  border: none;
+  border-radius: 8px;
+  font-size: 22px;
+  line-height: 1;
+  cursor: pointer;
+  text-decoration: none;
+}
+.icon-button:hover,
+.icon-link:hover {
+  background: var(--color-brand-tint);
+  border-color: transparent;
+}
+
+/* The arrows on the "Similar Books" carousel. They carry `left: 0` / `right: 0`
+   inline and sit in a relatively positioned container, so they were meant to
+   overlay the strip - but no rule for this class existed anywhere, so they sat
+   in the flow above it and were sized entirely by the starter's button padding.
+   With that padding gone they measured 18px wide. */
+.scroll-button {
+  position: absolute;
+  top: 50%;
+  z-index: 2;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  transform: translateY(-50%);
+  background: #fff;
+  border: none;
+  border-radius: 50%;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+  color: var(--color-ink);
+  cursor: pointer;
 }
 
 /* Sticky site header, previously inlined in index.html. */

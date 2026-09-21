@@ -43,6 +43,16 @@
   text-decoration: underline;
 }
 
+/* Room for a thumb, on the devices that use one. A link sized to its text is
+   fine to read and hard to hit. */
+@media (pointer: coarse) {
+  .footer-section a {
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
+  }
+}
+
 .footer-legal {
   grid-column: 1 / -1;
   margin: 1rem 0 0;

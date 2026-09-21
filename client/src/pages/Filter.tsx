@@ -60,6 +60,12 @@ const categories = [
 
 export default function BookFilter() {
   const [priceFilter, setPriceFilter] = useState({ from: '', to: '' });
+  /**
+   * The filter panel is fourteen category buttons deep. Beside the results on a
+   * desktop that is fine; above them on a phone it means scrolling past all of
+   * it to reach a single book, so it starts closed on small screens.
+   */
+  const [showFilters, setShowFilters] = useState(false);
 
   const [sortOption, setSortOption] = useState('popular');
   const userEmail = getUserEmail();
@@ -109,6 +115,14 @@ export default function BookFilter() {
   const searchTerm = active.searchTerm ?? fromUrl.searchTerm;
   const inStockOnly = active.inStockOnly ?? fromUrl.inStockOnly;
   const filters = active.filters ?? fromUrl.filters;
+
+  /** How many filters are on, for the collapsed panel's label. */
+  const activeFilterCount =
+    (filters.bookType ? 1 : 0) +
+    (filters.condition ? 1 : 0) +
+    filters.category.length +
+    (inStockOnly ? 1 : 0) +
+    (priceFilter.from || priceFilter.to ? 1 : 0);
 
   const setSearchInput = (value: string) => update({ searchInput: value });
   const setSearchTerm = (value: string) => update({ searchTerm: value });
@@ -264,11 +278,29 @@ export default function BookFilter() {
     >
       {/* One column on a phone, sidebar beside the results from `lg` up. */}
       <div className="flex flex-col gap-6 lg:flex-row lg:gap-8">
+        {/* Opens the panel below, and says how many filters are on so that a
+            collapsed panel cannot hide the reason a search looks empty. */}
+        <button
+          type="button"
+          className="flex w-full items-center justify-between gap-2 rounded-xl px-4 py-3 text-left font-semibold text-white lg:hidden"
+          style={{ backgroundColor: 'rgba(0, 0, 0, 0.55)' }}
+          onClick={() => setShowFilters((open) => !open)}
+          aria-expanded={showFilters}
+          aria-controls="filter-panel"
+        >
+          <span>
+            Filters
+            {activeFilterCount > 0 ? ` · ${activeFilterCount} on` : ''}
+          </span>
+          <span aria-hidden="true">{showFilters ? '\u25b2' : '\u25bc'}</span>
+        </button>
+
         {/* Filter Section */}
         <div
+          id="filter-panel"
           // Full width above the results on a phone; a sticky 250px column
           // beside them on a desktop, where there is room for one.
-          className="z-30 flex h-fit w-full flex-col gap-4 self-start rounded-xl p-4 lg:sticky lg:top-6 lg:w-[250px] lg:shrink-0"
+          className={`${showFilters ? 'flex' : 'hidden'} z-30 h-fit w-full flex-col gap-4 self-start rounded-xl p-4 lg:sticky lg:top-6 lg:flex lg:w-[250px] lg:shrink-0`}
           style={{ backgroundColor: 'rgba(0, 0, 0, 0.4)' }}
         >
           {/* Book Type (as button list, equal boxes) */}
@@ -290,7 +322,7 @@ export default function BookFilter() {
                     fontSize: 15,
                     textAlign: 'center',
                     width: '100%',
-                    minHeight: 36,
+                    minHeight: 44,
                     transition: 'background 0.2s, color 0.2s'
                   }}
                   onClick={() => handleRadioToggle('bookType', type)}
@@ -320,7 +352,7 @@ export default function BookFilter() {
                       fontSize: 15,
                       textAlign: 'center',
                       width: '100%',
-                      minHeight: 36,
+                      minHeight: 44,
                       transition: 'background 0.2s, color 0.2s'
                     }}
                     onClick={() => handleRadioToggle('condition', cond)}
@@ -354,7 +386,7 @@ export default function BookFilter() {
                       fontSize: 15,
                       textAlign: 'center',
                       width: '100%',
-                      minHeight: 36,
+                      minHeight: 44,
                       transition: 'background 0.2s, color 0.2s'
                     }}
                     onClick={() => handleCategoryToggle(catKey)}
@@ -448,7 +480,7 @@ export default function BookFilter() {
                   fontSize: 15,
                   textAlign: 'center',
                   width: '100%',
-                  minHeight: 36,
+                  minHeight: 44,
                   transition: 'background 0.2s, color 0.2s'
                 }}
                 onClick={() => {
@@ -500,6 +532,7 @@ export default function BookFilter() {
               />
               {/* Search Button (inside bar, rightmost) */}
               <button
+                className="icon-button"
                 style={{
                   position: 'absolute',
                   right: 6,
@@ -507,14 +540,7 @@ export default function BookFilter() {
                   transform: 'translateY(-50%)',
                   background: '#fff',
                   color: '#e65100',
-                  border: 'none',
                   borderRadius: '50%',
-                  width: 32,
-                  height: 32,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  cursor: 'pointer',
                   boxShadow: '0 1px 4px rgba(0,0,0,0.10)'
                 }}
                 onClick={handleSearch}
@@ -532,7 +558,8 @@ export default function BookFilter() {
                 color: '#222',
                 border: 'none',
                 borderRadius: 6,
-                padding: '0.3rem 1rem',
+                padding: '0.5rem 1rem',
+                minHeight: 44,
                 fontWeight: 500,
                 fontSize: 15,
                 cursor: 'pointer',
@@ -545,18 +572,11 @@ export default function BookFilter() {
             </select>
             {/* Home Button (right, separated) */}
             <button
-              className="ml-auto"
+              className="icon-button ml-auto"
               style={{
                 background: '#fff',
                 color: '#222',
-                border: 'none',
                 borderRadius: '50%',
-                width: 40,
-                height: 40,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                cursor: 'pointer',
                 boxShadow: '0 2px 8px rgba(0,0,0,0.10)'
               }}
               onClick={() => navigate('/')}
@@ -586,7 +606,11 @@ export default function BookFilter() {
                     key={book._id}
                     className="relative flex min-w-0 cursor-pointer items-start gap-4 rounded-xl p-4 sm:gap-6"
                     style={{
-                      backgroundColor: 'rgba(255, 255, 255, 0.15)',
+                      // Dark rather than a 15% white wash: the page sits on a
+                      // photograph of a bookshelf, and white text on a 15%
+                      // white card over a busy photo is hard to read on a
+                      // phone in daylight.
+                      backgroundColor: 'rgba(0, 0, 0, 0.62)',
                       boxShadow: '0 4px 8px rgba(0, 0, 0, 0.3)',
                       minHeight: 180
                     }}
@@ -661,7 +685,7 @@ export default function BookFilter() {
                             color: isInWishlist ? '#fff' : '#e65100',
                             border: '1px solid #e65100',
                             borderRadius: 6,
-                            padding: '4px 12px',
+                            padding: '10px 14px',
                             fontWeight: 500,
                             cursor: 'pointer',
                             display: 'flex',
@@ -701,7 +725,7 @@ export default function BookFilter() {
                               color: isInCart ? '#fff' : '#e65100',
                               border: '1px solid #e65100',
                               borderRadius: 6,
-                              padding: '4px 12px',
+                              padding: '10px 14px',
                               fontWeight: 500,
                               cursor: 'pointer',
                               display: 'flex',

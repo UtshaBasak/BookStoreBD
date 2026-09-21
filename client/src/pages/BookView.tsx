@@ -197,20 +197,12 @@ export default function BookView() {
 
                 <div className="user-options" style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: '1.5rem' }}>
                     {user && (
-                        <span
-                            className="chat-icon"
-                            style={{ 
-                                cursor: 'pointer',
-                                marginRight: '0.5rem', 
-                                fontSize: 22, 
-                                color: '#8B6F6F', 
-                                display: 'inline-flex',
-                                alignItems: 'center',
-                                position: 'relative'
-                            }}
+                        <button
+                            type="button"
+                            className="chat-icon icon-button"
+                            style={{ color: '#8B6F6F' }}
                             onClick={() => navigate('/chat')}
                             title="Chat"
-                            tabIndex={0}
                             aria-label="Chat"
                         >
                             <FaComments />
@@ -233,32 +225,32 @@ export default function BookView() {
                                     {unreadCount > 99 ? '99+' : unreadCount}
                                 </span>
                             )}
-                        </span>
+                        </button>
                     )}
                     
-                    <span
-                        className="notification-icon"
-                        style={{ cursor: 'pointer', marginRight: '0.5rem', fontSize: 22, color: '#8B6F6F', display: 'inline-flex', alignItems: 'center' }}
+                    <button
+                        type="button"
+                        className="notification-icon icon-button"
+                        style={{ color: '#8B6F6F' }}
                         title="Notifications"
-                        tabIndex={0}
                         onClick={() => toast.info('No new notifications.')}
                         aria-label="Notifications"
                     >
                         <FaBell />
-                    </span>
+                    </button>
 
-                    <span
-                        className="wishlist-icon"
-                        style={{ cursor: 'pointer', marginRight: '0.5rem', fontSize: 22, color: '#e65100', display: 'inline-flex', alignItems: 'center' }}
+                    <button
+                        type="button"
+                        className="wishlist-icon icon-button"
+                        style={{ color: '#e65100' }}
                         onClick={() => navigate('/wishlist')}
                         title="Wishlist"
-                        tabIndex={0}
                         aria-label="Wishlist"
                     >
                         <FaHeart />
-                    </span>
+                    </button>
 
-                    <Link to="/cart" style={{ color: '#8B6F6F', fontSize: 22, display: 'inline-flex', alignItems: 'center', textDecoration: 'none' }} title="Cart" aria-label="Cart">
+                    <Link to="/cart" className="icon-link" style={{ color: '#8B6F6F' }} title="Cart" aria-label="Cart">
                         🛒
                     </Link>
 
@@ -335,7 +327,13 @@ export default function BookView() {
                             )}
                         </div>
                     ) : (
-                        <Link to="/sign-in" style={{ color: '#8B6F6F', fontWeight: 600, textDecoration: 'none', fontSize: 16 }}>Sign In</Link>
+                        <Link
+                            to="/sign-in"
+                            className="inline-flex min-h-[44px] items-center px-2"
+                            style={{ color: '#8B6F6F', fontWeight: 600, textDecoration: 'none', fontSize: 16 }}
+                        >
+                            Sign In
+                        </Link>
                     )}
                 </div>
             </header>
@@ -453,14 +451,31 @@ export default function BookView() {
                                         <strong>Seller:</strong> {sellerInfo?.username || book?.sellerEmail}
                                         {userEmail !== book?.sellerEmail && (
                                             <button
-                                                onClick={() => setShowChat(true)}
+                                                // The chat window only renders
+                                                // for a signed-in visitor, so
+                                                // this button did nothing at
+                                                // all when pressed by anyone
+                                                // else - a dead control on the
+                                                // page a shopper lands on.
+                                                onClick={() => {
+                                                    if (!userEmail) {
+                                                        toast.info('Sign in to message the seller.', {
+                                                            action: {
+                                                                label: 'Sign in',
+                                                                onClick: () => navigate('/sign-in'),
+                                                            },
+                                                        });
+                                                        return;
+                                                    }
+                                                    setShowChat(true);
+                                                }}
                                                 style={{
                                                     marginLeft: 12,
                                                     backgroundColor: '#8B6F6F',
                                                     color: 'white',
                                                     border: 'none',
                                                     borderRadius: 20,
-                                                    padding: '4px 12px',
+                                                    padding: '8px 14px',
                                                     fontSize: 14,
                                                     cursor: 'pointer',
                                                     display: 'inline-flex',
@@ -518,7 +533,7 @@ export default function BookView() {
                                         >
                                             <div style={{ position: 'relative' }}>
                                                 <img
-                                                    src={relatedBook.images?.[0] || '/books/default-book.jpg'}
+                                                    src={relatedBook.images?.[0] || PLACEHOLDER_IMAGE}
                                                     alt={relatedBook.title}
                                                     style={{
                                                         width: '100%',

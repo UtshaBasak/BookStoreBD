@@ -1,18 +1,11 @@
-/* Ensure the root and body take full height */
-html, body, #root {
-  height: 100%;
-  margin: 0;
-  padding: 0;
-  color: black;
-}
-
-body, html, .homepage {
-  margin: 0;
-  padding: 0;
-  height: 100%;
-  width: 100%;
+/*
+ * The homepage's own styles. What used to be here - `html, body, #root` rules
+ * setting height, colour and a grey background - applied to every page in the
+ * application, because a stylesheet imported by a page is not scoped to it.
+ * The layout rules that belong to everything now live in index.css.
+ */
+.homepage {
   font-family: Arial, sans-serif;
-  background: #f8f8f8;
 }
 
 /* Reset and base styles */
@@ -91,7 +84,9 @@ body, html, .homepage {
 /* Hero Banner */
 .hero-banner {
   width: 100%;
-  height: 400px;
+  /* Was a flat 400px. On a 360px screen that crops a wide banner down to a
+     sliver of itself and fills the first screen with it. */
+  height: clamp(140px, 32vw, 340px);
   overflow: hidden;
 }
 

@@ -359,12 +359,52 @@ file was inert). The palette that was repeated as literals - `#e65100` 75 times,
 a change of brand colour is one block rather than a find-and-replace across two
 dozen files.
 
-**What phase 1 did not do.** The 639 inline style objects are still inline; the
-pages converted so far are the ones that were broken. Tap targets are the next
-measurable defect - at 360px the homepage still has 13 controls under 40px, the
-filter page 21 - and much of it is inline `minHeight: 36`, which beats the
-stylesheet rule that would otherwise fix them in one place. Body text bottoms
-out at 12-13px in several places, which is small for a phone.
+**Phase 2 is done: the pages a shopper uses are usable with a thumb.**
+
+| page, at 360px | controls under 40px, before | after |
+| --- | --- | --- |
+| `/` | 13 | **0** |
+| `/filter` | 21 | **0** |
+| `/book/:id` | 5 | **0** |
+| `/cart`, `/wishlist` | 6 | **0** |
+| `/privacy` | 12 | 2 (`mailto:` links inside prose, which should be text-sized) |
+
+The filter panel now collapses on a phone. It is fourteen category buttons deep,
+and above the results it meant scrolling past the entire thing to reach a single
+book; it is a "Filters" button that says how many are on, and the results are
+the first thing on screen. Beside the results on a desktop, as before.
+
+**What looking at the pages turned up.** Four things that no amount of reading
+the CSS would have found, all of them visible in a screenshot at 360px:
+
+- **The homepage hero was an empty 400px box.** Its `src` was commented out, so
+  the first screen on a phone was a broken image and nothing else. `banner.png`
+  had been sitting unused in `public/` the whole time.
+- **Every icon button rendered its icon as a 2px dot.** The starter's global
+  `button { padding: 0.6em 1.2em }` leaves a 40px-wide icon button about 2px of
+  content box - measured at 2x16px in the browser. The padding is gone; buttons
+  that want it set their own, and every one in this app already did.
+- **`.scroll-button` had no rule anywhere.** The carousel arrows carry
+  `left: 0` / `right: 0` and sit in a relative container, so they were meant to
+  overlay the strip; with no rule they sat in the flow above it, sized entirely
+  by that same starter padding.
+- **A page stylesheet was styling the whole application.** `UserManagement.css`
+  contained a bare `button { background-color: #e74c3c }`, and a stylesheet
+  imported by a page is not scoped to it - Vite puts it in the one bundle. Every
+  button in the application was red underneath, which is most of the reason the
+  rest of the app sets `background` inline on each one. `AdminPanel.css` and
+  `Homepage.css` were restyling `body` the same way. All three are scoped now.
+
+That last one also explains why Tailwind classes were not taking: Tailwind 4
+puts its utilities in a cascade layer, and an unlayered rule beats a layered one
+whatever the specificity says. Any page-level stylesheet left unscoped will
+silently win over the utilities the rest of this work depends on.
+
+**What is still left.** The 639 inline style objects on the pages that were not
+broken - `Payment.tsx` at 948 lines, `ChatPage`, `AddBook`, `Profile`. Body text
+still bottoms out at 12-13px in places, which is small for a phone. And the
+two banners stacked on the homepage are one more than a shop needs before its
+products.
 
 ~~**Blocking dialogs for every message.**~~ **done.** 38 `alert()` calls —
 including for routine successes like "Added to cart successfully!" — each one a
@@ -401,6 +441,13 @@ who asked. A shop that will not show a book without an account cannot sell one,
 and a catalogue no search engine can reach cannot be found (item 6). The route
 is public now; the actions that genuinely need an account ask for it at the
 point they are used, which is what the toasts from item 4 are for.
+
+**Two dead controls, found by using the pages rather than reading them.**
+"Chat with Seller" is rendered to everyone, but the chat window only renders for
+a signed-in visitor - so pressing it did nothing at all, on the page a shopper
+lands on. It asks them to sign in now. The homepage's cover fallback pointed at
+`/books/default-book.jpg`, which is not in `public/`, so every book without a
+cover was a broken image on the busiest page on the site.
 
 **No design system.** Colours (`#8B6F6F`, `#e65100`, `#43a047`) and spacing are
 repeated as literals across dozens of files. Moving them into Tailwind theme
@@ -463,7 +510,7 @@ Cheap and high-value first, so each step is shippable on its own.
 | ~~2~~ | ~~Kill the dead placeholder, real footer pages (P1)~~ **done** | Visibly broken and visibly untrustworthy |
 | ~~3~~ | ~~Uniform auth responses (S2)~~ **done** | A few lines; removes a privacy leak |
 | ~~4~~ | ~~Toasts instead of `alert()`~~ **done** | The single biggest change in how the product feels |
-| 5 | Responsive pass with Tailwind tokens — **phase 1 done** (no page scrolls sideways; tap targets and the remaining inline styles are next) | Largest effort, largest payoff; most traffic is mobile |
+| 5 | Responsive pass with Tailwind tokens — **phases 1 and 2 done** (nothing scrolls sideways, nothing is too small to tap; the remaining inline styles are on pages that work) | Largest effort, largest payoff; most traffic is mobile |
 | 6 | SEO metadata, sitemap, `robots.txt` | Growth work, meaningless before the site is presentable |
 | 7 | Upload validation, OTP attempt limits (S4, S5) | Hardening, once the surface is settled |
 | 8 | Account deletion and export (P2), audit log (P3) | Compliance before real users arrive |

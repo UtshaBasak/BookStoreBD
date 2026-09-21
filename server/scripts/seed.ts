@@ -64,10 +64,6 @@ const ACCOUNTS: SeedAccount[] = [
 
 const SELLER_EMAIL = 'seller@bookstorebd.local';
 
-// A 1x1 transparent PNG stands in for a cover, so the seed stays small.
-const PLACEHOLDER_COVER =
-  'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==';
-
 const BOOKS: SeedBook[] = [
   {
     title: 'The C Programming Language',
@@ -178,7 +174,10 @@ const seedBooks = async () => {
       country: 'Bangladesh',
       language: 'English',
       sellerEmail: SELLER_EMAIL,
-      images: [PLACEHOLDER_COVER],
+      // No cover, so the client falls back to its own placeholder. This was a
+      // data-URI described as a transparent pixel; it decodes to half-opaque
+      // green, and every seeded listing rendered as a bright green block.
+      images: [],
     });
     created += 1;
   }

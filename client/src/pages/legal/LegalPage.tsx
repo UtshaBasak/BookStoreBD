@@ -25,10 +25,13 @@ export default function LegalPage({ title, intro, updated, children }: LegalPage
     <div className="min-h-screen bg-[#faf8f7] text-[#3b2f2f]">
       <header className="border-b border-[#e7ded9] bg-white">
         <div className="mx-auto flex max-w-3xl items-center justify-between px-4 py-4 sm:px-6">
-          <Link to="/" className="text-xl font-bold text-[#8B6F6F] no-underline">
+          <Link
+            to="/"
+            className="inline-flex min-h-[44px] items-center text-xl font-bold text-[#8B6F6F] no-underline"
+          >
             {site.name}
           </Link>
-          <Link to="/" className="text-sm text-[#8B6F6F] hover:underline">
+          <Link to="/" className="inline-flex min-h-[44px] items-center text-sm text-[#8B6F6F] hover:underline">
             ← Back to books
           </Link>
         </div>
