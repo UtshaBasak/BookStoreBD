@@ -13,7 +13,8 @@ docker compose -f docker-compose.prod.yml up -d --build
 curl -sI http://127.0.0.1:8080/api/book      # response headers
 ```
 
-Audited at commit `a1ad1d0`.
+First audited at commit `a1ad1d0`. Items marked **done** below have since
+landed; the rest stand.
 
 ---
 
@@ -25,7 +26,7 @@ Yes. Nothing is broken.
 | ----- | ------ |
 | Lint, both packages | clean |
 | Type-check under TypeScript 6.0.3 | clean |
-| Tests | 209 passing (155 server, 54 client) |
+| Tests | 217 passing (163 server, 54 client) |
 | `npm audit`, all three roots | 0 vulnerabilities |
 | Builds | API compiles to `dist/`, client bundles |
 | Production stack | browse, detail, cart, wishlist, profile, orders, clear — all `200` |
@@ -42,46 +43,69 @@ token revokes the family. That part is genuinely solid.
 
 | # | Finding | Severity |
 | - | ------- | -------- |
-| S1 | No security response headers at all | **High** |
+| S1 | ~~No security response headers at all~~ **done** | **High** |
 | S2 | Account enumeration on sign-in and password reset | **Medium** |
 | S3 | Access token kept in `localStorage` | **Medium** |
 | S4 | Uploads are not type-checked | **Medium** |
 | S5 | OTP has no per-account attempt limit | **Medium** |
-| S6 | `X-Powered-By: Express` disclosed | Low |
+| S6 | ~~`X-Powered-By: Express` disclosed~~ **done** | Low |
 | S7 | bcrypt cost factor 10 | Low |
 | P1 | Footer advertises policies that do not exist | **High** (trust/compliance) |
 | P2 | No way for a user to delete their account or export their data | **Medium** |
 | P3 | No audit trail for administrator actions | **Medium** |
 | P4 | Covers and chat images stored as base64 in MongoDB by default | Low |
 
-### S1 · No security response headers — High
+### S1 · No security response headers — **done**
 
-Measured on a live production-stack response:
+There were none at all. The site could be framed by any origin (clickjacking),
+responses could be MIME-sniffed, referrers leaked full URLs to third parties,
+and there was no second line of defence if a script injection ever landed —
+which matters more than usual here, because the access token sits in
+`localStorage` (S3).
 
+Now sent on every response:
+
+| Header | Value |
+| ------ | ----- |
+| `Content-Security-Policy` | `script-src 'self'`, `object-src 'none'`, `frame-ancestors 'none'`, and an enumerated `img-src` |
+| `X-Frame-Options` | `DENY` |
+| `X-Content-Type-Options` | `nosniff` |
+| `Referrer-Policy` | `strict-origin-when-cross-origin` |
+| `Strict-Transport-Security` | `max-age=63072000; includeSubDomains` |
+| `Permissions-Policy` | camera, microphone, geolocation, payment, usb all denied |
+
+`helmet` covers the API ([`config/securityHeaders.ts`](../server/config/securityHeaders.ts));
+`nginx.conf` covers the HTML document, because CSP is enforced per document and
+the policy that governs the page is the one sent with `index.html`. **The two
+must stay in step** — there is no mechanism keeping them so, only a comment in
+each pointing at the other.
+
+The policy needs no `'unsafe-eval'` and no inline-script allowance, which is
+what makes it worth having: the bundle contains no `eval` and `index.html` has
+no inline `<script>`. `style-src` does allow `'unsafe-inline'`, for libraries
+that inject a `<style>` element at runtime; style injection is a far weaker
+vector than script injection.
+
+**Enforced, not report-only.** The audit originally suggested shipping in
+`Report-Only` and reading the reports. That was not necessary: every external
+origin the client loads was enumerated from the source first, and the result
+verified in headless Chrome over the DevTools protocol against the production
+stack — `/`, `/filter` and `/sign-in` each mount React with **zero CSP
+violations**. Re-run that check after adding any third-party script, font or
+image host:
+
+```bash
+chrome --headless=new --remote-debugging-port=9222 about:blank &
+node scripts/cspcheck.mjs 9222 http://127.0.0.1:8080/ http://127.0.0.1:8080/filter
 ```
-HTTP/1.1 200 OK
-Server: nginx/1.31.6
-X-Powered-By: Express
-X-Request-Id: ...
-RateLimit-Policy: 2000;w=900
-```
 
-Absent: `Content-Security-Policy`, `X-Content-Type-Options`,
-`X-Frame-Options`/`frame-ancestors`, `Referrer-Policy`,
-`Strict-Transport-Security`, `Permissions-Policy`. The static HTML from nginx
-carries none either.
+A new image host means editing `IMAGE_SOURCES` in `securityHeaders.ts` *and*
+the `map` block in `nginx.conf`. A cross-origin deployment additionally needs
+`CLIENT_API_ORIGIN` set, or the browser blocks every API call.
 
-The practical consequences: the site can be framed by any origin
-(clickjacking), browsers may MIME-sniff responses, referrers leak full URLs to
-third parties, and there is no second line of defence if a script injection
-ever lands — which matters more than usual here, because the access token sits
-in `localStorage` (S3).
-
-**Fix.** `helmet` on the API, and `add_header` directives in `nginx.conf` for
-the HTML. CSP needs care: the app uses base64 `data:` images and inline styles,
-so the first pass is `img-src 'self' data: https://res.cloudinary.com` and
-`connect-src` for the API and Socket.IO. Ship it in `Content-Security-Policy-
-Report-Only` first and read the reports rather than guessing.
+Eight tests in `server/tests/securityHeaders.test.ts` pin the headers,
+including that they survive on an error response — a header that silently stops
+being sent looks exactly like one that is working.
 
 ### S2 · Account enumeration — Medium
 
@@ -141,9 +165,9 @@ store to Redis when the API runs on more than one instance — a restart
 currently drops every in-flight verification, and a second instance would not
 see the first one's codes.
 
-### S6 · `X-Powered-By` — Low
+### S6 · `X-Powered-By` — **done**
 
-`app.disable('x-powered-by')`, or let `helmet` do it as part of S1.
+`app.disable('x-powered-by')`, alongside S1, and pinned by a test.
 
 ### S7 · bcrypt cost 10 — Low
 
@@ -296,7 +320,7 @@ Cheap and high-value first, so each step is shippable on its own.
 
 | Order | Work | Why first |
 | ----: | ---- | --------- |
-| 1 | Security headers (S1, S6) | One dependency and a few nginx lines; closes the largest gap |
+| ~~1~~ | ~~Security headers (S1, S6)~~ **done** | One dependency and a few nginx lines; closed the largest gap |
 | 2 | Kill the dead placeholder, real footer pages (P1) | Visibly broken and visibly untrustworthy |
 | 3 | Uniform auth responses (S2) | A few lines; removes a privacy leak |
 | 4 | Toasts instead of `alert()` | The single biggest change in how the product feels |
@@ -308,3 +332,14 @@ Cheap and high-value first, so each step is shippable on its own.
 
 Items 1–4 are each an afternoon. Item 5 is the one that takes real time, and it
 is the one a visitor notices first.
+
+---
+
+## Checked and found not to be a problem
+
+Recorded so the next person does not spend the time twice.
+
+**The Socket.IO `400` in the nginx access log.** A polling request with a `sid`
+returns 400 shortly after each connection. It is the stale long-poll being
+closed once the transport upgrades, and the log shows the `101 Switching
+Protocols` that precedes it. Chat works through nginx; the line is noise.

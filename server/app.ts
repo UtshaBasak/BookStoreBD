@@ -5,12 +5,14 @@ import express, { type Express } from 'express';
 import type { Logger } from 'pino';
 import cors from 'cors';
 import cookieParser from 'cookie-parser';
+import helmet from 'helmet';
 
 import { config } from './config/env.js';
 import { createLogger } from './config/logger.js';
 import { corsOptions } from './config/cors.js';
 import { isApiPath, API_PREFIX } from './config/apiPaths.js';
 import { CLIENT_DIST, UPLOADS_DIR } from './config/paths.js';
+import { securityHeaders } from './config/securityHeaders.js';
 import { errorHandler, notFoundHandler } from './middleware/errorHandler.js';
 import { sanitizeRequest } from './middleware/sanitizeRequest.js';
 import { requestLogger } from './middleware/requestLogger.js';
@@ -55,9 +57,16 @@ export const createApp = ({
   // rather than on the proxy's.
   app.set('trust proxy', 1);
 
+  // Nothing to gain from telling the world which framework this is.
+  app.disable('x-powered-by');
+
   // First, so every downstream log line carries the request id and a failure
   // during body parsing is still recorded.
   app.use(requestLogger);
+
+  // Before any route, so an error response carries the same protections as a
+  // successful one.
+  app.use(helmet(securityHeaders()));
 
   app.use(cors(corsOptions));
   // Book covers and chat attachments are sent as base64, so the default 100kb

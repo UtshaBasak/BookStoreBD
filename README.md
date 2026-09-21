@@ -346,6 +346,7 @@ check. `JWT_SECRET` is required; Compose refuses to start without it.
 | `COOKIE_SECURE`    |          | on in production                                       | `Secure` flag on the refresh cookie                     |
 | `COOKIE_SAME_SITE` |          | `lax`                                                  | `SameSite` on the refresh cookie                        |
 | `SERVE_CLIENT`     |          | on in production                                       | Serve `client/dist` from the API process; warns at start-up if there is no build |
+| `CLIENT_API_ORIGIN` |         | —                                                      | Cross-origin deployments only: added to the CSP `connect-src` so the browser may call the API |
 | `CLOUDINARY_CLOUD_NAME` |     | —                                                      | Enables image hosting; unset keeps covers inline        |
 | `CLOUDINARY_API_KEY` |       | —                                                      | Cloudinary API key                                      |
 | `CLOUDINARY_API_SECRET` |    | —                                                      | Signs uploads. Secret — never commit                    |
