@@ -46,10 +46,13 @@ describe('POST /auth/signin', () => {
     expect(res.status).toBe(401);
   });
 
-  it('rejects an unknown account', async () => {
+  it('rejects an unknown account the same way it rejects a wrong password', async () => {
+    // Deliberately identical: a different status here told anyone who asked
+    // which addresses have accounts. enumeration.test.ts holds the two
+    // responses side by side.
     const res = await request.post('/auth/signin').send({ email: 'nobody@test.com', password: PASSWORD });
 
-    expect(res.status).toBe(404);
+    expect(res.status).toBe(401);
   });
 
   it('promotes an account listed in ADMIN_EMAILS', async () => {

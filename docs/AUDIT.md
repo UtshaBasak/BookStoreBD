@@ -26,7 +26,7 @@ Yes. Nothing is broken.
 | ----- | ------ |
 | Lint, both packages | clean |
 | Type-check under TypeScript 6.0.3 | clean |
-| Tests | 228 passing (163 server, 65 client) |
+| Tests | 242 passing (177 server, 65 client) |
 | `npm audit`, all three roots | 0 vulnerabilities |
 | Builds | API compiles to `dist/`, client bundles |
 | Production stack | browse, detail, cart, wishlist, profile, orders, clear — all `200` |
@@ -44,7 +44,7 @@ token revokes the family. That part is genuinely solid.
 | # | Finding | Severity |
 | - | ------- | -------- |
 | S1 | ~~No security response headers at all~~ **done** | **High** |
-| S2 | Account enumeration on sign-in and password reset | **Medium** |
+| S2 | ~~Account enumeration on sign-in and password reset~~ **done** | **Medium** |
 | S3 | Access token kept in `localStorage` | **Medium** |
 | S4 | Uploads are not type-checked | **Medium** |
 | S5 | OTP has no per-account attempt limit | **Medium** |
@@ -107,23 +107,70 @@ Eight tests in `server/tests/securityHeaders.test.ts` pin the headers,
 including that they survive on an error response — a header that silently stops
 being sent looks exactly like one that is working.
 
-### S2 · Account enumeration — Medium
+### S2 · Account enumeration — **done**
 
-Sign-in distinguishes the two failure modes:
+Sign-in used to distinguish the two failure modes, and reset and sign-up leaked
+the same fact from the other side:
 
 ```
-unknown email      -> 404 {"message":"User not found!"}
-real email, bad pw -> 401 {"message":"Wrong credentials!"}
+unknown email        -> 404 {"message":"User not found!"}
+real email, bad pw   -> 401 {"message":"Wrong credentials!"}
+reset, no account    -> 404 {"message":"No account found with this email."}
+sign-up, taken email -> 400 {"message":"This email is already in use."}
 ```
 
-Password reset leaks the same fact: `{"message":"No account found with this
-email."}`. Anyone can test an address list and learn who has an account here —
-a privacy leak in its own right, and the first step of a credential-stuffing
-run.
+Anyone could feed in an address list and learn who shops here — a privacy leak
+in its own right, and the first step of a credential-stuffing run, which begins
+by narrowing millions of leaked addresses down to the ones a site recognises.
 
-**Fix.** One response for both: `401 "Invalid email or password"`. For reset,
-always answer "if that address has an account, a code is on its way". The
-existing rate limiter then does the rest.
+Every one of those now answers the same way as its counterpart. Measured
+against the running production stack:
+
+| request | before | after |
+| --- | --- | --- |
+| sign-in, real address, wrong password | `401 Wrong credentials!` | `401 Invalid email or password` |
+| sign-in, address with no account | `404 User not found!` | `401 Invalid email or password` |
+| reset, real address | `200 OTP sent to email` | `200 If that address has an account, a reset code is on its way.` |
+| reset, address with no account | `404 No account found with this email.` | `200 If that address has an account, a reset code is on its way.` |
+| sign-up, taken address | `400 This email is already in use.` | `200 If that address can be registered, a code is on its way.` |
+| sign-up, free address | `200 OTP sent to email` | `200 If that address can be registered, a code is on its way.` |
+
+Two things the wording alone would not have fixed:
+
+**The clock.** Sign-in returned before reaching bcrypt when there was no such
+account, so an unknown address answered in single-digit milliseconds and a real
+one took about ninety. Identical sentences with a stopwatch attached are still
+an oracle. Sign-in now compares against a throwaway hash when the account does
+not exist, and the two paths measure **86.7 ms** and **97.1 ms** on the running
+stack — the difference is noise. The same problem applied to the code endpoint,
+where one path made an SMTP round trip and the other did not; delivery is now
+detached from the response, which measures **7.7 ms** against **6.6 ms**, and
+makes the form stop hanging on the mail server as a side effect.
+
+**A taken address still has to be told something.** Rather than issue a code
+that could not be used, sign-up mails the *owner* of the address to say somebody
+tried, and suggests signing in or resetting instead. Useful to them, useless to
+anyone else — and it is a better answer than "This email is already in use" for
+the person who simply forgot they had an account.
+
+Usernames are a deliberate exception: they are printed on every listing, so they
+are not a secret, and a sign-up form that will not say a name is taken is
+unusable. That path also had a real bug — `findOne({ username: undefined })`
+drops the key and matches the first user in the collection, so a request with no
+username was told the name was taken.
+
+Two smaller things found on the way:
+
+- `SignIn.tsx` ran `console.log(formData)` on every render, which wrote the
+  typed password to the browser console. Removed.
+- Both auth pages showed failures as `alert(JSON.stringify(data))`, so the
+  uniform message would have reached the user as
+  `{"success":false,"statusCode":401,...}`. They now show the sentence. The
+  remaining 38 `alert()` calls are item 4.
+
+Fourteen tests in `server/tests/enumeration.test.ts` compare the known and
+unknown answers side by side rather than asserting any particular sentence, so
+a future edit that reintroduces a difference fails whatever wording it picks.
 
 ### S3 · Access token in `localStorage` — Medium
 
@@ -341,7 +388,7 @@ Cheap and high-value first, so each step is shippable on its own.
 | ----: | ---- | --------- |
 | ~~1~~ | ~~Security headers (S1, S6)~~ **done** | One dependency and a few nginx lines; closed the largest gap |
 | ~~2~~ | ~~Kill the dead placeholder, real footer pages (P1)~~ **done** | Visibly broken and visibly untrustworthy |
-| 3 | Uniform auth responses (S2) | A few lines; removes a privacy leak |
+| ~~3~~ | ~~Uniform auth responses (S2)~~ **done** | A few lines; removes a privacy leak |
 | 4 | Toasts instead of `alert()` | The single biggest change in how the product feels |
 | 5 | Responsive pass with Tailwind tokens | Largest effort, largest payoff; most traffic is mobile |
 | 6 | SEO metadata, sitemap, `robots.txt` | Growth work, meaningless before the site is presentable |

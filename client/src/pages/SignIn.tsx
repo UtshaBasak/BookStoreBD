@@ -1,6 +1,8 @@
 import { useState, useEffect, type ChangeEvent, type FormEvent } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 
+import type { ApiError } from '@shared/api.js';
+
 import { API_BASE_URL, apiFetch } from '../config/api.js';
 import { messageOf } from '../utils/apiError.js';
 import { isAdmin, isAuthenticated, setSession } from '../utils/auth.js';
@@ -46,7 +48,10 @@ export default function SignIn() {
                 setSession(data);
                 navigate('/'); // Redirect to homepage after sign in
             } else {
-                alert(JSON.stringify(data));
+                // The sentence, not the envelope. Both ways of failing now
+                // answer the same on purpose, and `JSON.stringify` used to put
+                // `{"success":false,"statusCode":401,...}` in front of the user.
+                alert((data as ApiError).message || 'Sign in failed. Please try again.');
             }
         } catch (err) {
             console.error('Error submitting form:', err);
@@ -101,8 +106,6 @@ export default function SignIn() {
             setForgotMsg(data.message || 'Failed to reset password.');
         }
     };
-
-    console.log(formData);
 
     return (
         <div

@@ -88,14 +88,14 @@ export default function SignUp() {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ ...formData, otp }),
             });
-            const data = (await res.json()) as SessionResponse;
             if (res.ok) {
                 // Sign-up returns the same session payload as sign-in.
-                setSession(data);
+                setSession((await res.json()) as SessionResponse);
                 setStep('done');
                 setTimeout(() => navigate('/'), 1000);
             } else {
-                alert(JSON.stringify(data));
+                const failure = (await res.json()) as ApiError;
+                alert(failure.message || 'Sign up failed. Please try again.');
             }
         } catch (error) {
             console.error('Error submitting form:', error);

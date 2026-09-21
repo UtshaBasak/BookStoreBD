@@ -106,7 +106,9 @@ describe('prototype pollution', () => {
       .send({ email: 'x@test.com', password: PASSWORD, __proto__: { polluted: true } });
 
     expect(({} as Record<string, unknown>).polluted).toBeUndefined();
-    expect(res.status).toBe(404);
+    // 401 rather than 404: sign-in answers the same whether or not the address
+    // is known here.
+    expect(res.status).toBe(401);
   });
 });
 
