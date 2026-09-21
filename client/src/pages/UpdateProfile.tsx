@@ -7,6 +7,7 @@ import { useToast } from '../hooks/useToast.js';
 import { getUserEmail } from '../utils/auth.js';
 import { isOwnProfile } from '../utils/profile.js';
 import { safeImageSrc, safeObjectUrl } from '../utils/safeImageSrc.js';
+import { reportError } from '../utils/report.js';
 
 /** The editable profile. Every field a string, because every field is an input. */
 interface ProfileForm {
@@ -113,7 +114,7 @@ export default function UpdateProfile() {
             toast.success('Profile updated.');
             navigate('/profile');
         } catch (err) {
-            console.error('Error updating profile:', err);
+            reportError('Error updating profile:', err);
             setErrorMsg('Failed to update profile.');
         }
     };

@@ -66,17 +66,19 @@ describe('ErrorBoundary', () => {
     expect(onError.mock.calls[0][0].message).toBe('kaboom');
   });
 
-  it('logs the failure to the console', () => {
+  it('reports the failure, with the component stack', () => {
     render(
       <ErrorBoundary>
         <Boom />
       </ErrorBoundary>
     );
 
+    // `reportError` reaches the console in development and is stripped from a
+    // production build, so this is the same assertion it always was - one step
+    // further along.
     expect(consoleError).toHaveBeenCalledWith(
       'Unhandled render error:',
-      expect.any(Error),
-      expect.anything()
+      expect.objectContaining({ error: expect.any(Error) })
     );
   });
 

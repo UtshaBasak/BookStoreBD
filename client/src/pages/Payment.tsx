@@ -474,7 +474,9 @@ export default function Payment() {
                   marginBottom: 18
                 }}>
                   <div style={{ position: 'relative', marginRight: 14 }}>
-                    <img src={getBookImageSrc(book)} alt={book.title} style={{
+                    <img
+                      loading="lazy"
+                      decoding="async" src={getBookImageSrc(book)} alt={book.title} style={{
                       width: 56, height: 56, objectFit: 'cover', borderRadius: 6, border: '1px solid #eee'
                     }} />
                     {book.bookType && (
@@ -753,7 +755,9 @@ export default function Payment() {
                       squeezed to nothing and its NEW badge, positioned against
                       it, landed on top of the book's title. */}
                   <div className="shrink-0" style={{ position: 'relative', marginRight: 12 }}>
-                    <img src={getBookImageSrc(book)} alt={book.title} style={{
+                    <img
+                      loading="lazy"
+                      decoding="async" src={getBookImageSrc(book)} alt={book.title} style={{
                       width: 48, height: 48, objectFit: 'cover', borderRadius: 4
                     }} />
                     {book.bookType && (

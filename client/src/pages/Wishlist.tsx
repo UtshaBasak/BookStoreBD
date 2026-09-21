@@ -204,6 +204,8 @@ export default function Wishlist() {
                   </div>
                 )}
                 <img
+                  loading="lazy"
+                  decoding="async"
                   src={getBookImageSrc(book)}
                   alt={book.title}
                   style={{

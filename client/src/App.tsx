@@ -1,35 +1,50 @@
-import type { ReactNode } from 'react';
+import { Suspense, lazy, type ReactNode } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
-import SignIn from './pages/SignIn';
-import SignUp from './pages/SignUp';
-import Payment from './pages/Payment';
-import AddBooks from './pages/AddBook';
-import AdminPanel from './pages/AdminPanel';
+
 import HomePage from './pages/Homepage';
-import Profile from './pages/Profile';
-import UpdateProfile from './pages/UpdateProfile';
-import SellerBookList from './pages/SellerBookList';
-import Filter from './pages/Filter';
-import Wishlist from './pages/Wishlist';
-import Cart from './pages/Cart';
-import BuyerBookList from './pages/BuyerBookList';
-import BuyerOrderList from './pages/buyer/BuyerOrderList';
-import SellerOrderList from './pages/SellerOrderList';
-import DescriptionForm from './pages/Descriptionform';
-import BookView from './pages/BookView';
-import ChatPage from './pages/ChatPage';
-import OrderTrackingPage from './pages/OrderTrackingPage';
-import SellerOrderTrackingPage from './pages/SellerOrderTrackingPage';
-import AdminOrderTrackingPage from './pages/AdminOrderTrackingPage';
-import NotFound from './pages/NotFound';
-import About from './pages/legal/About';
-import Contact from './pages/legal/Contact';
-import Privacy from './pages/legal/Privacy';
-import Returns from './pages/legal/Returns';
-import Terms from './pages/legal/Terms';
+
+/*
+ * Every page is its own chunk.
+ *
+ * The whole application used to arrive in one file, so somebody reading the
+ * homepage on a phone downloaded the checkout, the admin panel and the chat
+ * before seeing a book. `lazy` splits each route out and Suspense below
+ * covers the moment one is fetched.
+ *
+ * The homepage is the exception: it is the first thing most visitors see, and
+ * making them wait for a second request to start it would undo the point.
+ */
+const SignIn = lazy(() => import('./pages/SignIn'));
+const SignUp = lazy(() => import('./pages/SignUp'));
+const Payment = lazy(() => import('./pages/Payment'));
+const AddBooks = lazy(() => import('./pages/AddBook'));
+const AdminPanel = lazy(() => import('./pages/AdminPanel'));
+const Profile = lazy(() => import('./pages/Profile'));
+const UpdateProfile = lazy(() => import('./pages/UpdateProfile'));
+const SellerBookList = lazy(() => import('./pages/SellerBookList'));
+const Filter = lazy(() => import('./pages/Filter'));
+const Wishlist = lazy(() => import('./pages/Wishlist'));
+const Cart = lazy(() => import('./pages/Cart'));
+const BuyerBookList = lazy(() => import('./pages/BuyerBookList'));
+const BuyerOrderList = lazy(() => import('./pages/buyer/BuyerOrderList'));
+const SellerOrderList = lazy(() => import('./pages/SellerOrderList'));
+const DescriptionForm = lazy(() => import('./pages/Descriptionform'));
+const BookView = lazy(() => import('./pages/BookView'));
+const ChatPage = lazy(() => import('./pages/ChatPage'));
+const OrderTrackingPage = lazy(() => import('./pages/OrderTrackingPage'));
+const SellerOrderTrackingPage = lazy(() => import('./pages/SellerOrderTrackingPage'));
+const AdminOrderTrackingPage = lazy(() => import('./pages/AdminOrderTrackingPage'));
+const NotFound = lazy(() => import('./pages/NotFound'));
+const About = lazy(() => import('./pages/legal/About'));
+const Contact = lazy(() => import('./pages/legal/Contact'));
+const Privacy = lazy(() => import('./pages/legal/Privacy'));
+const Returns = lazy(() => import('./pages/legal/Returns'));
+const Terms = lazy(() => import('./pages/legal/Terms'));
+
 import './styles/orderTracking.css';
 import { isAdmin, isAuthenticated } from './utils/auth.js';
 import { useSeo } from './hooks/useSeo.js';
+import Spinner from './components/Spinner.js';
 
 /** Every guard below takes the subtree it protects and returns it, or a redirect. */
 interface GuardProps {
@@ -69,11 +84,21 @@ function ProtectedRoute({ children }: GuardProps) {
   return children;
 }
 
+/** Shown while a route's chunk is on its way. */
+function RouteLoading() {
+  return (
+    <div className="flex min-h-screen items-center justify-center" role="status" aria-live="polite">
+      <Spinner />
+      <span className="sr-only">Loading</span>
+    </div>
+  );
+}
 
 export default function App() {
   return (
     <BrowserRouter>
-      <Routes>
+      <Suspense fallback={<RouteLoading />}>
+        <Routes>
         {/* Public routes */}
         <Route path="/" element={<HomePage />} />
         <Route path="/book" element={<BookView />} />
@@ -236,7 +261,8 @@ export default function App() {
           }
         />
         <Route path="*" element={<NotFound />} />
-      </Routes>
+        </Routes>
+      </Suspense>
     </BrowserRouter>
   );
 }

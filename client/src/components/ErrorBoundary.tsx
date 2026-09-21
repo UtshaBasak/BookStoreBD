@@ -1,4 +1,5 @@
 import React, { type CSSProperties, type ErrorInfo, type ReactNode } from 'react';
+import { reportError } from '../utils/report.js';
 
 interface ErrorBoundaryProps {
   children?: ReactNode;
@@ -29,8 +30,9 @@ export default class ErrorBoundary extends React.Component<
   }
 
   override componentDidCatch(error: Error, info: ErrorInfo) {
-    // The browser console is the log of record on the client.
-    console.error('Unhandled render error:', error, info?.componentStack);
+    // In development this reaches the console; in a build it is a no-op until
+    // a browser error reporter is wired into `reportError`.
+    reportError('Unhandled render error:', { error, componentStack: info?.componentStack });
     this.props.onError?.(error, info);
   }
 

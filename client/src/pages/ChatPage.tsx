@@ -9,6 +9,7 @@ import { API_BASE_URL, apiFetch } from '../config/api.js';
 import { useToast } from '../hooks/useToast.js';
 import { getUserEmail } from '../utils/auth.js';
 import { safeObjectUrl } from '../utils/safeImageSrc.js';
+import { reportError } from '../utils/report.js';
 
 export default function ChatPage() {
     const [conversations, setConversations] = useState<ChatSummary[]>([]);
@@ -40,7 +41,6 @@ export default function ChatPage() {
         
         if (userEmail) {
             // Add logging to debug
-            console.log('Fetching chat history for:', userEmail);
             
             apiFetch(`${API_BASE_URL}/chat/history/${userEmail}`)
                 .then(res => res.json() as Promise<ChatSummary[]>)
@@ -49,7 +49,7 @@ export default function ChatPage() {
                     setConversations(Array.isArray(data) ? data : []);
                 })
                 .catch(err => {
-                    console.error('Error fetching chat history:', err);
+                    reportError('Error fetching chat history:', err);
                 });
         }
 
@@ -94,7 +94,7 @@ export default function ChatPage() {
                     const data = (await res.json()) as ChatMessagesResponse;
                     setMessages(Array.isArray(data.messages) ? data.messages : []);
                 } catch (error) {
-                    console.error('Failed to load messages:', error);
+                    reportError('Failed to load messages:', error);
                     setMessages([]);
                 } finally {
                     setLoading(false);
@@ -148,7 +148,7 @@ export default function ChatPage() {
                 setMessages(prev => [...data.messages, ...prev]);
             }
         } catch (error) {
-            console.error('Error loading messages:', error);
+            reportError('Error loading messages:', error);
         } finally {
             setLoading(false);
         }
@@ -200,7 +200,7 @@ export default function ChatPage() {
 
             scrollToBottom();
         } catch (err) {
-            console.error('Error sending message:', err);
+            reportError('Error sending message:', err);
             toast.error('Message not sent. Please try again.');
         }
     };
@@ -229,7 +229,7 @@ export default function ChatPage() {
                 }
             }
         } catch (err) {
-            console.error('Error deleting conversation:', err);
+            reportError('Error deleting conversation:', err);
         }
     };
 

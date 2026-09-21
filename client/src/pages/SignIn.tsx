@@ -6,6 +6,7 @@ import type { ApiError } from '@shared/api.js';
 import { API_BASE_URL, apiFetch } from '../config/api.js';
 import { useToast } from '../hooks/useToast.js';
 import { isAdmin, isAuthenticated, setSession } from '../utils/auth.js';
+import { reportError } from '../utils/report.js';
 
 export default function SignIn() {
     const navigate = useNavigate();
@@ -57,7 +58,7 @@ export default function SignIn() {
         } catch (err) {
             // The detail belongs in the console; what reaches the visitor is
             // something they can act on.
-            console.error('Error submitting form:', err);
+            reportError('Error submitting form:', err);
             toast.error('Could not reach the server. Please check your connection.');
         }
     };

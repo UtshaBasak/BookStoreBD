@@ -40,7 +40,16 @@ interface FilterEdits {
   searchTerm?: string;
   inStockOnly?: boolean;
   filters?: FilterState;
+  page?: number;
 }
+
+/**
+ * Books per page.
+ *
+ * The page used to render every match at once - fine at six books, and a
+ * screenful of base64 covers to decode at six hundred.
+ */
+const PAGE_SIZE = 12;
 
 const categories = [
   'Fiction',
@@ -109,7 +118,13 @@ export default function BookFilter() {
   const update = (patch: FilterEdits) =>
     setEdits((prev) => ({
       key: location.search,
-      value: { ...(prev.key === location.search ? prev.value : {}), ...patch },
+      value: {
+        ...(prev.key === location.search ? prev.value : {}),
+        // Any change other than turning a page starts again from the first
+        // one: page 4 of a search nobody is running any more is a dead end.
+        ...(Object.keys(patch).some((field) => field !== 'page') ? { page: 1 } : {}),
+        ...patch,
+      },
     }));
 
   const searchInput = active.searchInput ?? fromUrl.searchInput;
@@ -131,6 +146,14 @@ export default function BookFilter() {
     filters.category.length +
     (inStockOnly ? 1 : 0) +
     (priceFilter.from || priceFilter.to ? 1 : 0);
+
+  const page = active.page ?? 1;
+  const setPage = (value: number) => {
+    update({ page: value });
+    // The pager is at the bottom of the results. Without this, pressing Next
+    // leaves you looking at the pager with a fresh page of books above you.
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
 
   const setSearchInput = (value: string) => update({ searchInput: value });
   const setSearchTerm = (value: string) => update({ searchTerm: value });
@@ -226,6 +249,22 @@ export default function BookFilter() {
 
     return filtered;
   }, [bookList, searchTerm, filters, priceFilter, sortOption, inStockOnly]);
+
+  /*
+   * One page of results.
+   *
+   * The filtering above stays in the browser: it is instant, it works offline
+   * once the catalogue is loaded, and a page of results is not what makes this
+   * page heavy - rendering six hundred cards, each decoding a base64 cover, is.
+   * Moving the filtering to the API is the next step and a larger one; this is
+   * what stops the page falling over in the meantime.
+   */
+  const pageCount = Math.max(1, Math.ceil(filteredBooks.length / PAGE_SIZE));
+  // Clamped, so a `?page=99` that no longer has results still shows something.
+  const currentPage = Math.min(page, pageCount);
+  const firstOnPage = filteredBooks.length === 0 ? 0 : (currentPage - 1) * PAGE_SIZE + 1;
+  const lastOnPage = Math.min(currentPage * PAGE_SIZE, filteredBooks.length);
+  const booksOnThisPage = filteredBooks.slice(firstOnPage - 1, lastOnPage);
 
   const handleSearch = () => {
     setSearchTerm(searchInput);
@@ -605,7 +644,7 @@ export default function BookFilter() {
             {filteredBooks.length === 0 ? (
               <p style={{ gridColumn: '1 / -1' }}>No book or author found</p>
             ) : (
-              filteredBooks.map((book) => {
+              booksOnThisPage.map((book) => {
                 const isOld = (book.bookType || '').toLowerCase() === 'old';
                 const isInWishlist = !!wishlist[book._id];
                 const isInCart = !!cart[book._id];
@@ -627,6 +666,8 @@ export default function BookFilter() {
                     {/* Book Image with sticker */}
                     <div className="relative shrink-0" style={{ width: 100, height: 150 }}>
                       <img
+                        loading="lazy"
+                        decoding="async"
                         src={book.images && book.images[0] ? book.images[0] : PLACEHOLDER_IMAGE}
                         alt={book.title}
                         style={{
@@ -752,6 +793,52 @@ export default function BookFilter() {
               })
             )}
           </div>
+
+          {/* Paging. Below the results, because that is where somebody is when
+              they have run out of them. */}
+          {filteredBooks.length > 0 && (
+            <div className="flex flex-wrap items-center justify-between gap-3 pb-4">
+              <p className="m-0 text-sm">
+                Showing {firstOnPage}&ndash;{lastOnPage} of {filteredBooks.length}
+              </p>
+
+              {pageCount > 1 && (
+                <div className="flex flex-wrap items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setPage(currentPage - 1)}
+                    disabled={currentPage === 1}
+                    className="inline-flex min-h-[44px] items-center rounded-lg px-4"
+                    style={{
+                      background: '#fff',
+                      color: currentPage === 1 ? '#999' : '#222',
+                      cursor: currentPage === 1 ? 'not-allowed' : 'pointer',
+                    }}
+                  >
+                    Previous
+                  </button>
+
+                  <span className="px-1 text-sm">
+                    Page {currentPage} of {pageCount}
+                  </span>
+
+                  <button
+                    type="button"
+                    onClick={() => setPage(currentPage + 1)}
+                    disabled={currentPage === pageCount}
+                    className="inline-flex min-h-[44px] items-center rounded-lg px-4"
+                    style={{
+                      background: '#fff',
+                      color: currentPage === pageCount ? '#999' : '#222',
+                      cursor: currentPage === pageCount ? 'not-allowed' : 'pointer',
+                    }}
+                  >
+                    Next
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
         </div>
       </div>
     </div>

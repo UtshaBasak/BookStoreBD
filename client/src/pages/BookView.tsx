@@ -22,6 +22,7 @@ import { messageOf } from '../utils/apiError.js';
 import { getUserEmail } from '../utils/auth.js';
 import { flagsFor } from '../utils/bookFlags.js';
 import { PLACEHOLDER_IMAGE } from '../utils/safeImageSrc.js';
+import { reportError } from '../utils/report.js';
 
 export default function BookView() {
     const [showDropdown, setShowDropdown] = useState(false);
@@ -98,7 +99,7 @@ export default function BookView() {
             await toggleCartMutation({ bookId, inCart: isInCart });
             toast.success(isInCart ? 'Removed from your cart.' : 'Added to your cart.');
         } catch (error) {
-            console.error('Cart error:', error);
+            reportError('Cart error:', error);
             toast.error(messageOf(error) || 'Could not update your cart.');
         }
     };
@@ -116,7 +117,7 @@ export default function BookView() {
                 isInWishlist ? 'Removed from your wishlist.' : 'Added to your wishlist.'
             );
         } catch (error) {
-            console.error('Wishlist error:', error);
+            reportError('Wishlist error:', error);
             toast.error(messageOf(error) || 'Could not update your wishlist.');
         }
     };
@@ -583,6 +584,8 @@ export default function BookView() {
                                         >
                                             <div style={{ position: 'relative' }}>
                                                 <img
+                                                    loading="lazy"
+                                                    decoding="async"
                                                     src={relatedBook.images?.[0] || PLACEHOLDER_IMAGE}
                                                     alt={relatedBook.title}
                                                     style={{

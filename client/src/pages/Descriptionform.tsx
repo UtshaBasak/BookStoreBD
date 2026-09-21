@@ -6,6 +6,7 @@ import type { Book, MessageResponse } from '@shared/api.js';
 import { API_BASE_URL, apiFetch } from '../config/api.js';
 import { useToast } from '../hooks/useToast.js';
 import { getUserEmail } from '../utils/auth.js';
+import { reportError } from '../utils/report.js';
 
 export default function DescriptionForm() {
   const [description, setDescription] = useState('');
@@ -35,7 +36,7 @@ export default function DescriptionForm() {
         toast.error(data.message);
       }
     } catch (error) {
-      console.error('Error returning book:', error);
+      reportError('Error returning book:', error);
       toast.error('Could not send the return request. Please try again.');
     }
   };
@@ -76,7 +77,7 @@ export default function DescriptionForm() {
         toast.error(data.message || 'Could not upload the images.');
       }
     } catch (error) {
-      console.error('Error uploading images:', error);
+      reportError('Error uploading images:', error);
       toast.error('Could not upload the images. Please try again.');
     }
   };

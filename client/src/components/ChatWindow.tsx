@@ -8,6 +8,7 @@ import { API_BASE_URL, apiFetch } from '../config/api.js';
 import { useToast } from '../hooks/useToast.js';
 import { getUserEmail } from '../utils/auth.js';
 import { safeObjectUrl } from '../utils/safeImageSrc.js';
+import { reportError } from '../utils/report.js';
 
 interface ChatWindowProps {
   receiver: string;
@@ -54,7 +55,7 @@ export default function ChatWindow({ receiver, receiverName, onClose }: ChatWind
           setMessages(data.messages);
         }
       })
-      .catch(err => console.error('Error loading messages:', err));
+      .catch(err => reportError('Error loading messages:', err));
 
     // Handle incoming messages
     const handleNewMessage = (data: ChatMessage) => {
@@ -114,7 +115,7 @@ export default function ChatWindow({ receiver, receiverName, onClose }: ChatWind
       setMessage('');
       setSelectedImage(null);
     } catch (err) {
-      console.error('Error sending message:', err);
+      reportError('Error sending message:', err);
       toast.error('Message not sent. Please try again.');
     }
   };

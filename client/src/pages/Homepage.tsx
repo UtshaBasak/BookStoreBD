@@ -574,6 +574,12 @@ export default function Homepage() {
                         : PLACEHOLDER_IMAGE
                     }
                     alt={book.title}
+                    // The covers sit below the fold in a horizontal strip, so
+                    // the browser should not decode every one of them before
+                    // the page is usable. The hero banner above is deliberately
+                    // left eager: it is what the browser measures as the load.
+                    loading="lazy"
+                    decoding="async"
                     style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: 4 }}
                   />
                   <div

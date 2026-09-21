@@ -26,7 +26,7 @@ Yes. Nothing is broken.
 | ----- | ------ |
 | Lint, both packages | clean |
 | Type-check under TypeScript 6.0.3 | clean |
-| Tests | 314 passing (222 server, 92 client) |
+| Tests | 315 passing (223 server, 92 client) |
 | `npm audit`, all three roots | 0 vulnerabilities |
 | Builds | API compiles to `dist/`, client bundles |
 | Production stack | browse, detail, cart, wishlist, profile, orders, clear — all `200` |
@@ -661,13 +661,56 @@ it out of the index.
 **The 404 page** was `<h1>404 Not Found</h1>` - a dead end on a shop. It now
 says what happened and offers the homepage and the catalogue.
 
-**No code splitting.** `React.lazy` is unused, so the whole application ships
-in one 206 KB chunk. Route-level splitting would cut first load substantially.
+~~**No code splitting.**~~ **done.** `React.lazy` was unused, so somebody
+reading the homepage on a phone downloaded the checkout, the admin panel and the
+chat before seeing a book. Every route is its own chunk now:
 
-**No pagination or lazy loading** on the catalogue — every book, with its
-base64 cover, arrives at once. Fine at six books, not at six hundred.
+| | before | after |
+| --- | --- | --- |
+| application chunk | 228.31 kB (51.30 kB gzipped) | **64.49 kB (19.55 kB)** |
+| chunks in `dist/assets` | 4 | 32 |
 
-**17 `console.*` calls** ship to the production bundle.
+A 72% cut to the code that has to arrive before anything renders. The homepage
+is the one route left eager - it is what most visitors see first, and making
+them wait for a second request to start it would undo the point. A `Suspense`
+fallback covers the moment a chunk is fetched.
+
+~~**No pagination or lazy loading**~~ **done.** The catalogue rendered every
+match at once, each card decoding a base64 cover. Fine at six books, not at six
+hundred.
+
+Twelve to a page now, with a pager and a count. Measured in the browser against
+36 books: 12 cards rendered, 326 DOM nodes, "Showing 1-12 of 36", and the same
+figures on page 2 - the page no longer grows with the catalogue. Every cover in
+a list carries `loading="lazy"` and `decoding="async"`, so the browser stops
+decoding books nobody has scrolled to. The homepage's hero banner is left eager
+on purpose: it is the largest thing on the first screen and what the browser
+measures as the load.
+
+The filtering itself stays in the browser. It is instant, it works once the
+catalogue is loaded, and it was never what made the page heavy. Moving it to
+the API is the next step and a larger one, because the page's state model -
+filters as client-side edits over a URL - would have to move with it. One
+consequence: the page number is not in the URL, so a page of results cannot be
+shared or reached with the back button.
+
+~~**17 `console.*` calls** ship to the production bundle.~~ **done.** Sixteen,
+in the end: fifteen `console.error` and one `console.log` that printed the
+signed-in visitor's address on every visit to the chat.
+
+They go through `reportError` now, which reaches the console in development and
+is stripped from a build entirely - `import.meta.env.DEV` is replaced with a
+literal, so the branch is removed rather than skipped. Confirmed by grepping the
+built chunks: **zero** in the application code, the rest all in React's own
+vendor chunk.
+
+The first attempt was `esbuild: { drop: ['console'] }` in the Vite config, which
+did nothing at all: Vite 8 builds with Rolldown, and that option belongs to
+esbuild. The built bundle said so, which is the only reason it was noticed.
+
+`reportError` is also the one place a browser error reporter would go. There is
+none today, which is the real gap behind this item - a caught error in a
+visitor's browser now goes nowhere at all.
 
 **No analytics.** Nothing records what people search for, where they abandon
 checkout, or which listings convert — the data you would need to decide what to
@@ -703,10 +746,30 @@ Cheap and high-value first, so each step is shippable on its own.
 | ~~6~~ | ~~SEO metadata, sitemap, `robots.txt`~~ **done** | Growth work, meaningless before the site is presentable |
 | ~~7~~ | ~~Upload validation, OTP attempt limits (S4, S5)~~ **done** | Hardening, once the surface is settled |
 | ~~8~~ | ~~Account deletion and export (P2), audit log (P3)~~ **done** | Compliance before real users arrive |
-| 9 | Code splitting, lazy images, pagination | Performance, once there is enough content to matter |
+| ~~9~~ | ~~Code splitting, lazy images, pagination~~ **done** | Performance, once there is enough content to matter |
 
-Items 1–4 are each an afternoon. Item 5 is the one that takes real time, and it
-is the one a visitor notices first.
+**All nine are done.** Items 1–4 were each an afternoon; item 5 took the longest
+and is the one a visitor notices first.
+
+What is left is in the sections above, and none of it blocks a launch:
+
+- **Per-book link previews** need HTML rendered on the server. Google sees the
+  per-route tags today; Facebook and WhatsApp see the site-level defaults.
+- **Server-side filtering and paging** on the catalogue. The page is paged in
+  the browser, which is what stops it falling over; moving the filter to the API
+  is the step after.
+- **A browser error reporter.** `reportError` is the seam and it currently goes
+  nowhere in production.
+- **Redis for the one-time codes**, before the API runs on more than one
+  instance.
+- **P4**, base64 covers in MongoDB, whenever image hosting is switched on.
+- The **business capability** list below: payments, delivery, reviews, stock
+  reconciliation. Those are products, not fixes.
+
+And two things that are yours rather than mine: the contact details in
+`client/src/config/site.ts` are still the unverified ones carried over from the
+original footer, and the policy pages need a real legal entity name and a review
+by somebody qualified.
 
 ---
 

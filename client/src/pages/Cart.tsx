@@ -181,6 +181,8 @@ export default function Cart() {
                 }}
               >
                 <img
+                  loading="lazy"
+                  decoding="async"
                   src={getBookImageSrc(book)}
                   alt={book.title}
                   style={{

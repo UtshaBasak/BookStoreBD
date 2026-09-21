@@ -6,6 +6,7 @@ import type { ApiError, SessionResponse } from '@shared/api.js';
 import { API_BASE_URL, apiFetch } from '../config/api.js';
 import { useToast } from '../hooks/useToast.js';
 import { isAdmin, isAuthenticated, setSession } from '../utils/auth.js';
+import { reportError } from '../utils/report.js';
 
 /** The sign-up form, filled in one field at a time. */
 interface SignUpForm {
@@ -99,7 +100,7 @@ export default function SignUp() {
                 toast.error(failure.message || 'Could not create your account.');
             }
         } catch (error) {
-            console.error('Error submitting form:', error);
+            reportError('Error submitting form:', error);
             toast.error('Could not reach the server. Please check your connection.');
         }
     };
