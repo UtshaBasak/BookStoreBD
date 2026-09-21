@@ -6,6 +6,7 @@ import AddBook from '../models/AddBook.model.js';
 import { actingUser } from '../middleware/auth.js';
 import type { CreateReturnBody, UpdateReturnStatusBody } from '../schemas/index.js';
 import { createLogger } from '../config/logger.js';
+import { recordAudit } from '../utils/audit.js';
 
 const log = createLogger('return');
 
@@ -86,6 +87,13 @@ export const updateReturnStatus = async (
       res.status(404).json({ message: 'Return request not found' });
       return;
     }
+
+    await recordAudit(req, {
+      action: 'return.status',
+      targetType: 'returnRequest',
+      targetId: String(updatedRequest._id),
+      details: { status, bookTitle: updatedRequest.bookTitle },
+    });
 
     res.json(updatedRequest);
   } catch (error) {

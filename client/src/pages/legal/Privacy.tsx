@@ -68,14 +68,18 @@ export default function Privacy() {
         participant deletes the conversation.</p>
 
       <h2>Your rights</h2>
-      <p>You can ask us for a copy of the data we hold about you, ask us to
-        correct it, or ask us to delete your account. You can edit most of your
-        profile yourself from the profile page. For a copy or a deletion, e-mail
-        us at <a href={`mailto:${site.email}`}>{site.email}</a> and we will
-        respond within {site.responseTime}.</p>
-      <p>Deleting an account removes your profile and signs out every session.
-        Records we are required to keep for accounting, such as completed orders,
-        are retained with your personal details removed.</p>
+      <p>You do not have to ask us for any of this. On your profile page,
+        under <strong>Your data</strong>, you can download everything this
+        account holds as a single file, and you can delete the account outright.
+        Both are immediate. You can also edit most of your profile there.</p>
+      <p>If you would rather we did it, or you cannot sign in, e-mail us at{' '}
+        <a href={`mailto:${site.email}`}>{site.email}</a> and we will respond
+        within {site.responseTime}.</p>
+      <p>Deleting an account removes your profile, your cart, your wishlist,
+        any listings you posted and your messages, and signs out every session.
+        Orders are kept as accounting records - the other side of each one is
+        another person's history - with your name, phone number, address and
+        e-mail removed from them.</p>
 
       <h2>Security</h2>
       <p>Passwords are hashed with bcrypt. Sessions use short-lived tokens that

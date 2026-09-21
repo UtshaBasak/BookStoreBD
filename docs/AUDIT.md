@@ -26,7 +26,7 @@ Yes. Nothing is broken.
 | ----- | ------ |
 | Lint, both packages | clean |
 | Type-check under TypeScript 6.0.3 | clean |
-| Tests | 288 passing (202 server, 86 client) |
+| Tests | 314 passing (222 server, 92 client) |
 | `npm audit`, all three roots | 0 vulnerabilities |
 | Builds | API compiles to `dist/`, client bundles |
 | Production stack | browse, detail, cart, wishlist, profile, orders, clear — all `200` |
@@ -51,8 +51,8 @@ token revokes the family. That part is genuinely solid.
 | S6 | ~~`X-Powered-By: Express` disclosed~~ **done** | Low |
 | S7 | bcrypt cost factor 10 | Low |
 | P1 | ~~Footer advertises policies that do not exist~~ **done** | **High** (trust/compliance) |
-| P2 | No way for a user to delete their account or export their data | **Medium** |
-| P3 | No audit trail for administrator actions | **Medium** |
+| P2 | ~~No way for a user to delete their account or export their data~~ **done** | **Medium** |
+| P3 | ~~No audit trail for administrator actions~~ **done** | **Medium** |
 | P4 | Covers and chat images stored as base64 in MongoDB by default | Low |
 
 ### S1 · No security response headers — **done**
@@ -283,25 +283,91 @@ The pages are the first in the codebase written with Tailwind rather than inline
 style objects, and they are responsive. New pages set the standard the rest is
 being moved towards (item 5).
 
-### P2 · No account deletion or data export — Medium
+### P2 · No account deletion or data export — **done**
 
-`DELETE /user/:id` is administrator-only. A user cannot delete their own
-account, and there is no export. Under GDPR that is articles 15 and 17; the
-same expectation is increasingly standard everywhere and is a visible trust
-signal regardless of jurisdiction.
+`DELETE /user/:id` was administrator-only: a user could not close their own
+account and could not get a copy of what was held about them. Articles 15 and 17
+of the GDPR, and a visible trust signal regardless of jurisdiction.
 
-**Fix.** `DELETE /user/me` (revoking every session and anonymising orders
-rather than deleting them, which accounting usually requires) and
-`GET /user/me/export` returning the profile, orders and messages as JSON.
+**`GET /user/me/export`** returns the account, orders placed, orders received as
+a seller, purchases, return requests, cart, wishlist, listings and messages, as
+a named JSON download rather than a page - it is a file to keep. The password
+hash is not in it, and a test asserts the whole document contains no `$2`.
 
-### P3 · No audit trail for admin actions — Medium
+**`DELETE /user/me`** asks for the password again. This cannot be undone, and an
+access token lifted from a borrowed laptop should not be enough to erase
+somebody's account.
 
-An administrator can delete users and change any order's status. Nothing
-records who did what. The structured logs capture the request, but there is no
-durable, queryable trail.
+What it does, and why:
 
-**Fix.** An `AuditLog` collection written on privileged mutations: actor,
-action, target, timestamp, request id.
+| | |
+| --- | --- |
+| account, cart, wishlist | deleted |
+| listings | deleted — a listing with no seller behind it cannot be bought |
+| messages | deleted — a conversation exists only between its two people |
+| orders, purchases, return requests | **kept, anonymised** |
+| every session | revoked |
+
+Orders stay because they are accounting records and the other side of each one
+is somebody else's history. What goes is every personal detail attached to them:
+the address becomes a tombstone in the `.invalid` domain reserved for exactly
+this, and the contact name, phone and delivery address are emptied. What was
+sold and for how much survives. Run against the live stack:
+
+```
+{"message":"Your account has been deleted.","ordersAnonymised":1,…}
+
+orderNumber:     'A4AKZKZDG89XEICL'          // the sale is still there
+buyerEmail:      'deleted-d2b15b75@removed.invalid'
+title:           'The C Programming Language'
+price:           850
+contactName:     ''
+contactPhone:    ''
+deliveryAddress: ''
+```
+
+A wrong password answers **403, not 401** - found by a test that noticed the
+session disappearing. The client reads a 401 as an expired session: it tries a
+refresh and then signs the caller out, so a typo would have logged somebody out
+of the page they were standing on. 401 is for session problems; this is a
+re-check failing.
+
+Both are on the profile page under "Your data", not buried in a settings menu.
+An account nobody can close is the kind of thing people complain about publicly
+rather than by e-mail. Eighteen tests.
+
+### P3 · No audit trail for admin actions — **done**
+
+An administrator can delete users and change any order's status, and nothing
+recorded who did it. The request log captures the call, but it rotates and
+cannot be queried - it is not where you answer "who deleted this account".
+
+An `AuditLog` collection is written on every privileged change: deleting a user,
+changing an order's status, deleting an order, resolving a return request, and
+somebody closing their own account. Each row carries the actor's id, address and
+role, what was acted on, anything worth knowing later - an order status records
+what it moved *from* as well as to - and the request id, which ties it back to
+the log line for the same call.
+
+The actor's address is copied in rather than referenced: the trail has to still
+read correctly after the account it names has been deleted, which is exactly the
+case a trail exists for. The account-deletion row is written before the account
+goes, while there is still an actor to name.
+
+`GET /api/audit` reads it back, newest first, filterable by action or actor and
+paged. Administrators only - it names who did what, which is precisely what
+should not be public.
+
+A failed write is logged at error level rather than thrown: by then the change
+has already happened, and raising would report a failure for something that
+succeeded. A dropped row is still a hole, so it is loud in the log rather than
+silent.
+
+Eight tests, and the trail was read back from the running stack:
+
+```
+order.status | admin@bookstorebd.local | A4AKZKZDG89XEICL | {from: 'Order Confirmed', to: 'Shipped', lines: 1}
+```
 
 ### P4 · Base64 images in MongoDB — Low
 
@@ -634,7 +700,7 @@ Cheap and high-value first, so each step is shippable on its own.
 | ~~5~~ | ~~Responsive pass with Tailwind tokens~~ **done** — every route measured at 360, 768 and 1280 | Largest effort, largest payoff; most traffic is mobile |
 | ~~6~~ | ~~SEO metadata, sitemap, `robots.txt`~~ **done** | Growth work, meaningless before the site is presentable |
 | ~~7~~ | ~~Upload validation, OTP attempt limits (S4, S5)~~ **done** | Hardening, once the surface is settled |
-| 8 | Account deletion and export (P2), audit log (P3) | Compliance before real users arrive |
+| ~~8~~ | ~~Account deletion and export (P2), audit log (P3)~~ **done** | Compliance before real users arrive |
 | 9 | Code splitting, lazy images, pagination | Performance, once there is enough content to matter |
 
 Items 1–4 are each an afternoon. Item 5 is the one that takes real time, and it

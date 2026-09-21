@@ -212,6 +212,29 @@ export const userSchemas = {
     }),
   },
   byId: { params: objectIdParam },
+  /**
+   * Deleting your own account asks for the password again.
+   *
+   * Not `password` from common.ts: an account made before the length rule
+   * exists would otherwise be unable to close itself.
+   */
+  deleteMe: {
+    body: z.object({
+      password: z.string().min(1, 'Your password is required to delete the account').max(200),
+    }),
+  },
+};
+
+/** Reading the audit trail, newest first. */
+export const auditSchemas = {
+  list: {
+    query: z.object({
+      action: shortText.optional(),
+      actorEmail: email.optional(),
+      limit: boundedInt(1, 200).optional(),
+      skip: nonNegativeInt.optional(),
+    }),
+  },
 };
 
 export { FILTERABLE_FIELDS };
@@ -226,6 +249,9 @@ export { FILTERABLE_FIELDS };
 // `z.infer` is the *output* of a schema: after trimming, lower-casing,
 // coercion and defaults. That is what a handler sees, which is the point.
 // ---------------------------------------------------------------------------
+
+export type DeleteMeBody = z.infer<typeof userSchemas.deleteMe.body>;
+export type AuditListQuery = z.infer<typeof auditSchemas.list.query>;
 
 export type SignupBody = z.infer<typeof authSchemas.signup.body>;
 export type SigninBody = z.infer<typeof authSchemas.signin.body>;

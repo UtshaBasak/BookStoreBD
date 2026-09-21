@@ -12,6 +12,7 @@ import { createLogger } from './config/logger.js';
 import { corsOptions } from './config/cors.js';
 import { isApiPath, API_PREFIX } from './config/apiPaths.js';
 import { robots, sitemap } from './controllers/seo.controller.js';
+import auditRouter from './routes/audit.route.js';
 import { CLIENT_DIST, UPLOADS_DIR } from './config/paths.js';
 import { securityHeaders } from './config/securityHeaders.js';
 import { errorHandler, notFoundHandler } from './middleware/errorHandler.js';
@@ -95,6 +96,7 @@ export const createApp = ({
   app.use(apiLimiter);
 
   app.use(`${API_PREFIX}/auth`, authLimiter, authRouter);
+  app.use(`${API_PREFIX}/audit`, auditRouter);
   app.use(`${API_PREFIX}/book`, bookRouter);
   app.use(`${API_PREFIX}/cart`, cartRouter);
   app.use(`${API_PREFIX}/chat`, writeLimiter, chatRouter);

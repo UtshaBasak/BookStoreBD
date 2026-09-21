@@ -7,11 +7,13 @@ import {
   updateUserProfile,
   uploadDescriptionImages,
 } from '../controllers/user.controller.js';
+import { deleteMyAccount, exportMyData } from '../controllers/account.controller.js';
 import AddBook from '../models/AddBook.model.js';
 import User from '../models/user.model.js';
 import { config } from '../config/env.js';
 import { actingUser, requireAuth, requireAdmin, optionalAuth } from '../middleware/auth.js';
 import { imageUpload, verifyImageBytes } from '../middleware/imageUpload.js';
+import { recordAudit } from '../utils/audit.js';
 import { isOwnedCloudinaryUrl } from '../config/cloudinary.js';
 import { createLogger } from '../config/logger.js';
 import { errorMessage } from '../utils/error.js';
@@ -112,6 +114,17 @@ router.post(
   }
 );
 
+// ---------------------------------------------------------------------------
+// The account's own data
+//
+// Both are registered before `/:id` below, or Express would read "me" as an id
+// and the schema would reject it.
+// ---------------------------------------------------------------------------
+
+router.get('/me/export', requireAuth, exportMyData);
+
+router.delete('/me', requireAuth, validate(userSchemas.deleteMe), deleteMyAccount);
+
 router.post(
   '/upload-images',
   requireAuth,
@@ -152,6 +165,16 @@ router.delete(
         res.status(404).json({ message: 'User not found' });
         return;
       }
+
+      await recordAudit(req, {
+        action: 'user.delete',
+        targetType: 'user',
+        targetId: id,
+        // The address, because the row has to still make sense once the
+        // account it names no longer exists.
+        details: { email: user.email, role: user.role },
+      });
+
       res.status(200).json({ message: 'User deleted successfully' });
     } catch (error) {
       log.error({ err: error }, 'Error deleting user');

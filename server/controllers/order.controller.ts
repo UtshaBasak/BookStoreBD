@@ -5,6 +5,7 @@ import type { UnavailableItem } from '@shared/api.js';
 import AddBook from '../models/AddBook.model.js';
 import Order, { type LeanOrder } from '../models/Order.model.js';
 import { actingUser } from '../middleware/auth.js';
+import { recordAudit } from '../utils/audit.js';
 import type {
   CreateOrderBody,
   OrderNumberParams,
@@ -237,6 +238,13 @@ export const updateOrderStatusByOrderNumber = async (
       res.status(404).json({ message: 'Order not found' });
       return;
     }
+    await recordAudit(req, {
+      action: 'order.status',
+      targetType: 'order',
+      targetId: orderNumber,
+      details: { from: existing[0]?.status, to: status, lines: orders.modifiedCount },
+    });
+
     // Optionally, return the updated orders
     const updatedOrders = await Order.find({ orderNumber });
     res.status(200).json(updatedOrders);
@@ -250,6 +258,12 @@ export const deleteOrder: RequestHandler = async (req, res) => {
   try {
     const id = req.params.id;
     await Order.findByIdAndDelete(id);
+    await recordAudit(req, {
+      action: 'order.delete',
+      targetType: 'order',
+      targetId: String(req.params.id),
+    });
+
     res.status(200).json({ message: 'Order deleted' });
   } catch (err) {
     res.status(500).json({ message: errorMessage(err) });

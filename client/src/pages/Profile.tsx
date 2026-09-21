@@ -4,6 +4,7 @@ import { FaHome, FaHeart, FaShoppingCart } from 'react-icons/fa';
 
 import type { OwnProfile } from '@shared/api.js';
 
+import AccountData from '../components/AccountData.js';
 import { signOut } from '../config/api.js';
 import { useProfile } from '../hooks/queries.js';
 import { getUserEmail, isAdmin } from '../utils/auth.js';
@@ -298,6 +299,8 @@ export default function Profile() {
                         Sign Out
                     </button>
                 </div>
+
+                <AccountData />
             </div>
         </div>
     );
