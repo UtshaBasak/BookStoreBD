@@ -21,6 +21,48 @@ clean clone rather than the working tree, so `node_modules` cannot skew it.
 | `js/xss-through-dom` | 3 | `URL.createObjectURL` can only produce a `blob:` URL; CodeQL models it as taint-propagating regardless. The only barriers the query accepts would corrupt a `blob:` or `data:` URL. The three sites are the file pickers in `ChatWindow`, `ChatPage` and `UpdateProfile`. |
 | `js/missing-token-validation` | 1 | The refresh cookie is `SameSite=Lax` and both endpoints that read it are POST, so a browser will not attach it cross-site. Every other endpoint authenticates from the `Authorization` header, which a third-party page cannot set. Pinned by tests asserting the cookie alone authenticates nothing. |
 
+### Dismissing them
+
+Filter by **Rule** in the Security tab and dismiss one group at a time rather
+than ticking all 18 at once, so each dismissal carries a reason that is true of
+it. Reason: **False positive** for all three groups.
+
+Do not instead silence the rules with a `query-filters` block in `codeql.yml`.
+That would hide a real injection just as effectively as a false one; the point
+of dismissing individual alerts is that the rule stays live.
+
+Expect them back after a large refactor. A dismissal is tied to an alert's
+fingerprint, so when code moves far enough CodeQL opens a fresh alert for the
+same thing - which is exactly why the tab showed 169 closed alongside these 18
+after the TypeScript migration renamed every file.
+
+**Database query built from user-controlled sources** (14)
+
+```text
+False positive. Every one of these sites sits behind a Zod schema that narrows
+the value to a primitive before it reaches Mongoose, so an operator object like
+{"$ne": null} cannot get through. CodeQL's taint tracking cannot see through the
+validate() middleware. Pinned by tests in server/tests/security.test.ts.
+```
+
+**DOM text reinterpreted as HTML** (3)
+
+```text
+False positive. The source is URL.createObjectURL, which can only ever produce a
+blob: URL. safeImageSrc additionally allow-lists the scheme before the value
+reaches an <img src>. The only barriers this query accepts would corrupt a blob:
+or data: URL.
+```
+
+**Missing CSRF middleware** (1)
+
+```text
+False positive. The refresh cookie is SameSite=Lax and both endpoints that read
+it are POST, so a browser will not attach it cross-site. Every other endpoint
+authenticates from the Authorization header, which a third-party page cannot
+set. Pinned by tests asserting the cookie alone authenticates nothing.
+```
+
 ### What changed since the last measurement
 
 The count in this table used to read 21. Two separate drifts, both now checked
