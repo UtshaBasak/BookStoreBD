@@ -1,5 +1,4 @@
 import express, { type Request, type Response } from 'express';
-import multer from 'multer';
 
 import { signup, signin } from '../controllers/auth.controller.js';
 import {
@@ -12,6 +11,7 @@ import AddBook from '../models/AddBook.model.js';
 import User from '../models/user.model.js';
 import { config } from '../config/env.js';
 import { actingUser, requireAuth, requireAdmin, optionalAuth } from '../middleware/auth.js';
+import { imageUpload, verifyImageBytes } from '../middleware/imageUpload.js';
 import { isOwnedCloudinaryUrl } from '../config/cloudinary.js';
 import { createLogger } from '../config/logger.js';
 import { errorMessage } from '../utils/error.js';
@@ -41,11 +41,6 @@ const collectHostedImages = (body: AddBookBody) => {
   return { images: urls, publicIds: urls.length ? ids.slice(0, urls.length) : [] };
 };
 
-// Images are held in memory and persisted on the document as base64 data URIs.
-const upload = multer({
-  storage: multer.memoryStorage(),
-  limits: { fileSize: config.uploads.maxFileSizeBytes },
-});
 
 // ---------------------------------------------------------------------------
 // Public
@@ -70,7 +65,8 @@ router.get('/profile', optionalAuth, validate(userSchemas.profileQuery), getUser
 router.put(
   '/profile',
   requireAuth,
-  upload.single('profilePicture'),
+  imageUpload.single('profilePicture'),
+  verifyImageBytes,
   // After multer, which is what populates req.body for a multipart form.
   validate(userSchemas.updateProfile),
   updateUserProfile
@@ -79,7 +75,8 @@ router.put(
 router.post(
   '/add-book',
   requireAuth,
-  upload.array('images', config.uploads.maxFilesPerRequest),
+  imageUpload.array('images', config.uploads.maxFilesPerRequest),
+  verifyImageBytes,
   // After multer, which is what populates req.body for a multipart form. The
   // schema also does the shaping the handler used to do by hand: `category`
   // arrives as an array either way, and `pages` and `price` as numbers.
@@ -118,7 +115,8 @@ router.post(
 router.post(
   '/upload-images',
   requireAuth,
-  upload.array('images', config.uploads.maxFilesPerRequest),
+  imageUpload.array('images', config.uploads.maxFilesPerRequest),
+  verifyImageBytes,
   uploadDescriptionImages
 );
 

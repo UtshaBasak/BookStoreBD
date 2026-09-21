@@ -244,7 +244,7 @@ const AddBooks = () => {
               <input
                 type='file' id='imageInput' multiple onChange={handleImageChange}
                 className='block w-full text-sm text-zinc-300 file:bg-blue-600 file:text-white file:px-4 file:py-3 file:rounded file:border-0 hover:file:bg-blue-700 transition cursor-pointer'
-                accept="image/*"
+                accept="image/png,image/jpeg,image/webp,image/gif"
               />
               {images.length > 0 && (
                 <div className='mt-2 text-xs text-zinc-500'>

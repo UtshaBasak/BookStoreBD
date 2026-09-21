@@ -1,10 +1,9 @@
 import express, { type Request, type Response } from 'express';
-import multer from 'multer';
 
 import ChatMessage from '../models/Chat.model.js';
 import User from '../models/user.model.js';
-import { config } from '../config/env.js';
 import { actingUser, requireAuth, type WithUser } from '../middleware/auth.js';
+import { imageUpload, verifyImageBytes } from '../middleware/imageUpload.js';
 import { createLogger } from '../config/logger.js';
 import { errorMessage } from '../utils/error.js';
 import { validate, validatedQuery } from '../middleware/validate.js';
@@ -20,10 +19,6 @@ const log = createLogger('chat');
 
 const router = express.Router();
 
-// Attachments are kept in memory and stored on the document as base64.
-const upload = multer({
-    limits: { fileSize: config.uploads.maxFileSizeBytes }
-});
 
 // A conversation is private to its two participants.
 router.use(requireAuth);
@@ -130,7 +125,8 @@ router.get('/history/:email', async (req, res) => {
 // Save new message (handles both text and image messages)
 router.post(
     '/message',
-    upload.single('image'),
+    imageUpload.single('image'),
+    verifyImageBytes,
     validate(chatSchemas.send),
     async (req: Request<unknown, unknown, SendChatBody>, res: Response) => {
     try {

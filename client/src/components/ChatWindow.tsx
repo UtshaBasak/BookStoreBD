@@ -211,7 +211,7 @@ export default function ChatWindow({ receiver, receiverName, onClose }: ChatWind
       }}>
         <input
           type="file"
-          accept="image/*"
+          accept="image/png,image/jpeg,image/webp,image/gif"
           onChange={handleImageSelect}
           ref={fileInputRef}
           style={{ display: 'none' }}

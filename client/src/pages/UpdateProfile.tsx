@@ -309,7 +309,7 @@ export default function UpdateProfile() {
                     <label>Profile Picture:</label>
                     <input
                         type="file"
-                        accept="image/*"
+                        accept="image/png,image/jpeg,image/webp,image/gif"
                         onChange={handleFileChange}
                         style={{
                             ...inputStyle,

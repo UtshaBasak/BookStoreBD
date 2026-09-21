@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeAll, afterAll, beforeEach, vi } from 'vitest';
 
 import { createTestContext, clearDatabase, closeTestContext, type PrefixedRequest } from './helpers/testApp.js';
-import { createBook, createSignedInUser } from './helpers/factories.js';
+import { createBook, createSignedInUser, PNG_PIXEL } from './helpers/factories.js';
 
 let request: PrefixedRequest;
 
@@ -46,7 +46,7 @@ describe('when image hosting is not configured', () => {
       .field('desc', 'd')
       .field('category', 'tech')
       .field('bookType', 'new')
-      .attach('images', Buffer.from('fake-png-bytes'), 'cover.png');
+      .attach('images', PNG_PIXEL, 'cover.png');
 
     expect(res.status).toBe(201);
     expect(res.body.book.images[0]).toMatch(/^data:/);

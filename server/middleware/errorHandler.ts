@@ -13,10 +13,34 @@ export const notFoundHandler: RequestHandler = (req, res) => {
   });
 };
 
+/**
+ * What multer throws when a limit is hit.
+ *
+ * It carries a `code` rather than a status, so without this an upload over the
+ * size limit answered 500 - a server error for something the caller did, and
+ * nothing to tell them what the limit was.
+ */
+const MULTER_STATUS: Record<string, number> = {
+  LIMIT_FILE_SIZE: 413,
+  LIMIT_FILE_COUNT: 400,
+  LIMIT_UNEXPECTED_FILE: 400,
+  LIMIT_PART_COUNT: 400,
+  LIMIT_FIELD_COUNT: 400,
+  LIMIT_FIELD_KEY: 400,
+  LIMIT_FIELD_VALUE: 413,
+};
+
 /** Anything thrown can reach here, so read it defensively rather than cast. */
 const statusOf = (err: unknown): number => {
   const candidate = (err as { statusCode?: unknown })?.statusCode;
-  return typeof candidate === 'number' ? candidate : 500;
+  if (typeof candidate === 'number') return candidate;
+
+  if ((err as { name?: unknown })?.name === 'MulterError') {
+    const code = String((err as { code?: unknown }).code ?? '');
+    return MULTER_STATUS[code] ?? 400;
+  }
+
+  return 500;
 };
 
 const messageOf = (err: unknown): string => errorMessage(err) || 'Internal Server Error';

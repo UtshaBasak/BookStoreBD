@@ -117,7 +117,7 @@ export default function DescriptionForm() {
           <h2 style={{ color: 'white' }}>Upload Images</h2>
           <input
             type="file"
-            accept="image/*"
+            accept="image/png,image/jpeg,image/webp,image/gif"
             multiple
             onChange={handleImageUpload}
             style={{ marginBottom: '1rem', width: '100%' }}

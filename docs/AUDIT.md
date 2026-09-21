@@ -26,7 +26,7 @@ Yes. Nothing is broken.
 | ----- | ------ |
 | Lint, both packages | clean |
 | Type-check under TypeScript 6.0.3 | clean |
-| Tests | 274 passing (188 server, 86 client) |
+| Tests | 288 passing (202 server, 86 client) |
 | `npm audit`, all three roots | 0 vulnerabilities |
 | Builds | API compiles to `dist/`, client bundles |
 | Production stack | browse, detail, cart, wishlist, profile, orders, clear — all `200` |
@@ -46,8 +46,8 @@ token revokes the family. That part is genuinely solid.
 | S1 | ~~No security response headers at all~~ **done** | **High** |
 | S2 | ~~Account enumeration on sign-in and password reset~~ **done** | **Medium** |
 | S3 | Access token kept in `localStorage` | **Medium** |
-| S4 | Uploads are not type-checked | **Medium** |
-| S5 | OTP has no per-account attempt limit | **Medium** |
+| S4 | ~~Uploads are not type-checked~~ **done** | **Medium** |
+| S5 | ~~OTP has no per-account attempt limit~~ **done** | **Medium** |
 | S6 | ~~`X-Powered-By: Express` disclosed~~ **done** | Low |
 | S7 | bcrypt cost factor 10 | Low |
 | P1 | ~~Footer advertises policies that do not exist~~ **done** | **High** (trust/compliance) |
@@ -183,34 +183,64 @@ successful script injection can lift it.
 refresh, so most of the machinery exists. Worth doing *after* S1, since a CSP
 removes most of the ways an injection lands in the first place.
 
-### S4 · Uploads are not type-checked — Medium
+### S4 · Uploads are not type-checked — **done**
 
-`multer` limits size and count but sets no `fileFilter`. Posting a text file as
-a book cover succeeds:
+`multer` limited size and count and set no `fileFilter`, so posting a text file
+as a book cover succeeded:
 
 ```
-status=201
-images: ["data:text/plain;base64,R0lGODlhLW5vdC1yZWFsbHktYW4taW1hZ2U="]
+before:  status=201  images: ["data:text/plain;base64,R0lGODlhLW5vdC1yZWFsbHkt…"]
+after:   status=415  {"message":"cover.png is not a PNG, JPEG, WebP or GIF image"}
 ```
 
-It is not an XSS vector today, because `safeImageSrc` only lets `data:image/`
-through to an `<img src>`. It is still unvalidated content in the database, a
-storage-abuse channel (10 files × 5 MB per listing, any type), and a trap for
-the next person who renders one of these without the helper.
+Two checks, because one is not enough. A `fileFilter` refuses anything whose
+declared type is not `image/png`, `image/jpeg`, `image/webp` or `image/gif` -
+cheap, and it stops a 5 MB video before it is buffered. Then, after the file is
+in memory, its **first bytes** are read: the `Content-Type` is whatever the
+client chose to send, and a text file called `cover.png` announces itself as an
+image perfectly happily. A PNG header cannot be renamed away.
 
-**Fix.** A `fileFilter` restricted to `image/png|jpeg|webp|gif`, and check the
-magic bytes rather than trusting the client-declared MIME type.
+The sniffed type also replaces the declared one, because the handlers build a
+`data:<type>;base64,…` URI: a PNG announced as a JPEG would otherwise be stored
+with a lie attached to it, and a test pins that.
 
-### S5 · OTP has no per-account attempt limit — Medium
+Found on the way: an upload over the size limit answered **500**. `multer`
+throws an error carrying a `code` rather than a status, so a caller's mistake
+was being reported as a server fault with nothing to say what the limit was. It
+is a 413 with "File too large" now.
 
-A six-digit code lives for ten minutes in an in-memory `Map`. `authLimiter`
-caps an IP at 50 requests per 15 minutes, but nothing counts failures against
-the *account*, so attempts from several addresses are not pooled.
+The file pickers were `accept="image/*"`, which offers SVG, HEIC and TIFF - all
+of which the server now refuses, so the first anyone would hear of it was an
+error after the upload. They list the four types that are actually accepted.
 
-**Fix.** Track attempts on the OTP record and invalidate after five. Move the
-store to Redis when the API runs on more than one instance — a restart
-currently drops every in-flight verification, and a second instance would not
-see the first one's codes.
+Eight tests, and the attack from the audit was re-run against the running stack:
+415 for the text file, 201 for a real PNG, 413 for 6 MB.
+
+### S5 · OTP has no per-account attempt limit — **done**
+
+A six-digit code lives for ten minutes in an in-memory `Map`. `authLimiter` caps
+an IP at 50 requests per 15 minutes, but nothing counted failures against the
+*code*, so guesses coming from several addresses were never pooled.
+
+Five wrong tries and the code is thrown away. The count lives on the record, so
+it follows the code rather than the caller, and `verify-otp` and `reset-password`
+share it: they check one code between them, so five tries is five tries whichever
+door they are tried at.
+
+The response does not say why. "Too many attempts" would be friendlier, and it
+would also confirm that a code had been issued for that address at all - which
+is exactly the account enumeration S2 closed. A wrong code, an expired one, a
+discarded one and an address that never had one all answer identically, and a
+test holds two of those responses side by side.
+
+Expired codes are also swept when a new one is issued; the map previously only
+ever lost an entry when somebody touched it.
+
+Six tests, each checked by raising the limit and watching them fail.
+
+**Still to do:** move the store to Redis when the API runs on more than one
+instance. A restart drops every in-flight verification, and a second instance
+cannot see the first one's codes.
 
 ### S6 · `X-Powered-By` — **done**
 
@@ -603,7 +633,7 @@ Cheap and high-value first, so each step is shippable on its own.
 | ~~4~~ | ~~Toasts instead of `alert()`~~ **done** | The single biggest change in how the product feels |
 | ~~5~~ | ~~Responsive pass with Tailwind tokens~~ **done** — every route measured at 360, 768 and 1280 | Largest effort, largest payoff; most traffic is mobile |
 | ~~6~~ | ~~SEO metadata, sitemap, `robots.txt`~~ **done** | Growth work, meaningless before the site is presentable |
-| 7 | Upload validation, OTP attempt limits (S4, S5) | Hardening, once the surface is settled |
+| ~~7~~ | ~~Upload validation, OTP attempt limits (S4, S5)~~ **done** | Hardening, once the surface is settled |
 | 8 | Account deletion and export (P2), audit log (P3) | Compliance before real users arrive |
 | 9 | Code splitting, lazy images, pagination | Performance, once there is enough content to matter |
 

@@ -91,6 +91,8 @@ interface OtpRecord {
   code: string;
   expiresAt: number;
   verified: boolean;
+  /** Wrong guesses against this code, across every address they came from. */
+  attempts: number;
 }
 
 // In-memory OTP store keyed by e-mail. A Map rather than a plain object: an
@@ -100,6 +102,59 @@ interface OtpRecord {
 const otpStore = new Map<string, OtpRecord>();
 
 const OTP_TTL_MS = 10 * 60 * 1000;
+
+/**
+ * Wrong guesses before a code is thrown away.
+ *
+ * The rate limiter caps an IP at 50 requests per 15 minutes, but nothing was
+ * counting failures against the *code*, so guesses from a handful of addresses
+ * were never pooled. Six digits is a million possibilities; five tries makes
+ * the arithmetic hopeless rather than merely slow.
+ */
+const MAX_OTP_ATTEMPTS = 5;
+
+/**
+ * Checks a code, counting the failure against it.
+ *
+ * Returns the record only for the right code. Everything else - no code issued,
+ * expired, wrong, or discarded after too many tries - returns null, and the
+ * callers answer the same way for all of them. Saying "too many attempts" would
+ * be friendlier and would also confirm that a code had been issued at all,
+ * which is the account enumeration this file works to avoid.
+ */
+const consumeOtpAttempt = (email: string, code: string): OtpRecord | null => {
+  const record = otpStore.get(email);
+  if (!record) return null;
+
+  if (Date.now() > record.expiresAt) {
+    otpStore.delete(email);
+    return null;
+  }
+
+  if (record.code !== code) {
+    record.attempts += 1;
+    if (record.attempts >= MAX_OTP_ATTEMPTS) {
+      otpStore.delete(email);
+      log.warn({ attempts: record.attempts }, 'One-time code discarded after repeated failures');
+    }
+    return null;
+  }
+
+  return record;
+};
+
+/**
+ * Drops codes nobody came back for.
+ *
+ * Without this the map only ever loses an entry when someone touches it, so a
+ * long-running process accumulates every code it ever issued.
+ */
+const pruneExpiredOtps = (): void => {
+  const now = Date.now();
+  for (const [email, record] of otpStore) {
+    if (now > record.expiresAt) otpStore.delete(email);
+  }
+};
 
 function generateOTP(): string {
     // crypto.randomInt is uniform and unpredictable, unlike Math.random.
@@ -235,8 +290,14 @@ export const sendOtp = async (
             return;
         }
 
+        pruneExpiredOtps();
         const code = generateOTP();
-        otpStore.set(email, { code, expiresAt: Date.now() + OTP_TTL_MS, verified: false });
+        otpStore.set(email, {
+            code,
+            expiresAt: Date.now() + OTP_TTL_MS,
+            verified: false,
+            attempts: 0,
+        });
         dispatchEmail(email, "Your OTP Code", `Your verification code is: ${code}`);
 
         res.json({ message: purpose === 'register' ? REGISTER_CODE_SENT : RESET_CODE_SENT });
@@ -254,10 +315,10 @@ export const verifyOtp = (req: Request<unknown, unknown, VerifyOtpBody>, res: Re
         res.status(400).json({ message: "Email and code required" });
         return;
     }
-    const record = otpStore.get(email);
-    // One message for a wrong code, an expired one, and an address that was
-    // never issued one at all.
-    if (!record || record.code !== code || Date.now() > record.expiresAt) {
+    // One message for a wrong code, an expired one, an address that was never
+    // issued one, and one whose code has been guessed at too many times.
+    const record = consumeOtpAttempt(email, code);
+    if (!record) {
         res.status(400).json({ message: INVALID_CODE });
         return;
     }
@@ -375,8 +436,9 @@ export const resetPassword = async (
         res.status(400).json({ message: "All fields required" });
         return;
     }
-    const record = otpStore.get(email);
-    if (!record || record.code !== otp || Date.now() > record.expiresAt) {
+    // Counted against the same record as `verifyOtp`: the two endpoints check
+    // one code between them, so five tries is five tries whichever is used.
+    if (!consumeOtpAttempt(email, otp)) {
         res.status(400).json({ message: INVALID_CODE });
         return;
     }

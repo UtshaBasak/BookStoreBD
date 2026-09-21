@@ -8,6 +8,18 @@ import type { PrefixedRequest } from './testApp.js';
 
 export const PASSWORD = 'correct-horse-battery';
 
+/**
+ * A real 1x1 PNG.
+ *
+ * Uploads are checked against the file's own first bytes now, so a buffer of
+ * arbitrary text named `cover.png` is refused - which is the point of the
+ * check, and why this constant exists.
+ */
+export const PNG_PIXEL = Buffer.from(
+  'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==',
+  'base64'
+);
+
 /** Anything a test wants to pin down about the user it is creating. */
 export type UserOverrides = Partial<UserAttributes> & { password?: string };
 
