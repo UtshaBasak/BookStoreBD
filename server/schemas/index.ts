@@ -225,6 +225,25 @@ export const userSchemas = {
   },
 };
 
+/** Writing and removing a review. */
+export const reviewSchemas = {
+  byBook: { params: objectIdParam },
+  write: {
+    params: objectIdParam,
+    body: z.object({
+      rating: boundedInt(1, 5),
+      // Optional on purpose: a star on its own is a perfectly good review, and
+      // demanding prose is how a rating box gets left empty.
+      title: shortText.optional(),
+      body: mediumText.optional(),
+    }),
+  },
+  remove: {
+    params: objectIdParam,
+    query: z.object({ email: email.optional() }),
+  },
+};
+
 /** Reading the audit trail, newest first. */
 export const auditSchemas = {
   list: {
@@ -252,6 +271,7 @@ export { FILTERABLE_FIELDS };
 
 export type DeleteMeBody = z.infer<typeof userSchemas.deleteMe.body>;
 export type AuditListQuery = z.infer<typeof auditSchemas.list.query>;
+export type WriteReviewBody = z.infer<typeof reviewSchemas.write.body>;
 
 export type SignupBody = z.infer<typeof authSchemas.signup.body>;
 export type SigninBody = z.infer<typeof authSchemas.signin.body>;

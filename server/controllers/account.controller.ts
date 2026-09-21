@@ -8,12 +8,13 @@ import Chat from '../models/Chat.model.js';
 import Order from '../models/Order.model.js';
 import Purchase from '../models/Purchase.model.js';
 import ReturnRequest from '../models/ReturnRequest.model.js';
+import Review from '../models/Review.model.js';
 import Wishlist from '../models/Wishlist.model.js';
 import { actingUser } from '../middleware/auth.js';
 import { revokeAllForUser } from '../utils/refreshToken.js';
 import { clearRefreshCookie } from '../utils/authCookies.js';
 import { recordAudit } from '../utils/audit.js';
-import { anonymousEmail } from '../utils/anonymous.js';
+import { anonymousEmail, DELETED_USER_NAME } from '../utils/anonymous.js';
 import { createLogger } from '../config/logger.js';
 
 const log = createLogger('account');
@@ -35,7 +36,7 @@ export const exportMyData: RequestHandler = async (req, res, next) => {
       return;
     }
 
-    const [orders, sales, purchases, returns, cart, wishlist, messages, listings] =
+    const [orders, sales, purchases, returns, cart, wishlist, messages, reviews, listings] =
       await Promise.all([
         Order.find({ buyerEmail: user.email }).lean(),
         Order.find({ sellerEmail: user.email }).lean(),
@@ -44,6 +45,7 @@ export const exportMyData: RequestHandler = async (req, res, next) => {
         Cart.find({ user: user._id }).populate('book', 'title author price').lean(),
         Wishlist.find({ user: user._id }).populate('book', 'title author price').lean(),
         Chat.find({ $or: [{ sender: user.email }, { receiver: user.email }] }).lean(),
+        Review.find({ reviewerEmail: user.email }).lean(),
         AddBook.find({ sellerEmail: user.email }).lean(),
       ]);
 
@@ -63,6 +65,7 @@ export const exportMyData: RequestHandler = async (req, res, next) => {
       wishlist,
       listings,
       messages,
+      reviews,
     });
   } catch (error) {
     next(error);
@@ -113,7 +116,8 @@ export const deleteMyAccount: RequestHandler = async (req, res, next) => {
       deliveryAddress: '',
     };
 
-    const [ordersPlaced, sales, purchases, returns, listings, sent, received] = await Promise.all([
+    const [ordersPlaced, sales, purchases, returns, listings, sent, received, reviews] =
+      await Promise.all([
       Order.updateMany({ buyerEmail: email }, { $set: { buyerEmail: tombstone, ...anonymise } }),
       Order.updateMany({ sellerEmail: email }, { $set: { sellerEmail: tombstone } }),
       Purchase.updateMany({ userEmail: email }, { $set: { userEmail: tombstone } }),
@@ -128,6 +132,13 @@ export const deleteMyAccount: RequestHandler = async (req, res, next) => {
       // the whole reason they still have the thread.
       Chat.updateMany({ sender: email }, { $set: { sender: tombstone } }),
       Chat.updateMany({ receiver: email }, { $set: { receiver: tombstone } }),
+      // Reviews stay for the same reason: the next buyer's decision rests on
+      // them, and a score that dropped every time somebody closed an account
+      // would be worth nothing. The name goes.
+      Review.updateMany(
+        { reviewerEmail: email },
+        { $set: { reviewerEmail: tombstone, reviewerName: DELETED_USER_NAME } }
+      ),
     ]);
 
     await Promise.all([
@@ -142,6 +153,7 @@ export const deleteMyAccount: RequestHandler = async (req, res, next) => {
       returnsAnonymised: returns.modifiedCount,
       listingsRemoved: listings.deletedCount,
       messagesAnonymised: sent.modifiedCount + received.modifiedCount,
+      reviewsAnonymised: reviews.modifiedCount,
     };
 
     // Recorded before the account goes, while there is still an actor to name.

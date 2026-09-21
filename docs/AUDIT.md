@@ -26,7 +26,7 @@ Yes. Nothing is broken.
 | ----- | ------ |
 | Lint, both packages | clean |
 | Type-check under TypeScript 6.0.3 | clean |
-| Tests | 315 passing (223 server, 92 client) |
+| Tests | 344 passing (242 server, 102 client) |
 | `npm audit`, all three roots | 0 vulnerabilities |
 | Builds | API compiles to `dist/`, client bundles |
 | Production stack | browse, detail, cart, wishlist, profile, orders, clear — all `200` |
@@ -399,10 +399,44 @@ Content-Security-Policy. The five duplicated literals now go through the single
 
 `ui-avatars.com`, the other external image host, was checked and is alive.
 
-**Ratings are vestigial.** The catalogue's star filter and its "most popular"
-sort read `rating` and `numReviews`, which no endpoint returns and no model
-stores. Both controls do nothing. Either build reviews or remove the controls —
-a filter that silently does nothing is worse than no filter.
+~~**Ratings are vestigial.**~~ **built.** The catalogue's star filter and its
+"most popular" sort read `rating` and `numReviews`, which no endpoint returned
+and no model stored. Neither control did anything - worse, choosing four stars
+matched zero books, so the catalogue looked empty rather than unfiltered.
+
+The choice was build reviews or drop the controls. They are built.
+
+**Only somebody who bought the book can review it.** That one rule is what makes
+a score worth reading: without it a seller rates their own listings five stars
+from three accounts and a competitor rates them down from three more. The check
+is an order for that book by that account, and every review carries a **Verified
+purchase** badge because of it. A seller cannot review their own listing even
+after buying a copy of it.
+
+One review per person per book, enforced by a unique index rather than by a
+check that races: writing a second replaces the first, so nobody weights a score
+by saying the same thing twice. Reviews can be edited and withdrawn by their
+author, and removed by an administrator - which writes an audit row, because an
+administrator deleting somebody's words is exactly what that trail is for.
+
+The score is denormalised onto the listing as `ratingAverage` and `ratingCount`,
+rewritten on every write. The catalogue loads every book and filters in the
+browser, so a rating needing a join per book could not have been filtered or
+sorted on at all. It is rounded to one decimal: 4.333333 is not more informative
+than 4.3 and looks like a bug.
+
+The book page carries the average, the count, and the **distribution** - five 3s
+and a mix of 1s and 5s both average 3, and only one of those is a book worth
+buying. The catalogue has the star filter back as a floor ("4 and up"), a
+"Highest rated" sort that breaks ties on how many reviews the score rests on,
+and stars on every card. The structured data gains an `aggregateRating`, which
+is what puts stars under a search result.
+
+A review outlives the account that wrote it, under "Deleted user": the next
+buyer's decision rests on it, and a score that fell every time somebody closed
+an account would be worth nothing.
+
+Nineteen server tests and ten in the browser.
 
 ### Interface
 
@@ -728,7 +762,8 @@ build next.
   becomes slow.
 - **Seller onboarding and payouts.** Anyone signed in can list a book. A
   marketplace needs verification, a seller agreement and a payout ledger.
-- **Reviews.** See the vestigial rating controls above.
+- ~~**Reviews.**~~ Built - see above. What is not built is a way to flag a
+  review, and a reply from the seller.
 
 ---
 
@@ -806,8 +841,12 @@ Removed outright:
 a "Rating: N/A" line on every card, all reading a field no endpoint returns and
 no model stores. The filter did not merely do nothing: choosing four stars
 matched zero books, which is a dead end that looks like an empty catalogue. The
-sort is "Newest first" now, on `createdAt`, which exists. Reviews are a product
-decision and are on the business list below, where they belong.
+sort is "Newest first" now, on `createdAt`, which exists.
+
+**They came back, on real data.** Ratings and reviews were built straight after
+this - verified purchasers only, one per person, with the star filter and a
+"Highest rated" sort restored on a score that exists. See "Ratings are
+vestigial" above.
 
 **The favicon was Vite's logo**, which is the first thing a visitor sees of the
 shop, in the tab, before the page has rendered. It is the shop's own mark now.

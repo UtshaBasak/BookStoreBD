@@ -19,6 +19,8 @@ import type {
   ProfileResponse,
   ReturnRequest,
   ReturnStatus,
+  ReviewSummary,
+  WriteReviewRequest,
   UnreadCountResponse,
 } from '@shared/api.js';
 
@@ -88,6 +90,7 @@ export const keys = {
   allOrders: ['orders', 'all'] as const,
   order: (orderNumber: string | undefined) => ['order', orderNumber] as const,
   returnRequests: ['returns'] as const,
+  reviews: (id: Id | undefined) => ['reviews', id] as const,
   unreadChats: ['chat', 'unread'] as const,
   chatHistory: ['chat', 'history'] as const,
 };
@@ -188,6 +191,57 @@ export const useClearCart = (): UseMutationResult<MessageResponse, Error, void> 
   return useMutation({
     mutationFn: () => request<MessageResponse>('/cart/clear', json('POST')),
     onSuccess: () => client.invalidateQueries({ queryKey: keys.cart }),
+  });
+};
+
+// ---------------------------------------------------------------------------
+// Reviews
+// ---------------------------------------------------------------------------
+
+/**
+ * A book's reviews, its score, and whether this caller may add to it.
+ *
+ * Public, so it runs for a signed-out visitor too: the score is mostly for the
+ * person who has not signed up yet.
+ */
+export const useReviews = (id: Id | undefined): UseQueryResult<ReviewSummary> =>
+  useQuery<ReviewSummary>({
+    queryKey: keys.reviews(id),
+    queryFn: () => request<ReviewSummary>(`/review/${id}`),
+    enabled: Boolean(id),
+  });
+
+/**
+ * Writes or replaces the caller's review.
+ *
+ * Invalidates the catalogue as well as the book: the score is denormalised
+ * onto every listing, so a new review changes what the browse page sorts by.
+ */
+export const useWriteReview = (
+  id: Id | undefined
+): UseMutationResult<unknown, Error, WriteReviewRequest> => {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: (review: WriteReviewRequest) => request(`/review/${id}`, json('POST', review)),
+    onSuccess: () => {
+      void client.invalidateQueries({ queryKey: keys.reviews(id) });
+      void client.invalidateQueries({ queryKey: keys.book(id) });
+      void client.invalidateQueries({ queryKey: keys.catalogue });
+      void client.invalidateQueries({ queryKey: keys.books });
+    },
+  });
+};
+
+export const useDeleteReview = (id: Id | undefined): UseMutationResult<unknown, Error, void> => {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: () => request(`/review/${id}`, json('DELETE')),
+    onSuccess: () => {
+      void client.invalidateQueries({ queryKey: keys.reviews(id) });
+      void client.invalidateQueries({ queryKey: keys.book(id) });
+      void client.invalidateQueries({ queryKey: keys.catalogue });
+      void client.invalidateQueries({ queryKey: keys.books });
+    },
   });
 };
 

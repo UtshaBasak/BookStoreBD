@@ -24,6 +24,17 @@ const AddBookSchema = new Schema({
   imagePublicIds: [{ type: String }],
   createdAt: { type: Date, default: Date.now },
   sellerEmail: { type: String, required: true }, // NEW: track seller
+
+  /*
+   * The score, kept on the book rather than worked out on read.
+   *
+   * The catalogue page loads every listing and filters and sorts them in the
+   * browser, so a rating that needed a join or an aggregate per book would
+   * make that impossible. These two are rewritten whenever a review is
+   * written, edited or removed, which is rare next to how often they are read.
+   */
+  ratingAverage: { type: Number, default: 0, min: 0, max: 5 },
+  ratingCount: { type: Number, default: 0, min: 0 },
   stock: { type: Number, default: 1, min: 0 }    // allow zero
 });
 

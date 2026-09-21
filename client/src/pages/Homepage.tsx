@@ -18,6 +18,7 @@ import {
 } from '../hooks/queries.js';
 import { promptSignIn, useToast } from '../hooks/useToast.js';
 import { useSeo } from '../hooks/useSeo.js';
+import { Stars } from '../components/Stars.js';
 import { site } from '../config/site.js';
 import Footer from '../components/Footer.js';
 import { getUserEmail } from '../utils/auth.js';
@@ -627,9 +628,15 @@ export default function Homepage() {
                   <div style={{ color: '#666', fontSize: 13, marginBottom: 4 }}>
                     {book.author}
                   </div>
-                  <div style={{ color: '#222', fontWeight: 600, marginBottom: 8 }}>
+                  <div style={{ color: '#222', fontWeight: 600, marginBottom: 4 }}>
                     {book.price} Tk
                   </div>
+                  {(book.ratingCount ?? 0) > 0 && (
+                    <div className="mb-2 flex items-center justify-center gap-1">
+                      <Stars value={book.ratingAverage ?? 0} size={13} />
+                      <span style={{ color: '#666', fontSize: 12 }}>({book.ratingCount})</span>
+                    </div>
+                  )}
                   <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'center', marginTop: 8 }}>
                     {book.stock === 0 ? (
                       <div

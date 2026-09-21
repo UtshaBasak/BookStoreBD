@@ -16,11 +16,14 @@ import { useSeo } from '../hooks/useSeo.js';
 import { getUserEmail } from '../utils/auth.js';
 import { flagsFor } from '../utils/bookFlags.js';
 import { PLACEHOLDER_IMAGE } from '../utils/safeImageSrc.js';
+import { Stars } from '../components/Stars.js';
 
 interface FilterState {
   bookType: string;
   condition: string;
   category: string[];
+  /** A floor, not a match: 4 means "four stars and up". 0 is off. */
+  rating: number;
 }
 
 /** The parts of the page state an edit may override, keyed by the URL it belongs to. */
@@ -94,6 +97,7 @@ export default function BookFilter() {
         bookType: bookType ? bookType.toLowerCase() : '',
         condition: '',
         category: category ? [category.toLowerCase()] : [],
+        rating: 0,
       },
     };
   }, [location.search]);
@@ -132,6 +136,7 @@ export default function BookFilter() {
     (filters.bookType ? 1 : 0) +
     (filters.condition ? 1 : 0) +
     filters.category.length +
+    (filters.rating > 0 ? 1 : 0) +
     (inStockOnly ? 1 : 0) +
     (priceFilter.from || priceFilter.to ? 1 : 0);
 
@@ -209,6 +214,12 @@ export default function BookFilter() {
       return price >= from && price <= to;
     });
 
+    // Rating filter. A floor rather than an exact match, which is what
+    // somebody means when they tick four stars.
+    if (filters.rating > 0) {
+      filtered = filtered.filter((book) => (book.ratingAverage ?? 0) >= filters.rating);
+    }
+
     // In Stock filter
     if (inStockOnly) {
       filtered = filtered.filter(book => Number(book.stock) > 0);
@@ -217,7 +228,14 @@ export default function BookFilter() {
     // Sorting. "Most popular" used to sort on a rating and a review count that
     // no endpoint returns and no model stores, so it did nothing at all. Newest
     // first is the same default in spirit and sorts on a field that exists.
-    if (sortOption === 'priceHighLow') {
+    if (sortOption === 'rated') {
+      // Score first, then how many people it rests on: one five-star review is
+      // not a better recommendation than forty averaging 4.6.
+      filtered.sort((a, b) => {
+        const byScore = (b.ratingAverage ?? 0) - (a.ratingAverage ?? 0);
+        return byScore !== 0 ? byScore : (b.ratingCount ?? 0) - (a.ratingCount ?? 0);
+      });
+    } else if (sortOption === 'priceHighLow') {
       filtered.sort((a, b) => (Number(b.price) || 0) - (Number(a.price) || 0));
     } else if (sortOption === 'priceLowHigh') {
       filtered.sort((a, b) => (Number(a.price) || 0) - (Number(b.price) || 0));
@@ -452,6 +470,39 @@ export default function BookFilter() {
               />
             </div>
           </div>
+          {/* Rating */}
+          <div
+            style={{
+              backgroundColor: 'rgba(0,0,0,0.6)',
+              borderRadius: '12px',
+              padding: '1rem',
+            }}
+          >
+            <strong>Rating</strong>
+            <div className="mt-2 flex flex-col gap-1">
+              {[4, 3, 2].map((floor) => (
+                <button
+                  key={floor}
+                  type="button"
+                  onClick={() =>
+                    setFilters((prev) => ({ ...prev, rating: prev.rating === floor ? 0 : floor }))
+                  }
+                  aria-pressed={filters.rating === floor}
+                  className="flex min-h-[44px] items-center gap-2 rounded-md px-3"
+                  style={{
+                    background: filters.rating === floor ? '#e65100' : '#fff',
+                    color: filters.rating === floor ? '#fff' : '#222',
+                    border: 'none',
+                    cursor: 'pointer',
+                  }}
+                >
+                  <Stars value={floor} size={14} />
+                  <span style={{ fontSize: 14 }}>&amp; up</span>
+                </button>
+              ))}
+            </div>
+          </div>
+
           {/* In Stock Toggle */}
           <div style={{ backgroundColor: 'rgba(0,0,0,0.6)', borderRadius: '12px', padding: '1rem' }}>
             <strong>Stock</strong>
@@ -556,6 +607,7 @@ export default function BookFilter() {
               title="Sort books"
             >
               <option value="newest">Newest first</option>
+              <option value="rated">Highest rated</option>
               <option value="priceHighLow">Price - High to Low</option>
               <option value="priceLowHigh">Price - Low to High</option>
             </select>
@@ -647,6 +699,16 @@ export default function BookFilter() {
                       <div>Author: {book.author}</div>
                       <div>Category: {Array.isArray(book.category) ? book.category.join(', ') : (book.category || 'N/A')}</div>
                       <div>Price: {book.price} Tk</div>
+                      {(book.ratingCount ?? 0) > 0 ? (
+                        <div className="flex items-center gap-2">
+                          <Stars value={book.ratingAverage ?? 0} size={14} />
+                          <span style={{ fontSize: 14 }}>
+                            {(book.ratingAverage ?? 0).toFixed(1)} ({book.ratingCount})
+                          </span>
+                        </div>
+                      ) : (
+                        <div style={{ fontSize: 14, opacity: 0.75 }}>No reviews yet</div>
+                      )}
                       {/* Show condition only for old books */}
                       {isOld && (
                         <div>Condition: {book.condition ? (book.condition.charAt(0).toUpperCase() + book.condition.slice(1)) : 'N/A'}</div>

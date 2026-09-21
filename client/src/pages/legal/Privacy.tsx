@@ -32,6 +32,8 @@ export default function Privacy() {
         <li>Listings you create as a seller, including the photographs you
           upload.</li>
         <li>Messages and images you exchange with other users through the chat.</li>
+        <li>Reviews you write, which are public and carry the name on your
+          account beside them.</li>
         <li>Standard technical data in our server logs: the request path, status,
           timestamp and IP address. Authorisation headers, cookies, passwords and
           one-time codes are removed before anything is written to a log.</li>
@@ -80,8 +82,10 @@ export default function Privacy() {
       <p>Two things are kept rather than deleted, because they are not only
         yours. Orders stay as accounting records, with your name, phone number,
         address and e-mail removed from them. Messages stay in the other
-        person's conversation, shown as coming from a deleted user - what was
-        agreed is often the reason they still have the thread.</p>
+        person's conversation and reviews stay on the books they are about, both
+        shown as coming from a deleted user - what was agreed is often the reason
+        the other person still has the thread, and the next buyer's decision
+        rests on the reviews.</p>
 
       <h2>Security</h2>
       <p>Passwords are hashed with bcrypt. Sessions use short-lived tokens that

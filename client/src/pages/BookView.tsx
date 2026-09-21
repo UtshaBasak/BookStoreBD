@@ -18,6 +18,8 @@ import {
 } from '../hooks/queries.js';
 import { promptSignIn, useToast } from '../hooks/useToast.js';
 import { useSeo } from '../hooks/useSeo.js';
+import BookReviews from '../components/BookReviews.js';
+import { Stars } from '../components/Stars.js';
 import { messageOf } from '../utils/apiError.js';
 import { getUserEmail } from '../utils/auth.js';
 import { flagsFor } from '../utils/bookFlags.js';
@@ -153,6 +155,15 @@ export default function BookView() {
                   bookEdition: book.bookType === 'old' ? 'Second-hand' : 'New',
                   ...(coverUrl ? { image: coverUrl } : {}),
                   ...(book.desc ? { description: book.desc } : {}),
+                  ...((book.ratingCount ?? 0) > 0
+                      ? {
+                            aggregateRating: {
+                                '@type': 'AggregateRating',
+                                ratingValue: book.ratingAverage,
+                                reviewCount: book.ratingCount,
+                            },
+                        }
+                      : {}),
                   offers: {
                       '@type': 'Offer',
                       price: book.price,
@@ -475,7 +486,22 @@ export default function BookView() {
                         {/* Right Column - Book Info */}
                         <div style={{ flex: 1 }}>
                             <h1 style={{ fontSize: '2rem', marginBottom: '0.5rem', color: '#333' }}>{book.title}</h1>
-                            <p style={{ fontSize: '1.25rem', color: '#666', marginBottom: '1rem' }}>By {book.author}</p>
+                            <p style={{ fontSize: '1.25rem', color: '#666', marginBottom: '0.5rem' }}>By {book.author}</p>
+                            {(book.ratingCount ?? 0) > 0 ? (
+                                <a
+                                    href="#reviews"
+                                    className="mb-4 inline-flex min-h-[40px] items-center gap-2 no-underline"
+                                    style={{ color: '#444' }}
+                                >
+                                    <Stars value={book.ratingAverage ?? 0} size={18} />
+                                    <span style={{ fontWeight: 600 }}>{(book.ratingAverage ?? 0).toFixed(1)}</span>
+                                    <span style={{ color: '#666' }}>
+                                        ({book.ratingCount} {book.ratingCount === 1 ? 'review' : 'reviews'})
+                                    </span>
+                                </a>
+                            ) : (
+                                <p style={{ color: '#888', marginBottom: '1rem' }}>No reviews yet</p>
+                            )}
                             <p style={{ fontSize: '1.5rem', color: '#e65100', fontWeight: '600', marginBottom: '1.5rem' }}>
                                 {book.price} Tk
                             </p>
@@ -546,6 +572,10 @@ export default function BookView() {
                                     <p style={{ color: '#666', lineHeight: '1.6' }}>{book.desc}</p>
                                 </div>
                             )}
+
+                            <div id="reviews">
+                                <BookReviews bookId={id} />
+                            </div>
                         </div>
                     </div>
 

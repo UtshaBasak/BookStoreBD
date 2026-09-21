@@ -150,6 +150,50 @@ export interface Book {
   sellerEmail: string;
   stock: number;
   createdAt?: IsoDate;
+  /**
+   * The score, held on the listing so the catalogue can sort and filter on it
+   * without a join. Zero and 0 until somebody who bought the book says
+   * otherwise.
+   */
+  ratingAverage?: number;
+  ratingCount?: number;
+}
+
+/** One verified buyer's verdict. */
+export interface Review {
+  _id: Id;
+  book: Id;
+  reviewerEmail: string;
+  reviewerName: string;
+  rating: number;
+  title?: string;
+  body?: string;
+  orderNumber?: string;
+  createdAt?: IsoDate;
+  updatedAt?: IsoDate;
+}
+
+/** Why a caller may not write a review, when they may not. */
+export type ReviewBlockedReason = 'sign-in' | 'own-listing' | 'not-purchased';
+
+/** GET /review/:id - everything a book's review section needs. */
+export interface ReviewSummary {
+  average: number;
+  count: number;
+  /** How many gave one star, two, and so on. Index 0 is one star. */
+  distribution: number[];
+  reviews: Review[];
+  /** The caller's own review, when they have written one. */
+  mine: Review | null;
+  canReview: boolean;
+  reason: ReviewBlockedReason | null;
+}
+
+/** POST /review/:id */
+export interface WriteReviewRequest {
+  rating: number;
+  title?: string;
+  body?: string;
 }
 
 /** GET /book/:id - the book itself plus a few others like it. */

@@ -13,6 +13,7 @@ import { corsOptions } from './config/cors.js';
 import { isApiPath, API_PREFIX } from './config/apiPaths.js';
 import { robots, sitemap } from './controllers/seo.controller.js';
 import auditRouter from './routes/audit.route.js';
+import reviewRouter from './routes/review.route.js';
 import { CLIENT_DIST, UPLOADS_DIR } from './config/paths.js';
 import { securityHeaders } from './config/securityHeaders.js';
 import { errorHandler, notFoundHandler } from './middleware/errorHandler.js';
@@ -104,6 +105,7 @@ export const createApp = ({
   app.use(`${API_PREFIX}/order`, orderRouter);
   app.use(`${API_PREFIX}/purchase`, purchaseRouter);
   app.use(`${API_PREFIX}/return`, writeLimiter, returnRouter);
+  app.use(`${API_PREFIX}/review`, writeLimiter, reviewRouter);
   app.use(`${API_PREFIX}/upload`, writeLimiter, uploadRouter);
   app.use(`${API_PREFIX}/user`, writeLimiter, userRouter);
   app.use(`${API_PREFIX}/wishlist`, wishlistRouter);
