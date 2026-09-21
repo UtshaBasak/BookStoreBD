@@ -6,7 +6,7 @@ import User from '../models/user.model.js';
 import type { LeanBook } from '../models/AddBook.model.js';
 import { actingUser } from '../middleware/auth.js';
 import { errorMessage } from '../utils/error.js';
-import { toListBook } from '../utils/projections.js';
+import { toListBook, withCoverUrls } from '../utils/projections.js';
 
 /**
  * The books in a cart, in the trimmed shape a list view needs.
@@ -26,7 +26,8 @@ const booksInCart = async (
     .map((entry) => entry.book)
     // Remove nulls, and books that have since gone out of stock.
     .filter((book): book is LeanBook => book != null && (!inStockOnly || book.stock > 0))
-    .map(toListBook);
+    .map(toListBook)
+    .map(withCoverUrls);
 };
 
 export const Cart_get: RequestHandler = async (req, res) => {

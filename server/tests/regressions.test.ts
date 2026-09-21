@@ -6,7 +6,13 @@
 import { describe, it, expect, beforeAll, afterAll, beforeEach } from 'vitest';
 
 import { createTestContext, clearDatabase, closeTestContext, type PrefixedRequest } from './helpers/testApp.js';
-import { createBook, createSignedInUser, createUser, signIn } from './helpers/factories.js';
+import {
+  createBook,
+  createSignedInUser,
+  createUser,
+  signIn,
+  PNG_PIXEL,
+} from './helpers/factories.js';
 
 let request: PrefixedRequest;
 
@@ -226,12 +232,21 @@ describe('list responses carry one cover, detail carries all', () => {
     expect(res.body.images).toHaveLength(5);
   });
 
-  it('the thumbnail is still present in a list response', async () => {
-    await createBook({ images: ['data:image/png;base64,COVER', 'other'] });
+  it('the cover is an address, and the address serves the bytes', async () => {
+    const book = await createBook({ images: [`data:image/png;base64,${PNG_PIXEL.toString('base64')}`] });
 
-    const res = await request.get('/book');
+    const list = await request.get('/book');
 
-    expect(res.body[0].images[0]).toBe('data:image/png;base64,COVER');
+    // It used to be the base64 itself, which is why a catalogue of 66 listings
+    // with photographed covers was a 7.4 MB JSON response - and why none of it
+    // could be cached by the browser.
+    expect(list.body[0].images[0]).toBe(`/api/book/${String(book._id)}/cover/0`);
+
+    const cover = await request.get(`/book/${String(book._id)}/cover/0`);
+    expect(cover.status).toBe(200);
+    expect(cover.headers['content-type']).toMatch(/image\/png/);
+    expect(cover.headers['cache-control']).toMatch(/max-age=/);
+    expect(cover.headers.etag).toEqual(expect.any(String));
   });
 });
 

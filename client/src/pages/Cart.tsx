@@ -47,6 +47,8 @@ export default function Cart() {
     if (!img) return PLACEHOLDER_IMAGE;
     if (img.startsWith('data:image/')) return img;
     if (/^https?:\/\//.test(img)) return img;
+    // A cover served by the API arrives as a path, not as bytes.
+    if (img.startsWith('/')) return img;
     return `${API_BASE_URL}/uploads/${img}`;
   };
 

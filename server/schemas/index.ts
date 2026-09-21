@@ -61,6 +61,13 @@ export const authSchemas = {
 // ---------------------------------------------------------------- book
 export const bookSchemas = {
   byId: { params: objectIdParam },
+  /**
+   * The cover endpoint needs its index declared here, not only in the path.
+   * `validate` replaces `req.params` with what the schema parsed, so a key the
+   * schema does not mention is stripped - which silently turned every
+   * `/cover/3` into `/cover/0`.
+   */
+  cover: { params: z.object({ id: objectId, index: nonNegativeInt.optional() }) },
   bySeller: { params: emailParam },
   updateStock: { params: objectIdParam, body: z.object({ stock: nonNegativeInt }) },
   updatePrice: { params: objectIdParam, body: z.object({ price: nonNegativeInt }) },

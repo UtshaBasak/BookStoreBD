@@ -143,7 +143,9 @@ export default function Payment() {
     if (typeof img !== 'string' || !img) return PLACEHOLDER_IMAGE;
     // The order is restored from localStorage, so the stored value is not
     // trusted: validate the scheme before it reaches an <img src>.
-    if (img.startsWith('data:image/') || /^https?:\/\//.test(img)) {
+    // A path is either a cover served by the API or the placeholder; both
+    // are same-origin and `safeImageSrc` checks the scheme either way.
+    if (img.startsWith('data:image/') || /^https?:\/\//.test(img) || img.startsWith('/')) {
       return safeImageSrc(img, PLACEHOLDER_IMAGE);
     }
     return safeImageSrc(`${API_BASE_URL}/uploads/${encodeURIComponent(img)}`, PLACEHOLDER_IMAGE);

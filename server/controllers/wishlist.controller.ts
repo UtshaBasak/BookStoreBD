@@ -6,7 +6,7 @@ import User from '../models/user.model.js';
 import type { LeanBook } from '../models/AddBook.model.js';
 import { actingUser } from '../middleware/auth.js';
 import { errorMessage } from '../utils/error.js';
-import { toListBook } from '../utils/projections.js';
+import { toListBook, withCoverUrls } from '../utils/projections.js';
 
 /** The books on a wishlist, trimmed to what a list view renders. */
 const booksInWishlist = async (userId: Types.ObjectId): Promise<LeanBook[]> => {
@@ -17,7 +17,8 @@ const booksInWishlist = async (userId: Types.ObjectId): Promise<LeanBook[]> => {
   return entries
     .map((entry) => entry.book)
     .filter((book): book is LeanBook => book != null) // Remove nulls
-    .map(toListBook);
+    .map(toListBook)
+    .map(withCoverUrls);
 };
 
 // Fetch wishlist for a specific user

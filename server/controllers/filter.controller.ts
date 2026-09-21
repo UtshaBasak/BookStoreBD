@@ -3,7 +3,7 @@ import type { Request, RequestHandler, Response } from 'express';
 import AddBook from '../models/AddBook.model.js';
 import type { FilterBody, SearchBody } from '../schemas/index.js';
 import { errorMessage } from '../utils/error.js';
-import { LIST_IMAGE_PROJECTION } from '../utils/projections.js';
+import { LIST_IMAGE_PROJECTION, withCoverUrls } from '../utils/projections.js';
 
 // Whitelisted so a client cannot query arbitrary document paths (or inject a
 // query operator object) through `filter_key`.
@@ -35,8 +35,8 @@ const escapeRegex = (value: string): string =>
 
 export const Booklist: RequestHandler = async (req, res) => {
     try {
-        const booklist = await AddBook.find({}, LIST_IMAGE_PROJECTION);
-        res.status(200).json(booklist);
+        const booklist = await AddBook.find({}, LIST_IMAGE_PROJECTION).lean();
+        res.status(200).json(booklist.map(withCoverUrls));
     } catch (error) {
         res.status(500).json({ message: errorMessage(error) });
     }
@@ -57,8 +57,11 @@ export const Booklist_filter = async (
     }
 
     try {
-        const filteredBooks = await AddBook.find({ [filter_key]: filter_input }, LIST_IMAGE_PROJECTION);
-        res.status(200).json(filteredBooks);
+        const filteredBooks = await AddBook.find(
+            { [filter_key]: filter_input },
+            LIST_IMAGE_PROJECTION
+        ).lean();
+        res.status(200).json(filteredBooks.map(withCoverUrls));
     } catch (error) {
         res.status(500).json({ message: errorMessage(error) });
     }
@@ -74,9 +77,9 @@ export const Booklist_search = async (
         const searchedBooks = await AddBook.find(
             { title: { $regex: escapeRegex(search_input), $options: 'i' } },
             LIST_IMAGE_PROJECTION
-        );
+        ).lean();
 
-        res.status(200).json(searchedBooks);
+        res.status(200).json(searchedBooks.map(withCoverUrls));
     } catch (error) {
         res.status(500).json({ message: errorMessage(error) });
     }

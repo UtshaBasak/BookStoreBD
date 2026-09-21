@@ -26,7 +26,7 @@ Yes. Nothing is broken.
 | ----- | ------ |
 | Lint, both packages | clean |
 | Type-check under TypeScript 6.0.3 | clean |
-| Tests | 344 passing (242 server, 102 client) |
+| Tests | 354 passing (252 server, 102 client) |
 | `npm audit`, all three roots | 0 vulnerabilities |
 | Builds | API compiles to `dist/`, client bundles |
 | Production stack | browse, detail, cart, wishlist, profile, orders, clear — all `200` |
@@ -371,7 +371,7 @@ Eight tests, and the trail was read back from the running stack:
 order.status | admin@bookstorebd.local | A4AKZKZDG89XEICL | {from: 'Order Confirmed', to: 'Shipped', lines: 1}
 ```
 
-### P4 · Base64 images in MongoDB — Low
+### P4 · Base64 images in MongoDB — **the bytes no longer travel in JSON**
 
 With Cloudinary unconfigured, covers and chat attachments are stored inline on
 the document. That is a deliberate, documented fallback so a fresh clone runs
@@ -379,7 +379,50 @@ with no account, and list endpoints already `$slice` to one image — but in
 production it grows the database quickly and approaches the 16 MB document
 limit.
 
-**Fix.** Configure Cloudinary for the deployment; the migration script exists.
+**This was rated Low, and measuring it showed that was wrong.** A base64 cover
+does not only sit in the database: it travelled inside every JSON response that
+mentioned the book. Measured against a catalogue of 66 listings with
+photographed covers:
+
+```
+GET /api/filter/booklist    7,406,560 bytes    5,734,034 gzipped
+```
+
+Base64 of a JPEG is already-compressed data, so gzip recovered under a quarter
+of it, and a browser cannot cache an image that arrives inside a JSON body -
+every visit paid for all of them again.
+
+**Covers are addresses now.** List and detail responses carry
+`/api/book/<id>/cover/<n>`, and that endpoint serves the bytes with a
+`Cache-Control` and an `ETag`. The same catalogue:
+
+```
+GET /api/filter/booklist        3,098 bytes gzipped     (was 5,734,034)
+GET /api/book/<id>/cover/0     92,171 bytes, ETag, 304 on a repeat visit
+```
+
+Each cover is then an ordinary image request: fetched only for the cards on
+screen, because they are lazy; cached across navigations; and revalidated with
+a 304 rather than re-downloaded. A cover already hosted elsewhere is left alone
+and redirected to, because a Cloudinary URL was never the problem.
+
+Measured in a browser on an emulated 4G phone, cold cache:
+
+| | homepage | catalogue |
+| --- | --- | --- |
+| transferred | 465 KB | 818 KB |
+| requests | 14 | 16 |
+| first contentful paint | 600 ms | 896 ms |
+
+Most of what is left is the covers themselves - about 90 KB each, because that
+is what a photograph is.
+
+**Still to do.** Configure Cloudinary; the migration script exists. It serves
+resized images in modern formats from a CDN, which is the answer to the 90 KB,
+and it takes the bytes out of the database as this item originally asked. Until
+then a card downloads a full-size photograph to draw it 100px wide - the next
+worthwhile step without Cloudinary would be generating a thumbnail at upload
+time.
 
 ---
 
