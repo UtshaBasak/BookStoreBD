@@ -100,6 +100,60 @@ describe('stock reservation', () => {
   });
 });
 
+describe('an order with more than one book', () => {
+  // Every line of an order shares its order number - that is how the tracking
+  // page finds them - but `orderNumber` carried a unique index, so the second
+  // book in a basket collided with the first. A basket with two books in it
+  // failed at checkout with a duplicate key error, after the first book's
+  // stock had already been taken.
+  it('is accepted, and records one line per book', async () => {
+    const buyer = await createSignedInUser(request);
+    const one = await createBook({ stock: 5, title: 'One' });
+    const two = await createBook({ stock: 5, title: 'Two' });
+    const Order = (await import('../models/Order.model.js')).default;
+
+    const res = await request
+      .post('/order/decrease-stock')
+      .set('Authorization', buyer.auth)
+      .send({
+        items: [
+          { bookId: String(one._id), quantity: 1 },
+          { bookId: String(two._id), quantity: 2 },
+        ],
+      });
+
+    expect(res.status).toBe(200);
+
+    const lines = await Order.find({ buyerEmail: buyer.user.email });
+    expect(lines).toHaveLength(2);
+    // One order, two lines: the number is what ties them together.
+    expect(new Set(lines.map((line) => line.orderNumber)).size).toBe(1);
+  });
+
+  it('shows both books on the order it created', async () => {
+    const buyer = await createSignedInUser(request);
+    const one = await createBook({ stock: 5, title: 'One' });
+    const two = await createBook({ stock: 5, title: 'Two' });
+
+    const created = await request
+      .post('/order/decrease-stock')
+      .set('Authorization', buyer.auth)
+      .send({
+        items: [
+          { bookId: String(one._id), quantity: 1 },
+          { bookId: String(two._id), quantity: 1 },
+        ],
+      });
+
+    const res = await request
+      .get(`/order/${created.body.orderNumber}`)
+      .set('Authorization', buyer.auth);
+
+    expect(res.status).toBe(200);
+    expect(res.body.items ?? res.body.books ?? res.body).toHaveLength(2);
+  });
+});
+
 describe('profile privacy', () => {
   // Contact details used to be returned for any e-mail, to anyone.
   const seedVictim = () =>

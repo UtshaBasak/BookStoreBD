@@ -143,6 +143,7 @@ export default function BuyerOrderList() {
                       Status: {order.status || 'Order Confirmed'}
                     </span>
                   </div>
+                  <div className="table-scroll">
                   <table className="styled-table">
   <thead>
     <tr>
@@ -194,6 +195,7 @@ export default function BuyerOrderList() {
                       </tr>
                     </tfoot>
                   </table>
+                  </div>
                 </div>
               );
             })

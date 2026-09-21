@@ -280,29 +280,36 @@ export default function ChatPage() {
                 </div>
             </div>
 
-            {/* Main Content */}
-            <div style={{ 
-                flex: 1,
-                display: 'flex',
-                padding: '1rem',
-                gap: '1rem',
-                maxWidth: '1600px',
-                margin: '0 auto',
-                width: '85%',
-            }}>
+            {/* Main Content.
+
+                On a phone the two panes take it in turns, the way every chat
+                application does it: the list until a conversation is picked,
+                then the conversation with a way back. Side by side from `lg`,
+                where both fit. The message pane used to carry
+                `minWidth: 1000px`, which put the page 999px past the edge of a
+                360px screen. */}
+            <div className="mx-auto flex w-full max-w-[1600px] flex-1 flex-col gap-4 p-2 sm:p-4 lg:w-[85%] lg:flex-row">
                 {/* Conversations List */}
-                <div style={{ 
-                    width: '300px',
-                    flexShrink: 0,
-                    background: '#fff',
-                    borderRadius: '12px',
-                    overflow: 'hidden',
-                    boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
-                }}>
+                <div
+                    className={`${selectedUser ? 'hidden lg:block' : 'block'} w-full overflow-hidden rounded-xl lg:w-[300px] lg:shrink-0`}
+                    style={{
+                        background: '#fff',
+                        boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+                    }}
+                >
                     <div style={{ padding: '1rem', borderBottom: '1px solid #eee' }}>
                         <h2 style={{ margin: 0, color: '#666' }}>Conversations</h2>
                     </div>
                     <div style={{ overflowY: 'auto', maxHeight: 'calc(100vh - 180px)' }}>
+                        {/* An empty panel says nothing about what to do next. */}
+                        {conversations.length === 0 && (
+                            <div style={{ padding: '2rem 1rem', textAlign: 'center', color: '#666' }}>
+                                <p style={{ margin: '0 0 0.5rem' }}>No conversations yet.</p>
+                                <p style={{ margin: 0, fontSize: '0.9rem' }}>
+                                    Open any book and use <strong>Chat with Seller</strong> to start one.
+                                </p>
+                            </div>
+                        )}
                         {conversations.map(user => (
                             <div
                                 key={user.email}
@@ -380,21 +387,18 @@ export default function ChatPage() {
                 </div>
 
                 {/* Message Area */}
-                <div style={{
-                    flex: 1,
-                    background: '#fff',
-                    borderRadius: '12px',
-                    overflow: 'hidden',
-                    boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    minWidth: '1000px',
-                    height: 'calc(100vh - 150px)',
-                    maxHeight: 'calc(100vh - 150px)'
-                }}>
+                <div
+                    className={`${selectedUser ? 'flex' : 'hidden lg:flex'} min-w-0 flex-1 flex-col overflow-hidden rounded-xl`}
+                    style={{
+                        background: '#fff',
+                        boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+                        height: 'calc(100vh - 150px)',
+                        maxHeight: 'calc(100vh - 150px)'
+                    }}
+                >
                     {selectedUser ? (
                         <>
-                            <div style={{ 
+                            <div style={{
                                 padding: '1rem',
                                 borderBottom: '1px solid #eee',
                                 background: '#fff',
@@ -402,6 +406,16 @@ export default function ChatPage() {
                                 alignItems: 'center',
                                 gap: '1rem'
                             }}>
+                                {/* The only way back to the list on a phone,
+                                    where the list is not on screen. */}
+                                <button
+                                    type="button"
+                                    className="icon-button lg:hidden"
+                                    onClick={() => setSelectedUser(null)}
+                                    aria-label="Back to conversations"
+                                >
+                                    <FaArrowLeft />
+                                </button>
                                 <img
                                     src={selectedUser.profilePicture || `https://ui-avatars.com/api/?name=${encodeURIComponent(selectedUser.username || 'U')}&background=8B6F6F&color=fff`}
                                     alt=""
@@ -429,11 +443,15 @@ export default function ChatPage() {
                             >
                                 {loading && <div style={{ textAlign: 'center', padding: '10px' }}>Loading...</div>}
                                 {messages.map((msg, i) => (
-                                    <div key={i} style={{ 
-                                        alignSelf: msg.sender === userEmail ? 'flex-end' : 'flex-start',
-                                        maxWidth: '60%',
-                                        margin: '0.5rem 0'
-                                    }}>
+                                    <div
+                                        key={i}
+                                        // 60% of a 360px screen is 216px for a
+                                        // message; 85% until there is room.
+                                        className="my-2 max-w-[85%] sm:max-w-[60%]"
+                                        style={{
+                                            alignSelf: msg.sender === userEmail ? 'flex-end' : 'flex-start'
+                                        }}
+                                    >
                                         <div style={{
                                             background: msg.sender === userEmail ? '#8B6F6F' : '#fff',
                                             color: msg.sender === userEmail ? '#fff' : '#333',

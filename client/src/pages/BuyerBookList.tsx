@@ -51,9 +51,11 @@ export default function BuyerBookList() {
       (order.sellerEmail || '').toLowerCase().includes(search.toLowerCase())
   );
 
+  // The page used to carry `overflow-x: hidden`, which cut the toolbar off
+  // rather than letting it wrap: hidden overflow does not scroll, it amputates.
   return (
-    <div style={{ width: '100%', minHeight: '100vh', boxSizing: 'border-box', padding: '2rem', background: '#fff', overflowX: 'hidden' }}>
-      <div style={{ marginBottom: '1rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+    <div className="min-h-screen w-full p-4 sm:p-8" style={{ boxSizing: 'border-box', background: '#fff' }}>
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
         <button
           onClick={() => navigate('/profile')}
           style={{
@@ -94,6 +96,7 @@ export default function BuyerBookList() {
       </div>
       <h2>Your Purchased Books</h2>
       <div style={{ overflowX: 'auto', background: '#fff' }}>
+        <div className="table-scroll">
         <table className="styled-table">
           <thead>
             <tr>
@@ -153,6 +156,7 @@ export default function BuyerBookList() {
             )}
           </tbody>
         </table>
+        </div>
       </div>
     </div>
   );

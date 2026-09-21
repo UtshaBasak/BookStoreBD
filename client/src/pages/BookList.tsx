@@ -75,7 +75,7 @@ export default function BookList() {
         />
       </div>
 
-      <div style={{ overflowX: 'auto' }}>
+        <div className="table-scroll">
         <table className="styled-table">
   <thead>
     <tr>
@@ -112,7 +112,7 @@ export default function BookList() {
             ))}
           </tbody>
         </table>
-      </div>
+        </div>
     </div>
   );
 }

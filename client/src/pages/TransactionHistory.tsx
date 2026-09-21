@@ -147,6 +147,7 @@ export default function TransactionHistory() {
                     Buyer Email: {order.buyerEmail}
                   </span>
                 </div>
+                <div className="table-scroll">
                 <table className="styled-table" style={{ width: '100%', marginBottom: 0 }}>
                   <thead>
                     <tr>
@@ -201,6 +202,7 @@ export default function TransactionHistory() {
                     </tr>
                   </tfoot>
                 </table>
+                </div>
 
               </div>
             );

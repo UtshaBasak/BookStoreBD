@@ -270,8 +270,11 @@ export default function UpdateProfile() {
                 {/* Gender Selection */}
                 <div style={{ marginBottom: '1rem' }}>
                     <label>Gender:</label>
-                    <div style={{ display: 'flex', gap: '1rem', marginTop: '0.5rem' }}>
-                        <label>
+                    {/* `min-h-[40px]` on each label below: a radio is a 13px
+                        box whatever anyone does, but the label is what a thumb
+                        actually lands on. */}
+                    <div style={{ display: 'flex', gap: '1rem', marginTop: '0.5rem', flexWrap: 'wrap' }}>
+                        <label className="inline-flex min-h-[40px] items-center gap-2">
                             <input
                                 type="radio"
                                 name="gender"
@@ -280,7 +283,7 @@ export default function UpdateProfile() {
                                 onChange={handleChange}
                             /> Male
                         </label>
-                        <label>
+                        <label className="inline-flex min-h-[40px] items-center gap-2">
                             <input
                                 type="radio"
                                 name="gender"
@@ -289,7 +292,7 @@ export default function UpdateProfile() {
                                 onChange={handleChange}
                             /> Female
                         </label>
-                        <label>
+                        <label className="inline-flex min-h-[40px] items-center gap-2">
                             <input
                                 type="radio"
                                 name="gender"

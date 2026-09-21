@@ -154,7 +154,10 @@ export default function Wishlist() {
           minHeight: 'calc(100vh - 7rem)',
         }}
       >
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', alignItems: 'center' }}>
+        <div
+          className="w-full max-w-[600px] px-3"
+          style={{ display: 'flex', flexDirection: 'column', gap: '1rem', alignItems: 'center' }}
+        >
           {wishlist.length === 0 ? (
             <p>No books in wishlist.</p>
           ) : (
@@ -166,11 +169,14 @@ export default function Wishlist() {
                   borderRadius: '15px',
                   padding: '1rem',
                   display: 'flex',
+                  flexWrap: 'wrap',
                   alignItems: 'center',
                   gap: '1rem',
-                  width: 'fit-content',
-                  minWidth: '350px',
+                  // Was `width: fit-content` over `minWidth: 350px`, which is
+                  // wider than a 360px screen once the padding is counted.
+                  width: '100%',
                   maxWidth: '600px',
+                  boxSizing: 'border-box',
                   position: 'relative'
                 }}
               >
@@ -233,32 +239,28 @@ export default function Wishlist() {
 
                 {/* Cart icon only if book is in stock */}
                 {book.stock > 0 && (
-                  <FaShoppingCart
-                    style={{
-                      cursor: 'pointer',
-                      color: cart[book._id] ? '#e65100' : '#ccc',
-                      marginLeft: 12,
-                    }}
+                  <button
+                    type="button"
+                    className="icon-button"
+                    style={{ color: cart[book._id] ? '#e65100' : '#ccc', marginLeft: 12 }}
                     onClick={() => handleToggleCart(book._id)}
                     title={cart[book._id] ? 'Remove from cart' : 'Add to cart'}
-                    tabIndex={0}
-                    role="button"
                     aria-label="Toggle cart"
-                  />
+                  >
+                    <FaShoppingCart />
+                  </button>
                 )}
 
-                <FaTrash
-                  style={{
-                    cursor: 'pointer',
-                    color: '#e74c3c',
-                    marginLeft: 12,
-                  }}
+                <button
+                  type="button"
+                  className="icon-button"
+                  style={{ color: '#e74c3c', marginLeft: 12 }}
                   onClick={() => handleDelete(book._id)}
                   title="Remove from wishlist"
-                  tabIndex={0}
-                  role="button"
                   aria-label="Remove from wishlist"
-                />
+                >
+                  <FaTrash />
+                </button>
               </div>
             ))
           )}

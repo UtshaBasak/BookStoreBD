@@ -243,7 +243,7 @@ const AddBooks = () => {
               <label className='block text-sm text-zinc-400 mb-1'>Book Images (Max 10) *</label>
               <input
                 type='file' id='imageInput' multiple onChange={handleImageChange}
-                className='block w-full text-sm text-zinc-300 file:bg-blue-600 file:text-white file:px-4 file:py-2 file:rounded file:border-0 hover:file:bg-blue-700 transition cursor-pointer'
+                className='block w-full text-sm text-zinc-300 file:bg-blue-600 file:text-white file:px-4 file:py-3 file:rounded file:border-0 hover:file:bg-blue-700 transition cursor-pointer'
                 accept="image/*"
               />
               {images.length > 0 && (
@@ -347,8 +347,8 @@ const AddBooks = () => {
               <label className='block text-sm text-zinc-400 mb-1'>Category <span style={{color:'red'}}>*</span></label>
               <div className='grid grid-cols-2 gap-2 max-h-52 overflow-y-auto p-2 border border-zinc-700 rounded'>
                 {categoriesList.map(cat => (
-                  <label key={cat} className='flex items-center gap-2 text-sm hover:bg-zinc-700 p-1 rounded'>
-                    <input type='checkbox' value={cat} checked={Data.category.includes(cat)} onChange={handleCategoryChange} className='accent-blue-600'/>
+                  <label key={cat} className='flex min-h-[40px] items-center gap-2 rounded p-2 text-sm hover:bg-zinc-700'>
+                    <input type='checkbox' value={cat} checked={Data.category.includes(cat)} onChange={handleCategoryChange} className='h-4 w-4 accent-blue-600'/>
                     {cat}
                   </label>
                 ))}
@@ -398,8 +398,8 @@ const RadioGroup = ({ label, name, value, onChange, options }: RadioGroupProps) 
     <label className='block text-sm text-zinc-400 mb-1'>{label}</label>
     <div className='flex flex-wrap gap-4'>
       {options.map(opt => (
-        <label key={opt} className='flex items-center gap-2 cursor-pointer'>
-          <input type="radio" name={name} value={opt} checked={value === opt} onChange={onChange} className='accent-blue-600'/>
+        <label key={opt} className='flex min-h-[40px] cursor-pointer items-center gap-2'>
+          <input type="radio" name={name} value={opt} checked={value === opt} onChange={onChange} className='h-4 w-4 accent-blue-600'/>
           {opt.charAt(0).toUpperCase() + opt.slice(1)}
         </label>
       ))}

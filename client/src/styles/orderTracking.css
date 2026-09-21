@@ -1,21 +1,32 @@
 .order-tracking-outer {
   min-height: 100vh;
   width: 100%;
+  /* A row, so the card and the order table sat side by side and the page was
+     409px wider than a phone. The comment below says this was already suspected
+     once. The parts of an order belong under each other. */
   display: flex;
+  flex-direction: column;
   align-items: center;
-  justify-content: center;
   background: #fafafa;
+  padding: 0 12px 24px;
+  box-sizing: border-box;
 }
 
-/* Remove any flex or grid that might place multiple cards/progress bars side by side */
+/* Every child of the column above has to be allowed to be narrow. */
+.order-tracking-outer > * {
+  max-width: 100%;
+  min-width: 0;
+}
 
 .order-tracking-card {
   max-width: 480px;
   width: 100%;
+  box-sizing: border-box;
   background: #fff;
   border-radius: 18px;
   box-shadow: 0 8px 32px rgba(230,81,0,0.10), 0 1.5px 8px rgba(0,0,0,0.06);
-  padding: 40px 36px 32px 36px;
+  /* 36px of padding each side leaves 288px of a 360px screen. */
+  padding: 32px 20px 24px;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -92,6 +103,17 @@
     font-size: 0.95rem;
     font-weight: 600;
     text-align: center;
+  }
+
+  /* On a phone the four stage labels are wider than the card they sit in. */
+  @media (max-width: 480px) {
+    .stage-label {
+      font-size: 0.7rem;
+    }
+
+    .order-progress-bar {
+      padding: 0 !important;
+    }
   }
   
   .stage:not(:last-child)::after {

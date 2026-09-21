@@ -258,7 +258,11 @@ export default function SignUp() {
         </p> */}
                 <p style={{ marginTop: '1rem', fontSize: '0.9rem' }}>
                     Already registered?{' '}
-                    <Link to="/sign-in" style={{ color: 'white', textDecoration: 'none', backgroundColor: '#8B6F6F' }}>
+                    <Link
+                        to="/sign-in"
+                        className="inline-flex min-h-[40px] items-center rounded px-3"
+                        style={{ color: 'white', textDecoration: 'none', backgroundColor: '#8B6F6F' }}
+                    >
                         <b>SIGN IN</b>
                     </Link>
                 </p>

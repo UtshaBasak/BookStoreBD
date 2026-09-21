@@ -27,21 +27,16 @@ export default function AdminPanel() {
         <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 16 }}>
           <button
             type="button"
+            className="icon-button"
             onClick={() => navigate('/')}
             style={{
               background: '#fff',
               color: '#2c3e50',
-              border: 'none',
               borderRadius: '50%',
-              width: 36,
-              height: 36,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              boxShadow: '0 2px 8px rgba(0,0,0,0.12)',
-              cursor: 'pointer'
+              boxShadow: '0 2px 8px rgba(0,0,0,0.12)'
             }}
             title="Go to Homepage"
+            aria-label="Go to Homepage"
           >
             <FaHome size={20} />
           </button>

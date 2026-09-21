@@ -90,8 +90,10 @@ export default function SellerBookList() {
   );
 
   return (
-    <div style={{ width: '100%', minHeight: '100vh', boxSizing: 'border-box', padding: '2rem' }}>
-      <div style={{ marginBottom: '1rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+    <div className="min-h-screen w-full p-4 sm:p-8" style={{ boxSizing: 'border-box' }}>
+      {/* Four controls in a row that does not wrap, one of them a 300px search
+          box: 215px wider than a 360px screen. */}
+      <div className="mb-4 flex flex-wrap items-center gap-3">
         <button
           onClick={() => navigate('/profile')}
           style={{
@@ -100,8 +102,7 @@ export default function SellerBookList() {
             padding: '0.5rem 1rem',
             border: 'none',
             borderRadius: '4px',
-            cursor: 'pointer',
-            marginBottom: '1rem'
+            cursor: 'pointer'
           }}
         >
           ← Return to Profile
@@ -112,7 +113,8 @@ export default function SellerBookList() {
           placeholder="Search by title or author..."
           value={search}
           onChange={e => setSearch(e.target.value)}
-          style={{ padding: 8, width: 300, borderRadius: 4, border: '1px solid #ccc', marginLeft: 16 }}
+          className="min-w-[180px] flex-1 sm:max-w-[300px]"
+          style={{ padding: 8, borderRadius: 4, border: '1px solid #ccc' }}
         />
         {/* Refresh button */}
         <button
@@ -125,8 +127,7 @@ export default function SellerBookList() {
             border: 'none',
             borderRadius: '4px',
             cursor: refreshing ? 'not-allowed' : 'pointer',
-            fontWeight: 'bold',
-            marginLeft: 16
+            fontWeight: 'bold'
           }}
         >
           {refreshing ? 'Refreshing...' : 'Refresh'}
@@ -142,15 +143,14 @@ export default function SellerBookList() {
             border: 'none',
             borderRadius: '4px',
             cursor: loading || Object.keys(edit).length === 0 ? 'not-allowed' : 'pointer',
-            fontWeight: 'bold',
-            marginLeft: 16
+            fontWeight: 'bold'
           }}
         >
           {loading ? 'Saving...' : 'Save All Changes'}
         </button>
       </div>
       <h2>Your Books</h2>
-      <div style={{ overflowX: 'auto' }}>
+      <div className="table-scroll">
         <table className="styled-table">
           <thead>
             <tr>

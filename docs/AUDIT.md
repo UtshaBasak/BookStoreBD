@@ -26,7 +26,7 @@ Yes. Nothing is broken.
 | ----- | ------ |
 | Lint, both packages | clean |
 | Type-check under TypeScript 6.0.3 | clean |
-| Tests | 254 passing (177 server, 77 client) |
+| Tests | 256 passing (179 server, 77 client) |
 | `npm audit`, all three roots | 0 vulnerabilities |
 | Builds | API compiles to `dist/`, client bundles |
 | Production stack | browse, detail, cart, wishlist, profile, orders, clear — all `200` |
@@ -400,11 +400,56 @@ puts its utilities in a cascade layer, and an unlayered rule beats a layered one
 whatever the specificity says. Any page-level stylesheet left unscoped will
 silently win over the utilities the rest of this work depends on.
 
-**What is still left.** The 639 inline style objects on the pages that were not
-broken - `Payment.tsx` at 948 lines, `ChatPage`, `AddBook`, `Profile`. Body text
-still bottoms out at 12-13px in places, which is small for a phone. And the
-two banners stacked on the homepage are one more than a shop needs before its
-products.
+**Phase 3 is done: every route, not just the ones a shopper walks through.**
+All 27 routes measured at 360, 768 and 1280 - phone, tablet, laptop - signed out,
+as a buyer, as a seller and as an administrator, with a real order, a full cart
+and a wishlist behind them.
+
+| | before | after |
+| --- | --- | --- |
+| routes that scrolled sideways | 6 | **0** |
+| worst overflow (`/chat`, 360px) | +999px | **0** |
+| routes with content cut off and unreachable | 1 | **0** |
+| controls under 40px at 360px | 60 across 11 routes | **0** |
+| smallest type | 10px | 12px |
+
+The five that were badly broken:
+
+- **`/chat` carried `minWidth: 1000px`** on its message pane - 999px past the
+  edge of a 360px screen, and 148px past a 1280px one. The two panes now take it
+  in turns on a phone, the way every chat application does it: the list until a
+  conversation is picked, then the conversation with a way back.
+- **Checkout was two columns at every width.** 56% of 360px, less 96px of
+  padding, is about 106px to write an address in. One column on a phone now, and
+  the form rows wrap rather than forcing two 203px inputs side by side.
+- **The three order-tracking pages put the card and the order table beside each
+  other**, because their container was a flex row - the CSS even carried a
+  comment wondering about it. +409px. They stack now, and every table in the
+  application sits in a `.table-scroll`, so a table too wide for a phone scrolls
+  inside its own box instead of taking the page with it.
+- **The admin panel was a fixed 250px sidebar beside the content at every
+  width**, leaving 110px of a 360px screen for the table it exists to show. The
+  sidebar becomes a strip across the top below 900px. This one reported *no*
+  overflow, because `overflow-x: hidden` was hiding it - which is why the
+  harness now reports content that is cut off separately from content that
+  scrolls. Hidden overflow does not scroll, it amputates.
+- **`/seller-books` had four controls in a row that could not wrap**, one of them
+  a 300px search box.
+
+Tap targets came from the same few habits: `minHeight: 36` inline (which beats
+any stylesheet), icon controls built as `<span>` or even `<svg>` with an
+`onClick` and a `tabIndex` - focusable, but Enter did nothing, so a keyboard
+user could reach them and not use them - and 13px checkboxes and radios in
+labels with no padding. The harness now measures the area that actually
+responds: for a control inside a `<label>`, the label.
+
+What is deliberately left: the `mailto:` and `tel:` links inside the prose of the
+policy and contact pages are text-sized, which is right for a link in a sentence.
+
+**What is still left.** The inline style objects on pages that work - they carry
+no breakpoints and no tokens, so the next person to change one has to rediscover
+what it does. And the two banners stacked on the homepage are one more than a
+shop needs before its products.
 
 ~~**Blocking dialogs for every message.**~~ **done.** 38 `alert()` calls —
 including for routine successes like "Added to cart successfully!" — each one a
@@ -448,6 +493,16 @@ a signed-in visitor - so pressing it did nothing at all, on the page a shopper
 lands on. It asks them to sign in now. The homepage's cover fallback pointed at
 `/books/default-book.jpg`, which is not in `public/`, so every book without a
 cover was a broken image on the busiest page on the site.
+
+**Checkout failed for any basket with two books in it.** Every line of an order
+shares one order number - that is how the tracking page gathers an order back
+together - but `orderNumber` carried a unique index, so the second book collided
+with the first. The request failed with a duplicate key error *after* the first
+book's stock had been taken. Found on the first two-book order placed against a
+clean database. The index is now compound on `(orderNumber, bookId)`, which is
+the integrity the unique flag was reaching for, and `syncIndexes()` runs on
+connect so an existing database drops the stale one rather than going on
+rejecting every multi-book basket. Two tests cover it.
 
 **No design system.** Colours (`#8B6F6F`, `#e65100`, `#43a047`) and spacing are
 repeated as literals across dozens of files. Moving them into Tailwind theme
@@ -510,7 +565,7 @@ Cheap and high-value first, so each step is shippable on its own.
 | ~~2~~ | ~~Kill the dead placeholder, real footer pages (P1)~~ **done** | Visibly broken and visibly untrustworthy |
 | ~~3~~ | ~~Uniform auth responses (S2)~~ **done** | A few lines; removes a privacy leak |
 | ~~4~~ | ~~Toasts instead of `alert()`~~ **done** | The single biggest change in how the product feels |
-| 5 | Responsive pass with Tailwind tokens — **phases 1 and 2 done** (nothing scrolls sideways, nothing is too small to tap; the remaining inline styles are on pages that work) | Largest effort, largest payoff; most traffic is mobile |
+| ~~5~~ | ~~Responsive pass with Tailwind tokens~~ **done** — every route measured at 360, 768 and 1280 | Largest effort, largest payoff; most traffic is mobile |
 | 6 | SEO metadata, sitemap, `robots.txt` | Growth work, meaningless before the site is presentable |
 | 7 | Upload validation, OTP attempt limits (S4, S5) | Hardening, once the surface is settled |
 | 8 | Account deletion and export (P2), audit log (P3) | Compliance before real users arrive |

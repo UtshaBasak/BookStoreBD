@@ -3,20 +3,58 @@
  * application, because a page's stylesheet is global once it is in the bundle.
  */
   
-  /* Admin Panel Layout */
+  /* Admin Panel Layout.
+
+     A row with a fixed 250px sidebar at every width: on a 360px phone that
+     leaves 110px for the table it exists to show. The sidebar becomes a strip
+     across the top below 900px, and the content gets the screen. */
   .admin-panel {
     display: flex;
-    height: 100vh;
-    width: 100%; /* Ensure full width */
+    flex-direction: column;
+    min-height: 100vh;
+    width: 100%;
   }
-  
+
   /* Sidebar Styles */
   .sidebar {
-    width: 250px;
+    width: 100%;
     background-color: #2c3e50;
     color: #ecf0f1;
-    padding: 20px;
-    box-shadow: 2px 0 5px rgba(0, 0, 0, 0.1);
+    padding: 16px;
+    box-sizing: border-box;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+  }
+
+  @media (min-width: 900px) {
+    .admin-panel {
+      flex-direction: row;
+      height: 100vh;
+    }
+
+    .sidebar {
+      width: 250px;
+      flex-shrink: 0;
+      padding: 20px;
+      box-shadow: 2px 0 5px rgba(0, 0, 0, 0.1);
+    }
+  }
+
+  /* Across the top, the navigation reads as a row rather than a list. */
+  @media (max-width: 899px) {
+    .sidebar nav ul {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 4px;
+      justify-content: center;
+    }
+
+    .sidebar nav ul li {
+      margin: 0;
+    }
+
+    .sidebar h2 {
+      margin-bottom: 12px;
+    }
   }
   
   .sidebar h2 {
@@ -51,11 +89,18 @@
   /* Main Content Styles */
   .main-content {
     flex: 1;
-    padding: 20px;
+    min-width: 0;
+    padding: 12px;
     background-color: #ffffff;
     overflow-y: auto;
-    width: 100%; /* Ensure full width */
-    min-height: 100vh; /* Ensure full height */
+    width: 100%;
+  }
+
+  @media (min-width: 900px) {
+    .main-content {
+      padding: 20px;
+      min-height: 100vh;
+    }
   }
   
   .main-content h1 {

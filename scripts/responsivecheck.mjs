@@ -29,6 +29,8 @@ const widths = (process.env.WIDTHS ?? '360,390,768,1280').split(',').map(Number)
 
 /** Below this, a control is hard to hit with a thumb. */
 const MIN_TAP = 40;
+/** Widths treated as touch screens: phones and tablets both. */
+const TOUCH_BELOW = Number(process.env.TOUCH_BELOW ?? 1024);
 /** Below this, body text is hard to read on a phone. */
 const MIN_FONT = 12;
 
@@ -128,10 +130,30 @@ const MEASURE = `(() => {
   const inScroller = (el) => {
     for (let p = el.parentElement; p && p !== document.body; p = p.parentElement) {
       const ox = getComputedStyle(p).overflowX;
-      if (ox === 'auto' || ox === 'scroll' || ox === 'hidden') return true;
+      if (ox === 'auto' || ox === 'scroll') return true;
     }
     return false;
   };
+
+  // A hidden overflow is not a scroll container: it does not scroll, it
+  // amputates. Content past the edge of one is simply unreachable, and the page
+  // reports no overflow while it happens - which is how an admin page with its
+  // table pushed off the side of a phone looked perfectly clean.
+  const clipped = [];
+  for (const el of all) {
+    const r = el.getBoundingClientRect();
+    if (r.right <= doc.clientWidth + 1 || r.width < 40 || !visible(el)) continue;
+    for (let p = el.parentElement; p && p !== document.body; p = p.parentElement) {
+      const ox = getComputedStyle(p).overflowX;
+      if (ox === 'auto' || ox === 'scroll') break;
+      if (ox === 'hidden') {
+        clipped.push({ el: describe(el), width: Math.round(r.width), cutAt: Math.round(doc.clientWidth - r.left) });
+        break;
+      }
+    }
+  }
+  const seenClipped = new Set();
+  const cutOff = clipped.filter((c) => !seenClipped.has(c.el) && seenClipped.add(c.el)).slice(0, 4);
 
   // What is actually sticking out past the right edge.
   const culprits = [];
@@ -155,9 +177,19 @@ const MEASURE = `(() => {
   const controls = all.filter(
     (el) => ['A', 'BUTTON', 'INPUT', 'SELECT', 'TEXTAREA'].includes(el.tagName) || el.getAttribute('role') === 'button'
   );
+  // A checkbox is 13px wide whatever anyone does, but tapping its label works
+  // just as well - so what counts is the area that responds, not the box.
+  const target = (el) => {
+    const own = el.getBoundingClientRect();
+    const label = el.closest('label');
+    if (!label) return own;
+    const wrapped = label.getBoundingClientRect();
+    return wrapped.width * wrapped.height > own.width * own.height ? wrapped : own;
+  };
+
   const small = controls
     .filter(visible)
-    .map((el) => ({ el: describe(el), ...(({ width, height }) => ({ w: Math.round(width), h: Math.round(height) }))(el.getBoundingClientRect()) }))
+    .map((el) => ({ el: describe(el), ...(({ width, height }) => ({ w: Math.round(width), h: Math.round(height) }))(target(el)) }))
     .filter((c) => c.w < ${MIN_TAP} || c.h < ${MIN_TAP});
 
   // The smallest type carrying actual words.
@@ -175,6 +207,7 @@ const MEASURE = `(() => {
     scrollWidth: doc.scrollWidth,
     overflowPx: overflow > 1 ? overflow : 0,
     worst,
+    cutOff,
     tapTargetsTooSmall: small.length,
     smallestTapTargets: small.slice(0, 4),
     smallestFontPx: smallest === Infinity ? null : Math.round(smallest * 10) / 10,
@@ -195,13 +228,15 @@ for (const route of routes) {
       width,
       height: 844,
       deviceScaleFactor: 1,
-      mobile: width < 600,
+      mobile: width < TOUCH_BELOW,
     });
     // Device metrics alone do not make `pointer: coarse` match - that needs
     // touch emulation, and without it a stylesheet's touch rules are never
-    // exercised.
+    // exercised. A tablet is a touch device too, so the cut-off is above the
+    // tablet widths rather than below them: measuring 768px with a mouse said
+    // the touch rules were fine there when they had never run.
     await call('Emulation.setTouchEmulationEnabled', {
-      enabled: width < 600,
+      enabled: width < TOUCH_BELOW,
       maxTouchPoints: 5,
     });
     consoleErrors = [];
@@ -222,7 +257,7 @@ for (const route of routes) {
     const measured = await evaluate(MEASURE);
     // Only meaningful where a thumb is doing the pointing; 39px is a fine
     // target for a mouse, so counting it on a desktop width says nothing.
-    if (width >= 600) {
+    if (width >= TOUCH_BELOW) {
       measured.tapTargetsTooSmall = null;
       measured.smallestTapTargets = [];
     }
@@ -240,6 +275,7 @@ console.log(
   'overflow'.padEnd(10),
   'small taps'.padEnd(12),
   'min font'.padEnd(10),
+  'cut off'.padEnd(9),
   'page'
 );
 for (const [route, widths_] of Object.entries(report)) {
@@ -252,6 +288,7 @@ for (const [route, widths_] of Object.entries(report)) {
       overflow.padEnd(10),
       (r.tapTargetsTooSmall === null ? '-' : String(r.tapTargetsTooSmall)).padEnd(12),
       font.padEnd(10),
+      String(r.cutOff?.length ?? 0).padEnd(9),
       r.mounted ? `${r.heading} (${r.textLength} chars)` : 'DID NOT MOUNT'
     );
   }

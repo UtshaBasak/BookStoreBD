@@ -357,27 +357,17 @@ export default function Payment() {
         margin: 0,
         boxSizing: 'border-box'
       }}>
-        <div style={{
-          width: '100%',
-          maxWidth: 1100,
-          minHeight: '100vh',
-          display: 'flex',
-          flexDirection: 'row',
-          background: '#fff',
-          boxShadow: '0 2px 16px rgba(0,0,0,0.06)',
-          borderRadius: 0,
-          margin: 0,
-          padding: 0,
-          position: 'relative'
-        }}>
-          <div style={{
-            flex: '0 0 56%',
-            minWidth: 0,
-            maxWidth: '56%',
-            padding: 48,
+        {/* Checkout is two columns beside each other on a desktop and one
+            column on a phone. It was two at every width: 56% of a 360px screen,
+            less 96px of padding, is about 106px to fill in an address in. */}
+        <div
+          className="relative flex min-h-screen w-full max-w-[1100px] flex-col lg:flex-row"
+          style={{ background: '#fff', boxShadow: '0 2px 16px rgba(0,0,0,0.06)' }}
+        >
+          <div
+            className="w-full min-w-0 p-4 sm:p-8 lg:w-[56%] lg:shrink-0 lg:p-12"
+            style={{
             background: '#fff',
-            borderRadius: '0',
-            boxShadow: 'none',
             borderRight: '1px solid #eee',
             display: 'flex',
             flexDirection: 'column',
@@ -495,7 +485,7 @@ export default function Payment() {
                         background: getStickerColor(book.bookType),
                         color: '#fff',
                         fontWeight: 700,
-                        fontSize: 11,
+                        fontSize: 13,
                         padding: '1px 7px',
                         borderRadius: 8,
                         letterSpacing: 1,
@@ -569,40 +559,33 @@ export default function Payment() {
       margin: 0,
       boxSizing: 'border-box'
     }}>
-      <div style={{
-        width: '100%',
-        maxWidth: 1100,
-        minHeight: '100vh',
-        display: 'flex',
-        flexDirection: 'row',
-        background: '#fff',
-        boxShadow: '0 2px 16px rgba(0,0,0,0.06)',
-        borderRadius: 0,
-        margin: 0,
-        padding: 0,
-        position: 'relative'
-      }}>
-        <div style={{
-          flex: '0 0 56%',
-          minWidth: 0,
-          maxWidth: '56%',
-          padding: 48,
+      {/* Checkout is two columns beside each other on a desktop and one
+          column on a phone. It was two at every width: 56% of a 360px screen,
+          less 96px of padding, is about 106px to fill in an address in. */}
+      <div
+        className="relative flex min-h-screen w-full max-w-[1100px] flex-col lg:flex-row"
+        style={{ background: '#fff', boxShadow: '0 2px 16px rgba(0,0,0,0.06)' }}
+      >
+        <div
+          className="w-full min-w-0 p-4 sm:p-8 lg:w-[56%] lg:shrink-0 lg:p-12"
+          style={{
           background: '#fff',
-          borderRadius: '0',
-          boxShadow: 'none',
           borderRight: '1px solid #eee',
           display: 'flex',
           flexDirection: 'column',
           justifyContent: 'flex-start'
         }}>
           <div style={{ marginBottom: 24, display: 'flex', alignItems: 'center', gap: 8 }}>
-            <span
-              style={{ fontSize: 36, fontWeight: 700, cursor: 'pointer' }}
+            {/* A span with a tabIndex could be focused and then did nothing
+                on Enter. A button is focusable and works. */}
+            <button
+              type="button"
+              className="icon-button"
+              style={{ fontSize: 32, fontWeight: 700 }}
               onClick={() => navigate('/cart')}
               title="Go back to cart"
-              tabIndex={0}
-              role="button"
-            >&larr;</span>
+              aria-label="Go back to cart"
+            >&larr;</button>
             <h2 style={{ margin: 0, fontWeight: 700, fontSize: 32, color: '#e65100', userSelect: 'none' }}>Checkout</h2>
           </div>
           <div style={{ marginBottom: 32 }}>
@@ -621,7 +604,7 @@ export default function Payment() {
           </div>
           <div style={{ marginBottom: 32 }}>
             <div style={{ color: '#e65100', fontWeight: 500, marginBottom: 8 }}>Contact Information</div>
-            <div style={{ display: 'flex', gap: 16, marginBottom: 16 }}>
+            <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', marginBottom: 16 }}>
               <input
                 placeholder="Name"
                 value={user.name}
@@ -634,7 +617,7 @@ export default function Payment() {
                 }}
               />
             </div>
-            <div style={{ display: 'flex', gap: 16 }}>
+            <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap' }}>
               <input
                 placeholder="Email Address"
                 value={user.email}
@@ -665,7 +648,7 @@ export default function Payment() {
           </div>
           <div style={{ marginBottom: 32 }}>
             <div style={{ color: '#e65100', fontWeight: 500, marginBottom: 8 }}>Delivery Information</div>
-            <div style={{ display: 'flex', gap: 16, marginBottom: 16 }}>
+            <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', marginBottom: 16 }}>
               <select
                 style={{
                   flex: 1,
@@ -737,19 +720,10 @@ export default function Payment() {
             </div>
           )}
         </div>
-        <div style={{
-          flex: '0 0 44%',
-          minWidth: 0,
-          maxWidth: '44%',
-          background: '#fff',
-          borderLeft: 'none',
-          boxShadow: 'none',
-          padding: 48,
-          boxSizing: 'border-box',
-          display: 'flex',
-          flexDirection: 'column',
-          justifyContent: 'flex-start'
-        }}>
+        <div
+          className="flex w-full min-w-0 flex-col justify-start p-4 sm:p-8 lg:w-[44%] lg:shrink-0 lg:p-12"
+          style={{ background: '#fff', boxSizing: 'border-box' }}
+        >
           <div style={{
             display: 'flex',
             justifyContent: 'space-between',
@@ -775,7 +749,10 @@ export default function Payment() {
                   alignItems: 'center',
                   marginBottom: 16
                 }}>
-                  <div style={{ position: 'relative', marginRight: 12 }}>
+                  {/* `shrink-0`: in a flex row on a 360px screen the cover was
+                      squeezed to nothing and its NEW badge, positioned against
+                      it, landed on top of the book's title. */}
+                  <div className="shrink-0" style={{ position: 'relative', marginRight: 12 }}>
                     <img src={getBookImageSrc(book)} alt={book.title} style={{
                       width: 48, height: 48, objectFit: 'cover', borderRadius: 4
                     }} />
@@ -787,7 +764,7 @@ export default function Payment() {
                         background: getStickerColor(book.bookType),
                         color: '#fff',
                         fontWeight: 700,
-                        fontSize: 10,
+                        fontSize: 12,
                         padding: '1px 6px',
                         borderRadius: 7,
                         letterSpacing: 1,
@@ -797,15 +774,15 @@ export default function Payment() {
                       </span>
                     )}
                   </div>
-                  <div style={{ flex: 1 }}>
+                  <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ fontWeight: 500 }}>{book.title}</div>
                     <div style={{ fontSize: 13, color: '#888' }}>By {book.author}</div>
                   </div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
                     <button
                       style={{
-                        width: 24,
-                        height: 24,
+                        width: 40,
+                        height: 40,
                         borderRadius: '50%',
                         border: '1px solid #ccc',
                         background: '#fff',
@@ -826,8 +803,8 @@ export default function Payment() {
                     <div style={{ minWidth: 24, textAlign: 'center' }}>{quantities[book._id] || 1}</div>
                     <button
                       style={{
-                        width: 24,
-                        height: 24,
+                        width: 40,
+                        height: 40,
                         borderRadius: '50%',
                         border: '1px solid #ccc',
                         background: '#fff',
@@ -851,13 +828,14 @@ export default function Payment() {
                       {(Number(book.price) * (quantities[book._id] || 1)).toFixed(2)} TK.
                     </div>
                   </div>
-                  <span
-                    style={{ color: '#e74c3c', cursor: 'pointer', marginLeft: 8, fontSize: 18 }}
+                  <button
+                    type="button"
+                    className="icon-button"
+                    style={{ color: '#e74c3c', marginLeft: 8, fontSize: 18 }}
                     onClick={() => handleRemoveBook(book._id)}
                     title="Remove from cart"
-                    role="button"
                     aria-label="Remove from cart"
-                  >&#128465;</span>
+                  >&#128465;</button>
                 </div>
               ))
             )}

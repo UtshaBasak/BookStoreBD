@@ -181,6 +181,15 @@ button:focus-visible {
   cursor: pointer;
 }
 
+/* A table cannot be narrower than what is in it, so on a phone it takes the
+   whole page sideways with it - the order tracking pages were 409px wider than
+   the screen. The table scrolls inside this instead, and the page stays put. */
+.table-scroll {
+  max-width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
 /* Sticky site header, previously inlined in index.html. */
 .header {
   position: sticky;

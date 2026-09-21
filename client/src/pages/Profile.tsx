@@ -123,7 +123,7 @@ export default function Profile() {
 
                 {/* Profile Mode Switch */}
                 <div style={{ display: 'flex', justifyContent: 'center', gap: '2rem', marginBottom: '1.5rem' }}>
-                    <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                    <label className="min-h-[40px]" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                         <input
                             type="radio"
                             name="profileMode"
@@ -133,7 +133,7 @@ export default function Profile() {
                         />
                         Buyer Profile
                     </label>
-                    <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                    <label className="min-h-[40px]" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                         <input
                             type="radio"
                             name="profileMode"

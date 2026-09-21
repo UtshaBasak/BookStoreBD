@@ -141,6 +141,7 @@ export default function SellerOrderList() {
                     <br />
                     Buyer: <span style={{ color: '#2196F3' }}>{order.buyerEmail}</span>
                   </div>
+                  <div className="table-scroll">
                   <table className="styled-table">
   <thead>
     <tr>
@@ -178,6 +179,7 @@ export default function SellerOrderList() {
                       </tr>
                     </tfoot>
                   </table>
+                  </div>
                 </div>
               );
             })

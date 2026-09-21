@@ -159,7 +159,8 @@ export default function OrderTrackingPage() {
                 value={order.status}
                 onChange={handleStatusChange}
                 disabled={updating}
-                style={{ marginLeft: 8, padding: 4, borderRadius: 4 }}
+                className="min-h-[40px]"
+               style={{ marginLeft: 8, padding: '6px 8px', borderRadius: 4 }}
               >
                 {ORDER_STAGES.map(stage => (
                   <option key={stage} value={stage}>{stage}</option>
@@ -171,9 +172,9 @@ export default function OrderTrackingPage() {
         )}
       </div>
       {/* Order Details Table OUTSIDE the card, after progress bar */}
-      <div style={{ maxWidth: 900, margin: '32px auto 0 auto', background: '#fff', borderRadius: 12, boxShadow: '0 2px 12px rgba(0, 0, 0, 0.06)', padding: 24 }}>
+      <div className="w-full min-w-0 p-3 sm:p-6" style={{ maxWidth: 900, margin: '32px auto 0 auto', background: '#fff', borderRadius: 12, boxShadow: '0 2px 12px rgba(0, 0, 0, 0.06)' }}>
         <div style={{ marginBottom: 12, fontWeight: 600, color: '#444', fontSize: 20 }}>Order Details</div>
-        <div style={{ overflowX: 'auto' }}>
+          <div className="table-scroll">
           <table className="styled-table" style={{ width: '100%', borderCollapse: 'collapse', fontSize: 15, background: '#fff' }}>
             <thead style={{ background: '#2196F3' }}>
               <tr>
@@ -224,7 +225,7 @@ export default function OrderTrackingPage() {
               </tr>
             </tfoot>
           </table>
-        </div>
+          </div>
       </div>
     </div>
   );

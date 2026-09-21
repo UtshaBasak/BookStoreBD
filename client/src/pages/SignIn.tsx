@@ -211,13 +211,24 @@ export default function SignIn() {
                     </button>
                 </form>
                 <p style={{ marginTop: '1rem', fontSize: '0.9rem' }}>
-                    <span style={{ color: 'white', textDecoration: 'underline', cursor: 'pointer' }} onClick={() => setShowForgot(true)}>
+                    {/* A span with an onClick and no tabIndex at all: a
+                        keyboard user could not reach the password reset. */}
+                    <button
+                        type="button"
+                        className="inline-flex min-h-[40px] items-center"
+                        style={{ background: 'transparent', border: 'none', color: 'white', textDecoration: 'underline', cursor: 'pointer', font: 'inherit' }}
+                        onClick={() => setShowForgot(true)}
+                    >
                         Forgot Password?
-                    </span>
+                    </button>
                 </p>
                 <p style={{ marginTop: '1rem', fontSize: '0.9rem' }}>
                     Not registered?{' '}
-                    <Link to="/sign-up" style={{ color: 'white', textDecoration: 'none', backgroundColor: '#8B6F6F' }}>
+                    <Link
+                        to="/sign-up"
+                        className="inline-flex min-h-[40px] items-center rounded px-3"
+                        style={{ color: 'white', textDecoration: 'none', backgroundColor: '#8B6F6F' }}
+                    >
                        <b> SIGN UP</b>
                     </Link>
                 </p>
