@@ -251,12 +251,6 @@ export default function SignUp() {
                 {step === 'done' && (
                     <div style={{ color: 'green', marginTop: 16 }}>Registration successful! Redirecting...</div>
                 )}
-                {/* Forgot Password Link */}
-        {/* <p style={{ marginTop: '1rem', fontSize: '0.9rem' }}>
-          <Link to="/forgot-password" style={{ color: '#00f', textDecoration: 'underline' }}>
-            Forgot Password?
-          </Link>
-        </p> */}
                 <p style={{ marginTop: '1rem', fontSize: '0.9rem' }}>
                     Already registered?{' '}
                     <Link

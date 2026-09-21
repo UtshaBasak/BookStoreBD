@@ -10,13 +10,6 @@ import { errorMessage, isDuplicateKeyError } from '../utils/error.js';
 
 const log = createLogger('user');
 
-export const test: RequestHandler = (req,res) =>{
-    res.json({
-        message: 'Api route is working!',
-        status: 'success'
-    });
-}
-
 // Fetch user profile
 export const getUserProfile = async (
     req: Request<unknown, unknown, unknown, ProfileQuery>,

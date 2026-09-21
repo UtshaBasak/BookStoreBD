@@ -70,10 +70,6 @@ export const requireAdmin: RequestHandler = (req, res, next) => {
  */
 export type WithUser = Pick<Request, 'user'>;
 
-/** True when the caller is the named user, or an administrator. */
-export const isSelfOrAdmin = (req: WithUser, email?: string): boolean =>
-  req.user?.role === 'admin' || (!!email && req.user?.email === email);
-
 /**
  * The signed-in user, for handlers that sit behind `requireAuth`.
  *

@@ -1,7 +1,7 @@
 import { useState, type ChangeEvent, type FormEvent } from 'react';
 import { useParams } from 'react-router-dom';
 
-import type { Book, MessageResponse } from '@shared/api.js';
+import type { MessageResponse } from '@shared/api.js';
 
 import { API_BASE_URL, apiFetch } from '../config/api.js';
 import { useToast } from '../hooks/useToast.js';
@@ -10,7 +10,6 @@ import { reportError } from '../utils/report.js';
 
 export default function DescriptionForm() {
   const [description, setDescription] = useState('');
-  const [_books, setBooks] = useState<Book[]>([]);
   const [images, setImages] = useState<File[]>([]);
   const userEmail = getUserEmail();
   const { bookId } = useParams();
@@ -31,7 +30,6 @@ export default function DescriptionForm() {
       const data = (await res.json()) as MessageResponse;
       if (res.ok) {
         toast.success(data.message);
-        setBooks((prevBooks) => prevBooks.filter((book) => book._id !== bookId));
       } else {
         toast.error(data.message);
       }
@@ -123,21 +121,7 @@ export default function DescriptionForm() {
             onChange={handleImageUpload}
             style={{ marginBottom: '1rem', width: '100%' }}
           />
-          {/* <button
-            type="submit"
-            style={{
-              backgroundColor: '#2196F3',
-              color: 'white',
-              padding: '0.5rem 1rem',
-              border: 'none',
-              borderRadius: '4px',
-              cursor: 'pointer',
-              width: '100%',
-            }}
-          >
-            Images Upload
-          </button> */}
-        </form>
+</form>
 
         {/* Form for writing a description */}
         <form onSubmit={handleDescriptionSubmit}>

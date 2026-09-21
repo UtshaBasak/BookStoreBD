@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="BookStoreBD">
+  <!--
+    The shop's own mark. This was Vite's logo until now, which is the sort of
+    thing a visitor notices in a tab before anything else on the page.
+  -->
+  <rect width="64" height="64" rx="12" fill="#8B6F6F"/>
+  <path d="M16 16h13a6 6 0 0 1 6 6v26a5 5 0 0 0-5-5H16z" fill="#fff" opacity="0.95"/>
+  <path d="M48 16H35a6 6 0 0 0-6 6v26a5 5 0 0 1 5-5h14z" fill="#fff" opacity="0.75"/>
+  <path d="M32 20v28" stroke="#8B6F6F" stroke-width="2.5" stroke-linecap="round"/>
+</svg>

@@ -773,6 +773,47 @@ by somebody qualified.
 
 ---
 
+## Dead code, removed
+
+A pass over the whole project once the nine items were done, looking for what
+nothing uses. Two of the things it turned up were not dead at all.
+
+**A stylesheet kept alive by a dead component.** `Table.tsx` was rendered by
+nothing, but it imported `Table.css`, and nine pages write their own
+`<table className="styled-table">`. The styling for every table in the
+application arrived only as a side effect of an unused file being in the bundle;
+deleting the component would have quietly unstyled all nine. The rules are in
+`index.css` now, next to the pages that actually use them.
+
+**A cart that emptied on the server and not on screen.** Checkout cleared the
+cart with a bare `apiFetch` - no await, no error handling, and no cache
+invalidation - so the badge in every header went on showing items that were no
+longer there. `useClearCart` already existed, unused, and does it properly.
+
+Removed outright:
+
+| | |
+| --- | --- |
+| `components/Table.tsx`, `BackButton.tsx`, `inputField.tsx` | rendered by nothing |
+| `pages/admin/TransactionHistory.tsx` | an orphan copy; the admin panel imports the one in `pages/` |
+| `assets/react.svg`, `public/vite.svg` | Vite template leftovers |
+| `GET /api/user/test` | answered "Api route is working!" to anyone; `/health` is the endpoint for that |
+| `isSelfOrAdmin` | defined, never called |
+| `_books` state in `Descriptionform` | written, never read |
+| commented-out markup in `Descriptionform` and `SignUp` | |
+
+**The rating controls are gone.** A five-star filter, a "Most Popular" sort and
+a "Rating: N/A" line on every card, all reading a field no endpoint returns and
+no model stores. The filter did not merely do nothing: choosing four stars
+matched zero books, which is a dead end that looks like an empty catalogue. The
+sort is "Newest first" now, on `createdAt`, which exists. Reviews are a product
+decision and are on the business list below, where they belong.
+
+**The favicon was Vite's logo**, which is the first thing a visitor sees of the
+shop, in the tab, before the page has rendered. It is the shop's own mark now.
+
+---
+
 ## Checked and found not to be a problem
 
 Recorded so the next person does not spend the time twice.

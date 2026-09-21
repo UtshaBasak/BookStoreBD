@@ -190,6 +190,65 @@ button:focus-visible {
   -webkit-overflow-scrolling: touch;
 }
 
+/* ------------------------------------------------------------------ tables
+   Nine pages write their own `<table className="styled-table">`. These rules
+   used to live in Table.css, which was imported by a Table component that
+   nothing rendered - so the styling for every table in the application arrived
+   only as a side effect of a dead file being in the bundle. Deleting that
+   component would have quietly unstyled all nine. */
+.styled-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 20px;
+  background-color: #fff;
+}
+
+.styled-table thead {
+  background-color: #34495e;
+  color: white;
+}
+
+.styled-table th, .styled-table td {
+  padding: 10px;
+  text-align: left;
+  border: 1px solid #ddd;
+}
+
+.styled-table th {
+  background-color: #34495e;
+  color: #fff;
+}
+
+.styled-table tbody {
+  background-color: #fff;
+}
+
+.styled-table tbody tr {
+  background-color: #fff;
+}
+
+.styled-table tbody tr:nth-child(even) {
+  background-color: #f2f2f2;
+}
+
+.styled-table tbody tr:hover {
+  background-color: #f1f1f1;
+}
+
+.styled-table button {
+  padding: 5px 10px;
+  background-color: #e74c3c;
+  color: white;
+  border: none;
+  border-radius: 3px;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+}
+
+.styled-table button:hover {
+  background-color: #c0392b;
+}
+
 /* Sticky site header, previously inlined in index.html. */
 .header {
   position: sticky;

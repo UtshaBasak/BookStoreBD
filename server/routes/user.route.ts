@@ -2,7 +2,6 @@ import express, { type Request, type Response } from 'express';
 
 import { signup, signin } from '../controllers/auth.controller.js';
 import {
-  test,
   getUserProfile,
   updateUserProfile,
   uploadDescriptionImages,
@@ -53,8 +52,6 @@ const collectHostedImages = (body: AddBookBody) => {
 // way in around the rules the canonical route enforces.
 router.post('/signup', validate(authSchemas.signup), signup);
 router.post('/signin', validate(authSchemas.signin), signin);
-
-router.get('/test', test);
 
 // A listing shows its seller's public details, so this stays readable without
 // a token; the handler only ever returns non-sensitive fields.

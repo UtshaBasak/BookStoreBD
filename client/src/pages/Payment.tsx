@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import type { Book, CreateOrderResponse, Id } from '@shared/api.js';
 
 import { API_BASE_URL, apiFetch } from '../config/api.js';
-import { useCart, useProfile } from '../hooks/queries.js';
+import { useCart, useClearCart, useProfile } from '../hooks/queries.js';
 import { isOwnProfile } from '../utils/profile.js';
 import { safeImageSrc, PLACEHOLDER_IMAGE } from '../utils/safeImageSrc.js';
 
@@ -93,6 +93,7 @@ export default function Payment() {
   // The live cart only matters until an order is confirmed; after that the
   // page shows what was actually bought.
   const cartQuery = useCart({ enabled: !orderConfirmed && Boolean(storedUser.email) });
+  const { mutate: clearCart } = useClearCart();
   const liveCart = cartQuery.data ?? [];
 
   const cartBooks = confirmedBooks ?? liveCart;
@@ -299,12 +300,11 @@ export default function Payment() {
       }
     });
 
-    // Clear the cart for the user after order confirmation
-    apiFetch(`${API_BASE_URL}/cart/clear`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email: user.email })
-    });
+    // Through the mutation rather than a bare fetch: it invalidates the cart
+    // query, so the badge in every header drops to zero. The bare call cleared
+    // the cart on the server and left the cached copy alone, so the icon went
+    // on showing items that were no longer there.
+    clearCart();
 
     if (promoApplied && promo === PROMO_CODE && user.isFirstOrder) {
       setFirstOrderUsed();

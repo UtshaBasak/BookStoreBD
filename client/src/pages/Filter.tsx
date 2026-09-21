@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { FaSearch, FaHome, FaStar, FaHeart, FaRegHeart, FaShoppingCart } from 'react-icons/fa';
+import { FaSearch, FaHome, FaHeart, FaRegHeart, FaShoppingCart } from 'react-icons/fa';
 import { useLocation, useNavigate } from 'react-router-dom';
 
 import type { Book } from '@shared/api.js';
@@ -17,21 +17,10 @@ import { getUserEmail } from '../utils/auth.js';
 import { flagsFor } from '../utils/bookFlags.js';
 import { PLACEHOLDER_IMAGE } from '../utils/safeImageSrc.js';
 
-/**
- * A book plus the rating fields this page sorts and filters on.
- *
- * Neither exists on the record the API returns - there is no rating anywhere in
- * the model - so both are always undefined, and the star filter and the "most
- * popular" sort do nothing today. Typed as optional rather than deleted:
- * whether to build ratings or drop the controls is a product decision.
- */
-type RatedBook = Book & { rating?: number; numReviews?: number };
-
 interface FilterState {
   bookType: string;
   condition: string;
   category: string[];
-  rating: number;
 }
 
 /** The parts of the page state an edit may override, keyed by the URL it belongs to. */
@@ -77,7 +66,7 @@ export default function BookFilter() {
    */
   const [showFilters, setShowFilters] = useState(false);
 
-  const [sortOption, setSortOption] = useState('popular');
+  const [sortOption, setSortOption] = useState('newest');
   const userEmail = getUserEmail();
   const signedIn = Boolean(userEmail);
   const location = useLocation();
@@ -105,7 +94,6 @@ export default function BookFilter() {
         bookType: bookType ? bookType.toLowerCase() : '',
         condition: '',
         category: category ? [category.toLowerCase()] : [],
-        rating: 0,
       },
     };
   }, [location.search]);
@@ -175,7 +163,7 @@ export default function BookFilter() {
 
   // Filtering logic
   const filteredBooks = useMemo(() => {
-    let filtered: RatedBook[] = [...bookList];
+    let filtered: Book[] = [...bookList];
 
     // Search filter
     if (searchTerm) {
@@ -221,30 +209,22 @@ export default function BookFilter() {
       return price >= from && price <= to;
     });
 
-    // Rating filter
-    if (filters.rating > 0) {
-      filtered = filtered.filter(
-        (book) => Math.round(Number(book.rating) || 0) >= filters.rating
-      );
-    }
-
     // In Stock filter
     if (inStockOnly) {
       filtered = filtered.filter(book => Number(book.stock) > 0);
     }
 
-    // Sorting
+    // Sorting. "Most popular" used to sort on a rating and a review count that
+    // no endpoint returns and no model stores, so it did nothing at all. Newest
+    // first is the same default in spirit and sorts on a field that exists.
     if (sortOption === 'priceHighLow') {
       filtered.sort((a, b) => (Number(b.price) || 0) - (Number(a.price) || 0));
     } else if (sortOption === 'priceLowHigh') {
       filtered.sort((a, b) => (Number(a.price) || 0) - (Number(b.price) || 0));
     } else {
-      // Most popular: sort by rating desc, then by number of reviews if available
-      filtered.sort((a, b) => {
-        const ratingDiff = (Number(b.rating) || 0) - (Number(a.rating) || 0);
-        if (ratingDiff !== 0) return ratingDiff;
-        return (b.numReviews || 0) - (a.numReviews || 0);
-      });
+      filtered.sort(
+        (a, b) => new Date(b.createdAt ?? 0).getTime() - new Date(a.createdAt ?? 0).getTime()
+      );
     }
 
     return filtered;
@@ -289,10 +269,6 @@ export default function BookFilter() {
     });
   };
 
-  // Function for handling rating changes (to be implemented)
-  // const handleRatingChange = (value) => {
-  //   // Rating functionality to be added later
-  // };
   // Wishlist toggle
   const handleToggleWishlist = (bookId: string) => {
     if (!userEmail) {
@@ -476,40 +452,6 @@ export default function BookFilter() {
               />
             </div>
           </div>
-          {/* Rating */}
-          <div
-            style={{
-              backgroundColor: 'rgba(0,0,0,0.6)',
-              borderRadius: '12px',
-              padding: '1rem',
-            }}
-          >
-            <strong>Rating</strong>
-            <div style={{ marginTop: '0.5rem', display: 'flex', gap: 4 }}>
-              {[1, 2, 3, 4, 5].map((star) => (
-                <span
-                  key={star}
-                  style={{
-                    cursor: 'pointer',
-                    color: star <= filters.rating ? '#FFD700' : '#bbb',
-                    fontSize: 22,
-                    marginRight: 2,
-                    transition: 'color 0.2s'
-                  }}
-                  onClick={() => setFilters(prev => ({
-                    ...prev,
-                    rating: prev.rating === star ? 0 : star
-                  }))}
-                  title={`${star}+`}
-                >
-                  <FaStar />
-                </span>
-              ))}
-              <span style={{ marginLeft: 8, fontSize: 14, color: '#fff' }}>
-                {filters.rating > 0 ? `${filters.rating}+` : ''}
-              </span>
-            </div>
-          </div>
           {/* In Stock Toggle */}
           <div style={{ backgroundColor: 'rgba(0,0,0,0.6)', borderRadius: '12px', padding: '1rem' }}>
             <strong>Stock</strong>
@@ -613,7 +555,7 @@ export default function BookFilter() {
               }}
               title="Sort books"
             >
-              <option value="popular">Most Popular</option>
+              <option value="newest">Newest first</option>
               <option value="priceHighLow">Price - High to Low</option>
               <option value="priceLowHigh">Price - Low to High</option>
             </select>
@@ -709,15 +651,6 @@ export default function BookFilter() {
                       {isOld && (
                         <div>Condition: {book.condition ? (book.condition.charAt(0).toUpperCase() + book.condition.slice(1)) : 'N/A'}</div>
                       )}
-                      <div>
-                        Rating:&nbsp;
-                        {Array.from({ length: Math.round(Number(book.rating) || 0) }).map((_, i) => (
-                          <FaStar key={i} color="#FFD700" style={{ fontSize: 16 }} />
-                        ))}
-                        <span style={{ marginLeft: 4, color: '#fff' }}>
-                          {book.rating ? Number(book.rating).toFixed(1) : 'N/A'}
-                        </span>
-                      </div>
                       {/* Action Buttons */}
                       {/* Wraps: at 360px the two controls together are wider
                           than the card, which was the last of this page's
