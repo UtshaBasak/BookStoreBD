@@ -26,7 +26,7 @@ Yes. Nothing is broken.
 | ----- | ------ |
 | Lint, both packages | clean |
 | Type-check under TypeScript 6.0.3 | clean |
-| Tests | 256 passing (179 server, 77 client) |
+| Tests | 274 passing (188 server, 86 client) |
 | `npm audit`, all three roots | 0 vulnerabilities |
 | Builds | API compiles to `dist/`, client bundles |
 | Production stack | browse, detail, cart, wishlist, profile, orders, clear — all `200` |
@@ -517,15 +517,51 @@ no alt text, there is no skip link, and focus is not moved on route change. The
 markup is otherwise sound — 96 real `<button>` elements against one clickable
 `<span>`, which is far better than typical.
 
-**The 404 page is a bare `<h1>404 Not Found</h1>`.**
-
 ### Growth and performance
 
-**No SEO at all.** No Open Graph, Twitter or canonical tags, no `robots.txt`,
-no sitemap, and a single static `<title>` for every route. A marketplace lives
-on search traffic and shared links; right now a shared book link previews as
-nothing. Per-route metadata and a generated sitemap are the highest-leverage
-growth work available.
+~~**No SEO at all.**~~ **done.** There was no Open Graph, Twitter or canonical
+tag, no `robots.txt`, no sitemap, and one static `<title>` for all 27 routes.
+
+Every page now says what it is. `useSeo` sets the title, description, canonical
+URL, Open Graph and Twitter card per route - about sixty lines rather than a
+helmet dependency, because every route here either wants the full set or is
+behind a sign-in and wants `noIndex`. That last one is set in `ProtectedRoute`
+itself, so every private route is covered, including any added later: a URL that
+answers a crawler with a sign-in form is a wasted result for everyone.
+
+**`/robots.txt` and `/sitemap.xml` are served by the API**, at the root, where a
+crawler looks. Generated rather than static files, for two reasons: the sitemap
+has to list the books that exist right now, and both need absolute URLs on
+whatever domain the site is answering. That origin is taken from the request -
+`X-Forwarded-Proto` and `X-Forwarded-Host`, which nginx already sends - so a
+fresh deployment is correct on any domain without anyone setting a variable.
+`PUBLIC_SITE_URL` overrides it, and should be set once the canonical domain is
+known; it is the only way to be sure a site answering on two hostnames
+advertises one. The Host header comes from the caller, so it is validated rather
+than trusted: a request with a nonsense host gets no sitemap rather than a
+poisoned one.
+
+Nine tests cover what a crawler finds, including that the sitemap lists every
+book, lists nothing that needs an account, and escapes what XML cannot carry.
+
+**Structured data.** The homepage publishes a `WebSite` block with a
+`SearchAction` - the thing that can give a site its own search box in a results
+page - and every listing publishes a `Book` with an `Offer`: price in BDT,
+condition, availability. That is what turns a blue link into a result with a
+price on it. A book title is escaped before it goes in: unescaped, a seller
+could name a book `</script>` and close the block, and a test pins that.
+
+**What this does not do.** The tags are set in the browser. Google renders
+JavaScript and sees them; the link scrapers behind Facebook, WhatsApp, Slack and
+X do not, and read `index.html` alone. That file now carries a full set of
+site-level defaults, so a shared link previews as the shop rather than as a
+blank card - but a *per-book* preview would need the HTML rendered on the
+server. Worth doing, and a separate job. The 404 page is also a soft 404: a
+single-page app answers 200 for every path, so the `noindex` on it is what keeps
+it out of the index.
+
+**The 404 page** was `<h1>404 Not Found</h1>` - a dead end on a shop. It now
+says what happened and offers the homepage and the catalogue.
 
 **No code splitting.** `React.lazy` is unused, so the whole application ships
 in one 206 KB chunk. Route-level splitting would cut first load substantially.
@@ -566,7 +602,7 @@ Cheap and high-value first, so each step is shippable on its own.
 | ~~3~~ | ~~Uniform auth responses (S2)~~ **done** | A few lines; removes a privacy leak |
 | ~~4~~ | ~~Toasts instead of `alert()`~~ **done** | The single biggest change in how the product feels |
 | ~~5~~ | ~~Responsive pass with Tailwind tokens~~ **done** — every route measured at 360, 768 and 1280 | Largest effort, largest payoff; most traffic is mobile |
-| 6 | SEO metadata, sitemap, `robots.txt` | Growth work, meaningless before the site is presentable |
+| ~~6~~ | ~~SEO metadata, sitemap, `robots.txt`~~ **done** | Growth work, meaningless before the site is presentable |
 | 7 | Upload validation, OTP attempt limits (S4, S5) | Hardening, once the surface is settled |
 | 8 | Account deletion and export (P2), audit log (P3) | Compliance before real users arrive |
 | 9 | Code splitting, lazy images, pagination | Performance, once there is enough content to matter |

@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 
 import Footer from '../../components/Footer.js';
 import { site } from '../../config/site.js';
+import { useSeo } from '../../hooks/useSeo.js';
 
 interface LegalPageProps {
   title: string;
@@ -21,6 +22,10 @@ interface LegalPageProps {
  * it is what makes these readable on a phone without extra work.
  */
 export default function LegalPage({ title, intro, updated, children }: LegalPageProps) {
+  // One call covers all five pages: each already passes the title and the line
+  // that describes it, which is exactly what a search result needs.
+  useSeo({ title, description: intro });
+
   return (
     <div className="min-h-screen bg-[#faf8f7] text-[#3b2f2f]">
       <header className="border-b border-[#e7ded9] bg-white">

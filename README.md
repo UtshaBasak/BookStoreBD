@@ -347,6 +347,7 @@ check. `JWT_SECRET` is required; Compose refuses to start without it.
 | `COOKIE_SAME_SITE` |          | `lax`                                                  | `SameSite` on the refresh cookie                        |
 | `SERVE_CLIENT`     |          | on in production                                       | Serve `client/dist` from the API process; warns at start-up if there is no build |
 | `CLIENT_API_ORIGIN` |         | —                                                      | Cross-origin deployments only: added to the CSP `connect-src` so the browser may call the API |
+| `PUBLIC_SITE_URL`  |          | the request's own origin                               | Canonical origin for the URLs in `robots.txt` and `sitemap.xml`. Set it once the domain is known, so a site answering on two hostnames advertises one |
 | `CLOUDINARY_CLOUD_NAME` |     | —                                                      | Enables image hosting; unset keeps covers inline        |
 | `CLOUDINARY_API_KEY` |       | —                                                      | Cloudinary API key                                      |
 | `CLOUDINARY_API_SECRET` |    | —                                                      | Signs uploads. Secret — never commit                    |

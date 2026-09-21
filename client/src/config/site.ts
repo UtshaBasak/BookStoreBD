@@ -14,6 +14,12 @@ export const site = {
   name: 'BookStoreBD',
   tagline: 'New and second-hand books, bought and sold across Bangladesh.',
 
+  /**
+   * The tagline as a search result shows it. Google truncates a title at about
+   * 60 characters, and the full one with the shop's name in front is longer.
+   */
+  seoTagline: 'New and second-hand books across Bangladesh',
+
   /** Shown on the contact page and in the policies as the way to reach a human. */
   email: 'bookstore@gmail.com',
   phone: '+880 1711 112333',

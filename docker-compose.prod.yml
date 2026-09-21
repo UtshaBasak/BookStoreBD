@@ -46,6 +46,9 @@ services:
       CLOUDINARY_CLOUD_NAME: ${CLOUDINARY_CLOUD_NAME:-}
       CLOUDINARY_API_KEY: ${CLOUDINARY_API_KEY:-}
       CLOUDINARY_API_SECRET: ${CLOUDINARY_API_SECRET:-}
+      # Blank is correct locally: the sitemap then uses the origin the request
+      # arrived on, which is what a crawler asked for.
+      PUBLIC_SITE_URL: ${PUBLIC_SITE_URL:-}
       SMTP_SERVICE: ${SMTP_SERVICE:-gmail}
       SMTP_USER: ${SMTP_USER:-}
       SMTP_PASS: ${SMTP_PASS:-}

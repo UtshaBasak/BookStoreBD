@@ -17,6 +17,7 @@ import {
     useWishlist,
 } from '../hooks/queries.js';
 import { promptSignIn, useToast } from '../hooks/useToast.js';
+import { useSeo } from '../hooks/useSeo.js';
 import { messageOf } from '../utils/apiError.js';
 import { getUserEmail } from '../utils/auth.js';
 import { flagsFor } from '../utils/bookFlags.js';
@@ -119,6 +120,55 @@ export default function BookView() {
             toast.error(messageOf(error) || 'Could not update your wishlist.');
         }
     };
+
+    /*
+     * A listing, described for a search engine.
+     *
+     * The cover is only offered as an image when it is a URL: most covers are
+     * stored as base64 on the document, and a data URI is no use to a crawler
+     * or to a link preview. The page falls back to the site banner.
+     */
+    const cover = book?.images?.[0];
+    const coverUrl = cover && /^https?:\/\//.test(cover) ? cover : undefined;
+    const summary = book
+        ? `${book.title} by ${book.author}. ${book.bookType === 'old' ? 'Second-hand' : 'New'}, ${book.price} Tk${book.stock > 0 ? ', in stock' : ', out of stock'}.`
+        : undefined;
+
+    useSeo({
+        title: book?.title,
+        description: summary,
+        image: coverUrl,
+        type: 'product',
+        jsonLd: book
+            ? {
+                  '@context': 'https://schema.org',
+                  '@type': 'Book',
+                  name: book.title,
+                  author: { '@type': 'Person', name: book.author },
+                  publisher: book.publisher,
+                  isbn: book.isbn,
+                  numberOfPages: book.pages,
+                  inLanguage: book.language,
+                  bookEdition: book.bookType === 'old' ? 'Second-hand' : 'New',
+                  ...(coverUrl ? { image: coverUrl } : {}),
+                  ...(book.desc ? { description: book.desc } : {}),
+                  offers: {
+                      '@type': 'Offer',
+                      price: book.price,
+                      priceCurrency: 'BDT',
+                      itemCondition:
+                          book.bookType === 'old'
+                              ? 'https://schema.org/UsedCondition'
+                              : 'https://schema.org/NewCondition',
+                      availability:
+                          book.stock > 0
+                              ? 'https://schema.org/InStock'
+                              : 'https://schema.org/OutOfStock',
+                      url: window.location.href,
+                  },
+              }
+            : null,
+    });
 
     const handleSignOut = async () => {
         await signOut();

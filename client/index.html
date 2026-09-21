@@ -4,12 +4,45 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="theme-color" content="#8B6F6F" />
+
+    <!--
+      Site-level defaults.
+
+      `useSeo` replaces these per route in the browser, which is what Google
+      sees, because it renders JavaScript. The link scrapers behind Facebook,
+      WhatsApp, Slack and X do not: they read this file and nothing else. So a
+      shared link previews as the shop rather than as a blank card, which is
+      what it did before. A per-book preview would need the HTML rendered on
+      the server - worth doing, and a separate job.
+    -->
+    <title>BookStoreBD — New and second-hand books across Bangladesh</title>
     <meta
       name="description"
       content="BookStoreBD - buy and sell new and second-hand books in Bangladesh, with wishlists, order tracking and buyer-seller chat."
     />
+
+    <meta property="og:site_name" content="BookStoreBD" />
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="BookStoreBD — New and second-hand books across Bangladesh" />
+    <meta
+      property="og:description"
+      content="Buy and sell new and second-hand books in Bangladesh, with wishlists, order tracking and buyer-seller chat."
+    />
+    <!-- Relative on purpose: the domain is not known at build time, and every
+         major scraper resolves this against the page it was found on. -->
+    <meta property="og:image" content="/banner.png" />
+    <meta property="og:image:alt" content="A stack of books for sale at BookStoreBD" />
+    <meta property="og:locale" content="en_GB" />
+
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="BookStoreBD — New and second-hand books across Bangladesh" />
+    <meta
+      name="twitter:description"
+      content="Buy and sell new and second-hand books in Bangladesh, with wishlists, order tracking and buyer-seller chat."
+    />
+    <meta name="twitter:image" content="/banner.png" />
+
     <link rel="icon" type="image/svg+xml" href="/vite.svg" />
-    <title>BookStoreBD</title>
   </head>
   <body>
     <div id="root"></div>

@@ -11,6 +11,7 @@ import { config } from './config/env.js';
 import { createLogger } from './config/logger.js';
 import { corsOptions } from './config/cors.js';
 import { isApiPath, API_PREFIX } from './config/apiPaths.js';
+import { robots, sitemap } from './controllers/seo.controller.js';
 import { CLIENT_DIST, UPLOADS_DIR } from './config/paths.js';
 import { securityHeaders } from './config/securityHeaders.js';
 import { errorHandler, notFoundHandler } from './middleware/errorHandler.js';
@@ -84,6 +85,12 @@ export const createApp = ({
   app.get('/health', (req, res) => {
     res.status(200).json({ status: 'ok', uptime: process.uptime() });
   });
+
+  // Crawler endpoints. At the root because that is the only place a crawler
+  // looks for them, and before the rate limiter because a search engine asking
+  // for a sitemap is not the traffic that limiter exists to stop.
+  app.get('/robots.txt', robots);
+  app.get('/sitemap.xml', sitemap);
 
   app.use(apiLimiter);
 

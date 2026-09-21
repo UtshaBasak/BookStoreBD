@@ -21,6 +21,7 @@ import ChatPage from './pages/ChatPage';
 import OrderTrackingPage from './pages/OrderTrackingPage';
 import SellerOrderTrackingPage from './pages/SellerOrderTrackingPage';
 import AdminOrderTrackingPage from './pages/AdminOrderTrackingPage';
+import NotFound from './pages/NotFound';
 import About from './pages/legal/About';
 import Contact from './pages/legal/Contact';
 import Privacy from './pages/legal/Privacy';
@@ -28,6 +29,7 @@ import Returns from './pages/legal/Returns';
 import Terms from './pages/legal/Terms';
 import './styles/orderTracking.css';
 import { isAdmin, isAuthenticated } from './utils/auth.js';
+import { useSeo } from './hooks/useSeo.js';
 
 /** Every guard below takes the subtree it protects and returns it, or a redirect. */
 interface GuardProps {
@@ -40,6 +42,7 @@ interface GuardProps {
 
 // Route guard for the admin panel
 function AdminRoute({ children }: GuardProps) {
+  useSeo({ noIndex: true });
   if (!isAuthenticated()) return <Navigate to="/sign-in" replace />;
   if (!isAdmin()) return <Navigate to="/" replace />;
   return children;
@@ -47,12 +50,21 @@ function AdminRoute({ children }: GuardProps) {
 
 // Route guard for sign-in/up: block if already signed in
 function PublicOnlyRoute({ children }: GuardProps) {
+  useSeo({ noIndex: true });
   if (!isAuthenticated()) return children;
   return <Navigate to={isAdmin() ? '/admin/users' : '/profile'} replace />;
 }
 
-// Route guard for protected pages
+/*
+ * Route guard for protected pages.
+ *
+ * `noIndex` here rather than on each page: everything behind a sign-in answers
+ * a crawler with a sign-in form, which is a wasted search result and a bad
+ * first impression. One place covers every private route, including any added
+ * later. robots.txt says the same thing from the other side.
+ */
 function ProtectedRoute({ children }: GuardProps) {
+  useSeo({ noIndex: true });
   if (!isAuthenticated()) return <Navigate to="/sign-in" replace />;
   return children;
 }
@@ -223,7 +235,7 @@ export default function App() {
             </ProtectedRoute>
           }
         />
-        <Route path="*" element={<h1>404 Not Found</h1>} />
+        <Route path="*" element={<NotFound />} />
       </Routes>
     </BrowserRouter>
   );

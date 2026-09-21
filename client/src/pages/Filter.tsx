@@ -12,6 +12,7 @@ import {
   useWishlist,
 } from '../hooks/queries.js';
 import { promptSignIn, useToast } from '../hooks/useToast.js';
+import { useSeo } from '../hooks/useSeo.js';
 import { getUserEmail } from '../utils/auth.js';
 import { flagsFor } from '../utils/bookFlags.js';
 import { PLACEHOLDER_IMAGE } from '../utils/safeImageSrc.js';
@@ -113,6 +114,13 @@ export default function BookFilter() {
 
   const searchInput = active.searchInput ?? fromUrl.searchInput;
   const searchTerm = active.searchTerm ?? fromUrl.searchTerm;
+
+  useSeo({
+    title: searchTerm ? `\u201c${searchTerm}\u201d` : 'Browse books',
+    description: searchTerm
+      ? `Books matching \u201c${searchTerm}\u201d - new and second-hand, from sellers across Bangladesh.`
+      : 'Browse every book on sale: new and second-hand, filtered by category, condition and price.',
+  });
   const inStockOnly = active.inStockOnly ?? fromUrl.inStockOnly;
   const filters = active.filters ?? fromUrl.filters;
 

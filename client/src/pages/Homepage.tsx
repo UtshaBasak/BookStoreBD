@@ -17,6 +17,8 @@ import {
   useToggleWishlist,
 } from '../hooks/queries.js';
 import { promptSignIn, useToast } from '../hooks/useToast.js';
+import { useSeo } from '../hooks/useSeo.js';
+import { site } from '../config/site.js';
 import Footer from '../components/Footer.js';
 import { getUserEmail } from '../utils/auth.js';
 import { flagsFor } from '../utils/bookFlags.js';
@@ -47,6 +49,30 @@ export default function Homepage() {
   const navigate = useNavigate();
   const toast = useToast();
   const userEmail = getUserEmail();
+
+  /*
+   * The shop itself, described for a search engine. The SearchAction is what
+   * can give a site a search box of its own in the results page.
+   */
+  useSeo({
+    description:
+      'Buy and sell new and second-hand books across Bangladesh. Wishlists, order tracking and a direct line to the seller.',
+    jsonLd: {
+      '@context': 'https://schema.org',
+      '@type': 'WebSite',
+      name: site.name,
+      description: site.tagline,
+      url: window.location.origin,
+      potentialAction: {
+        '@type': 'SearchAction',
+        target: {
+          '@type': 'EntryPoint',
+          urlTemplate: `${window.location.origin}/filter?search={search_term_string}`,
+        },
+        'query-input': 'required name=search_term_string',
+      },
+    },
+  });
 
   // Everything below is derived from queries rather than copied into state by
   // an effect. Two pages asking for the cart now share one request and one

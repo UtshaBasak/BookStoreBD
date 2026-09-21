@@ -7,11 +7,12 @@
  * unambiguously one or the other.
  *
  * `/health` stays at the root because that is where a platform health check
- * looks for it, and no page uses that path.
+ * looks for it, and no page uses that path. `/robots.txt` and `/sitemap.xml`
+ * are there for the same reason: a crawler looks nowhere else.
  */
 export const API_PREFIX = '/api';
 
-export const ROOT_PATHS: readonly string[] = ['/health'];
+export const ROOT_PATHS: readonly string[] = ['/health', '/robots.txt', '/sitemap.xml'];
 
 /** True when a path belongs to the API rather than to a client-side route. */
 export const isApiPath = (pathname: string): boolean =>

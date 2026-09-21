@@ -40,6 +40,11 @@ export const config = {
   serveClient: process.env.SERVE_CLIENT
     ? process.env.SERVE_CLIENT === 'true'
     : process.env.NODE_ENV === 'production',
+  // The canonical origin, for the absolute URLs in the sitemap and robots.txt.
+  // Left unset the request's own host is used, which is right until the site
+  // answers on more than one hostname. Trailing slash trimmed so joining a path
+  // never produces a double slash.
+  publicSiteUrl: (process.env.PUBLIC_SITE_URL ?? '').trim().replace(/\/+$/, ''),
   // Explicit level wins; otherwise logger.ts picks one from the environment.
   logLevel: process.env.LOG_LEVEL,
   // Optional. Error reporting stays switched off when this is unset.
