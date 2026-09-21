@@ -1,5 +1,3 @@
-import { randomUUID } from 'crypto';
-
 import bcryptjs from 'bcryptjs';
 import type { RequestHandler } from 'express';
 
@@ -15,6 +13,7 @@ import { actingUser } from '../middleware/auth.js';
 import { revokeAllForUser } from '../utils/refreshToken.js';
 import { clearRefreshCookie } from '../utils/authCookies.js';
 import { recordAudit } from '../utils/audit.js';
+import { anonymousEmail } from '../utils/anonymous.js';
 import { createLogger } from '../config/logger.js';
 
 const log = createLogger('account');
@@ -105,8 +104,8 @@ export const deleteMyAccount: RequestHandler = async (req, res, next) => {
 
     const email = user.email;
     // A form that cannot be traced back, but still groups the rows that used to
-    // belong to one person. `.invalid` is reserved for exactly this by RFC 2606.
-    const tombstone = `deleted-${randomUUID().slice(0, 8)}@removed.invalid`;
+    // belong to one person.
+    const tombstone = anonymousEmail();
 
     const anonymise = {
       contactName: '',
@@ -114,7 +113,7 @@ export const deleteMyAccount: RequestHandler = async (req, res, next) => {
       deliveryAddress: '',
     };
 
-    const [ordersPlaced, sales, purchases, returns, listings, conversations] = await Promise.all([
+    const [ordersPlaced, sales, purchases, returns, listings, sent, received] = await Promise.all([
       Order.updateMany({ buyerEmail: email }, { $set: { buyerEmail: tombstone, ...anonymise } }),
       Order.updateMany({ sellerEmail: email }, { $set: { sellerEmail: tombstone } }),
       Purchase.updateMany({ userEmail: email }, { $set: { userEmail: tombstone } }),
@@ -123,10 +122,12 @@ export const deleteMyAccount: RequestHandler = async (req, res, next) => {
       // orders above keep their own copy of the title and price, so the history
       // of what was sold survives the listing being removed.
       AddBook.deleteMany({ sellerEmail: email }),
-      // A conversation exists only between its two people and ends with the
-      // account. The order record is what holds any agreement that came out of
-      // it, and that is kept.
-      Chat.deleteMany({ $or: [{ sender: email }, { receiver: email }] }),
+      // Messages are kept and attributed to a deleted user rather than removed.
+      // A conversation is two people's, not one's: deleting it takes the other
+      // side's record of what was agreed with it, and what was agreed is often
+      // the whole reason they still have the thread.
+      Chat.updateMany({ sender: email }, { $set: { sender: tombstone } }),
+      Chat.updateMany({ receiver: email }, { $set: { receiver: tombstone } }),
     ]);
 
     await Promise.all([
@@ -140,7 +141,7 @@ export const deleteMyAccount: RequestHandler = async (req, res, next) => {
       purchasesAnonymised: purchases.modifiedCount,
       returnsAnonymised: returns.modifiedCount,
       listingsRemoved: listings.deletedCount,
-      messagesRemoved: conversations.deletedCount,
+      messagesAnonymised: sent.modifiedCount + received.modifiedCount,
     };
 
     // Recorded before the account goes, while there is still an actor to name.

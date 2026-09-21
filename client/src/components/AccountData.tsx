@@ -99,9 +99,10 @@ export default function AccountData() {
 
       <h3 className="mb-1 font-semibold text-[#c0392b]">Delete this account</h3>
       <p className="mb-3 text-sm text-[#6b5d5d]">
-        This cannot be undone. Your listings, cart, wishlist and messages are removed.
-        Orders are kept as accounting records with your personal details stripped out of
-        them.
+        This cannot be undone. Your profile, listings, cart and wishlist are removed.
+        Orders are kept as accounting records, and your messages stay in the other
+        person&rsquo;s conversation &mdash; both with your details stripped out and shown
+        as a deleted user.
       </p>
 
       {!confirming ? (

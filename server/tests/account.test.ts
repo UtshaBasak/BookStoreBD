@@ -155,6 +155,39 @@ describe('DELETE /user/me', () => {
     expect(orders[0].title).toBe(book.title);
   });
 
+  it('leaves the other side of a conversation with their thread', async () => {
+    const leaving = await createSignedInUser(request, { email: 'leaving@test.com' });
+    const staying = await createSignedInUser(request, { email: 'staying@test.com' });
+    const Chat = (await import('../models/Chat.model.js')).default;
+
+    await request
+      .post('/chat/message')
+      .set('Authorization', leaving.auth)
+      .field('receiver', 'staying@test.com')
+      .field('message', 'Is the book still available?');
+
+    await request.delete('/user/me').set('Authorization', leaving.auth).send({ password: PASSWORD });
+
+    // A conversation is two people's, not one's. What was said stays; who said
+    // it becomes a stand-in.
+    const messages = await Chat.find({});
+    expect(messages).toHaveLength(1);
+    expect(messages[0].message).toBe('Is the book still available?');
+    expect(messages[0].sender).not.toBe('leaving@test.com');
+    expect(messages[0].sender).toMatch(/@removed\.invalid$/);
+
+    // And the person still here sees the thread, under a name rather than a
+    // tombstone address.
+    const history = await request
+      .get('/chat/history/staying@test.com')
+      .set('Authorization', staying.auth);
+
+    expect(history.status).toBe(200);
+    expect(history.body).toHaveLength(1);
+    expect(history.body[0].username).toBe('Deleted user');
+    expect(history.body[0].lastMessage).toBe('Is the book still available?');
+  });
+
   it('ends every session it had', async () => {
     const user = await createSignedInUser(request);
     const RefreshToken = (await import('../models/RefreshToken.model.js')).default;

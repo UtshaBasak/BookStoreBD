@@ -75,11 +75,13 @@ export default function Privacy() {
       <p>If you would rather we did it, or you cannot sign in, e-mail us at{' '}
         <a href={`mailto:${site.email}`}>{site.email}</a> and we will respond
         within {site.responseTime}.</p>
-      <p>Deleting an account removes your profile, your cart, your wishlist,
-        any listings you posted and your messages, and signs out every session.
-        Orders are kept as accounting records - the other side of each one is
-        another person's history - with your name, phone number, address and
-        e-mail removed from them.</p>
+      <p>Deleting an account removes your profile, your cart, your wishlist and
+        any listings you posted, and signs out every session.</p>
+      <p>Two things are kept rather than deleted, because they are not only
+        yours. Orders stay as accounting records, with your name, phone number,
+        address and e-mail removed from them. Messages stay in the other
+        person's conversation, shown as coming from a deleted user - what was
+        agreed is often the reason they still have the thread.</p>
 
       <h2>Security</h2>
       <p>Passwords are hashed with bcrypt. Sessions use short-lived tokens that

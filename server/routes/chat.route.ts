@@ -4,6 +4,7 @@ import ChatMessage from '../models/Chat.model.js';
 import User from '../models/user.model.js';
 import { actingUser, requireAuth, type WithUser } from '../middleware/auth.js';
 import { imageUpload, verifyImageBytes } from '../middleware/imageUpload.js';
+import { displayNameFor } from '../utils/anonymous.js';
 import { createLogger } from '../config/logger.js';
 import { errorMessage } from '../utils/error.js';
 import { validate, validatedQuery } from '../middleware/validate.js';
@@ -101,7 +102,9 @@ router.get('/history/:email', async (req, res) => {
 
                 return {
                     email: userEmail,
-                    username: user?.username || userEmail,
+                    // Never the raw tombstone: somebody who closed their account
+                    // shows up as "Deleted user", and the thread still reads.
+                    username: displayNameFor(userEmail, user?.username),
                     profilePicture: user?.profilePicture,
                     lastMessage: lastMessage?.message || '',
                     lastMessageTime: lastMessage?.timestamp || new Date(),

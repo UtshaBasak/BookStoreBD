@@ -304,12 +304,14 @@ What it does, and why:
 | --- | --- |
 | account, cart, wishlist | deleted |
 | listings | deleted — a listing with no seller behind it cannot be bought |
-| messages | deleted — a conversation exists only between its two people |
 | orders, purchases, return requests | **kept, anonymised** |
+| messages | **kept, anonymised** — a conversation is two people's, not one's |
 | every session | revoked |
 
-Orders stay because they are accounting records and the other side of each one
-is somebody else's history. What goes is every personal detail attached to them:
+Orders and messages stay because the other side of each one is somebody else's
+history. Deleting a thread takes with it the other person's record of what was
+agreed, which is usually why they still have it; the messages remain, attributed
+to "Deleted user" rather than to an address. What goes is every personal detail:
 the address becomes a tombstone in the `.invalid` domain reserved for exactly
 this, and the contact name, phone and delivery address are emptied. What was
 sold and for how much survives. Run against the live stack:
