@@ -26,7 +26,6 @@
 
     "types": ["vite/client", "node"],
 
-    "baseUrl": ".",
     "paths": {
       // The API owns the wire contract; this compiles against the same file
       // the server does, so a response shape cannot drift on one side alone.

@@ -34,7 +34,6 @@
     // seconds to every run for findings nobody can act on.
     "skipLibCheck": true,
 
-    "baseUrl": ".",
     "paths": {
       // The wire contract the client also compiles against. Types only, so
       // this never resolves at run time.

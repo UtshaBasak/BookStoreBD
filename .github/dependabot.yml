@@ -88,6 +88,12 @@ updates:
         update-types:
           - minor
           - patch
+    ignore:
+      # typescript-eslint pins its peer range to `<6.1.0`. A TypeScript 7 bump
+      # makes `npm ci` fail outright with ERESOLVE, which took master red once
+      # already. Drop this entry the moment typescript-eslint ships support.
+      - dependency-name: typescript
+        versions: ['>=7']
 
   # ---------------------------------------------------------------------------
   # Server: Express + MongoDB API
@@ -125,6 +131,12 @@ updates:
         update-types:
           - minor
           - patch
+    ignore:
+      # typescript-eslint pins its peer range to `<6.1.0`. A TypeScript 7 bump
+      # makes `npm ci` fail outright with ERESOLVE, which took master red once
+      # already. Drop this entry the moment typescript-eslint ships support.
+      - dependency-name: typescript
+        versions: ['>=7']
 
   # ---------------------------------------------------------------------------
   # GitHub Actions used by the CI and CodeQL workflows
