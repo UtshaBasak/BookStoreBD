@@ -13,6 +13,8 @@ import {
   boundedInt,
   shortText,
   mediumText,
+  repeatable,
+  urlText,
 } from './common.js';
 
 /**
@@ -169,6 +171,35 @@ export const chatSchemas = {
 // ---------------------------------------------------------------- user
 export const userSchemas = {
   profileQuery: { query: z.object({ email: email.optional() }) },
+  /**
+   * A new listing, posted as multipart so every value arrives as a string.
+   *
+   * `sellerEmail` and `stock` are deliberately absent: the route sets both
+   * from the token and the schema strips anything else, so a body cannot
+   * publish a listing under someone else's name.
+   */
+  addBook: {
+    body: z.object({
+      title: shortText.min(1, 'Title is required'),
+      author: shortText.min(1, 'Author is required'),
+      publisher: shortText.min(1, 'Publisher is required'),
+      country: shortText.min(1, 'Country is required'),
+      language: shortText.min(1, 'Language is required'),
+      isbn: shortText.min(1, 'ISBN is required'),
+      pages: nonNegativeInt,
+      price: nonNegativeInt,
+      desc: mediumText.min(1, 'A description is required'),
+      category: repeatable(shortText)
+        .pipe(z.array(shortText.min(1)).min(1, 'At least one category is required').max(20)),
+      bookType: z.enum(['new', 'old']),
+      condition: shortText.optional(),
+      conditionDetails: mediumText.optional(),
+      // Present only when image hosting is configured; the browser uploads to
+      // Cloudinary itself and reports back what it got.
+      images: repeatable(urlText).optional(),
+      imagePublicIds: repeatable(shortText).optional(),
+    }),
+  },
   updateProfile: {
     body: z.object({
       username: username.optional(),
@@ -224,5 +255,6 @@ export type SendChatBody = z.infer<typeof chatSchemas.send.body>;
 export type MarkReadBody = z.infer<typeof chatSchemas.markRead.body>;
 export type DeleteConversationBody = z.infer<typeof chatSchemas.remove.body>;
 
+export type AddBookBody = z.infer<typeof userSchemas.addBook.body>;
 export type ProfileQuery = z.infer<typeof userSchemas.profileQuery.query>;
 export type UpdateProfileBody = z.infer<typeof userSchemas.updateProfile.body>;

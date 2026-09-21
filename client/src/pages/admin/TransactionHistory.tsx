@@ -1,17 +1,11 @@
-import { useEffect, useState } from 'react';
-import axios from 'axios';
-
-import type { OrderLine } from '@shared/api.js';
-
-import { API_BASE_URL } from '../../config/api.js';
+import { useAllOrders } from '../../hooks/queries.js';
 
 export default function TransactionHistory() {
-  const [orders, setOrders] = useState<OrderLine[]>([]);
-
-  useEffect(() => {
-    axios.get<OrderLine[]>(`${API_BASE_URL}/order/admin/all`)
-      .then(res => setOrders(Array.isArray(res.data) ? res.data : []));
-  }, []);
+  // The same query the root-level transaction page uses, so opening both costs
+  // one request rather than two.
+  const { data: orders = [] } = useAllOrders({
+    select: (data) => (Array.isArray(data) ? data : []),
+  });
 
   return (
     <div>

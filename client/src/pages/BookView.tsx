@@ -2,106 +2,70 @@ import { useEffect, useRef, useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { FaHeart, FaRegHeart, FaChevronLeft, FaChevronRight, FaComments, FaBell } from 'react-icons/fa';
 
-import type {
-    Book,
-    BookDetail,
-    ChatMessage,
-    ProfileResponse,
-    UnreadCountResponse,
-} from '@shared/api.js';
+import type { Book, BookDetail, ChatMessage } from '@shared/api.js';
 
 import socket from '../utils/socket';  // Add this import
 import ChatWindow from '../components/ChatWindow';
-import { API_BASE_URL, apiFetch, signOut } from '../config/api.js';
-import { useProfile } from '../hooks/queries.js';
+import { API_BASE_URL, signOut } from '../config/api.js';
+import {
+    useBook,
+    useCart,
+    useProfile,
+    useToggleCart,
+    useToggleWishlist,
+    useUnreadChatCount,
+    useWishlist,
+} from '../hooks/queries.js';
 import { messageOf } from '../utils/apiError.js';
 import { getUserEmail } from '../utils/auth.js';
-import { flagsFor, type BookFlags } from '../utils/bookFlags.js';
+import { flagsFor } from '../utils/bookFlags.js';
 
 export default function BookView() {
-    const [book, setBook] = useState<BookDetail | null>(null);
     const [showDropdown, setShowDropdown] = useState(false);
-    const [wishlist, setWishlist] = useState<BookFlags>({});
-    const [cart, setCart] = useState<BookFlags>({});
     const [searchQuery, setSearchQuery] = useState('');
     const [showChat, setShowChat] = useState(false);
-    const [sellerInfo, setSellerInfo] = useState<ProfileResponse | null>(null);
-    const [unreadCount, setUnreadCount] = useState(0);
     const { id } = useParams();
     const navigate = useNavigate();
     const userEmail = getUserEmail();
+    const signedIn = Boolean(userEmail);
     const scrollRef = useRef<HTMLDivElement | null>(null);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState<string | null>(null);
 
-    // Fetch book details with stock info
-    useEffect(() => {
-        const fetchBook = async () => {
-            try {
-                setLoading(true);
-                const response = await apiFetch(`${API_BASE_URL}/book/${id}`);
-                if (!response.ok) {
-                    throw new Error('Failed to fetch book');
-                }
-                const data = (await response.json()) as BookDetail;
-                setBook(data);
-            } catch (err) {
-                console.error('Error:', err);
-                setError(messageOf(err));
-            } finally {
-                setLoading(false);
-            }
-        };
+    // Everything below is derived from a query rather than fetched into state
+    // by an effect, so a second visit to a book is served from the cache and
+    // the loading and error flags are the query's rather than hand-rolled.
+    const bookQuery = useBook(id);
+    const book = bookQuery.data ?? null;
+    const loading = bookQuery.isPending;
+    const error = bookQuery.isError ? messageOf(bookQuery.error) : null;
 
-        if (id) {
-            fetchBook();
-        }
-    }, [id]);
+    // The seller's public details, which only exist once the book has loaded.
+    const { data: sellerInfo = null } = useProfile(book?.sellerEmail, {
+        enabled: Boolean(book?.sellerEmail),
+    });
 
-    // Fetch seller info
-    useEffect(() => {
-        if (book?.sellerEmail) {
-            apiFetch(`${API_BASE_URL}/user/profile?email=${book.sellerEmail}`)
-                .then(res => res.json() as Promise<ProfileResponse>)
-                .then(data => setSellerInfo(data));
-        }
-    }, [book?.sellerEmail]);
-
-    // Derived from a query rather than copied into state by an effect.
-    const { data: profile } = useProfile(userEmail, { enabled: Boolean(userEmail) });
+    const { data: profile } = useProfile(userEmail, { enabled: signedIn });
     const profilePic = profile?.profilePicture ?? null;
     const username = profile?.username ?? '';
     const user = userEmail ? { email: userEmail } : null;
 
-    // Add/update cart state loading
+    // Only the ids are needed for the heart and cart buttons.
+    const { data: cart = {} } = useCart({ enabled: signedIn, select: flagsFor });
+    const { data: wishlist = {} } = useWishlist({ enabled: signedIn, select: flagsFor });
+
+    const { mutateAsync: toggleCartMutation } = useToggleCart();
+    const { mutateAsync: toggleWishlistMutation } = useToggleWishlist();
+
+    const { data: unread } = useUnreadChatCount(signedIn);
+    // Live arrivals bump the badge on top of whatever the query last returned.
+    const [liveUnread, setLiveUnread] = useState(0);
+    const unreadCount = (unread?.count ?? 0) + liveUnread;
+
     useEffect(() => {
-        if (!userEmail) return;
-        apiFetch(`${API_BASE_URL}/cart?email=${encodeURIComponent(userEmail)}`)
-            .then(res => res.json() as Promise<Book[]>)
-            .then(data => setCart(flagsFor(data)));
-    }, [userEmail]);
+        if (!userEmail) return undefined;
 
-    // Add/update wishlist state loading
-    useEffect(() => {
-        if (!userEmail) return;
-        apiFetch(`${API_BASE_URL}/wishlist?email=${encodeURIComponent(userEmail)}`)
-            .then(res => res.json() as Promise<Book[]>)
-            .then(data => setWishlist(flagsFor(data)));
-    }, [userEmail]);
-
-    // Fetch initial unread count and setup socket
-    useEffect(() => {
-        if (!userEmail) return;
-
-        // Fetch initial unread count
-        apiFetch(`${API_BASE_URL}/chat/unread/${userEmail}`)
-            .then(res => res.json() as Promise<UnreadCountResponse>)
-            .then(data => setUnreadCount(data.count));
-
-        // Socket event handlers
         const handleNewMessage = (data: ChatMessage) => {
             if (data.receiver === userEmail && !window.location.pathname.includes('/chat')) {
-                setUnreadCount(prev => prev + 1);
+                setLiveUnread((count) => count + 1);
             }
         };
 
@@ -123,21 +87,11 @@ export default function BookView() {
             return;
         }
 
+        const isInCart = Boolean(cart[bookId]);
         try {
-            const isInCart = !!cart[bookId];
-            const response = await apiFetch(`${API_BASE_URL}/cart/${isInCart ? 'remove' : 'add'}/${bookId}`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ email: userEmail })
-            });
-
-            if (!response.ok) {
-                const errorData = await response.json();
-                throw new Error(errorData.message || 'Failed to update cart');
-            }
-
-            const data = (await response.json()) as Book[];
-            setCart(flagsFor(data));
+            // The mutation invalidates the cart, so every page showing it - the
+            // badge here included - updates without this one tracking a copy.
+            await toggleCartMutation({ bookId, inCart: isInCart });
             alert(isInCart ? 'Removed from cart!' : 'Added to cart successfully!');
         } catch (error) {
             console.error('Cart error:', error);
@@ -151,21 +105,9 @@ export default function BookView() {
             return;
         }
 
+        const isInWishlist = Boolean(wishlist[bookId]);
         try {
-            const isInWishlist = !!wishlist[bookId];
-            const response = await apiFetch(`${API_BASE_URL}/wishlist/${isInWishlist ? 'remove' : 'add'}/${bookId}`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ email: userEmail })
-            });
-
-            if (!response.ok) {
-                const errorData = await response.json();
-                throw new Error(errorData.message || 'Failed to update wishlist');
-            }
-
-            const data = (await response.json()) as Book[];
-            setWishlist(flagsFor(data));
+            await toggleWishlistMutation({ bookId, inWishlist: isInWishlist });
             alert(isInWishlist ? 'Removed from wishlist!' : 'Added to wishlist successfully!');
         } catch (error) {
             console.error('Wishlist error:', error);

@@ -1,67 +1,40 @@
-import { useEffect, useState } from 'react';
 import { FaTrash, FaHome, FaShoppingCart } from 'react-icons/fa';
 import { useNavigate, Link } from 'react-router-dom';
 
 import type { Book } from '@shared/api.js';
 
-import { API_BASE_URL, apiFetch } from '../config/api.js';
+import { API_BASE_URL } from '../config/api.js';
+import { useCart, useToggleCart, useToggleWishlist, useWishlist } from '../hooks/queries.js';
 import { getUserEmail } from '../utils/auth.js';
-import { flagsFor, type BookFlags } from '../utils/bookFlags.js';
+import { flagsFor } from '../utils/bookFlags.js';
 
 export default function Wishlist() {
-  const [wishlist, setWishlist] = useState<Book[]>([]);
-  const [cart, setCart] = useState<BookFlags>({});
-  const [error, setError] = useState<string | null>(null);
   const navigate = useNavigate();
   const userEmail = getUserEmail();
+  const signedIn = Boolean(userEmail);
 
-  // Fetch wishlist from backend for the specific user
-  useEffect(() => {
-    if (!userEmail) return;
-    apiFetch(`${API_BASE_URL}/wishlist?email=${encodeURIComponent(userEmail)}`)
-      .then((res) => res.json() as Promise<Book[]>)
-      .then((data) => setWishlist(Array.isArray(data) ? data : []))
-      .catch(() => setError('Failed to load wishlist.'));
-  }, [userEmail]);
+  const wishlistQuery = useWishlist({ enabled: signedIn });
+  const wishlist = wishlistQuery.data ?? [];
+  const error = wishlistQuery.isError ? 'Failed to load wishlist.' : null;
 
-  // Load cart state from backend
-  useEffect(() => {
-    if (!userEmail) return;
-    apiFetch(`${API_BASE_URL}/cart?email=${encodeURIComponent(userEmail)}`)
-      .then(res => res.json() as Promise<Book[]>)
-      .then(data => setCart(flagsFor(Array.isArray(data) ? data : [])));
-  }, [userEmail]);
+  // Only the ids are needed for the cart buttons.
+  const { data: cart = {} } = useCart({ enabled: signedIn, select: flagsFor });
 
-  // Toggle cart for a book
+  // Both mutations invalidate their query, so the list and the buttons update
+  // from the cache instead of from each response individually.
+  const { mutate: toggleCart } = useToggleCart();
+  const { mutate: toggleWishlist } = useToggleWishlist();
+
   const handleToggleCart = (id: string) => {
     if (!userEmail) {
       alert('Please sign in to use cart.');
       return;
     }
-    const isInCart = !!cart[id];
-    apiFetch(`${API_BASE_URL}/cart/${isInCart ? 'remove' : 'add'}/${id}`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email: userEmail })
-    })
-      .then(res => res.json() as Promise<Book[]>)
-      .then(data => setCart(flagsFor(data)));
+    toggleCart({ bookId: id, inCart: Boolean(cart[id]) });
   };
 
-  // Remove a book from wishlist for the specific user
-  const handleDelete = async (id: string) => {
-    try {
-      // Use /wishlist/remove/:id for consistency with homepage logic
-      const res = await apiFetch(`${API_BASE_URL}/wishlist/remove/${id}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: userEmail })
-      });
-      const updatedWishlist = (await res.json()) as Book[];
-      setWishlist(updatedWishlist);
-    } catch (err) {
-      console.error('Error deleting from wishlist:', err);
-    }
+  const handleDelete = (id: string) => {
+    toggleWishlist({ bookId: id, inWishlist: true });
   };
 
   // Helper to resolve image src

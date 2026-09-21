@@ -38,6 +38,10 @@ services:
       ADMIN_EMAILS: ${ADMIN_EMAILS:-}
       # Same-origin through nginx, so CORS is not exercised at all.
       CORS_ORIGINS: http://localhost:8080
+      # nginx serves the bundle in this stack, so the API should not try to.
+      # Stated rather than left to default: on in production, the API would
+      # warn on every boot about a build it was never meant to have.
+      SERVE_CLIENT: 'false'
       # Optional image hosting; unset means covers stay inline.
       CLOUDINARY_CLOUD_NAME: ${CLOUDINARY_CLOUD_NAME:-}
       CLOUDINARY_API_KEY: ${CLOUDINARY_API_KEY:-}

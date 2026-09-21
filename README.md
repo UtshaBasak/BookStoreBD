@@ -345,7 +345,7 @@ check. `JWT_SECRET` is required; Compose refuses to start without it.
 | `REFRESH_TOKEN_TTL_DAYS` |    | `30`                                                   | Refresh token lifetime                                  |
 | `COOKIE_SECURE`    |          | on in production                                       | `Secure` flag on the refresh cookie                     |
 | `COOKIE_SAME_SITE` |          | `lax`                                                  | `SameSite` on the refresh cookie                        |
-| `SERVE_CLIENT`     |          | on in production                                       | Serve `client/dist` from the API process                |
+| `SERVE_CLIENT`     |          | on in production                                       | Serve `client/dist` from the API process; warns at start-up if there is no build |
 | `CLOUDINARY_CLOUD_NAME` |     | —                                                      | Enables image hosting; unset keeps covers inline        |
 | `CLOUDINARY_API_KEY` |       | —                                                      | Cloudinary API key                                      |
 | `CLOUDINARY_API_SECRET` |    | —                                                      | Signs uploads. Secret — never commit                    |
@@ -590,7 +590,8 @@ itself.
 Cookies are first-party because the client and API share an origin: the Vite
 dev server proxies the API in development, and nginx does in the production
 compose stack. `SERVE_CLIENT=true` makes the API serve the built client itself,
-for a single-service deployment.
+for a single-service deployment — run `npm run build` in `client/` first, or the
+API will start, warn that it found no bundle, and serve only itself.
 
 The server resolves the caller from that token and **ignores any identity in
 the request itself**. An `?email=` in a query string is supplied by the caller

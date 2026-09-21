@@ -2,10 +2,12 @@ import path from 'path';
 import { existsSync } from 'fs';
 
 import express, { type Express } from 'express';
+import type { Logger } from 'pino';
 import cors from 'cors';
 import cookieParser from 'cookie-parser';
 
 import { config } from './config/env.js';
+import { createLogger } from './config/logger.js';
 import { corsOptions } from './config/cors.js';
 import { isApiPath, API_PREFIX } from './config/apiPaths.js';
 import { CLIENT_DIST, UPLOADS_DIR } from './config/paths.js';
@@ -26,11 +28,27 @@ import uploadRouter from './routes/upload.route.js';
 import userRouter from './routes/user.route.js';
 import wishlistRouter from './routes/wishlist.route.js';
 
+const log = createLogger('app');
+
+export interface CreateAppOptions {
+  /**
+   * Where the built client lives. Defaulted from the package root; a test
+   * points it somewhere known so both branches below can be exercised without
+   * depending on whether anyone has run a build.
+   */
+  clientDist?: string;
+  /** Overridden in tests so the start-up warning can be asserted on. */
+  logger?: Logger;
+}
+
 /**
  * Builds the Express application. Kept free of side effects (no listen, no DB
  * connection) so it can be imported by tests or a serverless adapter.
  */
-export const createApp = (): Express => {
+export const createApp = ({
+  clientDist = CLIENT_DIST,
+  logger: appLog = log,
+}: CreateAppOptions = {}): Express => {
   const app = express();
 
   // Behind Render's proxy, so the rate limiter keys on the real client IP
@@ -80,15 +98,27 @@ export const createApp = (): Express => {
   // Registered after the routers, so an API path is never swallowed by the
   // fallback below.
   // ------------------------------------------------------------------------
-  if (config.serveClient && existsSync(CLIENT_DIST)) {
-    app.use(express.static(CLIENT_DIST));
+  if (config.serveClient) {
+    if (existsSync(clientDist)) {
+      app.use(express.static(clientDist));
 
-    app.get(/.*/, (req, res, next) => {
-      // A miss under an API prefix is a 404, not the app shell — otherwise a
-      // typo'd endpoint would return HTML and a fetch would fail confusingly.
-      if (isApiPath(req.path)) return next();
-      return res.sendFile(path.join(CLIENT_DIST, 'index.html'));
-    });
+      app.get(/.*/, (req, res, next) => {
+        // A miss under an API prefix is a 404, not the app shell — otherwise a
+        // typo'd endpoint would return HTML and a fetch would fail confusingly.
+        if (isApiPath(req.path)) return next();
+        return res.sendFile(path.join(clientDist, 'index.html'));
+      });
+    } else {
+      // Asked to serve the app with nothing to serve. Mounting it anyway would
+      // answer every page with a 500 from sendFile, so the API carries on
+      // serving only itself - but doing that *silently* is how this went
+      // unnoticed in Docker the first time, so it is said out loud.
+      appLog.warn(
+        { clientDist },
+        'SERVE_CLIENT is on but no client build was found; the API will not serve the app. ' +
+          'Run `npm run build` in client/, or unset SERVE_CLIENT if something else serves it.'
+      );
+    }
   }
 
   app.use(notFoundHandler);

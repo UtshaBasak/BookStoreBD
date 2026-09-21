@@ -12,24 +12,26 @@ that a real finding is noticeable.
 
 | Rule | Count | Why it is not a defect |
 | ---- | ----: | ---------------------- |
-| `js/sql-injection` | 14 | Every site sits behind a Zod schema that narrows the value to a primitive, so an operator object can never reach Mongoose. CodeQL cannot see through a schema. Adding a generic narrowing pass to `validate.js` was tried and did not clear them, so it was reverted rather than left in as code with a justification that is not true. |
+| `js/sql-injection` | 14 | Every site sits behind a Zod schema that narrows the value to a primitive, so an operator object can never reach Mongoose. CodeQL cannot see through a schema. Adding a generic narrowing pass to `validate.ts` was tried and did not clear them, so it was reverted rather than left in as code with a justification that is not true. |
 | `js/xss-through-dom` | 5 | `URL.createObjectURL` can only produce a `blob:` URL; CodeQL models it as taint-propagating regardless. The only barriers the query accepts would corrupt a `blob:` or `data:` URL. |
 | `js/missing-token-validation` | 1 | The refresh cookie is `SameSite=Lax` and both endpoints that read it are POST, so a browser will not attach it cross-site. Every other endpoint authenticates from the `Authorization` header, which a third-party page cannot set. Pinned by tests asserting the cookie alone authenticates nothing. |
-| `js/clear-text-logging` | 1 | `scripts/seed.js` prints the demo password on purpose — you cannot sign in to a seeded account without being told it. |
+| `js/clear-text-logging` | 1 | `scripts/seed.ts` prints the demo password on purpose — you cannot sign in to a seeded account without being told it. |
 
 ---
 
 **Current baseline.** Lint, type-check, build and boot are green from a clean
-`npm ci`; all three package roots report zero dependency vulnerabilities; CodeQL
-reports five findings, all confirmed false positives in the same rule
-(`js/xss-through-dom`). Authentication and authorisation are enforced
-server-side, sessions use short access tokens with rotating refresh tokens, and
-every endpoint validates its input against a Zod schema. All eight tasks are
-complete: the whole codebase is TypeScript under `strict`, **204 tests** (150
-server, 54 client) gate every push, `docker compose up` brings the whole stack
-up with no local Node or MongoDB install, the API emits structured logs with a
-correlation id per request, and book covers can be hosted on a CDN instead of
-living in the database.
+`npm ci`, and all three package roots report zero dependency vulnerabilities.
+The CodeQL findings are the ones in the table above, all confirmed false
+positives; they have not been re-run since the TypeScript migration, so that
+count is the last measured one rather than a current one. Authentication and
+authorisation are enforced server-side, sessions use short access tokens with
+rotating refresh tokens, and every endpoint that reads a body, query or param
+validates it against a Zod schema. All eight tasks are complete: the whole
+codebase is TypeScript under `strict`, **209 tests** (155 server, 54 client)
+gate every push, `docker compose up` brings the whole stack up with no local
+Node or MongoDB install, the API emits structured logs with a correlation id
+per request, and book covers can be hosted on a CDN instead of living in the
+database.
 
 ---
 
@@ -86,7 +88,7 @@ build or CodeQL.
 **Client coverage**
 
 - `safeImageSrc` scheme validation
-- `auth.js` session helpers
+- `auth.ts` session helpers
 - `apiFetch` attaches the bearer token and clears the session on `401`
 - Smoke render of two or three pages
 
@@ -101,14 +103,15 @@ build or CodeQL.
   people to ignore CI.
 
 **Done.** `npm test` runs both suites from the repository root, CI fails on a
-red test, and `server/tests/regressions.test.js` covers every defect found in
+red test, and `server/tests/regressions.test.ts` covers every defect found in
 the audit: the missing `/cart/clear`, the oversell race, the authentication
 bypass, the profile PII leak, and the two chat endpoints that used to fail
 outright.
 
-Not covered yet, and worth adding as the code changes: page-level component
-tests beyond the smoke level, and the OTP e-mail flow, which needs the SMTP
-transport stubbed.
+**Not delivered from the plan above:** the client smoke renders. The client
+suite covers `safeImageSrc`, the session helpers, `apiFetch` and the error
+boundary — four files, no page-level render at all. Worth adding, along with
+the OTP e-mail flow, which needs the SMTP transport stubbed.
 
 ---
 
@@ -127,7 +130,7 @@ setup stops depending on what happens to be installed on a given machine.
 - `server/Dockerfile` and `client/Dockerfile` (multi-stage: build, then serve
   the static bundle)
 - `.dockerignore` for both
-- `server/scripts/seed.js` — sample books, a buyer, a seller and an admin, so
+- `server/scripts/seed.ts` — sample books, a buyer, a seller and an admin, so
   a fresh database is immediately usable
 - README section for the Docker path alongside the existing npm path
 
@@ -183,7 +186,7 @@ One bug found by reading the real output: the access log said `GET /` for every
 routed request, because Express rewrites `req.url` relative to a router's mount
 point. It uses `req.originalUrl` now, and a test pins it.
 
-`scripts/seed.js` deliberately keeps `console`, being a CLI whose output is read
+`scripts/seed.ts` deliberately keeps `console`, being a CLI whose output is read
 by a person.
 
 ---
@@ -202,23 +205,30 @@ consistent shape:
 
 **Scope**
 
-- `zod` 4.x, `server/middleware/validate.js`, `server/schemas/<domain>.js`
+- `zod` 4.x, `server/middleware/validate.ts`, `server/schemas/<domain>.ts`
 - Wire into every route that reads a body, query or param
 
 **This partly replaces existing code, deliberately.** The current
-`utils/sanitize.js` helpers (`asTrimmedString`, `asNonNegativeInt`) exist to
+`utils/sanitize.js` helpers (`asTrimmedString`, `asNonNegativeInt`) existed to
 narrow request values so a `{"$ne": null}` object can never reach a Mongoose
 query. Zod's `.string()` and `.number()` give the same guarantee with far
 better error messages, so most of `sanitize.js` retires once schemas are in
-place. `middleware/sanitizeRequest.js` stays as defence in depth.
+place. `middleware/sanitizeRequest.ts` stays as defence in depth.
 
 Schemas also produce static types through `z.infer`, which is why this comes
 before TypeScript.
 
-**Done.** `middleware/validate.js` plus `schemas/common.js` and
-`schemas/index.js`. All 31 `asTrimmedString` calls removed and
-`utils/sanitize.js` deleted; `middleware/sanitizeRequest.js` stays as defence
+**Done.** `middleware/validate.ts` plus `schemas/common.ts` and
+`schemas/index.ts`. All 31 `asTrimmedString` calls removed and
+`utils/sanitize.js` deleted; `middleware/sanitizeRequest.ts` stays as defence
 in depth.
+
+One endpoint was missed at the time and closed later: `POST /user/add-book`
+read a whole multipart body with no schema, because it is the one route whose
+body is assembled from form fields rather than JSON. It has one now, which also
+does the shaping the handler used to do by hand — `category` arrives as an
+array whether it was sent once or five times, and `pages` and `price` as
+numbers.
 
 Two traps found while building it:
 
@@ -295,8 +305,11 @@ Two things worth recording:
 - `client/dist` is not inside the server image, so the first attempt at
   same-origin quietly did nothing in Docker — `GET /` returned 404 while the
   tests passed. Serving the client is now gated behind an explicit
-  `SERVE_CLIENT` switch rather than an `existsSync` check, so behaviour no
-  longer depends on whether a build happens to be on disk.
+  `SERVE_CLIENT` switch, and when that switch is on with no bundle on disk the
+  API says so at start-up instead of serving nothing in silence. The nginx
+  stack sets `SERVE_CLIENT: 'false'`, because there the bundle is deliberately
+  somewhere else and an unheeded warning on every boot is how warnings stop
+  being read.
 
 ---
 
@@ -314,8 +327,8 @@ Book covers are currently base64 data URIs stored on the document.
    inline. List endpoints now project `images: { $slice: 1 }`, since every
    list view renders only the first cover; the detail endpoint still returns
    the full set. Measured on 40 books with 5 covers each: **23.45 MB → 4.70 MB**.
-   Dropping images entirely was not an option — `Homepage.jsx` and
-   `Filter.jsx` render `book.images[0]` straight from the list response.
+   Dropping images entirely was not an option — `Homepage.tsx` and
+   `Filter.tsx` render `book.images[0]` straight from the list response.
 2. Documents approach the 16 MB MongoDB limit, nothing is CDN-cached, and the
    database carries binary weight it should not.
 
@@ -371,11 +384,24 @@ demoted to warnings so CI can pass.
   back to `error` once the count reaches zero
 
 **Done.** `npm run lint` reports zero warnings with both rules at `error`.
-`hooks/queries.js` holds every query and mutation, with the cache keys in one
-place so an invalidation cannot miss by typo. Pages that fetched in an effect
-now read from a query; the rest of the flagged state is computed during render
-(a `useMemo` for the filtered catalogue, URL-derived filters, and React's
-documented compare-with-previous pattern for resetting a chat thread).
+`hooks/queries.ts` holds every query and mutation, with the cache keys in one
+place so an invalidation cannot miss by typo. The remaining flagged state is
+computed during render (a `useMemo` for the filtered catalogue, URL-derived
+filters, and React's documented compare-with-previous pattern for resetting a
+chat thread).
+
+**Finished later.** Reaching zero warnings did not mean the pattern was gone:
+the rule only flags a synchronous `setState` in an effect, not one inside a
+`.then()`. Nine pages still fetched in an effect and hand-rolled state that a
+hook in `queries.ts` already provided — `admin/TransactionHistory`, `Profile`,
+`UpdateProfile`, `Cart`, `Wishlist`, `Filter`, `BookView` and both order
+tracking pages. They read from the shared queries now, so opening the cart and
+then the wishlist costs one request for each rather than two, and a toggle
+updates every page showing it through one invalidation.
+
+Still fetching directly, on purpose: `ChatPage` and `ChatWindow`, which page
+through history and take live updates over a socket rather than through the
+cache, and the three writes in `Payment`, which are mutations mid-checkout.
 
 The migration exposed a real bug that predated it. Making the app same-origin
 in task 2 put the API at the root alongside the client routes, and five of them
@@ -484,8 +510,10 @@ lookups the code has just populated.
 ## Working agreement
 
 - One task per commit, each self-contained and revertible.
-- Before every commit: `npm run lint`, `npm run build`, `npm test`, and a
-  CodeQL run for anything touching request handling.
+- Before every commit: `npm run lint`, `npm run typecheck`, `npm test`,
+  `npm run build`, and a CodeQL run for anything touching request handling.
+  The type-check is the one that catches a type error — `tsx` and Vite both
+  strip types without looking at them.
 - New environment variables land in the matching `.env.example` **and** the
   README table in the same commit.
 - New endpoints land in the README API reference in the same commit.

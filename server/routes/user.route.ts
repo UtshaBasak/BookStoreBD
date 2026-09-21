@@ -16,7 +16,12 @@ import { isOwnedCloudinaryUrl } from '../config/cloudinary.js';
 import { createLogger } from '../config/logger.js';
 import { errorMessage } from '../utils/error.js';
 import { validate } from '../middleware/validate.js';
-import { authSchemas, userSchemas, type IdParams } from '../schemas/index.js';
+import {
+  authSchemas,
+  userSchemas,
+  type AddBookBody,
+  type IdParams,
+} from '../schemas/index.js';
 
 const log = createLogger('user-routes');
 
@@ -29,14 +34,9 @@ const router = express.Router();
  * telling the server what to store, so without that check a caller could pin
  * any URL they liked to a listing and have it rendered to every visitor.
  */
-const collectHostedImages = (body: Record<string, unknown>) => {
-  const toArray = (value: unknown): unknown[] =>
-    Array.isArray(value) ? value : value ? [value] : [];
-
-  const urls = toArray(body.images).filter(isOwnedCloudinaryUrl);
-  const ids = toArray(body.imagePublicIds).filter(
-    (id): id is string => typeof id === 'string' && id.length > 0
-  );
+const collectHostedImages = (body: AddBookBody) => {
+  const urls = (body.images ?? []).filter(isOwnedCloudinaryUrl);
+  const ids = (body.imagePublicIds ?? []).filter((id) => id.length > 0);
 
   return { images: urls, publicIds: urls.length ? ids.slice(0, urls.length) : [] };
 };
@@ -80,35 +80,31 @@ router.post(
   '/add-book',
   requireAuth,
   upload.array('images', config.uploads.maxFilesPerRequest),
-  async (req, res) => {
+  // After multer, which is what populates req.body for a multipart form. The
+  // schema also does the shaping the handler used to do by hand: `category`
+  // arrives as an array either way, and `pages` and `price` as numbers.
+  validate(userSchemas.addBook),
+  async (req: Request<unknown, unknown, AddBookBody>, res: Response) => {
     try {
       // Two ways in. When image hosting is configured the browser has already
       // uploaded to Cloudinary and sends back the URLs; otherwise the files
       // arrive here and are stored inline as before.
-      const body = (req.body ?? {}) as Record<string, unknown>;
-      const hosted = collectHostedImages(body);
+      const hosted = collectHostedImages(req.body);
       const files = Array.isArray(req.files) ? req.files : [];
       const inline = files.map(
         (file) => `data:${file.mimetype};base64,${file.buffer.toString('base64')}`
       );
 
-      const bookData: Record<string, unknown> = {
-        ...body,
+      const newBook = new AddBook({
+        ...req.body,
         images: hosted.images.length ? hosted.images : inline,
         imagePublicIds: hosted.publicIds,
         // The seller is the signed-in user. Taking this from the body would let
         // anyone publish a listing under someone else's name.
         sellerEmail: actingUser(req).email,
         stock: 1,
-      };
+      });
 
-      if (typeof bookData.category === 'string') {
-        bookData.category = [bookData.category];
-      }
-      if (bookData.pages) bookData.pages = Number(bookData.pages);
-      if (bookData.price) bookData.price = Number(bookData.price);
-
-      const newBook = new AddBook(bookData);
       await newBook.save();
       res.status(201).json({ message: 'Book added successfully!', book: newBook });
     } catch (error) {

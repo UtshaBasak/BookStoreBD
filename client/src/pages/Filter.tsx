@@ -1,13 +1,18 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useMemo } from 'react';
 import { FaSearch, FaHome, FaStar, FaHeart, FaRegHeart, FaShoppingCart } from 'react-icons/fa';
 import { useLocation, useNavigate } from 'react-router-dom';
 
 import type { Book } from '@shared/api.js';
 
-import { API_BASE_URL, apiFetch } from '../config/api.js';
-import { useCatalogue } from '../hooks/queries.js';
+import {
+  useCart,
+  useCatalogue,
+  useToggleCart,
+  useToggleWishlist,
+  useWishlist,
+} from '../hooks/queries.js';
 import { getUserEmail } from '../utils/auth.js';
-import { flagsFor, type BookFlags } from '../utils/bookFlags.js';
+import { flagsFor } from '../utils/bookFlags.js';
 
 /**
  * A book plus the rating fields this page sorts and filters on.
@@ -55,9 +60,8 @@ export default function BookFilter() {
   const [priceFilter, setPriceFilter] = useState({ from: '', to: '' });
 
   const [sortOption, setSortOption] = useState('popular');
-  const [wishlist, setWishlist] = useState<BookFlags>({});
-  const [cart, setCart] = useState<BookFlags>({});
   const userEmail = getUserEmail();
+  const signedIn = Boolean(userEmail);
   const location = useLocation();
   const navigate = useNavigate();
 
@@ -112,16 +116,14 @@ export default function BookFilter() {
 
   const { data: bookList = [] } = useCatalogue();
 
-  // Fetch wishlist and cart for toggle buttons
-  useEffect(() => {
-    if (!userEmail) return;
-    apiFetch(`${API_BASE_URL}/wishlist?email=${encodeURIComponent(userEmail)}`)
-      .then(res => res.json() as Promise<Book[]>)
-      .then(data => setWishlist(flagsFor(data)));
-    apiFetch(`${API_BASE_URL}/cart?email=${encodeURIComponent(userEmail)}`)
-      .then(res => res.json() as Promise<Book[]>)
-      .then(data => setCart(flagsFor(data)));
-  }, [userEmail]);
+  // Only the ids are needed for the toggle buttons, so each response is mapped
+  // into a lookup as it arrives. Shared with every other page asking for them.
+  const { data: wishlist = {} } = useWishlist({ enabled: signedIn, select: flagsFor });
+  const { data: cart = {} } = useCart({ enabled: signedIn, select: flagsFor });
+
+  // Both mutations invalidate their query, so the icons follow the cache.
+  const { mutate: toggleWishlistMutation } = useToggleWishlist();
+  const { mutate: toggleCartMutation } = useToggleCart();
 
   // Filtering logic
   const filteredBooks = useMemo(() => {
@@ -228,33 +230,21 @@ export default function BookFilter() {
   //   // Rating functionality to be added later
   // };
   // Wishlist toggle
-  const handleToggleWishlist = async (bookId: string) => {
+  const handleToggleWishlist = (bookId: string) => {
     if (!userEmail) {
       alert('Please sign in to use wishlist.');
       return;
     }
-    const isInWishlist = !!wishlist[bookId];
-    await apiFetch(`${API_BASE_URL}/wishlist/${isInWishlist ? 'remove' : 'add'}/${bookId}`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email: userEmail })
-    });
-    setWishlist(w => ({ ...w, [bookId]: !isInWishlist }));
+    toggleWishlistMutation({ bookId, inWishlist: Boolean(wishlist[bookId]) });
   };
 
   // Cart toggle
-  const handleToggleCart = async (bookId: string) => {
+  const handleToggleCart = (bookId: string) => {
     if (!userEmail) {
       alert('Please sign in to use cart.');
       return;
     }
-    const isInCart = !!cart[bookId];
-    await apiFetch(`${API_BASE_URL}/cart/${isInCart ? 'remove' : 'add'}/${bookId}`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email: userEmail })
-    });
-    setCart(w => ({ ...w, [bookId]: !isInCart }));
+    toggleCartMutation({ bookId, inCart: Boolean(cart[bookId]) });
   };
 
   return (

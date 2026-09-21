@@ -1,49 +1,29 @@
-import { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { FaHome, FaHeart, FaShoppingCart } from 'react-icons/fa';
 
 import type { OwnProfile } from '@shared/api.js';
 
-import { API_BASE_URL, apiFetch, signOut } from '../config/api.js';
+import { signOut } from '../config/api.js';
+import { useProfile } from '../hooks/queries.js';
 import { getUserEmail, isAdmin } from '../utils/auth.js';
 
 export default function Profile() {
+    const [profileMode, setProfileMode] = useState('buyer'); // 'buyer' or 'seller'
+    const navigate = useNavigate();
+    const userEmail = getUserEmail();
+
+    // Rendering guards only; the API re-checks both on every request.
+    useEffect(() => {
+        if (!userEmail) navigate('/sign-in');
+        else if (isAdmin()) navigate('/admin/users', { replace: true });
+    }, [navigate, userEmail]);
+
     // Partial because the API returns only the public fields to anyone who is
     // not the owner; this page always asks for its own, but the type should
     // not pretend the rest are guaranteed.
-    const [profileData, setProfileData] = useState<Partial<OwnProfile>>({
-        email: '',
-        username: '',
-    });
-    const [profileMode, setProfileMode] = useState('buyer'); // 'buyer' or 'seller'
-    const navigate = useNavigate();
-
-    useEffect(() => {
-        const fetchProfile = async () => {
-            try {
-                const userEmail = getUserEmail();
-                if (!userEmail) {
-                    navigate('/sign-in');
-                    return;
-                }
-
-                const res = await apiFetch(`${API_BASE_URL}/user/profile?email=${userEmail}`);
-                if (!res.ok) {
-                    throw new Error(`Failed to fetch profile: ${res.statusText}`);
-                }
-                const data = (await res.json()) as Partial<OwnProfile>;
-                // Redirect admin to admin panel
-                if (isAdmin()) {
-                    navigate('/admin/users', { replace: true });
-                    return;
-                }
-                setProfileData(data);
-            } catch (err) {
-                console.error('Error fetching profile:', err);
-            }
-        };
-        fetchProfile();
-    }, [navigate]);
+    const { data } = useProfile(userEmail, { enabled: Boolean(userEmail) });
+    const profileData: Partial<OwnProfile> = data ?? { email: '', username: '' };
 
     // Helper: show only if value is not blank/undefined/null
     const showIfFilled = (val: unknown) =>

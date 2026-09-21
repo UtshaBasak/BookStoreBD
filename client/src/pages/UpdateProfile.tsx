@@ -1,10 +1,10 @@
-import { useState, useEffect, type ChangeEvent, type FormEvent } from 'react';
+import { useState, type ChangeEvent, type FormEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
 
-import type { OwnProfile } from '@shared/api.js';
-
 import { API_BASE_URL, apiFetch } from '../config/api.js';
+import { useProfile } from '../hooks/queries.js';
 import { getUserEmail } from '../utils/auth.js';
+import { isOwnProfile } from '../utils/profile.js';
 import { safeImageSrc, safeObjectUrl } from '../utils/safeImageSrc.js';
 
 /** The editable profile. Every field a string, because every field is an input. */
@@ -19,90 +19,54 @@ interface ProfileForm {
 }
 
 export default function UpdateProfile() {
-    const [formData, setFormData] = useState<ProfileForm>({
-        email: '',
-        username: '',
-        password: '',
-        address: '',
-        phone: '',
-        dateOfBirth: '',
-        gender: '',
-    });
     const [profilePicture, setProfilePicture] = useState<File | null>(null);
-    const [profilePicturePreview, setProfilePicturePreview] = useState<string | null>(null);
     const [removeProfilePicture, setRemoveProfilePicture] = useState(false);
     const [errorMsg, setErrorMsg] = useState('');
     const navigate = useNavigate();
+    const userEmail = getUserEmail();
 
-    useEffect(() => {
-        const fetchProfile = async () => {
-            try {
-                const userEmail = getUserEmail() || 'user@example.com';
-                const res = await apiFetch(`${API_BASE_URL}/user/profile?email=${userEmail}`);
-                if (!res.ok) {
-                    console.error(`Failed to fetch profile: ${res.statusText}`);
-                    return;
-                }
-                const data = (await res.json()) as Partial<OwnProfile>;
-                setFormData(prev => ({
-                    ...prev,
-                    username: data.username || '',
-                    email: data.email || '',
-                    address: data.address || '',
-                    phone: data.phone || '',
-                    dateOfBirth: data.dateOfBirth ? data.dateOfBirth.slice(0, 10) : '',
-                    gender: data.gender || '',
-                    password: ''
-                }));
-                // Show current profile picture if exists (base64)
-                if (data.profilePicture) {
-                    setProfilePicturePreview(data.profilePicture);
-                    setRemoveProfilePicture(false); // reset remove flag on load
-                } else {
-                    setProfilePicturePreview(null);
-                }
-            } catch (err) {
-                console.error('Error fetching profile:', err);
-            }
-        };
-        fetchProfile();
-    }, []);
+    const { data: profile } = useProfile(userEmail, { enabled: Boolean(userEmail) });
+    const stored = isOwnProfile(profile) ? profile : null;
+
+    /**
+     * The saved profile is the starting point; an edit is kept as an override
+     * on top of it. Derived during render rather than copied in by an effect,
+     * so a slow response cannot land after the user has started typing and
+     * overwrite what they wrote.
+     */
+    const [edits, setEdits] = useState<Partial<ProfileForm>>({});
+    const formData: ProfileForm = {
+        username: edits.username ?? profile?.username ?? '',
+        email: edits.email ?? profile?.email ?? '',
+        password: edits.password ?? '',
+        address: edits.address ?? stored?.address ?? '',
+        phone: edits.phone ?? stored?.phone ?? '',
+        dateOfBirth: edits.dateOfBirth ?? stored?.dateOfBirth?.slice(0, 10) ?? '',
+        gender: edits.gender ?? stored?.gender ?? '',
+    };
+
+    // A freshly picked file wins; otherwise the stored avatar, unless it has
+    // been removed in this session.
+    const pickedPreview = profilePicture ? safeObjectUrl(profilePicture) : null;
+    const profilePicturePreview =
+        pickedPreview ?? (removeProfilePicture ? null : profile?.profilePicture ?? null);
 
     const handleChange = (e: ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
         const { name, value } = e.target;
-        if (name === 'phone') {
-            // Only allow numbers
-            if (/^\d*$/.test(value)) {
-                setFormData({
-                    ...formData,
-                    [name]: value,
-                });
-            }
-        } else if (name === 'gender') {
-            setFormData({
-                ...formData,
-                gender: value // '' for None, 'male', or 'female'
-            });
-        } else {
-            setFormData({
-                ...formData,
-                [name]: value,
-            });
-        }
+        // Only allow numbers in the phone field.
+        if (name === 'phone' && !/^\d*$/.test(value)) return;
+        setEdits((prev) => ({ ...prev, [name]: value }));
     };
 
     const handleFileChange = (e: ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0] ?? null;
         setProfilePicture(file);
-        if (file) {
-            setProfilePicturePreview(safeObjectUrl(file));
-            setRemoveProfilePicture(false); // uploading a new one cancels removal
-        }
+        // Uploading a new one cancels a pending removal.
+        if (file) setRemoveProfilePicture(false);
     };
 
     const handleRemoveProfilePicture = () => {
         setProfilePicture(null);
-        setProfilePicturePreview(null);
         setRemoveProfilePicture(true);
     };
 

@@ -1,11 +1,8 @@
-import { useEffect, useState, type ChangeEvent } from 'react';
+import { useState, type ChangeEvent } from 'react';
 import { useParams } from 'react-router-dom';
-import axios from 'axios';
-
-import type { OrderDetail } from '@shared/api.js';
 
 import '../styles/orderTracking.css';
-import { API_BASE_URL } from '../config/api.js';
+import { useOrder, useUpdateOrderStatus } from '../hooks/queries.js';
 import { getUserEmail, getUserRole } from '../utils/auth.js';
 
 const ORDER_STAGES = [
@@ -18,36 +15,25 @@ const ORDER_STAGES = [
 
 export default function OrderTrackingPage() {
   const { orderNumber } = useParams();
-  const [order, setOrder] = useState<OrderDetail | null>(null);
-  const [updating, setUpdating] = useState(false);
   const [error, setError] = useState('');
   const userEmail = getUserEmail();
   // The role is stored under 'userRole'; reading 'role' always came back null,
   // so this control never appeared for anyone.
   const userRole = getUserRole();
 
-  useEffect(() => {
-    if (!orderNumber) return;
-    axios.get<OrderDetail>(`${API_BASE_URL}/order/${orderNumber}`)
-      .then(res => setOrder(res.data))
-      .catch(() => setOrder(null));
-  }, [orderNumber]);
+  const orderQuery = useOrder(orderNumber);
+  const order = orderQuery.data ?? null;
+  const { mutateAsync: updateStatus, isPending: updating } = useUpdateOrderStatus(orderNumber);
 
   const handleStatusChange = async (e: ChangeEvent<HTMLSelectElement>) => {
-    const newStatus = e.target.value;
-    setUpdating(true);
     setError('');
     try {
-      await axios.patch(`${API_BASE_URL}/order/status/${orderNumber}`, { status: newStatus });
-      // Read the order back rather than storing the response: the PATCH answers
-      // with the raw order lines, not the summarised order this page renders, so
-      // using it emptied the page until the next reload.
-      const refreshed = await axios.get<OrderDetail>(`${API_BASE_URL}/order/${orderNumber}`);
-      setOrder(refreshed.data);
+      // The mutation invalidates this order, so the summarised view is refetched
+      // rather than rebuilt from the PATCH response - which answers with the raw
+      // order lines and used to blank the page.
+      await updateStatus(e.target.value);
     } catch {
       setError('Failed to update status');
-    } finally {
-      setUpdating(false);
     }
   };
 

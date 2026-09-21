@@ -79,6 +79,21 @@ export const boundedInt = (min: number, max: number) =>
 export const shortText = z.string().trim().max(200);
 export const mediumText = z.string().trim().max(2000);
 
+/**
+ * A multipart field that may arrive once or repeated.
+ *
+ * A form that appends `category` three times gives an array; appending it once
+ * gives a bare string. Normalising here means a handler never has to ask which
+ * it got.
+ */
+export const repeatable = (item: z.ZodType<string, string>) =>
+  z
+    .union([item, z.array(item)])
+    .transform((value) => (Array.isArray(value) ? value : [value]));
+
+/** A delivery URL sent back by the browser after a direct upload. */
+export const urlText = z.string().trim().max(2048);
+
 /** A 16-character order number as produced by the order controller. */
 export const orderNumber = z
   .string()
