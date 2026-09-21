@@ -13,6 +13,7 @@ import {
 } from '../hooks/queries.js';
 import { getUserEmail } from '../utils/auth.js';
 import { flagsFor } from '../utils/bookFlags.js';
+import { PLACEHOLDER_IMAGE } from '../utils/safeImageSrc.js';
 
 /**
  * A book plus the rating fields this page sorts and filters on.
@@ -627,7 +628,7 @@ export default function BookFilter() {
                     {/* Book Image with sticker */}
                     <div style={{ position: 'relative', width: 100, height: 150 }}>
                       <img
-                        src={book.images && book.images[0] ? book.images[0] : 'https://via.placeholder.com/100x150'}
+                        src={book.images && book.images[0] ? book.images[0] : PLACEHOLDER_IMAGE}
                         alt={book.title}
                         style={{
                           width: '100px',

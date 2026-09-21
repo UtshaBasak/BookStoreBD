@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 180" role="img" aria-label="No cover image">
+  <!--
+    Stands in for a missing book cover. Local on purpose: this used to point at
+    via.placeholder.com, which no longer resolves, so every coverless listing
+    rendered as a broken image. A vector scales to every size the app asks for
+    (80x120 in lists, 300x450 on the detail page) from one file.
+  -->
+  <rect width="120" height="180" fill="#f1ece9" />
+  <rect x="26" y="42" width="68" height="86" rx="4" fill="#ded3cd" />
+  <rect x="26" y="42" width="12" height="86" rx="4" fill="#c9b9b1" />
+  <rect x="48" y="62" width="34" height="4" rx="2" fill="#f1ece9" />
+  <rect x="48" y="74" width="34" height="4" rx="2" fill="#f1ece9" />
+  <rect x="48" y="86" width="22" height="4" rx="2" fill="#f1ece9" />
+  <text x="60" y="150" font-family="system-ui, sans-serif" font-size="11"
+        fill="#8B6F6F" text-anchor="middle">No cover</text>
+</svg>

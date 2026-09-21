@@ -21,6 +21,11 @@ import ChatPage from './pages/ChatPage';
 import OrderTrackingPage from './pages/OrderTrackingPage';
 import SellerOrderTrackingPage from './pages/SellerOrderTrackingPage';
 import AdminOrderTrackingPage from './pages/AdminOrderTrackingPage';
+import About from './pages/legal/About';
+import Contact from './pages/legal/Contact';
+import Privacy from './pages/legal/Privacy';
+import Returns from './pages/legal/Returns';
+import Terms from './pages/legal/Terms';
 import './styles/orderTracking.css';
 import { isAdmin, isAuthenticated } from './utils/auth.js';
 
@@ -61,6 +66,13 @@ export default function App() {
         <Route path="/" element={<HomePage />} />
         <Route path="/book" element={<BookView />} />
         <Route path="/filter" element={<Filter />} />
+        {/* Information and policy pages, reachable without an account - a
+            shopper should be able to read the returns policy before signing up. */}
+        <Route path="/about" element={<About />} />
+        <Route path="/contact" element={<Contact />} />
+        <Route path="/privacy" element={<Privacy />} />
+        <Route path="/terms" element={<Terms />} />
+        <Route path="/returns" element={<Returns />} />
         <Route
           path="/sign-in"
           element={

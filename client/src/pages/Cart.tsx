@@ -7,6 +7,7 @@ import { API_BASE_URL } from '../config/api.js';
 import { useCart, useToggleCart, useToggleWishlist, useWishlist } from '../hooks/queries.js';
 import { getUserEmail } from '../utils/auth.js';
 import { flagsFor } from '../utils/bookFlags.js';
+import { PLACEHOLDER_IMAGE } from '../utils/safeImageSrc.js';
 
 export default function Cart() {
   const navigate = useNavigate();
@@ -41,7 +42,7 @@ export default function Cart() {
   // Helper to resolve image src
   const getBookImageSrc = (book: Book): string => {
     const img = book.images?.[0];
-    if (!img) return 'https://via.placeholder.com/80x120?text=No+Image';
+    if (!img) return PLACEHOLDER_IMAGE;
     if (img.startsWith('data:image/')) return img;
     if (/^https?:\/\//.test(img)) return img;
     return `${API_BASE_URL}/uploads/${img}`;

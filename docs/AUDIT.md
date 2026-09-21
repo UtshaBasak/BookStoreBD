@@ -26,7 +26,7 @@ Yes. Nothing is broken.
 | ----- | ------ |
 | Lint, both packages | clean |
 | Type-check under TypeScript 6.0.3 | clean |
-| Tests | 217 passing (163 server, 54 client) |
+| Tests | 228 passing (163 server, 65 client) |
 | `npm audit`, all three roots | 0 vulnerabilities |
 | Builds | API compiles to `dist/`, client bundles |
 | Production stack | browse, detail, cart, wishlist, profile, orders, clear — all `200` |
@@ -50,7 +50,7 @@ token revokes the family. That part is genuinely solid.
 | S5 | OTP has no per-account attempt limit | **Medium** |
 | S6 | ~~`X-Powered-By: Express` disclosed~~ **done** | Low |
 | S7 | bcrypt cost factor 10 | Low |
-| P1 | Footer advertises policies that do not exist | **High** (trust/compliance) |
+| P1 | ~~Footer advertises policies that do not exist~~ **done** | **High** (trust/compliance) |
 | P2 | No way for a user to delete their account or export their data | **Medium** |
 | P3 | No audit trail for administrator actions | **Medium** |
 | P4 | Covers and chat images stored as base64 in MongoDB by default | Low |
@@ -174,22 +174,37 @@ see the first one's codes.
 Raise to 12. Existing hashes keep working; they are upgraded on next sign-in if
 you add a rehash-on-login step.
 
-### P1 · The footer advertises policies that do not exist — High for a business
+### P1 · The footer advertises policies that do not exist — **done**
 
-The homepage footer lists "Privacy Policies", "Return Policies", "Exchange
-Policies", "Old Book Policies", "Who we are", and a phone number, e-mail
-(`bookstore@gmail.com`) and address — all as plain `<li>` text. Nothing is a
-link and no page exists behind any of them.
+The footer listed "Privacy Policies", "Return Policies", "Who we are" and
+contact details as plain `<li>` text with `cursor: pointer`. Nothing was a link
+and no page existed behind any of it — terms that could not be produced on
+request, which for a business taking delivery addresses and phone numbers is
+worse than no footer at all.
 
-For a project this reads as unfinished. For a business taking money and
-personal data it is worse than having no footer: it represents terms that
-cannot be produced on request. Marketplaces in Bangladesh handling delivery
-addresses and phone numbers are expected to publish at minimum a privacy
-policy, a return/refund policy and real contact details.
+Five routes now exist and the footer links to them: `/privacy`, `/terms`,
+`/returns`, `/about` and `/contact`.
 
-**Fix.** Real routes for `/privacy`, `/terms`, `/returns`, `/contact`, `/about`
-with genuine content, and correct contact details. Until they exist, remove the
-claims rather than display them.
+The content is written from the code rather than from a template, so it can be
+checked against what the system does:
+
+- The privacy policy names the fields the models actually store, states that
+  exactly one cookie is set and that it is not for tracking, and lists the third
+  parties that see data (Cloudinary, the SMTP provider, Sentry when enabled).
+- The returns policy states the three-day window `BuyerBookList` enforces and
+  the pending/approved/rejected flow the `ReturnRequest` model implements. A
+  test fails if the page and the code disagree about the window.
+
+Business details live in [`client/src/config/site.ts`](../client/src/config/site.ts)
+so they are written once. **The address, phone number and e-mail were carried
+over from the old footer and have not been verified** — that file carries a
+`TODO(owner)` saying so. The policies also need a real legal entity name and a
+review by someone qualified before launch; they describe the system accurately
+but they are not legal advice.
+
+The pages are the first in the codebase written with Tailwind rather than inline
+style objects, and they are responsive. New pages set the standard the rest is
+being moved towards (item 5).
 
 ### P2 · No account deletion or data export — Medium
 
@@ -230,10 +245,14 @@ layer that makes it read as a business rather than a project.
 
 ### Things that are actually broken
 
-**The placeholder image service is dead.** Six references to
-`via.placeholder.com`; the host no longer resolves. Every book without a cover
-renders a broken image. Replace with a local SVG placeholder in `public/` — no
-network call, no dependency on a third party staying alive.
+~~**The placeholder image service is dead.**~~ **done.** Six references to
+`via.placeholder.com`, a host that no longer resolves, so every coverless
+listing rendered as a broken image. Replaced by a local SVG in `public/`: no
+network call, no third party to outlive us, and nothing extra to allow in the
+Content-Security-Policy. The five duplicated literals now go through the single
+`PLACEHOLDER_IMAGE` constant that already existed for the purpose.
+
+`ui-avatars.com`, the other external image host, was checked and is alive.
 
 **Ratings are vestigial.** The catalogue's star filter and its "most popular"
 sort read `rating` and `numReviews`, which no endpoint returns and no model
@@ -321,7 +340,7 @@ Cheap and high-value first, so each step is shippable on its own.
 | Order | Work | Why first |
 | ----: | ---- | --------- |
 | ~~1~~ | ~~Security headers (S1, S6)~~ **done** | One dependency and a few nginx lines; closed the largest gap |
-| 2 | Kill the dead placeholder, real footer pages (P1) | Visibly broken and visibly untrustworthy |
+| ~~2~~ | ~~Kill the dead placeholder, real footer pages (P1)~~ **done** | Visibly broken and visibly untrustworthy |
 | 3 | Uniform auth responses (S2) | A few lines; removes a privacy leak |
 | 4 | Toasts instead of `alert()` | The single biggest change in how the product feels |
 | 5 | Responsive pass with Tailwind tokens | Largest effort, largest payoff; most traffic is mobile |

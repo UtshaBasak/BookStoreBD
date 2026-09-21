@@ -11,7 +11,15 @@
  * static analysis (and a reader) can see the guard directly, where a callback
  * passed to `Array.prototype.some` hides it.
  */
-export const PLACEHOLDER_IMAGE = 'https://via.placeholder.com/80x120?text=No+Image';
+/**
+ * Shown wherever a book has no cover.
+ *
+ * Served from this origin rather than a placeholder service: the previous one
+ * (`via.placeholder.com`) stopped resolving, so every coverless listing
+ * rendered as a broken image. A local SVG also needs no network round trip and
+ * is allowed by the Content-Security-Policy without listing another host.
+ */
+export const PLACEHOLDER_IMAGE = '/book-placeholder.svg';
 
 export const safeImageSrc = (value: unknown, fallback = ''): string => {
   if (typeof value !== 'string') return fallback;

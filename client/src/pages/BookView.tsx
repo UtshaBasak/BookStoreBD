@@ -19,6 +19,7 @@ import {
 import { messageOf } from '../utils/apiError.js';
 import { getUserEmail } from '../utils/auth.js';
 import { flagsFor } from '../utils/bookFlags.js';
+import { PLACEHOLDER_IMAGE } from '../utils/safeImageSrc.js';
 
 export default function BookView() {
     const [showDropdown, setShowDropdown] = useState(false);
@@ -139,9 +140,9 @@ export default function BookView() {
     };
 
     const getBookImageSrc = (book: Book | BookDetail | null | undefined): string => {
-        if (!book) return 'https://via.placeholder.com/300x450?text=No+Image';
+        if (!book) return PLACEHOLDER_IMAGE;
         const img = book.images?.[0];
-        if (!img) return 'https://via.placeholder.com/300x450?text=No+Image';
+        if (!img) return PLACEHOLDER_IMAGE;
         if (img.startsWith('data:image/')) return img;
         if (/^https?:\/\//.test(img)) return img;
         return `${API_BASE_URL}/uploads/${img}`;

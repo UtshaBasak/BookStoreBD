@@ -16,6 +16,7 @@ import {
   useToggleCart,
   useToggleWishlist,
 } from '../hooks/queries.js';
+import Footer from '../components/Footer.js';
 import { getUserEmail } from '../utils/auth.js';
 import { flagsFor } from '../utils/bookFlags.js';
 
@@ -650,38 +651,7 @@ export default function Homepage() {
         </div>
       </section>
 
-      <footer className="footer">
-        <div className="footer-section">
-          <h4>About Us</h4>
-          <ul>
-            <li>Who we are</li>
-            <li>What we do</li>
-            <li>Our mission</li>
-            <li>Our Vision</li>
-          </ul>
-        </div>
-
-        <div className="footer-section">
-          <h4>Privacy & Policies</h4>
-          <ul>
-            <li>Privacy Policies</li>
-            <li>Old Book Policies</li>
-            <li>Exchange Policies</li>
-            <li>Return Policies</li>
-          </ul>
-        </div>
-
-        <div className="footer-section">
-          <h4>Contact Us</h4>
-          <ul>
-            <li>+8801711112333</li>
-            <li>bookstore@gmail.com</li>
-            <li>Facebook</li>
-            <li>Address: Kha 224 Pragati Sarani, Merul Badda,</li>
-            <li>Dhaka 1212, Bangladesh</li>
-          </ul>
-        </div>
-      </footer>
+      <Footer />
       <div
         style={{
           width: '100%',
