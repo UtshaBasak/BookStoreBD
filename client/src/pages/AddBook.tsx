@@ -3,6 +3,7 @@ import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 
 import { API_BASE_URL } from '../config/api.js';
+import { authHeaders } from '../utils/auth.js';
 import { uploadImages } from '../utils/uploadImages.js';
 
 /**
@@ -59,10 +60,12 @@ const AddBooks = () => {
   const [feedbackMessage, setFeedbackMessage] = useState('');
   const [isError, setIsError] = useState(false);
 
-  const headers = {
-    id: localStorage.getItem('id'),
-    authorization: `Bearer ${localStorage.getItem('token')}`,
-  };
+  /**
+   * The session lives under `authToken`, which is what every other request
+   * reads. This page had its own copy looking for `token`, so it sent
+   * `Bearer null` and the API refused every submission.
+   */
+  const headers = authHeaders();
 
   const change = (e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
@@ -240,7 +243,7 @@ const AddBooks = () => {
             )}
 
             <div>
-              <label className='block text-sm text-zinc-400 mb-1'>Book Images (Max 10) *</label>
+              <label htmlFor='imageInput' className='block text-sm text-zinc-400 mb-1'>Book Images (Max 10) *</label>
               <input
                 type='file' id='imageInput' multiple onChange={handleImageChange}
                 className='block w-full text-sm text-zinc-300 file:bg-blue-600 file:text-white file:px-4 file:py-3 file:rounded file:border-0 hover:file:bg-blue-700 transition cursor-pointer'
@@ -324,8 +327,9 @@ const AddBooks = () => {
               step="0.01"
             />
             <div>
-              <label className='block text-sm text-zinc-400 mb-1'>Book Summary</label>
+              <label htmlFor='book-desc' className='block text-sm text-zinc-400 mb-1'>Book Summary</label>
               <textarea
+                id='book-desc'
                 name="desc" value={Data.desc} onChange={change} rows={5}
                 placeholder="Short summary"
                 className='w-full p-3 rounded bg-zinc-700 text-white outline-none focus:ring-2 focus:ring-blue-500 resize-none'
@@ -376,8 +380,11 @@ interface InputFieldProps {
 // because this component never forwarded them. They reach the input now.
 const InputField = ({ label, name, value, onChange, placeholder = '', type = 'text', min, step }: InputFieldProps) => (
   <div>
-    <label className='block text-sm text-zinc-400 mb-1'>{label}</label>
+    {/* Tied to the input by id: a floating label is not read out by a screen
+        reader, and tapping it does not focus the field it sits above. */}
+    <label htmlFor={`book-${name}`} className='block text-sm text-zinc-400 mb-1'>{label}</label>
     <input
+      id={`book-${name}`}
       type={type} name={name} value={value} onChange={onChange} placeholder={placeholder}
       min={min} step={step}
       className='w-full p-3 rounded bg-zinc-700 text-white outline-none focus:ring-2 focus:ring-blue-500'
