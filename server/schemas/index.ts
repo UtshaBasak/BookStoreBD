@@ -193,7 +193,9 @@ export const userSchemas = {
       country: shortText.min(1, 'Country is required'),
       language: shortText.min(1, 'Language is required'),
       isbn: shortText.min(1, 'ISBN is required'),
-      pages: nonNegativeInt,
+      // Optional, because the form does not mark it required and a seller
+      // listing a second-hand book often does not know the page count.
+      pages: nonNegativeInt.optional(),
       price: nonNegativeInt,
       desc: mediumText.min(1, 'A description is required'),
       category: repeatable(shortText)

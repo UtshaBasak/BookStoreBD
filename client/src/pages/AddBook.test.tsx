@@ -15,6 +15,7 @@ import { MemoryRouter } from 'react-router-dom';
 import axios from 'axios';
 
 import AddBooks from './AddBook.js';
+import { uploadImages } from '../utils/uploadImages.js';
 
 vi.mock('axios');
 
@@ -29,6 +30,7 @@ vi.mock('../utils/uploadImages.js', () => ({
 }));
 
 const postMock = vi.mocked(axios.post);
+const uploadMock = vi.mocked(uploadImages);
 
 const fillAndSubmit = async () => {
   const user = userEvent.setup();
@@ -48,6 +50,7 @@ const fillAndSubmit = async () => {
 beforeEach(() => {
   postMock.mockReset();
   postMock.mockResolvedValue({ data: { message: 'Book added successfully!' } });
+  uploadMock.mockClear();
   localStorage.clear();
 });
 
@@ -92,6 +95,47 @@ describe('submitting a listing', () => {
 
     const headers = (postMock.mock.calls[0][2] as { headers: Record<string, string> }).headers;
     expect(headers.Authorization).toBeUndefined();
+  });
+
+  it('repeats the field the API rejected, not just that it failed', async () => {
+    localStorage.setItem('authToken', 'a-real-token');
+    postMock.mockRejectedValue({
+      response: {
+        data: {
+          message: 'Validation failed',
+          errors: [{ path: 'body.pages', message: 'Invalid input' }],
+        },
+      },
+    });
+    renderPage();
+
+    await fillAndSubmit();
+
+    // "Submission failed: Validation failed" was the whole of it before, in
+    // front of a twelve-field form.
+    expect(
+      await screen.findByText(/submission failed: please check pages/i)
+    ).toBeInTheDocument();
+  });
+
+  it('does not upload the images a second time when a rejected form is fixed', async () => {
+    localStorage.setItem('authToken', 'a-real-token');
+    postMock.mockRejectedValueOnce({
+      response: {
+        data: { message: 'Validation failed', errors: [{ path: 'body.pages', message: 'Invalid input' }] },
+      },
+    });
+    renderPage();
+
+    await fillAndSubmit();
+    await screen.findByText(/submission failed/i);
+
+    await userEvent.click(screen.getByRole('button', { name: 'Submit' }));
+    await waitFor(() => expect(postMock).toHaveBeenCalledTimes(2));
+
+    // The bytes were already at Cloudinary. Sending them again would have left
+    // the first copy orphaned there, and made the seller wait for it twice.
+    expect(uploadMock).toHaveBeenCalledTimes(1);
   });
 
   it('says which required fields are missing instead of posting', async () => {

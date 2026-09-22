@@ -9,7 +9,7 @@ const AddBookSchema = new Schema({
   country: { type: String, required: true },
   language: { type: String, required: true },
   isbn: { type: String, required: true },
-  pages: { type: Number, required: true },
+  pages: { type: Number }, // optional: see the note in the addBook schema
   price: { type: Number, required: true, min: 0 }, // allow zero
   desc: { type: String, required: true },
   category: [{ type: String, required: true }],

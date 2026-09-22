@@ -1,10 +1,11 @@
-import { useState, type ChangeEvent, type HTMLInputTypeAttribute } from 'react';
+import { useRef, useState, type ChangeEvent, type HTMLInputTypeAttribute } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 
 import { API_BASE_URL } from '../config/api.js';
+import { apiErrorMessage } from '../utils/apiError.js';
 import { authHeaders } from '../utils/auth.js';
-import { uploadImages } from '../utils/uploadImages.js';
+import { uploadImages, type UploadResult } from '../utils/uploadImages.js';
 
 /**
  * The form as it is edited: every field a string, because that is what an
@@ -59,6 +60,16 @@ const AddBooks = () => {
   const [loading, setLoading] = useState(false);
   const [feedbackMessage, setFeedbackMessage] = useState('');
   const [isError, setIsError] = useState(false);
+
+  /**
+   * What the last upload of these exact files produced.
+   *
+   * The bytes reach Cloudinary before the listing is posted, so a submission
+   * rejected afterwards has already put the images there. Without this, every
+   * retry uploaded them again and left the previous set orphaned in the
+   * account - and made the person wait for it twice.
+   */
+  const uploadedRef = useRef<{ files: File[]; result: UploadResult } | null>(null);
 
   /**
    * The session lives under `authToken`, which is what every other request
@@ -185,10 +196,20 @@ const AddBooks = () => {
       // When image hosting is configured the files go straight to Cloudinary
       // and only the resulting URLs are posted here; otherwise they are sent
       // to the API and stored inline, as before.
-      const uploaded = await uploadImages(images, {
-        onProgress: ({ completed, total }) =>
-          setFeedbackMessage(`Uploading image ${completed} of ${total}...`),
-      });
+      const cached = uploadedRef.current;
+      const reusable =
+        cached !== null &&
+        cached.files.length === images.length &&
+        cached.files.every((file, index) => file === images[index]);
+
+      const uploaded = reusable
+        ? cached.result
+        : await uploadImages(images, {
+            onProgress: ({ completed, total }) =>
+              setFeedbackMessage(`Uploading image ${completed} of ${total}...`),
+          });
+
+      uploadedRef.current = { files: [...images], result: uploaded };
 
       if (uploaded.hosted) {
         uploaded.images.forEach((url) => formData.append('images', url));
@@ -206,13 +227,13 @@ const AddBooks = () => {
       setIsError(false);
       setData(EMPTY_FORM);
       setImages([]);
+      uploadedRef.current = null;
       const imageInput = document.getElementById('imageInput');
       if (imageInput instanceof HTMLInputElement) imageInput.value = '';
     } catch (err) {
-      const msg =
-        (err as { response?: { data?: { message?: string } } })?.response?.data?.message ||
-        "Unknown error";
-      setFeedbackMessage(`Submission failed: ${msg}`);
+      // The API names the field it rejected. Showing only its `message` turned
+      // that into "Validation failed", which named nothing.
+      setFeedbackMessage(`Submission failed: ${apiErrorMessage(err, 'please try again')}`);
       setIsError(true);
     } finally {
       setLoading(false);

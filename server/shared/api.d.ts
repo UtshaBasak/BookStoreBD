@@ -132,7 +132,8 @@ export interface Book {
   country: string;
   language: string;
   isbn: string;
-  pages: number;
+  /** Optional: a seller need not know the page count. */
+  pages?: number;
   price: number;
   desc: string;
   category: string[];
