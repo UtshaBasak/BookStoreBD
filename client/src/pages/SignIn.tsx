@@ -160,6 +160,10 @@ export default function SignIn() {
                             type="email"
                             placeholder="Email"
                             id="email"
+                            name="email"
+                            // Without these a password manager cannot offer to
+                            // fill the form, and a browser warns about it.
+                            autoComplete="username"
                             onChange={handleChange}
                             style={{
                                 width: '100%',
@@ -178,6 +182,8 @@ export default function SignIn() {
                             type="password"
                             placeholder="Password"
                             id="password"
+                            name="password"
+                            autoComplete="current-password"
                             onChange={handleChange}
                             style={{
                                 width: '100%',
@@ -266,20 +272,20 @@ export default function SignIn() {
                         <h3>Forgot Password</h3>
                         {forgotStep === 'email' && (
                             <>
-                                <input type="email" placeholder="Enter your email" value={forgotEmail} onChange={e => setForgotEmail(e.target.value)} style={{ width: '100%', marginBottom: 12, padding: 8 }} />
+                                <input type="email" name="reset-email" autoComplete="username" placeholder="Enter your email" value={forgotEmail} onChange={e => setForgotEmail(e.target.value)} style={{ width: '100%', marginBottom: 12, padding: 8 }} />
                                 <button onClick={handleForgotSendOtp} style={{ width: '100%', padding: 10, background: '#333', color: '#fff', border: 'none', borderRadius: 4 }}>Send OTP</button>
                             </>
                         )}
                         {forgotStep === 'otp' && (
                             <>
-                                <input type="text" placeholder="Enter OTP" value={forgotOtp} onChange={e => setForgotOtp(e.target.value)} style={{ width: '100%', marginBottom: 12, padding: 8 }} />
+                                <input type="text" name="reset-otp" inputMode="numeric" autoComplete="one-time-code" placeholder="Enter OTP" value={forgotOtp} onChange={e => setForgotOtp(e.target.value)} style={{ width: '100%', marginBottom: 12, padding: 8 }} />
                                 <button onClick={handleForgotVerifyOtp} style={{ width: '100%', padding: 10, background: '#333', color: '#fff', border: 'none', borderRadius: 4 }}>Verify OTP</button>
                                 <button onClick={handleForgotSendOtp} style={{ marginTop: 8, background: 'none', color: '#00f', border: 'none', cursor: 'pointer' }}>Resend OTP</button>
                             </>
                         )}
                         {forgotStep === 'reset' && (
                             <>
-                                <input type="password" placeholder="New Password" value={newPassword} onChange={e => setNewPassword(e.target.value)} style={{ width: '100%', marginBottom: 12, padding: 8 }} />
+                                <input type="password" name="new-password" autoComplete="new-password" placeholder="New Password" value={newPassword} onChange={e => setNewPassword(e.target.value)} style={{ width: '100%', marginBottom: 12, padding: 8 }} />
                                 <button onClick={handleForgotResetPassword} style={{ width: '100%', padding: 10, background: '#333', color: '#fff', border: 'none', borderRadius: 4 }}>Set New Password</button>
                             </>
                         )}

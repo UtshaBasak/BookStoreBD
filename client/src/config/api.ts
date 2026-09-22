@@ -28,6 +28,19 @@ export const apiUrl = (path = ''): string =>
 
 const REFRESH_PATH = '/auth/refresh';
 
+/**
+ * Endpoints where a 401 means "those credentials are wrong", not "your session
+ * has expired".
+ *
+ * Without this, a mistyped password on the sign-in page fired a pointless
+ * refresh, cleared the session and redirected to sign-in - two console errors
+ * and a page change to say what the form was about to say anyway.
+ */
+const CREDENTIAL_PATHS = ['/auth/signin', '/auth/signup', '/user/signin', '/user/signup'];
+
+const isCredentialCheck = (input: RequestInfo | URL): boolean =>
+  CREDENTIAL_PATHS.some((path) => String(input).includes(path));
+
 /** Sends the caller back to sign-in once the session is genuinely gone. */
 const handleUnauthorized = (): void => {
   clearSession();
@@ -81,7 +94,11 @@ export const apiFetch = async (input: RequestInfo | URL, init: RequestInit = {})
 
   let response = await send();
 
-  if (response.status === 401 && !String(input).includes(REFRESH_PATH)) {
+  if (
+    response.status === 401 &&
+    !String(input).includes(REFRESH_PATH) &&
+    !isCredentialCheck(input)
+  ) {
     const refreshed = await refreshSession();
     if (refreshed) {
       response = await send();
@@ -110,7 +127,15 @@ axios.interceptors.response.use(
     const original = failure.config;
     const isRefreshCall = String(original?.url ?? '').includes(REFRESH_PATH);
 
-    if (failure.response?.status === 401 && original && !original._retried && !isRefreshCall) {
+    const isCredentials = isCredentialCheck(String(original?.url ?? ''));
+
+    if (
+      failure.response?.status === 401 &&
+      original &&
+      !original._retried &&
+      !isRefreshCall &&
+      !isCredentials
+    ) {
       original._retried = true;
       if (await refreshSession()) {
         Object.assign(original.headers ?? {}, authHeaders());

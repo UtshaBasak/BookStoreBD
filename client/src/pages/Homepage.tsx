@@ -48,6 +48,37 @@ export default function Homepage() {
   const [showDropdown, setShowDropdown] = useState<'profile' | 'category' | false>(false);
   const [searchInput, setSearchInput] = useState('');
   const scrollRef = useRef<HTMLDivElement | null>(null);
+
+  /*
+   * Turning a vertical wheel into a horizontal scroll of the strip.
+   *
+   * As an `onWheel` prop this logged "Unable to preventDefault inside passive
+   * event listener invocation" on every single wheel event - sixty of them in
+   * a few seconds - because React registers `wheel` as passive, so the
+   * preventDefault did nothing and the page scrolled underneath at the same
+   * time. Registered here with `passive: false`, it works.
+   *
+   * It also stops hijacking once the strip has nowhere left to go, so the
+   * cursor resting over it cannot trap the page.
+   */
+  useEffect(() => {
+    const strip = scrollRef.current;
+    if (!strip) return;
+
+    const onWheel = (event: WheelEvent) => {
+      if (event.deltaY === 0) return;
+
+      const atStart = strip.scrollLeft <= 0;
+      const atEnd = strip.scrollLeft + strip.clientWidth >= strip.scrollWidth - 1;
+      if ((event.deltaY < 0 && atStart) || (event.deltaY > 0 && atEnd)) return;
+
+      strip.scrollLeft += event.deltaY;
+      event.preventDefault();
+    };
+
+    strip.addEventListener('wheel', onWheel, { passive: false });
+    return () => strip.removeEventListener('wheel', onWheel);
+  }, []);
   const navigate = useNavigate();
   const toast = useToast();
   const userEmail = getUserEmail();
@@ -200,7 +231,9 @@ export default function Homepage() {
         </div>
         <div className="search-bar">
           <input
-            type="text"
+            type="search"
+            name="search"
+            aria-label="Search books"
             placeholder="Search books..."
             value={searchInput}
             onChange={e => setSearchInput(e.target.value)}
@@ -527,12 +560,6 @@ export default function Homepage() {
               msOverflowStyle: 'none',
             }}
             className="popular-books-horizontal-scroll"
-            onWheel={e => {
-              if (e.deltaY !== 0) {
-                e.currentTarget.scrollLeft += e.deltaY;
-                e.preventDefault();
-              }
-            }}
           >
             <style>
               {`

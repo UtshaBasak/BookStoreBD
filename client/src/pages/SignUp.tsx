@@ -155,6 +155,8 @@ export default function SignUp() {
                                 type="text"
                                 placeholder="Username"
                                 id="username"
+                                name="username"
+                                autoComplete="username"
                                 onChange={handleChange}
                                 style={{
                                     width: '100%',
@@ -173,6 +175,8 @@ export default function SignUp() {
                                 type="email"
                                 placeholder="Email"
                                 id="email"
+                                name="email"
+                                autoComplete="email"
                                 onChange={handleChange}
                                 style={{
                                     width: '100%',
@@ -191,6 +195,10 @@ export default function SignUp() {
                                 type="password"
                                 placeholder="Password"
                                 id="password"
+                                name="password"
+                                // New, not current: a password manager should
+                                // offer to generate one rather than fill it.
+                                autoComplete="new-password"
                                 onChange={handleChange}
                                 style={{
                                     width: '100%',
@@ -234,6 +242,9 @@ export default function SignUp() {
                     <div>
                         <input
                             type="text"
+                            name="otp"
+                            inputMode="numeric"
+                            autoComplete="one-time-code"
                             placeholder="Enter OTP"
                             value={otp}
                             onChange={e => setOtp(e.target.value)}

@@ -210,3 +210,60 @@ describe('apiFetch', () => {
     await expect(res.json()).resolves.toEqual({ title: 'A Book' });
   });
 });
+
+describe('a 401 from the sign-in endpoint', () => {
+  beforeEach(() => {
+    localStorage.clear();
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    localStorage.clear();
+  });
+
+  it('is not treated as an expired session', async () => {
+    const calls: string[] = [];
+    vi.stubGlobal(
+      'fetch',
+      vi.fn((input: RequestInfo | URL) => {
+        calls.push(String(input));
+        return Promise.resolve(new Response('{}', { status: 401 }));
+      })
+    );
+    localStorage.setItem('authToken', 'a-token');
+
+    const res = await apiFetch(apiUrl('/auth/signin'), { method: 'POST' });
+
+    expect(res.status).toBe(401);
+    // No refresh attempt: a mistyped password is not a session that ran out.
+    expect(calls.filter((url) => url.includes('/auth/refresh'))).toHaveLength(0);
+    // And the session it had is left alone.
+    expect(localStorage.getItem('authToken')).toBe('a-token');
+  });
+
+  it('while an ordinary request still refreshes once', async () => {
+    const calls: string[] = [];
+    vi.stubGlobal(
+      'fetch',
+      vi.fn((input: RequestInfo | URL) => {
+        calls.push(String(input));
+        if (String(input).includes('/auth/refresh')) {
+          return Promise.resolve(
+            new Response(JSON.stringify({ token: 'fresh', user: { email: 'a@b.c' } }), {
+              status: 200,
+              headers: { 'Content-Type': 'application/json' },
+            })
+          );
+        }
+        return Promise.resolve(
+          new Response('{}', { status: calls.length > 2 ? 200 : 401 })
+        );
+      })
+    );
+    localStorage.setItem('authToken', 'stale');
+
+    await apiFetch(apiUrl('/cart'));
+
+    expect(calls.filter((url) => url.includes('/auth/refresh'))).toHaveLength(1);
+  });
+});
