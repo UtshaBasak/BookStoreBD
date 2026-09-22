@@ -87,3 +87,17 @@ describe('security headers', () => {
     expect(res.headers['content-security-policy']).toBeDefined();
   });
 });
+
+describe('the upload path the policy has to allow', () => {
+  it('lets the browser reach Cloudinary, which is where a cover is sent', async () => {
+    const res = await agent.get('/health');
+    const csp = policy(res.headers['content-security-policy']);
+
+    // The bytes never pass through this API - the browser posts them straight
+    // to Cloudinary with a signature. Without this the upload is blocked by the
+    // policy and the only sign of it is a console message.
+    expect(csp['connect-src']).toContain('https://api.cloudinary.com');
+    // And the delivery host, for reading them back.
+    expect(csp['img-src']).toContain('https://res.cloudinary.com');
+  });
+});

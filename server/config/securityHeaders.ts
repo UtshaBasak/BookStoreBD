@@ -33,9 +33,26 @@ const IMAGE_SOURCES = [
  * already covers the API and the Socket.IO upgrade. A cross-origin deployment
  * has to be named explicitly or the browser blocks every request.
  */
+/**
+ * Where the page may send a request.
+ *
+ * `api.cloudinary.com` is here because the browser uploads a cover straight to
+ * Cloudinary - the bytes never pass through this API, which is the whole point
+ * of the signed upload. Without it the upload is blocked by the policy, and the
+ * only sign is a console message, which is how a deployment turns image hosting
+ * on and quietly cannot upload anything.
+ *
+ * Listed whether or not hosting is configured, so this policy and the one nginx
+ * sends with the document stay identical. nginx cannot know what the API's
+ * environment holds, and two policies that disagree are worse than one that
+ * names a host it is not using.
+ */
+const CLOUDINARY_UPLOAD = 'https://api.cloudinary.com';
+
 const connectSources = (): string[] => {
   const extra = (process.env.CLIENT_API_ORIGIN ?? '').trim();
-  return extra ? ["'self'", extra] : ["'self'"];
+  const sources = ["'self'", CLOUDINARY_UPLOAD];
+  return extra ? [...sources, extra] : sources;
 };
 
 export const securityHeaders = (): HelmetOptions => ({
