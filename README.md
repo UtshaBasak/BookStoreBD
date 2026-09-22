@@ -469,10 +469,23 @@ account does not fill up with orphans.
 To move existing records across:
 
 ```bash
-npm run migrate:images -- --dry-run     # report only
+npm run migrate:images:dry              # report only
 npm run migrate:images -- --limit 10    # a cautious first batch
 npm run migrate:images                  # the rest
 ```
+
+PowerShell drops the `--` separator when it calls a native command, so
+`-- --dry-run` never reaches the script there and the run silently becomes a
+real one. That is what `migrate:images:dry` is for, and why `--limit` also
+reads `MIGRATE_LIMIT`:
+
+```powershell
+npm run migrate:images:dry
+$env:MIGRATE_LIMIT=10; npm run migrate:images
+```
+
+A run that is about to write says `LIVE RUN` and waits five seconds first, so
+a lost flag is visible rather than silent.
 
 It is idempotent, and a listing is only rewritten once every one of its uploads
 has succeeded — an interrupted run leaves the original base64 intact rather

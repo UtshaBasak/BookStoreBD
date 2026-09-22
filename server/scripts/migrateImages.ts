@@ -6,9 +6,16 @@
  * an interrupted run leaves the original base64 intact rather than a listing
  * with half its covers missing.
  *
- *   npm run migrate:images -- --dry-run     report what would change
+ *   npm run migrate:images:dry              report what would change
  *   npm run migrate:images                  do it
  *   npm run migrate:images -- --limit 10    a cautious first batch
+ *   MIGRATE_LIMIT=10 npm run migrate:images  the same, where `--` is eaten
+ *
+ * There is a `:dry` script rather than only the flag because PowerShell drops
+ * the `--` separator when it calls a native command, so `-- --dry-run` never
+ * reaches this script and the run silently becomes a real one. For the same
+ * reason a live run announces itself and waits, instead of differing from a
+ * dry run only by a line that is absent.
  */
 import mongoose from 'mongoose';
 
@@ -26,10 +33,13 @@ const log = (...args: unknown[]): void => console.log('[migrate:images]', ...arg
 const isInline = (value: unknown): value is string =>
   typeof value === 'string' && value.startsWith('data:');
 
-const parseLimit = (argv: string[]): number => {
+/**
+ * `--limit 10`, or `MIGRATE_LIMIT=10` for the shells that eat the separator.
+ */
+export const parseLimit = (argv: string[]): number => {
   const index = argv.indexOf('--limit');
-  if (index === -1) return 0;
-  const value = Number(argv[index + 1]);
+  const raw = index === -1 ? process.env.MIGRATE_LIMIT : argv[index + 1];
+  const value = Number(raw);
   return Number.isInteger(value) && value > 0 ? value : 0;
 };
 
@@ -109,6 +119,14 @@ const main = async () => {
   log(`connected to ${uri.replace(/\/\/[^@]*@/, '//***@')}`);
   if (dryRun) log('dry run: nothing will be written');
   if (limit) log(`limited to ${limit} listing(s)`);
+
+  if (!dryRun) {
+    const pending = await AddBook.countDocuments({ images: { $elemMatch: { $regex: '^data:' } } });
+    if (pending > 0) {
+      log(`LIVE RUN — ${pending} listing(s) will be rewritten. Ctrl+C within 5 seconds to stop.`);
+      await new Promise((resolve) => setTimeout(resolve, 5000));
+    }
+  }
 
   const summary = await migrateImages({ dryRun, limit });
 

@@ -15,6 +15,7 @@
     "typecheck": "tsc --noEmit",
     "seed": "tsx scripts/seed.ts",
     "migrate:images": "tsx scripts/migrateImages.ts",
+    "migrate:images:dry": "tsx scripts/migrateImages.ts --dry-run",
     "lint": "eslint .",
     "test": "vitest run",
     "test:watch": "vitest"
