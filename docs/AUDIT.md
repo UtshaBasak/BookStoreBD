@@ -908,8 +908,19 @@ What is left is in the sections above, and none of it blocks a launch:
   had a return in progress; each line now carries its own `returnStatus`.
 - **A browser error reporter.** `reportError` is the seam and it currently goes
   nowhere in production.
-- **Redis for the one-time codes**, before the API runs on more than one
-  instance.
+- ~~**Redis for the one-time codes**, before the API runs on more than one
+  instance.~~ **Done, and it mattered on one instance too.** They lived in a
+  `Map` in the process, so every restart threw away every code in flight -
+  somebody halfway through signing up or resetting a password got "invalid
+  code" and started again, on every deploy and every time a sleeping instance
+  woke. They are a MongoDB collection with a TTL index now, which also retired
+  the sweep that kept the map from growing. Proved by issuing a code in one
+  process and spending it in another.
+
+  Stored as an HMAC under the server's secret rather than as the code: six
+  digits is a million possibilities, so a plain hash is recovered from a table
+  instantly, and a record that survives a restart is one that can be read out
+  of a backup.
 - **P4**, base64 covers in MongoDB, whenever image hosting is switched on.
 - The **business capability** list below: payments, delivery, reviews, stock
   reconciliation. Those are products, not fixes.

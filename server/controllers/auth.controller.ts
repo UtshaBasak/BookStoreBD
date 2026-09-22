@@ -31,8 +31,18 @@ import type {
   VerifyOtpBody,
 } from '../schemas/index.js';
 import { createLogger } from '../config/logger.js';
+import {
+  clearCode,
+  consumeOtpAttempt,
+  hasVerifiedCode,
+  issueCode,
+  markVerified,
+} from '../utils/otpStore.js';
 
 const log = createLogger('auth');
+
+// One-time codes live in MongoDB with a TTL index rather than in a Map in this
+// process: see utils/otpStore.ts for why that stopped being good enough.
 
 /**
  * One answer for every sign-in failure, and one answer for every request for a
@@ -85,75 +95,6 @@ const applyAdminBootstrap = async (user: UserDocument): Promise<UserDocument> =>
     await user.save();
   }
   return user;
-};
-
-interface OtpRecord {
-  code: string;
-  expiresAt: number;
-  verified: boolean;
-  /** Wrong guesses against this code, across every address they came from. */
-  attempts: number;
-}
-
-// In-memory OTP store keyed by e-mail. A Map rather than a plain object: an
-// attacker who signs up as "__proto__" would otherwise assign through to
-// Object.prototype. Fine for a single instance; move to Redis before scaling
-// horizontally.
-const otpStore = new Map<string, OtpRecord>();
-
-const OTP_TTL_MS = 10 * 60 * 1000;
-
-/**
- * Wrong guesses before a code is thrown away.
- *
- * The rate limiter caps an IP at 50 requests per 15 minutes, but nothing was
- * counting failures against the *code*, so guesses from a handful of addresses
- * were never pooled. Six digits is a million possibilities; five tries makes
- * the arithmetic hopeless rather than merely slow.
- */
-const MAX_OTP_ATTEMPTS = 5;
-
-/**
- * Checks a code, counting the failure against it.
- *
- * Returns the record only for the right code. Everything else - no code issued,
- * expired, wrong, or discarded after too many tries - returns null, and the
- * callers answer the same way for all of them. Saying "too many attempts" would
- * be friendlier and would also confirm that a code had been issued at all,
- * which is the account enumeration this file works to avoid.
- */
-const consumeOtpAttempt = (email: string, code: string): OtpRecord | null => {
-  const record = otpStore.get(email);
-  if (!record) return null;
-
-  if (Date.now() > record.expiresAt) {
-    otpStore.delete(email);
-    return null;
-  }
-
-  if (record.code !== code) {
-    record.attempts += 1;
-    if (record.attempts >= MAX_OTP_ATTEMPTS) {
-      otpStore.delete(email);
-      log.warn({ attempts: record.attempts }, 'One-time code discarded after repeated failures');
-    }
-    return null;
-  }
-
-  return record;
-};
-
-/**
- * Drops codes nobody came back for.
- *
- * Without this the map only ever loses an entry when someone touches it, so a
- * long-running process accumulates every code it ever issued.
- */
-const pruneExpiredOtps = (): void => {
-  const now = Date.now();
-  for (const [email, record] of otpStore) {
-    if (now > record.expiresAt) otpStore.delete(email);
-  }
 };
 
 function generateOTP(): string {
@@ -290,14 +231,8 @@ export const sendOtp = async (
             return;
         }
 
-        pruneExpiredOtps();
         const code = generateOTP();
-        otpStore.set(email, {
-            code,
-            expiresAt: Date.now() + OTP_TTL_MS,
-            verified: false,
-            attempts: 0,
-        });
+        await issueCode(email, code);
         dispatchEmail(email, "Your OTP Code", `Your verification code is: ${code}`);
 
         res.json({ message: purpose === 'register' ? REGISTER_CODE_SENT : RESET_CODE_SENT });
@@ -308,22 +243,29 @@ export const sendOtp = async (
 };
 
 // Verify OTP
-export const verifyOtp = (req: Request<unknown, unknown, VerifyOtpBody>, res: Response): void => {
+export const verifyOtp = async (
+    req: Request<unknown, unknown, VerifyOtpBody>,
+    res: Response
+): Promise<void> => {
     const email = req.body.email;
     const code = req.body.code;
     if (!email || !code) {
         res.status(400).json({ message: "Email and code required" });
         return;
     }
-    // One message for a wrong code, an expired one, an address that was never
-    // issued one, and one whose code has been guessed at too many times.
-    const record = consumeOtpAttempt(email, code);
-    if (!record) {
-        res.status(400).json({ message: INVALID_CODE });
-        return;
+    try {
+        // One message for a wrong code, an expired one, an address that was
+        // never issued one, and one guessed at too many times.
+        if (!(await consumeOtpAttempt(email, code))) {
+            res.status(400).json({ message: INVALID_CODE });
+            return;
+        }
+        await markVerified(email);
+        res.json({ message: "OTP verified" });
+    } catch (error) {
+        log.error({ err: error }, 'verifyOtp failed');
+        res.status(500).json({ message: "Internal server error" });
     }
-    record.verified = true;
-    res.json({ message: "OTP verified" });
 };
 
 // Signup with OTP verification
@@ -337,7 +279,7 @@ export const signup = async (
     const password = req.body.password;
     try {
         // Check OTP
-        if (!otpStore.get(email)?.verified) {
+        if (!(await hasVerifiedCode(email))) {
             res.status(400).json({ message: "Email not verified. Please verify OTP." });
             return;
         }
@@ -360,7 +302,7 @@ export const signup = async (
         const newUser = new User ({username,email,password:hashedPassword});
         await newUser.save();
         await applyAdminBootstrap(newUser);
-        otpStore.delete(email);
+        await clearCode(email);
         res.status(201).json(await startSession(res, newUser));
     } catch (error) {
         // Handle duplicate key error (in case of race condition)
@@ -438,7 +380,7 @@ export const resetPassword = async (
     }
     // Counted against the same record as `verifyOtp`: the two endpoints check
     // one code between them, so five tries is five tries whichever is used.
-    if (!consumeOtpAttempt(email, otp)) {
+    if (!(await consumeOtpAttempt(email, otp))) {
         res.status(400).json({ message: INVALID_CODE });
         return;
     }
@@ -452,7 +394,7 @@ export const resetPassword = async (
     }
     user.password = bcryptjs.hashSync(newPassword, BCRYPT_ROUNDS);
     await user.save();
-    otpStore.delete(email);
+    await clearCode(email);
 
     // Anyone already signed in with the old password is signed out: a reset is
     // the usual response to a suspected compromise.
