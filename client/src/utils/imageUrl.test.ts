@@ -5,7 +5,7 @@
  */
 import { describe, expect, it } from 'vitest';
 
-import { sized, IMAGE_WIDTHS } from './imageUrl.js';
+import { isCloudinary, sized, IMAGE_WIDTHS } from './imageUrl.js';
 
 const UPLOADED = 'https://res.cloudinary.com/demo/image/upload/v1712345678/bookstorebd/books/abc.jpg';
 
@@ -37,5 +37,29 @@ describe('sized', () => {
     ]) {
       expect(sized(other, 400)).toBe(other);
     }
+  });
+});
+
+describe('recognising a Cloudinary URL', () => {
+  it('accepts one', () => {
+    expect(isCloudinary('https://res.cloudinary.com/demo/image/upload/v1/x.jpg')).toBe(true);
+  });
+
+  it('rejects a host that merely contains the name', () => {
+    // `url.includes('res.cloudinary.com')` is true of both of these.
+    expect(isCloudinary('https://res.cloudinary.com.evil.example/x.jpg')).toBe(false);
+    expect(isCloudinary('https://evil.example/res.cloudinary.com/x.jpg')).toBe(false);
+  });
+
+  it('rejects what is not an absolute URL at all', () => {
+    expect(isCloudinary('/api/book/1/cover/0')).toBe(false);
+    expect(isCloudinary('data:image/png;base64,AAA')).toBe(false);
+    expect(isCloudinary(undefined)).toBe(false);
+  });
+
+  it('and sized() leaves those alone', () => {
+    expect(sized('https://evil.example/res.cloudinary.com/image/upload/x.jpg', 400)).toBe(
+      'https://evil.example/res.cloudinary.com/image/upload/x.jpg'
+    );
   });
 });

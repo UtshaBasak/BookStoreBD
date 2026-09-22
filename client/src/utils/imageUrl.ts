@@ -28,8 +28,32 @@ export const IMAGE_WIDTHS = {
   row: 200,
 } as const;
 
+const CLOUDINARY_HOST = 'res.cloudinary.com';
+
+/**
+ * Whether a URL is served by Cloudinary.
+ *
+ * The host, compared exactly - not `url.includes('res.cloudinary.com')`, which
+ * is also true of `https://evil.example/res.cloudinary.com/x.png` and of
+ * `https://res.cloudinary.com.evil.example/x.png`. Here it only decides which
+ * transformation to ask for, so the substring version was not a way in; it was
+ * still a check that did not mean what it said, and the same shape in a place
+ * that did decide something would be.
+ */
+/* A plain boolean, not a `url is string` predicate: the callers already hold a
+   string, and the predicate narrows their else-branch to `never`. */
+export const isCloudinary = (url: unknown): boolean => {
+  if (typeof url !== 'string') return false;
+  try {
+    return new URL(url).hostname === CLOUDINARY_HOST;
+  } catch {
+    // Not an absolute URL: a cover served by the API, or a data URI.
+    return false;
+  }
+};
+
 export const sized = (url: string, width: number): string => {
-  if (typeof url !== 'string' || !url.includes('res.cloudinary.com')) return url;
+  if (!isCloudinary(url)) return url;
 
   const at = url.indexOf(CLOUDINARY_UPLOAD);
   if (at === -1) return url;

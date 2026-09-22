@@ -9,7 +9,7 @@ import { promptSignIn, useToast } from '../hooks/useToast.js';
 import { getUserEmail } from '../utils/auth.js';
 import { flagsFor } from '../utils/bookFlags.js';
 import { PLACEHOLDER_IMAGE } from '../utils/safeImageSrc.js';
-import { sized, IMAGE_WIDTHS } from '../utils/imageUrl.js';
+import { isCloudinary, sized, IMAGE_WIDTHS } from '../utils/imageUrl.js';
 
 export default function Cart() {
   const navigate = useNavigate();
@@ -48,7 +48,7 @@ export default function Cart() {
     if (!img) return PLACEHOLDER_IMAGE;
     if (img.startsWith('data:image/')) return img;
     // Cloudinary delivers the size the row draws, not the original photograph.
-    if (img.includes('res.cloudinary.com')) return sized(img, IMAGE_WIDTHS.row);
+    if (isCloudinary(img)) return sized(img, IMAGE_WIDTHS.row);
     if (/^https?:\/\//.test(img)) return img;
     // A cover served by the API arrives as a path, not as bytes.
     if (img.startsWith('/')) return img;

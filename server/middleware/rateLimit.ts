@@ -33,6 +33,22 @@ export const authLimiter = rateLimit({
   ...common,
 });
 
+/**
+ * `/robots.txt` and `/sitemap.xml`.
+ *
+ * These sit before the general limiter because a search engine asking for a
+ * sitemap is not the traffic that limiter exists to stop - but the sitemap
+ * reads the catalogue, so leaving them with no ceiling at all makes an
+ * unauthenticated database query anyone can repeat as fast as they like.
+ * Generous enough that no crawler will ever meet it: Googlebot fetches a
+ * sitemap once in a while, not 120 times an hour.
+ */
+export const crawlerLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 120,
+  ...common,
+});
+
 /** Routes that accept uploads or write chat, profile and return data. */
 export const writeLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,

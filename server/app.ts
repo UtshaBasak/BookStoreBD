@@ -19,7 +19,7 @@ import { securityHeaders } from './config/securityHeaders.js';
 import { errorHandler, notFoundHandler } from './middleware/errorHandler.js';
 import { sanitizeRequest } from './middleware/sanitizeRequest.js';
 import { requestLogger } from './middleware/requestLogger.js';
-import { apiLimiter, authLimiter, writeLimiter } from './middleware/rateLimit.js';
+import { crawlerLimiter, apiLimiter, authLimiter, writeLimiter } from './middleware/rateLimit.js';
 
 import authRouter from './routes/auth.route.js';
 import bookRouter from './routes/book.route.js';
@@ -91,8 +91,8 @@ export const createApp = ({
   // Crawler endpoints. At the root because that is the only place a crawler
   // looks for them, and before the rate limiter because a search engine asking
   // for a sitemap is not the traffic that limiter exists to stop.
-  app.get('/robots.txt', robots);
-  app.get('/sitemap.xml', sitemap);
+  app.get('/robots.txt', crawlerLimiter, robots);
+  app.get('/sitemap.xml', crawlerLimiter, sitemap);
 
   app.use(apiLimiter);
 

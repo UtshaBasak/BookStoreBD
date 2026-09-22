@@ -102,7 +102,9 @@ describe('GET /sitemap.xml', () => {
       .set('X-Forwarded-Host', 'books.example.com');
 
     for (const url of locations(res.text)) {
-      expect(url.startsWith('https://books.example.com')).toBe(true);
+      // With the trailing slash: without it this also passes for
+      // https://books.example.com.evil.example/, which is a different site.
+      expect(url.startsWith('https://books.example.com/')).toBe(true);
     }
   });
 

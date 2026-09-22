@@ -23,6 +23,21 @@ describe('rate limiting', () => {
     expect(res.headers['ratelimit-limit'] ?? res.headers.ratelimit).toBeDefined();
   });
 
+  it('covers the crawler endpoints, which sit in front of the general limiter', async () => {
+    // They are before `apiLimiter` on purpose - a search engine asking for a
+    // sitemap is not the traffic it exists to stop - but the sitemap reads the
+    // catalogue, so with no ceiling at all it is an unauthenticated database
+    // query anyone can repeat as fast as they like.
+    for (const path of ['/sitemap.xml', '/robots.txt']) {
+      const res = await request.get(path);
+
+      expect(res.status).toBe(200);
+      // draft-7 sends one combined `RateLimit` header rather than three.
+      const advertised = res.headers['ratelimit-limit'] ?? res.headers.ratelimit;
+      expect(advertised).toMatch(/120/);
+    }
+  });
+
   it('returns 429 once the auth bucket is exhausted', async () => {
     const attempts = [];
     // The auth ceiling is 50 per window; 60 guarantees it is crossed.
