@@ -16,6 +16,7 @@ import { useSeo } from '../hooks/useSeo.js';
 import { getUserEmail } from '../utils/auth.js';
 import { flagsFor } from '../utils/bookFlags.js';
 import { PLACEHOLDER_IMAGE } from '../utils/safeImageSrc.js';
+import { sized, IMAGE_WIDTHS } from '../utils/imageUrl.js';
 import { Stars } from '../components/Stars.js';
 
 interface FilterState {
@@ -662,7 +663,7 @@ export default function BookFilter() {
                       <img
                         loading="lazy"
                         decoding="async"
-                        src={book.images && book.images[0] ? book.images[0] : PLACEHOLDER_IMAGE}
+                        src={sized(book.images?.[0] ?? PLACEHOLDER_IMAGE, IMAGE_WIDTHS.card)}
                         alt={book.title}
                         style={{
                           width: '100px',

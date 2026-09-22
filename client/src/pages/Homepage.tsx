@@ -24,6 +24,7 @@ import Footer from '../components/Footer.js';
 import { getUserEmail } from '../utils/auth.js';
 import { flagsFor } from '../utils/bookFlags.js';
 import { PLACEHOLDER_IMAGE } from '../utils/safeImageSrc.js';
+import { sized, IMAGE_WIDTHS } from '../utils/imageUrl.js';
 
 const genres = [
   'Fiction',
@@ -566,14 +567,13 @@ export default function Homepage() {
               >
                 <div className="book-image" style={{ position: 'relative', width: '100%', height: 200, zIndex: 0 }}>
                   <img
-                    src={
-                      Array.isArray(book.images) && book.images.length > 0 && book.images[0]
-                        ? book.images[0]
-                        // Was '/books/default-book.jpg', which is not in
-                        // public/ - so a book with no cover rendered as a
-                        // broken image on the busiest page on the site.
-                        : PLACEHOLDER_IMAGE
-                    }
+                    src={sized(
+                      // Was '/books/default-book.jpg', which is not in public/
+                      // - so a book with no cover rendered as a broken image on
+                      // the busiest page on the site.
+                      book.images?.[0] || PLACEHOLDER_IMAGE,
+                      IMAGE_WIDTHS.card
+                    )}
                     alt={book.title}
                     // The covers sit below the fold in a horizontal strip, so
                     // the browser should not decode every one of them before

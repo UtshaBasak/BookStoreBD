@@ -7,6 +7,7 @@ import { API_BASE_URL, apiFetch } from '../config/api.js';
 import { useCart, useClearCart, useProfile } from '../hooks/queries.js';
 import { isOwnProfile } from '../utils/profile.js';
 import { safeImageSrc, PLACEHOLDER_IMAGE } from '../utils/safeImageSrc.js';
+import { sized, IMAGE_WIDTHS } from '../utils/imageUrl.js';
 
 const PROMO_CODE = 'BookStore';
 const PROMO_DISCOUNT = 50.00;
@@ -146,7 +147,8 @@ export default function Payment() {
     // A path is either a cover served by the API or the placeholder; both
     // are same-origin and `safeImageSrc` checks the scheme either way.
     if (img.startsWith('data:image/') || /^https?:\/\//.test(img) || img.startsWith('/')) {
-      return safeImageSrc(img, PLACEHOLDER_IMAGE);
+      // Cloudinary delivers the size the row draws, not the original.
+      return safeImageSrc(sized(img, IMAGE_WIDTHS.row), PLACEHOLDER_IMAGE);
     }
     return safeImageSrc(`${API_BASE_URL}/uploads/${encodeURIComponent(img)}`, PLACEHOLDER_IMAGE);
   };

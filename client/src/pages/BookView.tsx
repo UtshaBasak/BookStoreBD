@@ -24,6 +24,7 @@ import { messageOf } from '../utils/apiError.js';
 import { getUserEmail } from '../utils/auth.js';
 import { flagsFor } from '../utils/bookFlags.js';
 import { PLACEHOLDER_IMAGE } from '../utils/safeImageSrc.js';
+import { sized, IMAGE_WIDTHS } from '../utils/imageUrl.js';
 import { reportError } from '../utils/report.js';
 
 export default function BookView() {
@@ -210,6 +211,8 @@ export default function BookView() {
         const img = book.images?.[0];
         if (!img) return PLACEHOLDER_IMAGE;
         if (img.startsWith('data:image/')) return img;
+        // Cloudinary delivers the size the page draws, not the original.
+        if (img.includes('res.cloudinary.com')) return sized(img, IMAGE_WIDTHS.detail);
         if (/^https?:\/\//.test(img)) return img;
         // A cover served by the API arrives as a path, not as bytes.
         if (img.startsWith('/')) return img;
@@ -618,7 +621,7 @@ export default function BookView() {
                                                 <img
                                                     loading="lazy"
                                                     decoding="async"
-                                                    src={relatedBook.images?.[0] || PLACEHOLDER_IMAGE}
+                                                    src={sized(relatedBook.images?.[0] || PLACEHOLDER_IMAGE, IMAGE_WIDTHS.card)}
                                                     alt={relatedBook.title}
                                                     style={{
                                                         width: '100%',
