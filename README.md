@@ -397,8 +397,8 @@ Run these from the repository root:
 | `npm run test:server` | Server suite only                                     |
 | `npm run test:client` | Client suite only                                     |
 | `npm run test:watch`  | Re-runs on change (inside `client/` or `server/`)     |
-| `npm run seed`        | Seeds demo data (run inside `server/`)                |
-| `npm run migrate:images` | Moves base64 covers to Cloudinary (in `server/`)    |
+| `npm run seed`        | Seeds demo data (`-- --reset` empties first)           |
+| `npm run migrate:images` | Moves base64 covers to Cloudinary                   |
 
 > The API runs from TypeScript sources in development — nodemon watches, `tsx`
 > executes — and from the compiled output in production. `npm run typecheck` is
