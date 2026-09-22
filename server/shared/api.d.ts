@@ -162,6 +162,25 @@ export interface Review {
   orderNumber?: string;
   createdAt?: IsoDate;
   updatedAt?: IsoDate;
+  /** The seller's answer, when they have written one. */
+  reply?: ReviewReply;
+  /** How many people have reported it. Zero for everything a shopper sees. */
+  flagCount?: number;
+}
+
+/** One answer from the seller of the book, under one review. */
+export interface ReviewReply {
+  body: string;
+  byEmail: string;
+  byName: string;
+  at: IsoDate;
+}
+
+/** A row of the administrator's moderation queue. */
+export interface FlaggedReview extends Review {
+  bookTitle: string;
+  /** What the reporters said, for those who gave a reason. */
+  reasons: string[];
 }
 
 /** Why a caller may not write a review, when they may not. */
@@ -178,6 +197,18 @@ export interface ReviewSummary {
   mine: Review | null;
   canReview: boolean;
   reason: ReviewBlockedReason | null;
+  /** Whether the caller sells this book, and so may answer its reviews. */
+  isSeller: boolean;
+}
+
+/** POST /review/:id/reply */
+export interface ReplyToReviewRequest {
+  body: string;
+}
+
+/** POST /review/:id/flag */
+export interface FlagReviewRequest {
+  reason?: string;
 }
 
 /** POST /review/:id */

@@ -26,6 +26,7 @@ import type {
   ReturnRequest,
   ReturnStatus,
   ReviewSummary,
+  FlaggedReview,
   WriteReviewRequest,
   UnreadCountResponse,
 } from '@shared/api.js';
@@ -102,6 +103,7 @@ export const keys = {
   order: (orderNumber: string | undefined) => ['order', orderNumber] as const,
   returnRequests: (query: string) => ['returns', query] as const,
   reviews: (id: Id | undefined) => ['reviews', id] as const,
+  flaggedReviews: (query: string) => ['reviews', 'flagged', query] as const,
   unreadChats: ['chat', 'unread'] as const,
   chatHistory: ['chat', 'history'] as const,
 };
@@ -302,6 +304,83 @@ export const useWriteReview = (
       void client.invalidateQueries({ queryKey: keys.book(id) });
       void client.invalidateQueries({ queryKey: ['catalogue'] });
     },
+  });
+};
+
+/**
+ * The seller's answer to one review.
+ *
+ * Keyed by the review, not the book, and the book's review query is what gets
+ * invalidated: the reply is drawn inside that list.
+ */
+export const useReplyToReview = (
+  bookId: Id | undefined
+): UseMutationResult<unknown, Error, { reviewId: Id; body: string }> => {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: ({ reviewId, body }: { reviewId: Id; body: string }) =>
+      request(`/review/${reviewId}/reply`, json('POST', { body })),
+    onSuccess: () => client.invalidateQueries({ queryKey: keys.reviews(bookId) }),
+  });
+};
+
+export const useDeleteReply = (
+  bookId: Id | undefined
+): UseMutationResult<unknown, Error, Id> => {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: (reviewId: Id) => request(`/review/${reviewId}/reply`, json('DELETE')),
+    onSuccess: () => client.invalidateQueries({ queryKey: keys.reviews(bookId) }),
+  });
+};
+
+/**
+ * Reports a review.
+ *
+ * Nothing about the list changes when it succeeds - reporting hides nothing -
+ * so there is no invalidation here; the button says it has been done.
+ */
+export const useFlagReview = (): UseMutationResult<
+  MessageResponse,
+  Error,
+  { reviewId: Id; reason?: string }
+> =>
+  useMutation({
+    mutationFn: ({ reviewId, reason }: { reviewId: Id; reason?: string }) =>
+      request<MessageResponse>(`/review/${reviewId}/flag`, json('POST', { reason })),
+  });
+
+/** The administrator's moderation queue. */
+export const useFlaggedReviews = (
+  params: ListParams = {},
+  options: Partial<QueryOptions<Page<FlaggedReview>>> = {}
+): UseQueryResult<Page<FlaggedReview>> =>
+  useQuery(pagedQuery<FlaggedReview>('/review/flagged', keys.flaggedReviews, params, options));
+
+/** Clears the reports and leaves the review where it is. */
+export const useDismissFlags = (): UseMutationResult<MessageResponse, Error, Id> => {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: (reviewId: Id) =>
+      request<MessageResponse>(`/review/${reviewId}/flags`, json('DELETE')),
+    onSuccess: () => client.invalidateQueries({ queryKey: ['reviews', 'flagged'] }),
+  });
+};
+
+/** Removes somebody else's review. Administrators only; writes an audit row. */
+export const useRemoveReview = (): UseMutationResult<
+  MessageResponse,
+  Error,
+  { bookId: Id; reviewerEmail: string }
+> => {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: ({ bookId, reviewerEmail }: { bookId: Id; reviewerEmail: string }) =>
+      request<MessageResponse>(
+        `/review/${bookId}?email=${encodeURIComponent(reviewerEmail)}`,
+        json('DELETE')
+      ),
+    onSuccess: () => client.invalidateQueries({ queryKey: ['reviews', 'flagged'] }),
   });
 };
 

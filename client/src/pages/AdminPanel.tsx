@@ -5,6 +5,7 @@ import UserManagement from './UserManagement';
 import TransactionHistory from './TransactionHistory';
 import BookList from './BookList';
 import ReturnManagement from './admin/ReturnManagement';
+import ReviewModeration from './admin/ReviewModeration';
 import { FaHome } from 'react-icons/fa';
 import { isAdmin } from '../utils/auth.js';
 import { signOut } from '../config/api.js';
@@ -48,6 +49,7 @@ export default function AdminPanel() {
             <li><Link to="/admin/transactions">Transaction History</Link></li>
             <li><Link to="/admin/books">Book List</Link></li>
             <li><Link to="/admin/returns">Return Management</Link></li>
+            <li><Link to="/admin/reviews">Reported Reviews</Link></li>
           </ul>
         </nav>
         <button
@@ -77,6 +79,7 @@ export default function AdminPanel() {
           <Route path="/transactions" element={<TransactionHistory />} />
           <Route path="/books" element={<BookList />} />
           <Route path="/returns" element={<ReturnManagement />} />
+          <Route path="/reviews" element={<ReviewModeration />} />
         </Routes>
       </main>
     </div>

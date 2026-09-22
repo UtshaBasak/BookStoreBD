@@ -26,7 +26,7 @@ Yes. Nothing is broken.
 | ----- | ------ |
 | Lint, both packages | clean |
 | Type-check under TypeScript 6.0.3 | clean |
-| Tests | 475 passing (330 server, 145 client) |
+| Tests | 535 passing (369 server, 166 client) |
 | `npm audit`, all three roots | 0 vulnerabilities |
 | Builds | API compiles to `dist/`, client bundles |
 | Production stack | browse, detail, cart, wishlist, profile, orders, clear — all `200` |
@@ -804,8 +804,31 @@ build next.
   becomes slow.
 - **Seller onboarding and payouts.** Anyone signed in can list a book. A
   marketplace needs verification, a seller agreement and a payout ledger.
-- ~~**Reviews.**~~ Built - see above. What is not built is a way to flag a
-  review, and a reply from the seller.
+- ~~**Reviews.**~~ Built - see above. ~~What is not built is a way to flag a
+  review, and a reply from the seller.~~ Both are built now.
+
+  **The seller can answer.** One reply per review, from the seller of that book
+  and nobody else - not an administrator either, who would be signing the
+  shop's name to words the shop did not write. A review the seller cannot
+  answer is one they can only argue with by deleting it, which they cannot do
+  and should not be able to. The reply replaces itself rather than stacking, so
+  the last word cannot bury the review, and the seller's name is copied in like
+  the reviewer's so it still reads correctly after the account is gone.
+
+  **Anyone signed in can report one**, once - the count is a row per reporter,
+  not a counter, so the same account cannot push a review up the queue by
+  clicking ten times, and the reasons survive to be read. Reporting hides
+  nothing: the review stays where it is and keeps counting towards the score
+  until somebody decides otherwise. Hiding on report would make it a button for
+  removing an inconvenient review, which is the opposite of the point.
+
+  The administrator's queue has exactly two decisions, because there are only
+  two: clear the reports, or remove the review. Removing writes an audit row, as
+  it already did.
+
+  Eighteen tests on the server, eight in the browser, and the whole path driven
+  end to end in Chrome: the seller replying, a reader reporting, and the queue
+  showing "1 report" with both buttons.
 
 ---
 

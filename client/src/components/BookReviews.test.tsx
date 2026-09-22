@@ -37,15 +37,22 @@ const summary = (overrides: Partial<ReviewSummary> = {}): ReviewSummary => ({
   mine: null,
   canReview: false,
   reason: 'sign-in',
+  isSeller: false,
   ...overrides,
 });
 
 const show = (body: ReviewSummary) => {
-  const fetchMock = vi.fn().mockResolvedValue(
-    new Response(JSON.stringify(body), {
-      status: 200,
-      headers: { 'Content-Type': 'application/json' },
-    })
+  // A fresh Response per call: one object cannot be read twice, and the page
+  // makes more than one request as soon as a button is pressed.
+  const fetchMock = vi.fn((input: RequestInfo | URL, init?: RequestInit) =>
+    // The arguments are declared so `mock.calls` is typed; the same answer
+    // serves every request this component makes.
+    Promise.resolve(
+      new Response(JSON.stringify({ ...body, _asked: `${String(init?.method ?? 'GET')} ${String(input)}` }), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      })
+    )
   );
   vi.stubGlobal('fetch', fetchMock);
 
@@ -185,5 +192,100 @@ describe('writing one', () => {
     // And editing starts from what they said, not from an empty box.
     await userEvent.click(screen.getByRole('button', { name: /edit your review/i }));
     expect(screen.getByLabelText(/headline/i)).toHaveValue('It was fine');
+  });
+});
+
+describe("the seller's reply", () => {
+  it('is offered to the seller, and nobody else', async () => {
+    show(summary({ average: 5, count: 1, reviews: [review()], isSeller: true }));
+
+    expect(await screen.findByRole('button', { name: /^reply$/i })).toBeInTheDocument();
+  });
+
+  it('is not offered to a shopper', async () => {
+    show(summary({ average: 5, count: 1, reviews: [review()], canReview: true, reason: null }));
+
+    await screen.findByText('Excellent');
+    expect(screen.queryByRole('button', { name: /^reply$/i })).not.toBeInTheDocument();
+  });
+
+  it('shows under the review, marked as the seller', async () => {
+    show(
+      summary({
+        average: 5,
+        count: 1,
+        reviews: [
+          review({
+            reply: {
+              body: 'Sorry about that, we have refunded you.',
+              byEmail: 'seller@test.com',
+              byName: 'The Shop',
+              at: '2026-01-02T00:00:00.000Z',
+            },
+          }),
+        ],
+      })
+    );
+
+    expect(await screen.findByText(/we have refunded you/i)).toBeInTheDocument();
+    expect(screen.getByText('The Shop')).toBeInTheDocument();
+    expect(screen.getByText('Seller')).toBeInTheDocument();
+  });
+
+  it('sends what the seller typed', async () => {
+    const fetchMock = show(
+      summary({ average: 5, count: 1, reviews: [review()], isSeller: true })
+    );
+    await screen.findByRole('button', { name: /^reply$/i });
+
+    await userEvent.click(screen.getByRole('button', { name: /^reply$/i }));
+    await userEvent.type(screen.getByLabelText(/your reply/i), 'We have refunded you.');
+    await userEvent.click(screen.getByRole('button', { name: /publish reply/i }));
+
+    await waitFor(() => {
+      const posts = fetchMock.mock.calls.filter(([url, init]) =>
+        String(url).includes('/reply') && (init as RequestInit)?.method === 'POST'
+      );
+      expect(posts).toHaveLength(1);
+      expect(JSON.parse(String((posts[0][1] as RequestInit).body))).toEqual({
+        body: 'We have refunded you.',
+      });
+    });
+  });
+});
+
+describe('reporting a review', () => {
+  it('is offered to a signed-in reader', async () => {
+    show(summary({ average: 5, count: 1, reviews: [review()], canReview: true, reason: null }));
+
+    expect(await screen.findByRole('button', { name: /^report$/i })).toBeInTheDocument();
+  });
+
+  it('is not offered to somebody signed out', async () => {
+    show(summary({ average: 5, count: 1, reviews: [review()], reason: 'sign-in' }));
+
+    await screen.findByText('Excellent');
+    expect(screen.queryByRole('button', { name: /^report$/i })).not.toBeInTheDocument();
+  });
+
+  it('is not offered on your own review', async () => {
+    const mine = review({ _id: 'r-mine' });
+    show(
+      summary({ average: 5, count: 1, reviews: [mine], mine, canReview: true, reason: null })
+    );
+
+    await screen.findByText('Excellent');
+    expect(screen.queryByRole('button', { name: /^report$/i })).not.toBeInTheDocument();
+  });
+
+  it('says so once it has been sent, and does not send twice', async () => {
+    const fetchMock = show(
+      summary({ average: 5, count: 1, reviews: [review()], canReview: true, reason: null })
+    );
+
+    await userEvent.click(await screen.findByRole('button', { name: /^report$/i }));
+    expect(await screen.findByRole('button', { name: /reported/i })).toBeDisabled();
+    const flags = fetchMock.mock.calls.filter(([url]) => String(url).includes('/flag'));
+    expect(flags).toHaveLength(1);
   });
 });

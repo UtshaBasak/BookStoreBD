@@ -4,7 +4,14 @@ import { Link } from 'react-router-dom';
 import type { Id } from '@shared/api.js';
 
 import { Stars, StarInput } from './Stars.js';
-import { useDeleteReview, useReviews, useWriteReview } from '../hooks/queries.js';
+import {
+  useDeleteReply,
+  useDeleteReview,
+  useFlagReview,
+  useReplyToReview,
+  useReviews,
+  useWriteReview,
+} from '../hooks/queries.js';
 import { useToast } from '../hooks/useToast.js';
 import { messageOf } from '../utils/apiError.js';
 
@@ -30,6 +37,38 @@ export default function BookReviews({ bookId }: { bookId: Id | undefined }) {
   const { data, isPending } = useReviews(bookId);
   const { mutateAsync: writeReview, isPending: saving } = useWriteReview(bookId);
   const { mutateAsync: removeReview } = useDeleteReview(bookId);
+  const { mutateAsync: sendReply, isPending: replying } = useReplyToReview(bookId);
+  const { mutateAsync: removeReply } = useDeleteReply(bookId);
+  const { mutateAsync: flagReview } = useFlagReview();
+
+  /** Which review's reply box is open, and what is in it. */
+  const [replyTo, setReplyTo] = useState<{ id: string; body: string } | null>(null);
+  /** Reviews this visitor has reported, so the button can say so. */
+  const [reported, setReported] = useState<string[]>([]);
+
+  const submitReply = async (reviewId: string, body: string) => {
+    if (!body.trim()) {
+      toast.warning('Write something before replying.');
+      return;
+    }
+    try {
+      await sendReply({ reviewId, body: body.trim() });
+      setReplyTo(null);
+      toast.success('Your reply is published.');
+    } catch (error) {
+      toast.error(messageOf(error) || 'Could not save that reply.');
+    }
+  };
+
+  const report = async (reviewId: string) => {
+    try {
+      const answer = await flagReview({ reviewId });
+      setReported((already) => [...already, reviewId]);
+      toast.success(answer.message || 'Thank you. An administrator will look at this review.');
+    } catch (error) {
+      toast.error(messageOf(error) || 'Could not report that review.');
+    }
+  };
 
   /*
    * The form is derived from whatever they said last time, with an override
@@ -241,6 +280,104 @@ export default function BookReviews({ bookId }: { bookId: Id | undefined }) {
             </div>
             {review.title && <p className="mb-1 mt-2 font-semibold">{review.title}</p>}
             {review.body && <p className="m-0 whitespace-pre-line text-[#444]">{review.body}</p>}
+
+            {/* The seller's answer, indented under what it answers. */}
+            {review.reply && (
+              <div
+                className="mt-3 rounded border-l-4 p-3"
+                style={{ borderColor: '#90caf9', background: '#f4f9ff' }}
+              >
+                <div className="flex flex-wrap items-center gap-2">
+                  <strong>{review.reply.byName}</strong>
+                  <span
+                    className="rounded px-2 py-[2px] text-xs font-semibold"
+                    style={{ background: '#e3f2fd', color: '#1565c0' }}
+                  >
+                    Seller
+                  </span>
+                  <span className="text-sm text-[#888]">{when(review.reply.at)}</span>
+                </div>
+                <p className="m-0 mt-1 whitespace-pre-line text-[#444]">{review.reply.body}</p>
+              </div>
+            )}
+
+            <div className="mt-2 flex flex-wrap items-center gap-3 text-sm">
+              {/*
+                * A review the seller cannot answer is one they can only argue
+                * with by deleting it, which they cannot do.
+                */}
+              {data.isSeller &&
+                (replyTo?.id === review._id ? null : (
+                  <button
+                    type="button"
+                    className="underline"
+                    style={{ color: '#1565c0' }}
+                    onClick={() =>
+                      setReplyTo({ id: String(review._id), body: review.reply?.body ?? '' })
+                    }
+                  >
+                    {review.reply ? 'Edit your reply' : 'Reply'}
+                  </button>
+                ))}
+
+              {data.isSeller && review.reply && (
+                <button
+                  type="button"
+                  className="underline"
+                  style={{ color: '#c0392b' }}
+                  onClick={() => void removeReply(String(review._id))}
+                >
+                  Remove reply
+                </button>
+              )}
+
+              {/* Not on your own review, and not before you have signed in. */}
+              {!data.isSeller && data.reason !== 'sign-in' && data.mine?._id !== review._id && (
+                <button
+                  type="button"
+                  className="underline"
+                  style={{ color: '#888' }}
+                  disabled={reported.includes(String(review._id))}
+                  onClick={() => void report(String(review._id))}
+                >
+                  {reported.includes(String(review._id)) ? 'Reported' : 'Report'}
+                </button>
+              )}
+            </div>
+
+            {replyTo?.id === review._id && (
+              <div className="mt-2">
+                <label htmlFor={`reply-${String(review._id)}`} className="mb-1 block text-sm">
+                  Your reply, as the seller
+                </label>
+                <textarea
+                  id={`reply-${String(review._id)}`}
+                  rows={3}
+                  className="w-full rounded border p-2"
+                  value={replyTo.body}
+                  onChange={(e) => setReplyTo({ id: replyTo.id, body: e.target.value })}
+                />
+                <div className="mt-2 flex gap-2">
+                  <button
+                    type="button"
+                    disabled={replying}
+                    className="rounded px-3 py-2 text-white"
+                    style={{ background: '#1565c0', minHeight: 40 }}
+                    onClick={() => void submitReply(String(review._id), replyTo.body)}
+                  >
+                    {replying ? 'Publishing...' : 'Publish reply'}
+                  </button>
+                  <button
+                    type="button"
+                    className="rounded px-3 py-2"
+                    style={{ minHeight: 40 }}
+                    onClick={() => setReplyTo(null)}
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            )}
           </li>
         ))}
       </ul>

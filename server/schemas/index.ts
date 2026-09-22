@@ -307,6 +307,18 @@ export const reviewSchemas = {
     params: objectIdParam,
     query: z.object({ email: email.optional() }),
   },
+  /** The seller's answer to one review. */
+  reply: {
+    params: objectIdParam,
+    body: z.object({ body: mediumText.min(1, 'A reply needs something in it') }),
+  },
+  /** Reporting one. The reason is optional: "this is abuse" is often enough. */
+  flag: {
+    params: objectIdParam,
+    body: z.object({ reason: shortText.optional() }),
+  },
+  /** The administrator's queue of reported reviews. */
+  flagged: pagedList(),
 };
 
 /** Reading the audit trail, newest first. */
@@ -351,6 +363,7 @@ export type AdminBookQuery = z.infer<typeof bookSchemas.adminList.query>;
 export type AdminUserQuery = z.infer<typeof userSchemas.adminList.query>;
 export type OrderListQuery = z.infer<typeof orderSchemas.list.query>;
 export type ReturnListQuery = z.infer<typeof returnSchemas.list.query>;
+export type ReviewListQuery = z.infer<typeof reviewSchemas.flagged.query>;
 export type CatalogueQuery = z.infer<typeof filterSchemas.catalogue.query>;
 export type FeaturedQuery = z.infer<typeof filterSchemas.featured.query>;
 

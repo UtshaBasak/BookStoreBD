@@ -718,6 +718,26 @@ them would show part of a purchase.
 | `GET`   | `/return/requests`     | A page of return requests, scoped to the caller |
 | `GET`   | `/return/requests/:id/image/:n` | One photograph, to its buyer or an admin |
 | `PATCH` | `/return/requests/:id` | Approve or reject a request (admin)           |
+
+### Reviews — `/review`
+
+| Method   | Endpoint               | Description                                     |
+| -------- | ---------------------- | ----------------------------------------------- |
+| `GET`    | `/review/:bookId`      | A book's reviews, its score, and what you may do |
+| `POST`   | `/review/:bookId`      | Write or replace your review (buyers only)      |
+| `DELETE` | `/review/:bookId`      | Withdraw yours; `?email=` for an admin          |
+| `POST`   | `/review/:id/reply`    | The seller's answer to one review               |
+| `DELETE` | `/review/:id/reply`    | Withdraw that answer                            |
+| `POST`   | `/review/:id/flag`     | Report a review, once per person                |
+| `GET`    | `/review/flagged`      | The moderation queue (admin)                    |
+| `DELETE` | `/review/:id/flags`    | Clear the reports, keep the review (admin)      |
+
+Only somebody who bought the book may review it, and only the seller of that
+book may answer — not an administrator, who would be signing the shop's name to
+words the shop did not write. Reporting hides nothing: a review stays where it
+is and keeps counting towards the score until an administrator decides
+otherwise, because anything else makes "report" a button for removing an
+inconvenient review.
 | `GET`   | `/purchase?email=`     | Purchase history for one user                 |
 | `POST`  | `/purchase`            | Record a purchase                             |
 
