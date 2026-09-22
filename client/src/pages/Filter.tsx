@@ -392,6 +392,9 @@ export default function BookFilter() {
             <div style={{ marginTop: '0.5rem' }}>
               <input
                 type="number"
+                id="price-from"
+                name="minPrice"
+                aria-label="Lowest price in Taka"
                 placeholder="From"
                 style={{ width: '80px', marginRight: '0.5rem' }}
                 value={priceFilter.from}
@@ -403,6 +406,9 @@ export default function BookFilter() {
               />
               <input
                 type="number"
+                id="price-to"
+                name="maxPrice"
+                aria-label="Highest price in Taka"
                 placeholder="To"
                 style={{ width: '80px' }}
                 value={priceFilter.to}
@@ -495,7 +501,10 @@ export default function BookFilter() {
             {/* Search Bar */}
             <div className="relative flex min-w-[180px] flex-1 items-center">
               <input
-                type="text"
+                type="search"
+                id="catalogue-search"
+                name="search"
+                aria-label="Search books or authors"
                 placeholder="Search books or authors..."
                 value={searchInput}
                 onChange={(e) => setSearchInput(e.target.value)}
@@ -535,6 +544,9 @@ export default function BookFilter() {
             </div>
             {/* Sort Dropdown (right endpoint) */}
             <select
+              id="catalogue-sort"
+              name="sort"
+              aria-label="Sort books"
               value={sortOption}
               onChange={(e) => {
                 setSortOption(e.target.value as CatalogueSort);
