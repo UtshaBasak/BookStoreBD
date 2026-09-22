@@ -2,8 +2,8 @@ import express, { type Request, type Response } from 'express';
 
 import AddBook, { type BookDocument } from '../models/AddBook.model.js';
 import Cart from '../models/Cart.model.js';
-import { getBookById, getBookCover } from '../controllers/book.controller.js';
-import { actingUser, requireAuth } from '../middleware/auth.js';
+import { adminBookList, getBookById, getBookCover } from '../controllers/book.controller.js';
+import { actingUser, requireAdmin, requireAuth } from '../middleware/auth.js';
 import { destroyAssets } from '../config/cloudinary.js';
 import { errorMessage } from '../utils/error.js';
 import { LIST_IMAGE_PROJECTION, withCoverUrls } from '../utils/projections.js';
@@ -41,16 +41,23 @@ const loadOwnedBook = async (
 
 // ---------------------------------------------------------------------------
 // Public browsing
+//
+// There is no "every listing" endpoint any more. It answered with the whole
+// catalogue - 140 KB at 307 books, and growing - and the two pages that used
+// it now ask for the page they are drawing: `/filter/booklist` for a shopper,
+// `/admin` below for an administrator.
 // ---------------------------------------------------------------------------
 
-router.get('/', async (req, res) => {
-  try {
-    const books = await AddBook.find({}, LIST_IMAGE_PROJECTION).lean();
-    res.status(200).json(books.map(withCoverUrls));
-  } catch (error) {
-    res.status(500).json({ message: errorMessage(error) });
-  }
-});
+/**
+ * Before `/:id`, or Express reads "admin" as an id and the schema rejects it.
+ */
+router.get(
+  '/admin',
+  requireAuth,
+  requireAdmin,
+  validate(bookSchemas.adminList),
+  adminBookList
+);
 
 router.get(
   '/seller/:email',

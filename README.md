@@ -662,7 +662,7 @@ administrator without a migration.
 
 | Method   | Endpoint                  | Description                            |
 | -------- | ------------------------- | -------------------------------------- |
-| `GET`    | `/book`                   | List every book                        |
+| `GET`    | `/book/admin`             | One page of every listing (admin)      |
 | `GET`    | `/book/:id`               | Book detail plus related titles        |
 | `GET`    | `/book/seller/:email`     | Every listing by one seller            |
 | `PUT`    | `/book/update-stock/:id`  | Set stock; clears carts when it hits 0 |

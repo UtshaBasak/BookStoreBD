@@ -26,7 +26,7 @@ Yes. Nothing is broken.
 | ----- | ------ |
 | Lint, both packages | clean |
 | Type-check under TypeScript 6.0.3 | clean |
-| Tests | 410 passing (284 server, 126 client) |
+| Tests | 431 passing (298 server, 133 client) |
 | `npm audit`, all three roots | 0 vulnerabilities |
 | Builds | API compiles to `dist/`, client bundles |
 | Production stack | browse, detail, cart, wishlist, profile, orders, clear — all `200` |
@@ -854,6 +854,14 @@ What is left is in the sections above, and none of it blocks a launch:
   answers were right. `explain()` said `COLLSCAN` and `IN-MEMORY SORT`; with
   `_id` appended it reads 12 documents examined per page. There is a test on
   the query plan now, because that is the form the regression would take.
+
+  The administrator's book table went the same way, and it was worse: it
+  fetched every listing *and* every user account, the second only to turn an
+  e-mail into a name in the "Owner" column, then searched what it had in the
+  browser. `/book/admin` sends a page and resolves the sellers on it — 11,811
+  bytes for twenty-five rows, one request, and the search reaches the database
+  so it can find a listing that is not on the page you are looking at. With
+  both pages moved, there is no "every listing" endpoint left to call.
 - **A browser error reporter.** `reportError` is the seam and it currently goes
   nowhere in production.
 - **Redis for the one-time codes**, before the API runs on more than one

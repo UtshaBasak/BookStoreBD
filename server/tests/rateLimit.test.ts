@@ -17,7 +17,7 @@ afterAll(closeTestContext);
 
 describe('rate limiting', () => {
   it('advertises the limit on a normal response', async () => {
-    const res = await request.get('/book');
+    const res = await request.get('/filter/booklist');
 
     expect(res.status).toBe(200);
     expect(res.headers['ratelimit-limit'] ?? res.headers.ratelimit).toBeDefined();

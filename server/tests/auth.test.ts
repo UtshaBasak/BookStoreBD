@@ -101,7 +101,7 @@ describe('authentication is required', () => {
 });
 
 describe('public routes stay open', () => {
-  const publicRoutes = ['/health', '/book', '/filter/booklist'];
+  const publicRoutes = ['/health', '/filter/booklist', '/filter/featured'];
 
   it.each(publicRoutes)('%s is reachable signed out', async (path) => {
     expect((await request.get(path)).status).toBe(200);

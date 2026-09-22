@@ -3,7 +3,11 @@ import { createHash } from 'crypto';
 import type { RequestHandler } from 'express';
 
 import AddBook from '../models/AddBook.model.js';
+import User from '../models/user.model.js';
+import type { AdminBookQuery } from '../schemas/index.js';
 import { LIST_IMAGE_PROJECTION, withCoverUrls } from '../utils/projections.js';
+import { validatedQuery } from '../middleware/validate.js';
+import { contains } from '../utils/regex.js';
 import { createLogger } from '../config/logger.js';
 
 const log = createLogger('book');
@@ -107,4 +111,58 @@ export const getBookById: RequestHandler = async (req, res) => {
         log.error({ err: error }, 'Error fetching book');
         res.status(500).json({ message: 'Error fetching book details' });
     }
+};
+
+/**
+ * One page of every listing, for the administrator's table.
+ *
+ * That table used to fetch the entire catalogue and then, to fill its "Owner"
+ * column, the entire user list as well - two unbounded requests to draw
+ * twenty-five rows, and a search that could only look at what had already been
+ * downloaded. It is a query now, and the sellers resolved are the ones on the
+ * page.
+ *
+ * Separate from the shopper's catalogue because it asks a different question:
+ * "who put this here" is an administrator's concern, and a search matching a
+ * seller's e-mail address is not something a shop's search box should do.
+ */
+export const adminBookList: RequestHandler = async (req, res) => {
+  const { search, page, pageSize } = validatedQuery<AdminBookQuery>(req);
+
+  const pattern = search ? contains(search) : null;
+  const filter = pattern
+    ? { $or: [{ title: pattern }, { author: pattern }, { sellerEmail: pattern }] }
+    : {};
+
+  try {
+    const [items, total] = await Promise.all([
+      AddBook.find(filter, LIST_IMAGE_PROJECTION)
+        .sort({ createdAt: -1, _id: -1 })
+        .skip((page - 1) * pageSize)
+        .limit(pageSize)
+        .lean(),
+      AddBook.countDocuments(filter),
+    ]);
+
+    // Only the sellers on this page, rather than every account there is.
+    const emails = [...new Set(items.map((book) => book.sellerEmail))];
+    const sellers = await User.find({ email: { $in: emails } }, { email: 1, username: 1 }).lean();
+    const names = new Map(sellers.map((seller) => [seller.email, seller.username]));
+
+    res.status(200).json({
+      items: items.map((book) => ({
+        ...withCoverUrls(book),
+        // The column showed the e-mail for everyone when this was read from a
+        // field called `name`, which no account has ever had.
+        sellerName: names.get(book.sellerEmail) || book.sellerEmail,
+      })),
+      total,
+      page,
+      pageSize,
+      pageCount: Math.max(1, Math.ceil(total / pageSize)),
+    });
+  } catch (error) {
+    log.error({ err: error }, 'Error listing books for an administrator');
+    res.status(500).json({ message: 'Error listing books' });
+  }
 };

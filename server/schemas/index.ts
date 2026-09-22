@@ -69,6 +69,18 @@ export const bookSchemas = {
    * `/cover/3` into `/cover/0`.
    */
   cover: { params: z.object({ id: objectId, index: nonNegativeInt.optional() }) },
+  /**
+   * The administrator's table: one page of every listing, searchable by the
+   * seller as well as the book, because "who put this here" is the question
+   * being asked of it.
+   */
+  adminList: {
+    query: z.object({
+      search: shortText.optional(),
+      page: positiveInt.default(1),
+      pageSize: boundedInt(1, 100).default(25),
+    }),
+  },
   bySeller: { params: emailParam },
   updateStock: { params: objectIdParam, body: z.object({ stock: nonNegativeInt }) },
   updatePrice: { params: objectIdParam, body: z.object({ price: nonNegativeInt }) },
@@ -303,6 +315,7 @@ export type EmailParams = z.infer<typeof emailParam>;
 export type UpdateStockBody = z.infer<typeof bookSchemas.updateStock.body>;
 export type UpdatePriceBody = z.infer<typeof bookSchemas.updatePrice.body>;
 
+export type AdminBookQuery = z.infer<typeof bookSchemas.adminList.query>;
 export type CatalogueQuery = z.infer<typeof filterSchemas.catalogue.query>;
 export type FeaturedQuery = z.infer<typeof filterSchemas.featured.query>;
 

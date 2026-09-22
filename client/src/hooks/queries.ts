@@ -9,6 +9,7 @@ import {
 } from '@tanstack/react-query';
 
 import type {
+  AdminBookPage,
   AdminUser,
   Book,
   BookDetail,
@@ -80,7 +81,8 @@ export type QueryOptions<TQueryFnData, TData = TQueryFnData> = Omit<
 // Keys, in one place so an invalidation cannot miss a cache by typo
 // ---------------------------------------------------------------------------
 export const keys = {
-  books: ['books'] as const,
+  /** Under `catalogue`, so one invalidation reaches every listing view. */
+  adminBooks: (query: string) => ['catalogue', 'admin', query] as const,
   book: (id: Id | undefined) => ['book', id] as const,
   sellerBooks: (email: string | null | undefined) => ['books', 'seller', email] as const,
   /** One entry per distinct search, so turning a page keeps the last one. */
@@ -103,14 +105,29 @@ export const keys = {
 // ---------------------------------------------------------------------------
 // Catalogue
 // ---------------------------------------------------------------------------
-export const useBooks = <TData = Book[]>(
-  options: Partial<QueryOptions<Book[], TData>> = {}
-): UseQueryResult<TData> =>
-  useQuery<Book[], Error, TData>({
-    queryKey: keys.books,
-    queryFn: () => request<Book[]>('/book'),
+/**
+ * One page of every listing, for the administrator's table.
+ *
+ * That table used to fetch the whole catalogue and the whole user list, then
+ * search what it had in the browser.
+ */
+export const useAdminBooks = (
+  params: { search?: string; page?: number; pageSize?: number },
+  options: Partial<QueryOptions<AdminBookPage>> = {}
+): UseQueryResult<AdminBookPage> => {
+  const query = new URLSearchParams();
+  if (params.search) query.set('search', params.search);
+  if (params.page && params.page > 1) query.set('page', String(params.page));
+  if (params.pageSize) query.set('pageSize', String(params.pageSize));
+  const search = query.toString();
+
+  return useQuery<AdminBookPage, Error, AdminBookPage>({
+    queryKey: keys.adminBooks(search),
+    queryFn: () => request<AdminBookPage>(`/book/admin${search ? `?${search}` : ''}`),
+    placeholderData: keepPreviousData,
     ...options,
   });
+};
 
 /**
  * The catalogue parameters as a query string.
@@ -280,7 +297,6 @@ export const useWriteReview = (
       void client.invalidateQueries({ queryKey: keys.reviews(id) });
       void client.invalidateQueries({ queryKey: keys.book(id) });
       void client.invalidateQueries({ queryKey: ['catalogue'] });
-      void client.invalidateQueries({ queryKey: keys.books });
     },
   });
 };
@@ -293,7 +309,6 @@ export const useDeleteReview = (id: Id | undefined): UseMutationResult<unknown, 
       void client.invalidateQueries({ queryKey: keys.reviews(id) });
       void client.invalidateQueries({ queryKey: keys.book(id) });
       void client.invalidateQueries({ queryKey: ['catalogue'] });
-      void client.invalidateQueries({ queryKey: keys.books });
     },
   });
 };

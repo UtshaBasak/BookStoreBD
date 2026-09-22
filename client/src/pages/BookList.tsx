@@ -3,24 +3,29 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 
 import type { Id } from '@shared/api.js';
 
-import { useBooks, useUsers, keys, apiRequest } from '../hooks/queries.js';
+import { useAdminBooks, apiRequest } from '../hooks/queries.js';
+import { useDebounced } from '../hooks/useDebounced.js';
+
+/** Rows per page. Enough to scan, few enough to draw. */
+const PAGE_SIZE = 25;
 
 export default function BookList() {
   const [search, setSearch] = useState('');
+  const [page, setPage] = useState(1);
 
-  const booksQuery = useBooks();
-  const books = booksQuery.data ?? [];
+  /*
+   * This table used to fetch every listing in the database and every user
+   * account - two unbounded requests to draw twenty-five rows - and then
+   * search what it had in the browser. Both are the API's job now, and the
+   * seller names that come back are the ones on this page.
+   */
+  const settledSearch = useDebounced(search);
+  const booksQuery = useAdminBooks({ search: settledSearch || undefined, page, pageSize: PAGE_SIZE });
 
-  // Shaped into an email -> display name map by the query, so the component
-  // only ever sees the form it renders.
-  const { data: users = {} } = useUsers({
-    select: (list) =>
-      Object.fromEntries(
-        // `username` is the field on the record; `name` never existed, so this
-        // column silently showed the e-mail address for everyone.
-        (Array.isArray(list) ? list : []).map((u) => [u.email, u.username || u.email])
-      ),
-  });
+  const books = booksQuery.data?.items ?? [];
+  const total = booksQuery.data?.total ?? 0;
+  const pageCount = booksQuery.data?.pageCount ?? 1;
+  const currentPage = booksQuery.data?.page ?? page;
 
   const loading = booksQuery.isFetching;
   const fetchData = () => booksQuery.refetch();
@@ -28,21 +33,9 @@ export default function BookList() {
   const client = useQueryClient();
   const { mutate: deleteBook } = useMutation({
     mutationFn: (id: Id) => apiRequest(`/book/${id}`, { method: 'DELETE' }),
-    onSuccess: () => client.invalidateQueries({ queryKey: keys.books }),
+    onSuccess: () => client.invalidateQueries({ queryKey: ['catalogue'] }),
   });
 
-  // Filter books by search query (title or author)
-  const filteredBooks = books.filter(book => {
-  const searchLower = search.toLowerCase();
-  const sellerName = users[book.sellerEmail]?.toLowerCase() || '';
-  const sellerEmail = book.sellerEmail?.toLowerCase() || '';
-  return (
-    book.title?.toLowerCase().includes(searchLower) ||
-    book.author?.toLowerCase().includes(searchLower) ||
-    sellerName.includes(searchLower) ||
-    sellerEmail.includes(searchLower)
-  );
-});
 
   return (
     <div style={{ width: '100%', minHeight: '100vh', boxSizing: 'border-box', padding: '2rem' }}>
@@ -70,7 +63,11 @@ export default function BookList() {
           type="text"
           placeholder="Search by title, author, or seller..."
           value={search}
-          onChange={e => setSearch(e.target.value)}
+          onChange={(e) => {
+            setSearch(e.target.value);
+            // Page 4 of a search nobody is running any more is a dead end.
+            setPage(1);
+          }}
           style={{ padding: 8, width: 300, borderRadius: 4, border: '1px solid #ccc' }}
         />
       </div>
@@ -93,7 +90,7 @@ export default function BookList() {
     </tr>
   </thead>
           <tbody>
-            {filteredBooks.map((book) => (
+            {books.map((book) => (
               <tr key={book._id}>
                 <td>{book.title}</td>
                 <td>{book.author}</td>
@@ -103,7 +100,7 @@ export default function BookList() {
                 <td>{book.pages}</td>
                 <td>{book.price}</td>
                 <td>{book.stock}</td>
-                <td>{users[book.sellerEmail] || book.sellerEmail}</td>
+                <td>{book.sellerName}</td>
                 <td>{book.createdAt ? new Date(book.createdAt).toLocaleDateString('en-GB') : ''}</td>
                 <td>
                   <button onClick={() => deleteBook(book._id)}>Delete</button>
@@ -113,6 +110,53 @@ export default function BookList() {
           </tbody>
         </table>
         </div>
+
+      {books.length === 0 && !loading && (
+        <p style={{ marginTop: 16 }}>No listing matches that search.</p>
+      )}
+
+      <div
+        style={{
+          display: 'flex',
+          flexWrap: 'wrap',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          gap: 12,
+          marginTop: 16,
+        }}
+      >
+        <span>
+          {total === 0
+            ? 'No listings'
+            : `Showing ${String((currentPage - 1) * PAGE_SIZE + 1)}–${String(
+                Math.min(currentPage * PAGE_SIZE, total)
+              )} of ${String(total)}`}
+        </span>
+
+        {pageCount > 1 && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <button
+              type="button"
+              onClick={() => setPage(currentPage - 1)}
+              disabled={currentPage === 1}
+              style={{ minHeight: 40, padding: '0 14px' }}
+            >
+              Previous
+            </button>
+            <span>
+              Page {currentPage} of {pageCount}
+            </span>
+            <button
+              type="button"
+              onClick={() => setPage(currentPage + 1)}
+              disabled={currentPage === pageCount}
+              style={{ minHeight: 40, padding: '0 14px' }}
+            >
+              Next
+            </button>
+          </div>
+        )}
+      </div>
     </div>
   );
 }

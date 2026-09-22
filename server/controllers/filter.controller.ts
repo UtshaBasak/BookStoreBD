@@ -4,40 +4,8 @@ import AddBook from '../models/AddBook.model.js';
 import type { CatalogueQuery, FeaturedQuery } from '../schemas/index.js';
 import { errorMessage } from '../utils/error.js';
 import { validatedQuery } from '../middleware/validate.js';
+import { contains, sameText } from '../utils/regex.js';
 import { LIST_IMAGE_PROJECTION, withCoverUrls } from '../utils/projections.js';
-
-const REGEX_SPECIAL_CHARS = new Set(['.', '*', '+', '?', '^', '$', '{', '}', '(', ')', '|', '[', ']', '/']);
-
-/**
- * Escapes regex metacharacters.
- *
- * Two reasons, and both have bitten. A search for "C++" is a syntax error as a
- * pattern, not a search for "C++"; and a search for ".*" would otherwise match
- * every book in the database, which is a filter doing the opposite of
- * filtering.
- */
-const escapeRegex = (value: string): string =>
-  String(value)
-    .split('')
-    .map((char) => {
-      if (char === String.fromCharCode(92)) return char + char;
-      return REGEX_SPECIAL_CHARS.has(char) ? String.fromCharCode(92) + char : char;
-    })
-    .join('');
-
-/**
- * A case-insensitive exact match.
- *
- * Categories and conditions were stored with whatever capitalisation the form
- * of the day used - 'Fiction' from the current one, 'fiction' from the seed -
- * and the browse page compensated by lower-casing both sides in the browser.
- * Filtering here has to match that, or half the catalogue disappears.
- *
- * It does mean these two cannot use an index. Normalising the stored values is
- * the real answer and is a data migration; this keeps the behaviour correct in
- * the meantime.
- */
-const sameText = (value: string): RegExp => new RegExp(`^${escapeRegex(value)}$`, 'i');
 
 const SORTS = {
   newest: { createdAt: -1 },
@@ -53,7 +21,7 @@ const buildFilter = (q: CatalogueQuery): Record<string, unknown> => {
   const filter: Record<string, unknown> = {};
 
   if (q.search) {
-    const pattern = new RegExp(escapeRegex(q.search), 'i');
+    const pattern = contains(q.search);
     // Title or author, which is what somebody typing into one box means.
     filter.$or = [{ title: pattern }, { author: pattern }];
   }

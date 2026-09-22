@@ -222,6 +222,25 @@ export interface CataloguePage {
   pageCount: number;
 }
 
+/**
+ * A row of the administrator's table.
+ *
+ * The seller's name is resolved for the page being sent. The table used to
+ * download every user account to turn an e-mail into a name in the browser.
+ */
+export interface AdminBookRow extends Book {
+  sellerName: string;
+}
+
+/** GET /book/admin - one page of every listing, seller included. */
+export interface AdminBookPage {
+  items: AdminBookRow[];
+  total: number;
+  page: number;
+  pageSize: number;
+  pageCount: number;
+}
+
 export interface UpdateStockRequest {
   stock: number;
 }

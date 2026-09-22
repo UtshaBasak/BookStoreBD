@@ -212,18 +212,18 @@ describe('profile privacy', () => {
 });
 
 describe('list responses carry one cover, detail carries all', () => {
-  // Base64 covers are stored inline, so GET /book used to return every image
-  // of every book and the payload grew with the whole catalogue.
+  // Base64 covers are stored inline, so a list response used to carry every
+  // image of every book and grew with the whole catalogue.
   it('list endpoints return a single image', async () => {
-    await createBook({ images: ['a', 'b', 'c', 'd', 'e'] });
+    const created = await createBook({ images: ['a', 'b', 'c', 'd', 'e'] });
 
-    for (const path of ['/book', '/filter/booklist']) {
-      const res = await request.get(path);
-      expect(res.status).toBe(200);
-      // `/book` answers with an array; the catalogue with a page of them.
-      const first = Array.isArray(res.body) ? res.body[0] : res.body.items[0];
-      expect(first.images).toHaveLength(1);
-    }
+    const catalogue = await request.get('/filter/booklist');
+    expect(catalogue.status).toBe(200);
+    expect(catalogue.body.items[0].images).toHaveLength(1);
+
+    const seller = await request.get(`/book/seller/${created.sellerEmail}`);
+    expect(seller.status).toBe(200);
+    expect(seller.body[0].images).toHaveLength(1);
   });
 
   it('the detail endpoint returns every image', async () => {
@@ -237,12 +237,12 @@ describe('list responses carry one cover, detail carries all', () => {
   it('the cover is an address, and the address serves the bytes', async () => {
     const book = await createBook({ images: [`data:image/png;base64,${PNG_PIXEL.toString('base64')}`] });
 
-    const list = await request.get('/book');
+    const list = await request.get('/filter/booklist');
 
     // It used to be the base64 itself, which is why a catalogue of 66 listings
     // with photographed covers was a 7.4 MB JSON response - and why none of it
     // could be cached by the browser.
-    expect(list.body[0].images[0]).toBe(`/api/book/${String(book._id)}/cover/0`);
+    expect(list.body.items[0].images[0]).toBe(`/api/book/${String(book._id)}/cover/0`);
 
     const cover = await request.get(`/book/${String(book._id)}/cover/0`);
     expect(cover.status).toBe(200);
