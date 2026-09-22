@@ -63,6 +63,11 @@ export const positiveInt = numericLike.pipe(
   coerceNumber().int('Must be a whole number').positive('Must be greater than zero')
 );
 
+/** Money, which unlike the counts above may carry decimals. */
+export const nonNegativeAmount = numericLike.pipe(
+  coerceNumber().min(0, 'Must not be negative')
+);
+
 /**
  * A whole number within a range. The primitives above are pipes, so they have
  * no chainable `.max()`; this builds the constraint up front instead.

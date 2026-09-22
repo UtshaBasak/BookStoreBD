@@ -100,7 +100,7 @@ describe('what a list response carries', () => {
 
     const res = await request.get('/filter/booklist');
 
-    expect(res.body[0].images[0]).toBe(`/api/book/${String(book._id)}/cover/0`);
+    expect(res.body.items[0].images[0]).toBe(`/api/book/${String(book._id)}/cover/0`);
     expect(JSON.stringify(res.body)).not.toContain('base64');
   });
 
@@ -109,7 +109,7 @@ describe('what a list response carries', () => {
 
     const res = await request.get('/filter/booklist');
 
-    expect(res.body[0].images[0]).toBe('https://res.cloudinary.com/demo/image/upload/x.jpg');
+    expect(res.body.items[0].images[0]).toBe('https://res.cloudinary.com/demo/image/upload/x.jpg');
   });
 
   it('and the detail endpoint carries one per image in the gallery', async () => {

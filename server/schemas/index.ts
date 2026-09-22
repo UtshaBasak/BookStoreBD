@@ -9,6 +9,7 @@ import {
   emailParam,
   orderNumber,
   nonNegativeInt,
+  nonNegativeAmount,
   positiveInt,
   boundedInt,
   shortText,
@@ -82,30 +83,41 @@ export const cartSchemas = {
 export const wishlistSchemas = cartSchemas;
 
 // -------------------------------------------------------------- filter
-const FILTERABLE_FIELDS = [
-  'title',
-  'author',
-  'publisher',
-  'country',
-  'language',
-  'isbn',
-  'category',
-  'bookType',
-  'condition',
-  'sellerEmail',
-];
-
+/**
+ * The catalogue, as the browse page asks for it.
+ *
+ * Every filter is a named parameter with its own type, rather than the
+ * `filter_key` + `filter_input` pair this used to take. That pair put a
+ * document path in the caller's hands, which needed a whitelist to stop it
+ * becoming a query operator; naming the fields removes the question.
+ */
 export const filterSchemas = {
-  filter: {
-    body: z.object({
-      // An enum rather than a free string: the field name reaches a query key,
-      // so it must never be attacker-chosen.
-      filter_key: z.enum(FILTERABLE_FIELDS),
-      filter_input: shortText,
+  catalogue: {
+    query: z.object({
+      search: shortText.optional(),
+      bookType: z.enum(['new', 'old']).optional(),
+      condition: shortText.optional(),
+      // `?category=a&category=b` arrives as an array; one of them as a string.
+      category: repeatable(shortText).optional(),
+      minPrice: nonNegativeAmount.optional(),
+      maxPrice: nonNegativeAmount.optional(),
+      /** A floor, not a match: 4 means "four stars and up". */
+      rating: boundedInt(1, 5).optional(),
+      // A query string carries '1'; a typed client passes true. Both mean the
+      // same thing, and the handler should not have to know which it got.
+      inStock: z
+        .union([z.literal('1'), z.literal('0'), z.boolean()])
+        .transform((value) => value === true || value === '1')
+        .optional(),
+      sort: z.enum(['newest', 'rated', 'priceLowHigh', 'priceHighLow']).default('newest'),
+      page: positiveInt.default(1),
+      // Bounded, so one request cannot ask for the whole database.
+      pageSize: boundedInt(1, 48).default(12),
     }),
   },
-  search: {
-    body: z.object({ search_input: shortText.default('') }),
+  /** The homepage strip: the newest few, one per title. */
+  featured: {
+    query: z.object({ limit: boundedInt(1, 24).default(10) }),
   },
 };
 
@@ -265,8 +277,6 @@ export const auditSchemas = {
   },
 };
 
-export { FILTERABLE_FIELDS };
-
 // ---------------------------------------------------------------------------
 // Types
 //
@@ -293,8 +303,8 @@ export type EmailParams = z.infer<typeof emailParam>;
 export type UpdateStockBody = z.infer<typeof bookSchemas.updateStock.body>;
 export type UpdatePriceBody = z.infer<typeof bookSchemas.updatePrice.body>;
 
-export type FilterBody = z.infer<typeof filterSchemas.filter.body>;
-export type SearchBody = z.infer<typeof filterSchemas.search.body>;
+export type CatalogueQuery = z.infer<typeof filterSchemas.catalogue.query>;
+export type FeaturedQuery = z.infer<typeof filterSchemas.featured.query>;
 
 export type CreateOrderBody = z.infer<typeof orderSchemas.create.body>;
 export type OrderNumberParams = z.infer<typeof orderSchemas.byOrderNumber.params>;

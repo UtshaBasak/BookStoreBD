@@ -220,7 +220,9 @@ describe('list responses carry one cover, detail carries all', () => {
     for (const path of ['/book', '/filter/booklist']) {
       const res = await request.get(path);
       expect(res.status).toBe(200);
-      expect(res.body[0].images).toHaveLength(1);
+      // `/book` answers with an array; the catalogue with a page of them.
+      const first = Array.isArray(res.body) ? res.body[0] : res.body.items[0];
+      expect(first.images).toHaveLength(1);
     }
   });
 

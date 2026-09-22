@@ -31,18 +31,8 @@ export type UserRole = 'user' | 'admin';
 export type BookType = 'new' | 'old';
 export type ReturnStatus = 'pending' | 'approved' | 'rejected';
 
-/** The fields a client may filter the catalogue on. */
-export type FilterableField =
-  | 'title'
-  | 'author'
-  | 'publisher'
-  | 'country'
-  | 'language'
-  | 'isbn'
-  | 'category'
-  | 'bookType'
-  | 'condition'
-  | 'sellerEmail';
+/** How the catalogue may be ordered. */
+export type CatalogueSort = 'newest' | 'rated' | 'priceLowHigh' | 'priceHighLow';
 
 // ---------------------------------------------------------------------------
 // Errors
@@ -202,13 +192,34 @@ export interface BookDetail extends Book {
   relatedBooks: Book[];
 }
 
-export interface FilterRequest {
-  filter_key: FilterableField;
-  filter_input: string;
+/**
+ * GET /filter/booklist - one page of the catalogue.
+ *
+ * Every field is named and typed here rather than passed as a key/value pair,
+ * so no request can choose which document path is queried.
+ */
+export interface CatalogueParams {
+  search?: string;
+  bookType?: BookType;
+  condition?: string;
+  category?: string[];
+  minPrice?: number;
+  maxPrice?: number;
+  /** A floor, not a match: 4 means "four stars and up". */
+  rating?: number;
+  inStock?: boolean;
+  sort?: CatalogueSort;
+  page?: number;
+  pageSize?: number;
 }
 
-export interface SearchRequest {
-  search_input: string;
+/** What that request answers with: the page, and enough to draw a pager. */
+export interface CataloguePage {
+  items: Book[];
+  total: number;
+  page: number;
+  pageSize: number;
+  pageCount: number;
 }
 
 export interface UpdateStockRequest {

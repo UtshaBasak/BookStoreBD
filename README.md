@@ -668,9 +668,19 @@ administrator without a migration.
 | `PUT`    | `/book/update-stock/:id`  | Set stock; clears carts when it hits 0 |
 | `PUT`    | `/book/update-price/:id`  | Set price                              |
 | `DELETE` | `/book/:id`               | Delete a listing                       |
-| `GET`    | `/filter/booklist`        | List every book                        |
-| `POST`   | `/filter/booklist_filter` | Filter by a whitelisted field          |
-| `POST`   | `/filter/booklist_search` | Case-insensitive title search          |
+| `GET`    | `/filter/booklist`        | One page of the catalogue, filtered    |
+| `GET`    | `/filter/featured`        | The newest few, one per title          |
+
+The catalogue takes its filters as named query parameters — `search`,
+`bookType`, `condition`, `category` (repeatable), `minPrice`, `maxPrice`,
+`rating`, `inStock`, `sort`, `page`, `pageSize` — and answers with
+`{ items, total, page, pageSize, pageCount }`. `pageSize` is capped, so no
+request can ask for the whole database.
+
+It replaces a pair of POSTs that took `{ filter_key, filter_input }`: a
+document path chosen by the caller, which needed a whitelist to stop it
+becoming a query operator. Naming each filter removes the question, and a
+search is now a URL you can link to, share and go back to.
 
 ### Cart and wishlist
 

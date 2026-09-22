@@ -175,7 +175,7 @@ describe('the score on the book', () => {
       .send({ rating: 5 });
 
     const catalogue = await request.get('/filter/booklist');
-    const listed = catalogue.body.find((b: { _id: string }) => b._id === String(book._id));
+    const listed = catalogue.body.items.find((b: { _id: string }) => b._id === String(book._id));
 
     expect(listed.ratingAverage).toBe(5);
     expect(listed.ratingCount).toBe(1);

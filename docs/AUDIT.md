@@ -26,7 +26,7 @@ Yes. Nothing is broken.
 | ----- | ------ |
 | Lint, both packages | clean |
 | Type-check under TypeScript 6.0.3 | clean |
-| Tests | 354 passing (252 server, 102 client) |
+| Tests | 410 passing (284 server, 126 client) |
 | `npm audit`, all three roots | 0 vulnerabilities |
 | Builds | API compiles to `dist/`, client bundles |
 | Production stack | browse, detail, cart, wishlist, profile, orders, clear — all `200` |
@@ -463,10 +463,9 @@ author, and removed by an administrator - which writes an audit row, because an
 administrator deleting somebody's words is exactly what that trail is for.
 
 The score is denormalised onto the listing as `ratingAverage` and `ratingCount`,
-rewritten on every write. The catalogue loads every book and filters in the
-browser, so a rating needing a join per book could not have been filtered or
-sorted on at all. It is rounded to one decimal: 4.333333 is not more informative
-than 4.3 and looks like a bug.
+rewritten on every write. That is what lets the catalogue filter and sort on it
+at all: a rating needing a join per book could not have been. It is rounded to
+one decimal: 4.333333 is not more informative than 4.3 and looks like a bug.
 
 The book page carries the average, the count, and the **distribution** - five 3s
 and a mix of 1s and 5s both average 3, and only one of those is a book worth
@@ -833,9 +832,28 @@ What is left is in the sections above, and none of it blocks a launch:
 
 - **Per-book link previews** need HTML rendered on the server. Google sees the
   per-route tags today; Facebook and WhatsApp see the site-level defaults.
-- **Server-side filtering and paging** on the catalogue. The page is paged in
-  the browser, which is what stops it falling over; moving the filter to the API
-  is the step after.
+- ~~**Server-side filtering and paging** on the catalogue.~~ **Done.** The
+  browse page fetched every listing in the database and filtered, sorted and
+  sliced them in the browser. Measured against 307 listings, the page it needed
+  to draw twelve books:
+
+  ```
+  every listing (as it was)   140,180 bytes   23 ms
+  one page (as it is)           5,519 bytes    7 ms
+  ```
+
+  and the second number does not grow with the catalogue. Every filter is a
+  named query parameter now, which also retired the `{ filter_key,
+  filter_input }` pair that let a caller name the document path to query.
+
+  The part worth recording: the first version of the indexes left `_id` off the
+  end of each one. The catalogue sorts by `{ <field>, _id }` so books that tie
+  cannot shuffle between pages, and a sort is only served by an index when it
+  is a prefix of that index's keys - so every query still scanned all 307
+  documents and sorted them in memory. All 400-odd tests passed, because the
+  answers were right. `explain()` said `COLLSCAN` and `IN-MEMORY SORT`; with
+  `_id` appended it reads 12 documents examined per page. There is a test on
+  the query plan now, because that is the form the regression would take.
 - **A browser error reporter.** `reportError` is the seam and it currently goes
   nowhere in production.
 - **Redis for the one-time codes**, before the API runs on more than one

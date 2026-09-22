@@ -2,6 +2,7 @@ import {
   useQuery,
   useMutation,
   useQueryClient,
+  keepPreviousData,
   type UseMutationResult,
   type UseQueryOptions,
   type UseQueryResult,
@@ -11,6 +12,8 @@ import type {
   AdminUser,
   Book,
   BookDetail,
+  CataloguePage,
+  CatalogueParams,
   BuyerOrderLine,
   Id,
   MessageResponse,
@@ -80,7 +83,9 @@ export const keys = {
   books: ['books'] as const,
   book: (id: Id | undefined) => ['book', id] as const,
   sellerBooks: (email: string | null | undefined) => ['books', 'seller', email] as const,
-  catalogue: ['catalogue'] as const,
+  /** One entry per distinct search, so turning a page keeps the last one. */
+  catalogue: (query: string) => ['catalogue', query] as const,
+  featured: (limit: number) => ['catalogue', 'featured', limit] as const,
   cart: ['cart'] as const,
   wishlist: ['wishlist'] as const,
   profile: (email?: string | null) => ['profile', email ?? 'me'] as const,
@@ -107,12 +112,60 @@ export const useBooks = <TData = Book[]>(
     ...options,
   });
 
-export const useCatalogue = <TData = Book[]>(
-  options: Partial<QueryOptions<Book[], TData>> = {}
-): UseQueryResult<TData> =>
-  useQuery<Book[], Error, TData>({
-    queryKey: keys.catalogue,
-    queryFn: () => request<Book[]>('/filter/booklist'),
+/**
+ * The catalogue parameters as a query string.
+ *
+ * Built in one place because it is both the request and the cache key: two
+ * spellings of the same search would otherwise be two cache entries, and a
+ * page that asked twice would fetch twice.
+ */
+export const catalogueSearch = (params: CatalogueParams): string => {
+  const query = new URLSearchParams();
+
+  if (params.search) query.set('search', params.search);
+  if (params.bookType) query.set('bookType', params.bookType);
+  if (params.condition) query.set('condition', params.condition);
+  for (const category of params.category ?? []) query.append('category', category);
+  if (params.minPrice !== undefined) query.set('minPrice', String(params.minPrice));
+  if (params.maxPrice !== undefined) query.set('maxPrice', String(params.maxPrice));
+  if (params.rating) query.set('rating', String(params.rating));
+  if (params.inStock) query.set('inStock', '1');
+  if (params.sort) query.set('sort', params.sort);
+  if (params.page && params.page > 1) query.set('page', String(params.page));
+  if (params.pageSize) query.set('pageSize', String(params.pageSize));
+
+  return query.toString();
+};
+
+/**
+ * One page of the catalogue, filtered and ordered by the API.
+ *
+ * This used to fetch every listing and do all three in the browser. The page
+ * kept the previous results while the next ones arrive, so changing a filter
+ * or turning a page dims the grid rather than emptying it.
+ */
+export const useCatalogue = (
+  params: CatalogueParams,
+  options: Partial<QueryOptions<CataloguePage>> = {}
+): UseQueryResult<CataloguePage> => {
+  const query = catalogueSearch(params);
+
+  return useQuery<CataloguePage, Error, CataloguePage>({
+    queryKey: keys.catalogue(query),
+    queryFn: () => request<CataloguePage>(`/filter/booklist${query ? `?${query}` : ''}`),
+    placeholderData: keepPreviousData,
+    ...options,
+  });
+};
+
+/** The homepage strip: the newest few, one per title. */
+export const useFeatured = (
+  limit = 10,
+  options: Partial<QueryOptions<Book[]>> = {}
+): UseQueryResult<Book[]> =>
+  useQuery<Book[], Error, Book[]>({
+    queryKey: keys.featured(limit),
+    queryFn: () => request<Book[]>(`/filter/featured?limit=${String(limit)}`),
     ...options,
   });
 
@@ -226,7 +279,7 @@ export const useWriteReview = (
     onSuccess: () => {
       void client.invalidateQueries({ queryKey: keys.reviews(id) });
       void client.invalidateQueries({ queryKey: keys.book(id) });
-      void client.invalidateQueries({ queryKey: keys.catalogue });
+      void client.invalidateQueries({ queryKey: ['catalogue'] });
       void client.invalidateQueries({ queryKey: keys.books });
     },
   });
@@ -239,7 +292,7 @@ export const useDeleteReview = (id: Id | undefined): UseMutationResult<unknown, 
     onSuccess: () => {
       void client.invalidateQueries({ queryKey: keys.reviews(id) });
       void client.invalidateQueries({ queryKey: keys.book(id) });
-      void client.invalidateQueries({ queryKey: keys.catalogue });
+      void client.invalidateQueries({ queryKey: ['catalogue'] });
       void client.invalidateQueries({ queryKey: keys.books });
     },
   });

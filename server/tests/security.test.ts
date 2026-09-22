@@ -32,27 +32,39 @@ describe('NoSQL injection', () => {
     expect(res.status).toBe(401);
   });
 
-  it('cannot smuggle an operator through a whitelisted filter field', async () => {
-    await createBook({ author: 'Bjarne Stroustrup' });
+  it('cannot smuggle an operator into a catalogue filter', async () => {
+    await createBook({ author: 'Bjarne Stroustrup', title: 'The C++ Programming Language' });
 
-    const res = await request
-      .post('/filter/booklist_filter')
-      .send({ filter_key: 'author', filter_input: { $ne: null } });
+    // Bracket notation is the usual way to build an object in a query string.
+    // Express 5 parses queries with `querystring`, not `qs`, so this arrives
+    // as a key literally named "search[$ne]" - an unknown parameter, which the
+    // schema drops. The search is ignored rather than executed.
+    const res = await request.get('/filter/booklist?search[$ne]=null');
 
-    // Rejected outright by the schema. This previously coerced to an empty
-    // string and returned 200 with no results - safe, but it told the caller
-    // nothing about why.
-    expect(res.status).toBe(400);
-    expect(res.body.message).toBe('Validation failed');
-    expect(res.body.errors[0].path).toBe('body.filter_input');
+    expect(res.status).toBe(200);
+    expect(res.body.items).toHaveLength(1);
   });
 
-  it('rejects a filter field that is not whitelisted', async () => {
-    const res = await request
-      .post('/filter/booklist_filter')
-      .send({ filter_key: '$where', filter_input: '1 == 1' });
+  it('rejects an array where one value is expected', async () => {
+    // The other way to get something that is not a string into a query
+    // parameter: repeat it. `?search=a&search=b` is an array.
+    const res = await request.get('/filter/booklist?search=a&search=b');
 
     expect(res.status).toBe(400);
+    expect(res.body.message).toBe('Validation failed');
+    expect(res.body.errors[0].path).toBe('query.search');
+  });
+
+  it('has no parameter that names a field to query', async () => {
+    await createBook({ title: 'Some Book' });
+
+    // The pair this replaced took `filter_key`, which put a document path in
+    // the caller's hands and needed a whitelist to stay safe. Every filter is
+    // its own named parameter now, so an unknown one is simply not a filter.
+    const res = await request.get('/filter/booklist?$where=1%20%3D%3D%201&sellerEmail=x@y.z');
+
+    expect(res.status).toBe(200);
+    expect(res.body.items).toHaveLength(1);
   });
 
   it('rejects an operator object where a number is expected', async () => {
@@ -72,18 +84,18 @@ describe('regex handling in search', () => {
   it('treats metacharacters literally instead of throwing', async () => {
     await createBook({ title: 'The C++ Programming Language' });
 
-    const res = await request.post('/filter/booklist_search').send({ search_input: 'C++' });
+    const res = await request.get('/filter/booklist?search=C%2B%2B');
 
     expect(res.status).toBe(200);
-    expect(res.body).toHaveLength(1);
+    expect(res.body.items).toHaveLength(1);
   });
 
   it('does not let a crafted pattern match everything', async () => {
     await createBook({ title: 'Some Book' });
 
-    const res = await request.post('/filter/booklist_search').send({ search_input: '.*' });
+    const res = await request.get('/filter/booklist?search=.*');
 
-    expect(res.body).toHaveLength(0);
+    expect(res.body.items).toHaveLength(0);
   });
 });
 

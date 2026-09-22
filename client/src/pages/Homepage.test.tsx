@@ -39,8 +39,9 @@ const renderHomepage = () => {
     defaultOptions: { queries: { retry: false } },
   });
   // Seeded rather than fetched: the request is not what is being tested, and a
-  // page with no books has no "Add to Cart" button to click.
-  queryClient.setQueryData(keys.books, [BOOK]);
+  // page with no books has no "Add to Cart" button to click. The strip asks
+  // the API for the newest ten now, rather than filtering the whole catalogue.
+  queryClient.setQueryData(keys.featured(10), [BOOK]);
 
   return render(
     <QueryClientProvider client={queryClient}>

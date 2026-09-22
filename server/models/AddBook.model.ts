@@ -38,6 +38,32 @@ const AddBookSchema = new Schema({
   stock: { type: Number, default: 1, min: 0 }    // allow zero
 });
 
+/*
+ * Indexes for the way the catalogue is actually queried.
+ *
+ * Filtering, sorting and paging moved from the browser into MongoDB, so these
+ * are the difference between a page of results and a collection scan for every
+ * visitor. Each one matches a sort the browse page offers; `bookType` and
+ * `sellerEmail` are the two equality filters narrow enough to be worth
+ * combining with the default order.
+ *
+ * `category` and `condition` are deliberately absent: they are matched
+ * case-insensitively, which no index can serve. Normalising the stored
+ * capitalisation is what would fix that, and it is a data migration.
+ *
+ * Every one of them ends in `_id`, and that is not decoration. The catalogue
+ * sorts by `{ <field>, _id }` so that books which tie cannot shuffle between
+ * pages - and a sort is only served by an index when it is a prefix of that
+ * index's keys. Without `_id` here, each of these queries scanned the whole
+ * collection and sorted in memory, which `explain()` says plainly and no test
+ * would ever have noticed.
+ */
+AddBookSchema.index({ createdAt: -1, _id: -1 });
+AddBookSchema.index({ price: 1, _id: -1 });
+AddBookSchema.index({ ratingAverage: -1, ratingCount: -1, _id: -1 });
+AddBookSchema.index({ bookType: 1, createdAt: -1, _id: -1 });
+AddBookSchema.index({ sellerEmail: 1, createdAt: -1, _id: -1 });
+
 export type BookAttributes = InferSchemaType<typeof AddBookSchema>;
 export type BookDocument = HydratedDocument<BookAttributes>;
 

@@ -4,12 +4,12 @@ import { FaChevronLeft, FaChevronRight, FaHeart, FaRegHeart, FaBell, FaComments 
 import './Homepage.css';
 import { io } from 'socket.io-client';
 
-import type { Book, ChatMessage } from '@shared/api.js';
+import type { ChatMessage } from '@shared/api.js';
 
 import { API_BASE_URL, signOut } from '../config/api.js';
 import {
   useProfile,
-  useBooks,
+  useFeatured,
   useWishlist,
   useCart,
   useUnreadChatCount,
@@ -84,23 +84,14 @@ export default function Homepage() {
   const username = profile?.username ?? '';
   const user = userEmail ? { email: userEmail } : null;
 
-  const { data: popularBooks = [] } = useBooks({
-    select: (data) => {
-      if (!Array.isArray(data)) return [];
-      const seen = new Set<string>();
-      const flat: Book[] = [];
-      for (const book of data) {
-        const key = `${book.title}__${book.bookType}`;
-        if (seen.has(key)) continue;
-        seen.add(key);
-        flat.push(book);
-      }
-      flat.sort(
-        (a, b) => new Date(b.createdAt ?? 0).getTime() - new Date(a.createdAt ?? 0).getTime()
-      );
-      return flat.slice(0, 10);
-    },
-  });
+  /*
+   * The newest ten, one per title.
+   *
+   * This strip used to fetch every listing in the database and do the
+   * de-duplicating and sorting here, to show ten of them. The API does it now
+   * and sends ten.
+   */
+  const { data: popularBooks = [] } = useFeatured(10);
 
   // Only the ids are needed here, so the response is mapped into a lookup as
   // it arrives rather than searched on every render.

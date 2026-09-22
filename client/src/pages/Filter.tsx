@@ -2,7 +2,7 @@ import { useState, useMemo } from 'react';
 import { FaSearch, FaHome, FaHeart, FaRegHeart, FaShoppingCart } from 'react-icons/fa';
 import { useLocation, useNavigate } from 'react-router-dom';
 
-import type { Book } from '@shared/api.js';
+import type { BookType, CatalogueParams, CatalogueSort } from '@shared/api.js';
 
 import {
   useCart,
@@ -11,6 +11,7 @@ import {
   useToggleWishlist,
   useWishlist,
 } from '../hooks/queries.js';
+import { useDebounced } from '../hooks/useDebounced.js';
 import { promptSignIn, useToast } from '../hooks/useToast.js';
 import { useSeo } from '../hooks/useSeo.js';
 import { getUserEmail } from '../utils/auth.js';
@@ -70,7 +71,7 @@ export default function BookFilter() {
    */
   const [showFilters, setShowFilters] = useState(false);
 
-  const [sortOption, setSortOption] = useState('newest');
+  const [sortOption, setSortOption] = useState<CatalogueSort>('newest');
   const userEmail = getUserEmail();
   const signedIn = Boolean(userEmail);
   const location = useLocation();
@@ -156,8 +157,6 @@ export default function BookFilter() {
   const setFilters = (value: FilterState | ((prev: FilterState) => FilterState)) =>
     update({ filters: typeof value === 'function' ? value(filters) : value });
 
-  const { data: bookList = [] } = useCatalogue();
-
   // Only the ids are needed for the toggle buttons, so each response is mapped
   // into a lookup as it arrives. Shared with every other page asking for them.
   const { data: wishlist = {} } = useWishlist({ enabled: signedIn, select: flagsFor });
@@ -167,103 +166,45 @@ export default function BookFilter() {
   const { mutate: toggleWishlistMutation } = useToggleWishlist();
   const { mutate: toggleCartMutation } = useToggleCart();
 
-  // Filtering logic
-  const filteredBooks = useMemo(() => {
-    let filtered: Book[] = [...bookList];
-
-    // Search filter
-    if (searchTerm) {
-      filtered = filtered.filter(
-        (book) =>
-          book.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          book.author.toLowerCase().includes(searchTerm.toLowerCase())
-      );
-    }
-
-    // Book Type filter
-    if (filters.bookType) {
-      filtered = filtered.filter(
-        (book) => (book.bookType || '').toLowerCase() === filters.bookType
-      );
-    }
-
-    // Condition filter
-    if (filters.condition) {
-      filtered = filtered.filter(
-        (book) => (book.condition || '').toLowerCase() === filters.condition
-      );
-    }
-
-    // Category filter (multi-select, OR logic)
-    if (filters.category.length > 0) {
-      filtered = filtered.filter(
-        (book) => {
-          if (!book.category) return false;
-          const bookCats = Array.isArray(book.category)
-            ? book.category.map((c) => c.toLowerCase())
-            : [String(book.category).toLowerCase()];
-          return filters.category.some((cat: string) => bookCats.includes(cat));
-        }
-      );
-    }
-
-    // Price filter
-    const from = parseFloat(priceFilter.from) || 0;
-    const to = parseFloat(priceFilter.to) || Infinity;
-    filtered = filtered.filter((book) => {
-      const price = Number(book.price);
-      return price >= from && price <= to;
-    });
-
-    // Rating filter. A floor rather than an exact match, which is what
-    // somebody means when they tick four stars.
-    if (filters.rating > 0) {
-      filtered = filtered.filter((book) => (book.ratingAverage ?? 0) >= filters.rating);
-    }
-
-    // In Stock filter
-    if (inStockOnly) {
-      filtered = filtered.filter(book => Number(book.stock) > 0);
-    }
-
-    // Sorting. "Most popular" used to sort on a rating and a review count that
-    // no endpoint returns and no model stores, so it did nothing at all. Newest
-    // first is the same default in spirit and sorts on a field that exists.
-    if (sortOption === 'rated') {
-      // Score first, then how many people it rests on: one five-star review is
-      // not a better recommendation than forty averaging 4.6.
-      filtered.sort((a, b) => {
-        const byScore = (b.ratingAverage ?? 0) - (a.ratingAverage ?? 0);
-        return byScore !== 0 ? byScore : (b.ratingCount ?? 0) - (a.ratingCount ?? 0);
-      });
-    } else if (sortOption === 'priceHighLow') {
-      filtered.sort((a, b) => (Number(b.price) || 0) - (Number(a.price) || 0));
-    } else if (sortOption === 'priceLowHigh') {
-      filtered.sort((a, b) => (Number(a.price) || 0) - (Number(b.price) || 0));
-    } else {
-      filtered.sort(
-        (a, b) => new Date(b.createdAt ?? 0).getTime() - new Date(a.createdAt ?? 0).getTime()
-      );
-    }
-
-    return filtered;
-  }, [bookList, searchTerm, filters, priceFilter, sortOption, inStockOnly]);
-
   /*
-   * One page of results.
+   * What to ask the API for.
    *
-   * The filtering above stays in the browser: it is instant, it works offline
-   * once the catalogue is loaded, and a page of results is not what makes this
-   * page heavy - rendering six hundred cards, each decoding a base64 cover, is.
-   * Moving the filtering to the API is the next step and a larger one; this is
-   * what stops the page falling over in the meantime.
+   * All of this used to happen in the browser, over every listing in the
+   * database: the page downloaded the whole catalogue and then filtered,
+   * sorted and sliced it. That is fine at six books and a growing tax on every
+   * visitor with each one added. It is a query now, against indexes, and the
+   * answer is the twelve books on screen.
    */
-  const pageCount = Math.max(1, Math.ceil(filteredBooks.length / PAGE_SIZE));
-  // Clamped, so a `?page=99` that no longer has results still shows something.
-  const currentPage = Math.min(page, pageCount);
-  const firstOnPage = filteredBooks.length === 0 ? 0 : (currentPage - 1) * PAGE_SIZE + 1;
-  const lastOnPage = Math.min(currentPage * PAGE_SIZE, filteredBooks.length);
-  const booksOnThisPage = filteredBooks.slice(firstOnPage - 1, lastOnPage);
+  const settledPrice = useDebounced(priceFilter);
+  const amount = (value: string): number | undefined => {
+    const parsed = parseFloat(value);
+    return Number.isFinite(parsed) && parsed >= 0 ? parsed : undefined;
+  };
+
+  const params: CatalogueParams = {
+    search: searchTerm || undefined,
+    bookType: (filters.bookType || undefined) as BookType | undefined,
+    condition: filters.condition || undefined,
+    category: filters.category.length ? filters.category : undefined,
+    minPrice: amount(settledPrice.from),
+    maxPrice: amount(settledPrice.to),
+    rating: filters.rating || undefined,
+    inStock: inStockOnly || undefined,
+    sort: sortOption,
+    page,
+    pageSize: PAGE_SIZE,
+  };
+
+  const { data: catalogue, isFetching } = useCatalogue(params);
+
+  const booksOnThisPage = catalogue?.items ?? [];
+  const total = catalogue?.total ?? 0;
+  const pageCount = catalogue?.pageCount ?? 1;
+  // The API clamps the page it answers for, so `?page=99` on a search with two
+  // pages still shows something rather than an empty grid.
+  const currentPage = catalogue?.page ?? page;
+  const firstOnPage = total === 0 ? 0 : (currentPage - 1) * PAGE_SIZE + 1;
+  const lastOnPage = Math.min(currentPage * PAGE_SIZE, total);
 
   const handleSearch = () => {
     setSearchTerm(searchInput);
@@ -457,6 +398,7 @@ export default function BookFilter() {
                 onChange={(e) => {
                   const value = e.target.value;
                   setPriceFilter((prev) => ({ ...prev, from: value }));
+                  update({ page: 1 });
                 }}
               />
               <input
@@ -467,6 +409,7 @@ export default function BookFilter() {
                 onChange={(e) => {
                   const value = e.target.value;
                   setPriceFilter((prev) => ({ ...prev, to: value }));
+                  update({ page: 1 });
                 }}
               />
             </div>
@@ -593,7 +536,11 @@ export default function BookFilter() {
             {/* Sort Dropdown (right endpoint) */}
             <select
               value={sortOption}
-              onChange={e => setSortOption(e.target.value)}
+              onChange={(e) => {
+                setSortOption(e.target.value as CatalogueSort);
+                // Page 3 of an order nobody is using any more is a dead end.
+                update({ page: 1 });
+              }}
               style={{
                 background: '#fff',
                 color: '#222',
@@ -634,9 +581,16 @@ export default function BookFilter() {
               and two cards of this width do not fit in 360px. */}
           <div
             className="grid w-full grid-cols-1 gap-6 rounded-xl p-4 md:grid-cols-2"
-            style={{ backgroundColor: 'rgba(0, 0, 0, 0.4)' }}
+            style={{
+              backgroundColor: 'rgba(0, 0, 0, 0.4)',
+              // The previous page stays on screen while the next one is
+              // fetched, dimmed rather than replaced by an empty grid.
+              opacity: isFetching ? 0.6 : 1,
+              transition: 'opacity 150ms ease',
+            }}
+            aria-busy={isFetching}
           >
-            {filteredBooks.length === 0 ? (
+            {total === 0 ? (
               <p style={{ gridColumn: '1 / -1' }}>No book or author found</p>
             ) : (
               booksOnThisPage.map((book) => {
@@ -792,10 +746,10 @@ export default function BookFilter() {
 
           {/* Paging. Below the results, because that is where somebody is when
               they have run out of them. */}
-          {filteredBooks.length > 0 && (
+          {total > 0 && (
             <div className="flex flex-wrap items-center justify-between gap-3 pb-4">
               <p className="m-0 text-sm">
-                Showing {firstOnPage}&ndash;{lastOnPage} of {filteredBooks.length}
+                Showing {firstOnPage}&ndash;{lastOnPage} of {total}
               </p>
 
               {pageCount > 1 && (

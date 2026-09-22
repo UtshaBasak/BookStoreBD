@@ -88,9 +88,11 @@ describe('parsed values reach the handler', () => {
   it('applies a default when a field is omitted', async () => {
     await createBook({ title: 'Some Book' });
 
-    const res = await request.post('/filter/booklist_search').send({});
+    const res = await request.get('/filter/booklist');
 
     expect(res.status).toBe(200);
+    expect(res.body.page).toBe(1);
+    expect(res.body.pageSize).toBe(12);
   });
 });
 
@@ -129,12 +131,10 @@ describe('type narrowing blocks injection', () => {
     expect(res.status).toBe(400);
   });
 
-  it('rejects a filter field that is not on the whitelist', async () => {
-    const res = await request
-      .post('/filter/booklist_filter')
-      .send({ filter_key: '$where', filter_input: '1 == 1' });
-
-    expect(res.status).toBe(400);
+  it('refuses a page size big enough to be the whole database', async () => {
+    // Pagination is worth nothing if one request can opt out of it.
+    expect((await request.get('/filter/booklist?pageSize=10000')).status).toBe(400);
+    expect((await request.get('/filter/booklist?page=0')).status).toBe(400);
   });
 });
 

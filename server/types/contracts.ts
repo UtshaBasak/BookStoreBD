@@ -23,10 +23,9 @@ import type {
   CreatePurchaseRequest,
   CreateReturnRequest,
   DeleteConversationRequest,
-  FilterRequest,
+  CatalogueParams,
   MarkReadRequest,
   ResetPasswordRequest,
-  SearchRequest,
   SendChatRequest,
   SendOtpRequest,
   SignInRequest,
@@ -74,8 +73,9 @@ export type ContractChecks = [
   Expect<Accepts<typeof bookSchemas.updatePrice.body, UpdatePriceRequest>>,
 
   // ---------------------------------------------------------------- filter
-  Expect<Accepts<typeof filterSchemas.filter.body, FilterRequest>>,
-  Expect<Accepts<typeof filterSchemas.search.body, SearchRequest>>,
+  // A query string carries strings, so the schema coerces; what is checked
+  // here is that every field the client may send is one the schema accepts.
+  Expect<Accepts<typeof filterSchemas.catalogue.query, CatalogueParams>>,
 
   // ----------------------------------------------------------------- order
   Expect<Accepts<typeof orderSchemas.create.body, CreateOrderRequest>>,
