@@ -6,6 +6,8 @@ import {
   updateReturnStatus,
 } from '../controllers/return.controller.js';
 import { requireAuth, requireAdmin } from '../middleware/auth.js';
+import { imageUpload, verifyImageBytes } from '../middleware/imageUpload.js';
+import { config } from '../config/env.js';
 import { validate } from '../middleware/validate.js';
 import { returnSchemas } from '../schemas/index.js';
 
@@ -13,8 +15,21 @@ const router = express.Router();
 
 router.use(requireAuth);
 
-// Submit a return request for your own purchase.
-router.post('/', validate(returnSchemas.create), returnBook);
+/**
+ * Submit a return request for your own purchase, with the photographs.
+ *
+ * Multipart, so the files can arrive here when image hosting is not
+ * configured - the same two ways in as a listing's covers. `verifyImageBytes`
+ * reads the first bytes of each file, so a renamed one cannot get through on
+ * the strength of its extension.
+ */
+router.post(
+  '/',
+  imageUpload.array('images', config.uploads.maxFilesPerRequest),
+  verifyImageBytes,
+  validate(returnSchemas.create),
+  returnBook
+);
 
 // Administrators see every request; everyone else sees only their own.
 router.get('/requests', validate(returnSchemas.list), getReturnRequests);

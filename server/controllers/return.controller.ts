@@ -10,6 +10,7 @@ import type {
   UpdateReturnStatusBody,
 } from '../schemas/index.js';
 import { validatedQuery } from '../middleware/validate.js';
+import { collectImages } from '../utils/uploadedImages.js';
 import { contains } from '../utils/regex.js';
 import { serveStoredImage } from '../utils/serveImage.js';
 import { API_PREFIX } from '../config/apiPaths.js';
@@ -34,13 +35,25 @@ export const returnBook = async (
       return;
     }
 
-    // Create return request
+    /*
+     * The photographs of the defect.
+     *
+     * They were being thrown away: the form uploaded them to
+     * /user/upload-images, which handed back base64 and stored nothing, and
+     * the request was then created without them. A buyer was asked to
+     * photograph the damage and an administrator decided the return with no
+     * evidence.
+     */
+    const uploaded = collectImages(req);
+
     const returnRequest = new ReturnRequest({
       bookId,
       bookTitle: book.title,
       userEmail,
       sellerEmail: book.sellerEmail,
       defectDescription,
+      images: uploaded.images,
+      imagePublicIds: uploaded.publicIds,
       status: 'pending'
     });
 

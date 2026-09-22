@@ -183,6 +183,11 @@ export const returnSchemas = {
     body: z.object({
       bookId: objectId,
       defectDescription: mediumText.min(1, 'A description is required'),
+      // Present only when image hosting is configured; the browser uploads to
+      // Cloudinary itself and reports back what it got. Otherwise the files
+      // arrive as multipart and never touch the body.
+      images: repeatable(urlText).optional(),
+      imagePublicIds: repeatable(shortText).optional(),
     }),
   },
   updateStatus: {

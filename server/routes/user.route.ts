@@ -4,7 +4,6 @@ import { signup, signin } from '../controllers/auth.controller.js';
 import {
   getUserProfile,
   updateUserProfile,
-  uploadDescriptionImages,
 } from '../controllers/user.controller.js';
 import { deleteMyAccount, exportMyData } from '../controllers/account.controller.js';
 import AddBook from '../models/AddBook.model.js';
@@ -13,7 +12,7 @@ import { config } from '../config/env.js';
 import { actingUser, requireAuth, requireAdmin, optionalAuth } from '../middleware/auth.js';
 import { imageUpload, verifyImageBytes } from '../middleware/imageUpload.js';
 import { recordAudit } from '../utils/audit.js';
-import { isOwnedCloudinaryUrl } from '../config/cloudinary.js';
+import { collectImages } from '../utils/uploadedImages.js';
 import { createLogger } from '../config/logger.js';
 import { errorMessage } from '../utils/error.js';
 import { validate, validatedQuery } from '../middleware/validate.js';
@@ -37,13 +36,6 @@ const router = express.Router();
  * telling the server what to store, so without that check a caller could pin
  * any URL they liked to a listing and have it rendered to every visitor.
  */
-const collectHostedImages = (body: AddBookBody) => {
-  const urls = (body.images ?? []).filter(isOwnedCloudinaryUrl);
-  const ids = (body.imagePublicIds ?? []).filter((id) => id.length > 0);
-
-  return { images: urls, publicIds: urls.length ? ids.slice(0, urls.length) : [] };
-};
-
 
 // ---------------------------------------------------------------------------
 // Public
@@ -87,16 +79,12 @@ router.post(
       // Two ways in. When image hosting is configured the browser has already
       // uploaded to Cloudinary and sends back the URLs; otherwise the files
       // arrive here and are stored inline as before.
-      const hosted = collectHostedImages(req.body);
-      const files = Array.isArray(req.files) ? req.files : [];
-      const inline = files.map(
-        (file) => `data:${file.mimetype};base64,${file.buffer.toString('base64')}`
-      );
+      const uploaded = collectImages(req);
 
       const newBook = new AddBook({
         ...req.body,
-        images: hosted.images.length ? hosted.images : inline,
-        imagePublicIds: hosted.publicIds,
+        images: uploaded.images,
+        imagePublicIds: uploaded.publicIds,
         // The seller is the signed-in user. Taking this from the body would let
         // anyone publish a listing under someone else's name.
         sellerEmail: actingUser(req).email,
@@ -123,14 +111,6 @@ router.post(
 router.get('/me/export', requireAuth, exportMyData);
 
 router.delete('/me', requireAuth, validate(userSchemas.deleteMe), deleteMyAccount);
-
-router.post(
-  '/upload-images',
-  requireAuth,
-  imageUpload.array('images', config.uploads.maxFilesPerRequest),
-  verifyImageBytes,
-  uploadDescriptionImages
-);
 
 // ---------------------------------------------------------------------------
 // Administrator only

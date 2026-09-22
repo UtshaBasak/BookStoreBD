@@ -1,5 +1,5 @@
 import bcryptjs from 'bcryptjs';
-import type { Request, RequestHandler, Response } from 'express';
+import type { Request, Response } from 'express';
 
 import type { OwnProfile, ProfileResponse, PublicProfile } from '@shared/api.js';
 
@@ -159,25 +159,5 @@ export const updateUserProfile = async (
             }
         }
         res.status(500).json({ message: 'Server error', error: errorMessage(error) });
-    }
-};
-
-export const uploadDescriptionImages: RequestHandler = async (req, res) => {
-    try {
-        const files = Array.isArray(req.files) ? req.files : [];
-        if (files.length === 0) {
-            res.status(400).json({ message: 'No images uploaded' });
-            return;
-        }
-
-        const uploadedImages = files.map((file) => {
-            const base64Image = `data:${file.mimetype};base64,${file.buffer.toString('base64')}`;
-            return base64Image;
-        });
-
-        res.status(200).json({ message: 'Images uploaded successfully', images: uploadedImages });
-    } catch (error) {
-        log.error({ err: error }, 'Error uploading images');
-        res.status(500).json({ message: 'Failed to upload images', error });
     }
 };

@@ -343,3 +343,131 @@ describe('one photograph from a return request', () => {
     ).toBe(404);
   });
 });
+
+/**
+ * The photographs a buyer uploads.
+ *
+ * They were being discarded. The form posted them to /user/upload-images,
+ * which handed back base64 and stored nothing, and the return request was then
+ * created without them - so a buyer was asked to photograph the damage, and an
+ * administrator decided the return with no evidence. The upload form did not
+ * even have a submit button.
+ */
+describe('submitting a return with its photographs', () => {
+  const book = async (sellerEmail = SELLER) => {
+    const AddBook = (await import('../models/AddBook.model.js')).default;
+    return AddBook.create({
+      title: 'A Damaged Book',
+      author: 'An Author',
+      publisher: 'P',
+      country: 'BD',
+      language: 'en',
+      isbn: 'RET-1',
+      price: 100,
+      desc: 'd',
+      category: ['fiction'],
+      bookType: 'new',
+      stock: 1,
+      sellerEmail,
+    });
+  };
+
+  it('keeps them, so the administrator can see the damage', async () => {
+    const { auth } = await createSignedInUser(request, { email: BUYER });
+    const damaged = await book();
+
+    const res = await request
+      .post('/return')
+      .set('Authorization', auth)
+      .field('bookId', String(damaged._id))
+      .field('defectDescription', 'Pages loose at the spine')
+      .attach('images', PNG_PIXEL, 'damage.png');
+
+    expect(res.status).toBe(200);
+
+    const stored = await ReturnRequest.findById(res.body.returnId).lean();
+    expect(stored?.images).toHaveLength(1);
+    expect(stored?.images?.[0]).toMatch(/^data:image\/png;base64,/);
+  });
+
+  it('and the administrator is served them one at a time', async () => {
+    const buyer = await createSignedInUser(request, { email: BUYER });
+    const admin = await createSignedInUser(request, { email: 'admin@test.com', role: 'admin' });
+    const damaged = await book();
+
+    await request
+      .post('/return')
+      .set('Authorization', buyer.auth)
+      .field('bookId', String(damaged._id))
+      .field('defectDescription', 'Cover torn')
+      .attach('images', PNG_PIXEL, 'damage.png');
+
+    const list = await request.get('/return/requests').set('Authorization', admin.auth);
+    const [address] = list.body.items[0].images as string[];
+
+    const image = await request.get(address.replace('/api', '')).set('Authorization', admin.auth);
+
+    expect(image.status).toBe(200);
+    expect(image.body).toEqual(PNG_PIXEL);
+  });
+
+  it('is still accepted without any, because not every fault photographs', async () => {
+    const { auth } = await createSignedInUser(request, { email: BUYER });
+    const damaged = await book();
+
+    const res = await request
+      .post('/return')
+      .set('Authorization', auth)
+      .field('bookId', String(damaged._id))
+      .field('defectDescription', 'Two chapters are missing');
+
+    expect(res.status).toBe(200);
+    const stored = await ReturnRequest.findById(res.body.returnId).lean();
+    expect(stored?.images).toHaveLength(0);
+  });
+
+  it('refuses a file that is not an image, whatever it is called', async () => {
+    const { auth } = await createSignedInUser(request, { email: BUYER });
+    const damaged = await book();
+
+    const res = await request
+      .post('/return')
+      .set('Authorization', auth)
+      .field('bookId', String(damaged._id))
+      .field('defectDescription', 'Pages loose')
+      .attach('images', Buffer.from('<script>alert(1)</script>'), 'damage.png');
+
+    // The first bytes are read, so a rename does not get anything through.
+    expect(res.status).toBe(415);
+  });
+
+  it('will not store a URL pointing somewhere we do not own', async () => {
+    const { auth } = await createSignedInUser(request, { email: BUYER });
+    const damaged = await book();
+
+    const res = await request
+      .post('/return')
+      .set('Authorization', auth)
+      .field('bookId', String(damaged._id))
+      .field('defectDescription', 'Pages loose')
+      .field('images', 'https://example.invalid/whatever.png');
+
+    expect(res.status).toBe(200);
+    const stored = await ReturnRequest.findById(res.body.returnId).lean();
+    // Nothing configured here, so nothing passes the ownership check.
+    expect(stored?.images).toHaveLength(0);
+  });
+
+  it('still requires a description', async () => {
+    const { auth } = await createSignedInUser(request, { email: BUYER });
+    const damaged = await book();
+
+    const res = await request
+      .post('/return')
+      .set('Authorization', auth)
+      .field('bookId', String(damaged._id))
+      .attach('images', PNG_PIXEL, 'damage.png');
+
+    expect(res.status).toBe(400);
+  });
+});

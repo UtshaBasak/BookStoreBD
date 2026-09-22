@@ -1,82 +1,89 @@
 import { useState, type ChangeEvent, type FormEvent } from 'react';
-import { useParams } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 
 import type { MessageResponse } from '@shared/api.js';
 
 import { API_BASE_URL, apiFetch } from '../config/api.js';
 import { useToast } from '../hooks/useToast.js';
-import { getUserEmail } from '../utils/auth.js';
 import { reportError } from '../utils/report.js';
+import { uploadImages } from '../utils/uploadImages.js';
+
+const MAX_IMAGES = 10;
 
 export default function DescriptionForm() {
   const [description, setDescription] = useState('');
   const [images, setImages] = useState<File[]>([]);
-  const userEmail = getUserEmail();
+  const [submitting, setSubmitting] = useState(false);
+  const [progress, setProgress] = useState('');
   const { bookId } = useParams();
+  const navigate = useNavigate();
   const toast = useToast();
-
-  const handleDescriptionSubmit = async (e: FormEvent) => {
-    e.preventDefault();
-
-    try {
-      const res = await apiFetch(`${API_BASE_URL}/return`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ bookId, userEmail, defectDescription: description }),
-      });
-
-      const data = (await res.json()) as MessageResponse;
-      if (res.ok) {
-        toast.success(data.message);
-      } else {
-        toast.error(data.message);
-      }
-    } catch (error) {
-      reportError('Error returning book:', error);
-      toast.error('Could not send the return request. Please try again.');
-    }
-  };
 
   const handleImageUpload = (e: ChangeEvent<HTMLInputElement>) => {
     setImages(Array.from(e.target.files ?? []));
   };
 
-  const handleImageSubmit = async (e: FormEvent) => {
+  /*
+   * One form, one submit.
+   *
+   * There were two: the photographs went to /user/upload-images, which handed
+   * back base64 and stored nothing, and the description went to /return
+   * without them. The photograph form had no submit button at all, so even
+   * that never ran - a buyer chose the pictures of the damage and they went
+   * nowhere, and an administrator decided the return with no evidence.
+   */
+  const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
 
-    if (images.length === 0) {
-      toast.warning('Please choose at least one image.');
+    if (!description.trim()) {
+      toast.warning('Please describe what is wrong with the book.');
       return;
     }
 
-    if (images.length > 10) {
-      toast.warning('Ten images at most, please.');
+    if (images.length > MAX_IMAGES) {
+      toast.warning(`${MAX_IMAGES} images at most, please.`);
       return;
     }
 
-    const formData = new FormData();
-    images.forEach((image) => formData.append('images', image));
-    formData.append('bookId', bookId ?? '');
-    formData.append('userEmail', userEmail ?? '');
+    setSubmitting(true);
 
     try {
-      const res = await apiFetch(`${API_BASE_URL}/user/upload-images`, {
-        method: 'POST',
-        body: formData,
+      // With hosting configured the files go straight to Cloudinary and only
+      // the URLs are posted here; otherwise they are sent to the API.
+      const uploaded = await uploadImages(images, {
+        onProgress: ({ completed, total }) =>
+          setProgress(`Uploading image ${completed} of ${total}...`),
       });
 
-      const data = await res.json();
-      if (res.ok) {
-        toast.success('Images uploaded.');
-        setImages([]); // Clear images after successful upload
+      const form = new FormData();
+      form.append('bookId', bookId ?? '');
+      form.append('defectDescription', description);
+
+      if (uploaded.hosted) {
+        uploaded.images.forEach((url) => form.append('images', url));
+        uploaded.publicIds.forEach((id) => form.append('imagePublicIds', id));
       } else {
-        toast.error(data.message || 'Could not upload the images.');
+        images.forEach((image) => form.append('images', image));
       }
+
+      setProgress('Sending the request...');
+      const res = await apiFetch(`${API_BASE_URL}/return`, { method: 'POST', body: form });
+      const data = (await res.json()) as MessageResponse;
+
+      if (!res.ok) {
+        toast.error(data.message || 'Could not send the return request.');
+        return;
+      }
+
+      toast.success(data.message);
+      // Back to the orders, where the row now shows the return as pending.
+      navigate('/buyer-books');
     } catch (error) {
-      reportError('Error uploading images:', error);
-      toast.error('Could not upload the images. Please try again.');
+      reportError('Error returning book:', error);
+      toast.error('Could not send the return request. Please try again.');
+    } finally {
+      setSubmitting(false);
+      setProgress('');
     }
   };
 
@@ -111,22 +118,13 @@ export default function DescriptionForm() {
       >
         <h1 style={{ textAlign: 'center', color: 'white' }}>Report Defective Book</h1>
 
-        {/* Form for uploading images */}
-        <form onSubmit={handleImageSubmit} style={{ marginBottom: '2rem' }}>
-          <h2 style={{ color: 'white' }}>Upload Images</h2>
-          <input
-            type="file"
-            accept="image/png,image/jpeg,image/webp,image/gif"
-            multiple
-            onChange={handleImageUpload}
-            style={{ marginBottom: '1rem', width: '100%' }}
-          />
-</form>
-
-        {/* Form for writing a description */}
-        <form onSubmit={handleDescriptionSubmit}>
-          <h2 style={{ color: 'white' }}>Write a Description</h2>
+        <form onSubmit={handleSubmit}>
+          <h2 style={{ color: 'white' }}>What is wrong with it?</h2>
+          <label htmlFor="defect" style={{ display: 'block', marginBottom: '0.5rem' }}>
+            Describe the problem
+          </label>
           <textarea
+            id="defect"
             value={description}
             onChange={(e) => setDescription(e.target.value)}
             placeholder="Describe the issue with the book..."
@@ -140,19 +138,39 @@ export default function DescriptionForm() {
               color: 'black', // Ensures text inside the textarea is readable
             }}
           />
+
+          <label htmlFor="defect-images" style={{ display: 'block', marginBottom: '0.5rem' }}>
+            Photographs of the damage (up to {MAX_IMAGES}, optional)
+          </label>
+          <input
+            id="defect-images"
+            type="file"
+            accept="image/png,image/jpeg,image/webp,image/gif"
+            multiple
+            onChange={handleImageUpload}
+            style={{ marginBottom: '1rem', width: '100%' }}
+          />
+          {images.length > 0 && (
+            <p style={{ marginTop: 0, marginBottom: '1rem', fontSize: 14 }}>
+              {images.length} image{images.length === 1 ? '' : 's'} will be sent with this request.
+            </p>
+          )}
+
           <button
             type="submit"
+            disabled={submitting}
             style={{
               backgroundColor: '#43a047',
               color: 'white',
               padding: '0.5rem 1rem',
               border: 'none',
               borderRadius: '4px',
-              cursor: 'pointer',
+              cursor: submitting ? 'not-allowed' : 'pointer',
               width: '100%',
+              minHeight: 44,
             }}
           >
-            Confirm Return
+            {submitting ? progress || 'Sending...' : 'Confirm Return'}
           </button>
         </form>
       </div>

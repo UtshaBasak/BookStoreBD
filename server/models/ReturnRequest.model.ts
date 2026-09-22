@@ -8,7 +8,12 @@ const returnRequestSchema = new Schema({
   userEmail: { type: String, required: true },
   sellerEmail: { type: String, required: true },
   defectDescription: { type: String, required: true },
+  // Either Cloudinary delivery URLs or, with hosting unconfigured, base64
+  // data URIs. Served one at a time by /return/requests/:id/image/:n.
   images: [String],
+  // Parallel to `images`, and only populated for hosted ones. Needed to remove
+  // the asset when a request is cleared down.
+  imagePublicIds: [String],
   status: {
     type: String,
     enum: ['pending', 'approved', 'rejected'] as const,

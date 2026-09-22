@@ -88,6 +88,14 @@ What to expect, by class, from reading the new code:
   the same shape as the old ones: validated input, no path chosen by the
   caller, no string concatenated into a query.
 
+One thing that review did turn up, which no analyser would have: the return
+form uploaded the buyer's photographs of the defect to `/user/upload-images`,
+which handed back base64 and stored nothing, and then created the request
+without them - and the upload form had no submit button, so even that request
+never went. A buyer photographed the damage and it went nowhere; an
+administrator decided the return on a sentence of text. One form now posts the
+description and the photographs together, and `/user/upload-images` is gone.
+
 Re-measuring needs the CodeQL CLI, which is not installed on this machine, so
 these are predictions from the diff rather than counts. Run the workflow (or
 the CLI against a clean clone) before dismissing, and dismiss what it actually
@@ -121,7 +129,7 @@ at `54c4876` - see the staleness note above before trusting that number. Authent
 authorisation are enforced server-side, sessions use short access tokens with
 rotating refresh tokens, and every endpoint that reads a body, query or param
 validates it against a Zod schema. All eight tasks are complete: the whole
-codebase is TypeScript under `strict`, **475 tests** (330 server, 145 client)
+codebase is TypeScript under `strict`, **488 tests** (336 server, 152 client)
 gate every push, `docker compose up` brings the whole stack up with no local
 Node or MongoDB install, the API emits structured logs with a correlation id
 per request, and book covers can be hosted on a CDN instead of living in the

@@ -653,7 +653,6 @@ administrator without a migration.
 | `GET`    | `/user/profile`       | Fetch a profile by `?email=`                  |
 | `PUT`    | `/user/profile`       | Update a profile (multipart, optional avatar) |
 | `POST`   | `/user/add-book`      | Create a listing with up to 10 images         |
-| `POST`   | `/user/upload-images` | Upload images for the return form             |
 | `POST`   | `/user/signup`        | Alias of `/auth/signup`, kept for older callers |
 | `POST`   | `/user/signin`        | Alias of `/auth/signin`, kept for older callers |
 | `DELETE` | `/user/:id`           | Delete a user (admin)                         |
@@ -715,7 +714,7 @@ them would show part of a purchase.
 
 | Method  | Endpoint               | Description                                   |
 | ------- | ---------------------- | --------------------------------------------- |
-| `POST`  | `/return`              | Submit a return request                       |
+| `POST`  | `/return`              | Submit a return request, with its photographs |
 | `GET`   | `/return/requests`     | A page of return requests, scoped to the caller |
 | `GET`   | `/return/requests/:id/image/:n` | One photograph, to its buyer or an admin |
 | `PATCH` | `/return/requests/:id` | Approve or reject a request (admin)           |
