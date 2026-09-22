@@ -41,6 +41,15 @@ const OrderSchema = new Schema({
 // was reaching for, expressed at the level that is actually true.
 OrderSchema.index({ orderNumber: 1, bookId: 1 }, { unique: true });
 
+/*
+ * The three order tables: a buyer's, a seller's, and the administrator's. Each
+ * asks for one page, newest first, so each gets the equality it filters on
+ * followed by the order it sorts in.
+ */
+OrderSchema.index({ buyerEmail: 1, createdAt: -1, _id: -1 });
+OrderSchema.index({ sellerEmail: 1, createdAt: -1, _id: -1 });
+OrderSchema.index({ createdAt: -1, _id: -1 });
+
 export type OrderAttributes = InferSchemaType<typeof OrderSchema>;
 export type OrderDocument = HydratedDocument<OrderAttributes>;
 

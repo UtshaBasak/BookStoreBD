@@ -3,6 +3,8 @@ import { useState } from 'react';
 import type { OrderLine } from '@shared/api.js';
 
 import { useAllOrders } from '../hooks/queries.js';
+import { useDebounced } from '../hooks/useDebounced.js';
+import Pager from '../components/Pager.js';
 
 // Utility to format date as dd/mm/yyyy
 function formatDate(dateStr: string | undefined) {
@@ -15,13 +17,30 @@ function formatDate(dateStr: string | undefined) {
   return `${day}/${month}/${year}`;
 }
 
+/** Orders per page. Each one may be several rows. */
+const PAGE_SIZE = 25;
+
 export default function TransactionHistory() {
   const [search, setSearch] = useState('');
+  const [page, setPage] = useState(1);
 
+  /*
+   * This fetched every order line ever placed and then searched and grouped
+   * them here, so the search box could only find an order that had already
+   * been downloaded. The API pages by order - never cutting between the books
+   * of one purchase - and searches the whole table.
+   */
+  const settledSearch = useDebounced(search);
   const ordersQuery = useAllOrders({
-    select: (data) => (Array.isArray(data) ? data : []),
+    search: settledSearch || undefined,
+    page,
+    pageSize: PAGE_SIZE,
   });
-  const orders = ordersQuery.data ?? [];
+
+  const orders = ordersQuery.data?.items ?? [];
+  const total = ordersQuery.data?.total ?? 0;
+  const pageCount = ordersQuery.data?.pageCount ?? 1;
+  const currentPage = ordersQuery.data?.page ?? page;
   const refreshing = ordersQuery.isFetching;
   const fetchOrders = () => ordersQuery.refetch();
 
@@ -37,16 +56,7 @@ export default function TransactionHistory() {
     return map;
   }
 
-  // Filtered orders by search (order number, buyer, seller, title, author)
-  const filteredOrders = orders.filter(order =>
-    (order.orderNumber || '').toLowerCase().includes(search.toLowerCase()) ||
-    (order.buyerEmail || '').toLowerCase().includes(search.toLowerCase()) ||
-    (order.sellerEmail || '').toLowerCase().includes(search.toLowerCase()) ||
-    (order.title || '').toLowerCase().includes(search.toLowerCase()) ||
-    (order.author || '').toLowerCase().includes(search.toLowerCase())
-  );
-
-  const grouped = groupOrdersByOrderNumber(filteredOrders);
+  const grouped = groupOrdersByOrderNumber(orders);
 
   return (
     <div style={{ padding: '2rem', background: '#fff', minHeight: '100vh', position: 'relative' }}>
@@ -75,7 +85,11 @@ export default function TransactionHistory() {
           type="text"
           placeholder="Search by order number, buyer, seller, title, or author..."
           value={search}
-          onChange={e => setSearch(e.target.value)}
+          onChange={(e) => {
+            setSearch(e.target.value);
+            // Page 4 of a search nobody is running any more is a dead end.
+            setPage(1);
+          }}
           style={{
             padding: '0.5rem',
             borderRadius: 4,
@@ -208,6 +222,15 @@ export default function TransactionHistory() {
             );
           })
         )}
+
+        <Pager
+          page={currentPage}
+          pageCount={pageCount}
+          pageSize={PAGE_SIZE}
+          total={total}
+          onPage={setPage}
+          noun="orders"
+        />
       </div>
     </div>
   );

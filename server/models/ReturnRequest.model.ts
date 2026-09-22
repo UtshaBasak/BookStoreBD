@@ -17,6 +17,14 @@ const returnRequestSchema = new Schema({
   createdAt: { type: Date, default: Date.now }
 });
 
+/*
+ * The two tables that read these: the administrator's, which is every request
+ * newest first, and a buyer's own. `_id` on the end so requests made in the
+ * same second cannot swap between pages.
+ */
+returnRequestSchema.index({ createdAt: -1, _id: -1 });
+returnRequestSchema.index({ userEmail: 1, createdAt: -1, _id: -1 });
+
 export type ReturnRequestAttributes = InferSchemaType<typeof returnRequestSchema>;
 export type ReturnRequestDocument = HydratedDocument<ReturnRequestAttributes>;
 

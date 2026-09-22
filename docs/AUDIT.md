@@ -26,7 +26,7 @@ Yes. Nothing is broken.
 | ----- | ------ |
 | Lint, both packages | clean |
 | Type-check under TypeScript 6.0.3 | clean |
-| Tests | 447 passing (309 server, 138 client) |
+| Tests | 475 passing (330 server, 145 client) |
 | `npm audit`, all three roots | 0 vulnerabilities |
 | Builds | API compiles to `dist/`, client bundles |
 | Production stack | browse, detail, cart, wishlist, profile, orders, clear — all `200` |
@@ -883,6 +883,29 @@ What is left is in the sections above, and none of it blocks a launch:
   and sorted in memory. `role: 'user'` selects exactly the same accounts, since
   the enum has two values, and reads 25 keys in index order. Both tables have a
   query-plan test now.
+
+  The orders and returns tables followed, and the returns table turned out to
+  be the worst of the lot. A return request carries the buyer's photographs of
+  the defect, as base64, on the document — and the administrator's table
+  downloaded every one of them to draw seven columns of text and a "View
+  Images" button that had no `onClick` and opened nothing. Measured against 120
+  requests and 400 orders:
+
+  ```
+  every return request   9,760,991 bytes  →   9,717
+  every order line         495,514 bytes  →  30,450   (25 orders, 49 lines)
+  ```
+
+  The photographs are addresses now, behind a check that only the buyer who
+  uploaded one or an administrator may fetch it, and the button opens them —
+  by fetching with the session and handing the tab a blob, because a plain
+  link would arrive with no Authorization header and be refused.
+
+  Two details worth keeping. Orders page by **order**, not by line: a basket of
+  three books is three rows, and a page that cut between them would show part
+  of a purchase. And the buyer's list used to fetch every return request the
+  account had ever made — photographs included — only to work out which books
+  had a return in progress; each line now carries its own `returnStatus`.
 - **A browser error reporter.** `reportError` is the seam and it currently goes
   nowhere in production.
 - **Redis for the one-time codes**, before the API runs on more than one

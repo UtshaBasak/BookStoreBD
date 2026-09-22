@@ -5,6 +5,7 @@ import type { Id } from '@shared/api.js';
 
 import { useAdminBooks, apiRequest } from '../hooks/queries.js';
 import { useDebounced } from '../hooks/useDebounced.js';
+import Pager from '../components/Pager.js';
 
 /** Rows per page. Enough to scan, few enough to draw. */
 const PAGE_SIZE = 25;
@@ -115,48 +116,14 @@ export default function BookList() {
         <p style={{ marginTop: 16 }}>No listing matches that search.</p>
       )}
 
-      <div
-        style={{
-          display: 'flex',
-          flexWrap: 'wrap',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          gap: 12,
-          marginTop: 16,
-        }}
-      >
-        <span>
-          {total === 0
-            ? 'No listings'
-            : `Showing ${String((currentPage - 1) * PAGE_SIZE + 1)}–${String(
-                Math.min(currentPage * PAGE_SIZE, total)
-              )} of ${String(total)}`}
-        </span>
-
-        {pageCount > 1 && (
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <button
-              type="button"
-              onClick={() => setPage(currentPage - 1)}
-              disabled={currentPage === 1}
-              style={{ minHeight: 40, padding: '0 14px' }}
-            >
-              Previous
-            </button>
-            <span>
-              Page {currentPage} of {pageCount}
-            </span>
-            <button
-              type="button"
-              onClick={() => setPage(currentPage + 1)}
-              disabled={currentPage === pageCount}
-              style={{ minHeight: 40, padding: '0 14px' }}
-            >
-              Next
-            </button>
-          </div>
-        )}
-      </div>
+      <Pager
+        page={currentPage}
+        pageCount={pageCount}
+        pageSize={PAGE_SIZE}
+        total={total}
+        onPage={setPage}
+        noun="listings"
+      />
     </div>
   );
 }

@@ -266,6 +266,22 @@ export interface BookMutationResponse {
  * as a parent document with children, so the order-level fields repeat on
  * every line.
  */
+/** One page of a table, with enough to draw a pager. */
+export interface Page<T> {
+  items: T[];
+  total: number;
+  page: number;
+  pageSize: number;
+  pageCount: number;
+}
+
+/** What the three order tables and the returns table ask for. */
+export interface ListParams {
+  search?: string;
+  page?: number;
+  pageSize?: number;
+}
+
 export interface OrderLine {
   _id: Id;
   orderNumber: string;
@@ -302,6 +318,14 @@ export interface BuyerOrderLine extends OrderLine {
   shippingCost: number;
   discount: number;
   totalCost: number;
+  /**
+   * Whether this book has a return in progress, and how far it has got.
+   *
+   * Sent with the line rather than fetched separately: the buyer's list used
+   * to download every return request the account had ever made, photographs
+   * and all, to work this out in the browser.
+   */
+  returnStatus: ReturnStatus | null;
 }
 
 /** GET /order/:orderNumber - the whole order, summarised. */
@@ -373,6 +397,12 @@ export interface ReturnRequest {
   userEmail: string;
   sellerEmail: string;
   defectDescription: string;
+  /**
+   * One address per photograph: `/api/return/requests/:id/image/:n`.
+   *
+   * They are stored on the document as base64, so listing them inline meant
+   * the table downloaded every picture anybody had uploaded.
+   */
   images?: string[];
   status: ReturnStatus;
   createdAt?: IsoDate;

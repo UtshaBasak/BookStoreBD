@@ -4,15 +4,33 @@ import { useNavigate } from 'react-router-dom';
 import type { OrderLine } from '@shared/api.js';
 
 import { useSellerOrders } from '../hooks/queries.js';
+import { useDebounced } from '../hooks/useDebounced.js';
+import Pager from '../components/Pager.js';
+
+/** Orders per page. Each one may be several rows. */
+const PAGE_SIZE = 25;
 
 export default function SellerOrderList() {
   const [search, setSearch] = useState('');
   const navigate = useNavigate();
 
+  const [page, setPage] = useState(1);
+
+  /*
+   * This fetched every order this seller has ever had and searched them here,
+   * so the search box could only find one that had already been downloaded.
+   */
+  const settledSearch = useDebounced(search);
   const ordersQuery = useSellerOrders({
-    select: (data) => (Array.isArray(data) ? data : []),
+    search: settledSearch || undefined,
+    page,
+    pageSize: PAGE_SIZE,
   });
-  const orders = ordersQuery.data ?? [];
+
+  const orders = ordersQuery.data?.items ?? [];
+  const total = ordersQuery.data?.total ?? 0;
+  const pageCount = ordersQuery.data?.pageCount ?? 1;
+  const currentPage = ordersQuery.data?.page ?? page;
   const loading = ordersQuery.isPending;
   const refreshing = ordersQuery.isFetching;
   const fetchOrders = () => ordersQuery.refetch();
@@ -29,17 +47,7 @@ export default function SellerOrderList() {
     return map;
   }
 
-  // Filter by search (title, author, buyer)
-  const filteredOrders = orders.filter(
-    order =>
-      (order.title || '').toLowerCase().includes(search.toLowerCase()) ||
-      (order.author || '').toLowerCase().includes(search.toLowerCase()) ||
-      (order.buyerEmail || '').toLowerCase().includes(search.toLowerCase()) ||
-      (order.orderNumber && order.orderNumber.toString().toLowerCase().includes(search.toLowerCase())) ||
-      (order._id && order._id.toString().toLowerCase().includes(search.toLowerCase()))
-  );
-
-  const grouped = groupOrdersByOrderNumber(filteredOrders);
+  const grouped = groupOrdersByOrderNumber(orders);
 
   return (
     <div style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100vh', background: '#fff', overflowY: 'auto' }}>
@@ -82,7 +90,10 @@ export default function SellerOrderList() {
           type="text"
           placeholder="Search by order number, title, author, or buyer..."
           value={search}
-          onChange={e => setSearch(e.target.value)}
+          onChange={(e) => {
+            setSearch(e.target.value);
+            setPage(1);
+          }}
           style={{
             padding: '0.5rem',
             marginBottom: '1rem',
@@ -184,6 +195,15 @@ export default function SellerOrderList() {
               );
             })
           )}
+
+          <Pager
+            page={currentPage}
+            pageCount={pageCount}
+            pageSize={PAGE_SIZE}
+            total={total}
+            onPage={setPage}
+            noun="orders"
+          />
         </div>
       </div>
     </div>

@@ -682,6 +682,11 @@ document path chosen by the caller, which needed a whitelist to stop it
 becoming a query operator. Naming each filter removes the question, and a
 search is now a URL you can link to, share and go back to.
 
+The order and return lists take the same three parameters — `search`, `page`,
+`pageSize` — and answer in the same shape. Orders are paged by **order**, not
+by line: a basket of three books is three rows, and a page that cut between
+them would show part of a purchase.
+
 ### Cart and wishlist
 
 | Method | Endpoint               | Description                            |
@@ -699,9 +704,9 @@ search is now a URL you can link to, share and go back to.
 | Method   | Endpoint                     | Description                                 |
 | -------- | ---------------------------- | ------------------------------------------- |
 | `POST`   | `/order/decrease-stock`      | Place an order and atomically reserve stock |
-| `GET`    | `/order/buyer?email=`        | A buyer's orders, grouped with totals       |
-| `GET`    | `/order/seller?email=`       | A seller's orders                           |
-| `GET`    | `/order/admin/all`           | Every order (admin)                         |
+| `GET`    | `/order/buyer`               | A page of the caller's orders, with totals  |
+| `GET`    | `/order/seller`              | A page of the caller's sales                |
+| `GET`    | `/order/admin/all`           | A page of every order (admin)               |
 | `GET`    | `/order/:orderNumber`        | One order with its line items and totals    |
 | `PATCH`  | `/order/status/:orderNumber` | Update the status of every item in an order |
 | `DELETE` | `/order/:id`                 | Delete a single line item                   |
@@ -711,7 +716,8 @@ search is now a URL you can link to, share and go back to.
 | Method  | Endpoint               | Description                                   |
 | ------- | ---------------------- | --------------------------------------------- |
 | `POST`  | `/return`              | Submit a return request                       |
-| `GET`   | `/return/requests`     | List return requests (`?userEmail=` to scope) |
+| `GET`   | `/return/requests`     | A page of return requests, scoped to the caller |
+| `GET`   | `/return/requests/:id/image/:n` | One photograph, to its buyer or an admin |
 | `PATCH` | `/return/requests/:id` | Approve or reject a request (admin)           |
 | `GET`   | `/purchase?email=`     | Purchase history for one user                 |
 | `POST`  | `/purchase`            | Record a purchase                             |

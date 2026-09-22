@@ -1,5 +1,3 @@
-import { createHash } from 'crypto';
-
 import type { RequestHandler } from 'express';
 
 import AddBook from '../models/AddBook.model.js';
@@ -7,15 +5,11 @@ import User from '../models/user.model.js';
 import type { AdminBookQuery } from '../schemas/index.js';
 import { LIST_IMAGE_PROJECTION, withCoverUrls } from '../utils/projections.js';
 import { validatedQuery } from '../middleware/validate.js';
+import { serveStoredImage } from '../utils/serveImage.js';
 import { contains } from '../utils/regex.js';
 import { createLogger } from '../config/logger.js';
 
 const log = createLogger('book');
-
-/** What a stored cover is allowed to be, whatever the record claims. */
-const IMAGE_TYPES = new Set(['image/png', 'image/jpeg', 'image/webp', 'image/gif']);
-
-const DATA_URI = /^data:([\w/+.-]+);base64,(.*)$/s;
 
 /**
  * Serves one cover as an image.
@@ -47,33 +41,9 @@ export const getBookCover: RequestHandler<{ id: string; index?: string }> = asyn
             return;
         }
 
-        // A cover hosted elsewhere is already an address; send the caller there.
-        if (/^https?:\/\//.test(image)) {
-            res.redirect(302, image);
-            return;
-        }
-
-        const match = DATA_URI.exec(image);
-        // The type is read from the record, and a record written before uploads
-        // were type-checked could say anything. Only image types are served.
-        if (!match || !IMAGE_TYPES.has(match[1])) {
+        if (!serveStoredImage(req, res, image)) {
             res.status(404).json({ message: 'Cover not found' });
-            return;
         }
-
-        const bytes = Buffer.from(match[2], 'base64');
-        const etag = `"${createHash('sha1').update(bytes).digest('base64url')}"`;
-
-        if (req.headers['if-none-match'] === etag) {
-            res.status(304).end();
-            return;
-        }
-
-        res.setHeader('ETag', etag);
-        // A seller can replace a cover, so not immutable - but a day of cache
-        // with revalidation after it costs one 304 rather than a re-download.
-        res.setHeader('Cache-Control', 'public, max-age=86400');
-        res.type(match[1]).send(bytes);
     } catch (error) {
         next(error);
     }

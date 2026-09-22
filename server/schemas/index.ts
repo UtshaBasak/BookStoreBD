@@ -134,7 +134,21 @@ export const filterSchemas = {
 };
 
 // --------------------------------------------------------------- order
+/** One page of a table, with a search box over it. */
+const pagedList = (maxPageSize = 100) => ({
+  query: z.object({
+    search: shortText.optional(),
+    page: positiveInt.default(1),
+    pageSize: boundedInt(1, maxPageSize).default(25),
+  }),
+});
+
 export const orderSchemas = {
+  /**
+   * Paged by order, not by line: an order of three books is three rows, and a
+   * page that cut between them would show part of a purchase.
+   */
+  list: pagedList(),
   create: {
     body: z.object({
       items: z
@@ -163,6 +177,8 @@ export const orderSchemas = {
 
 // -------------------------------------------------------------- return
 export const returnSchemas = {
+  list: pagedList(),
+  image: { params: z.object({ id: objectId, index: nonNegativeInt.optional() }) },
   create: {
     body: z.object({
       bookId: objectId,
@@ -328,6 +344,8 @@ export type UpdatePriceBody = z.infer<typeof bookSchemas.updatePrice.body>;
 
 export type AdminBookQuery = z.infer<typeof bookSchemas.adminList.query>;
 export type AdminUserQuery = z.infer<typeof userSchemas.adminList.query>;
+export type OrderListQuery = z.infer<typeof orderSchemas.list.query>;
+export type ReturnListQuery = z.infer<typeof returnSchemas.list.query>;
 export type CatalogueQuery = z.infer<typeof filterSchemas.catalogue.query>;
 export type FeaturedQuery = z.infer<typeof filterSchemas.featured.query>;
 

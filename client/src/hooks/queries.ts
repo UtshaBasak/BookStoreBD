@@ -17,6 +17,8 @@ import type {
   CatalogueParams,
   BuyerOrderLine,
   Id,
+  ListParams,
+  Page,
   MessageResponse,
   OrderDetail,
   OrderLine,
@@ -93,11 +95,12 @@ export const keys = {
   profile: (email?: string | null) => ['profile', email ?? 'me'] as const,
   /** One entry per distinct search, so turning a page keeps the last one. */
   users: (query: string) => ['users', query] as const,
-  buyerOrders: ['orders', 'buyer'] as const,
-  sellerOrders: ['orders', 'seller'] as const,
-  allOrders: ['orders', 'all'] as const,
+  /** One entry per distinct search, so turning a page keeps the last one. */
+  buyerOrders: (query: string) => ['orders', 'buyer', query] as const,
+  sellerOrders: (query: string) => ['orders', 'seller', query] as const,
+  allOrders: (query: string) => ['orders', 'all', query] as const,
   order: (orderNumber: string | undefined) => ['order', orderNumber] as const,
-  returnRequests: ['returns'] as const,
+  returnRequests: (query: string) => ['returns', query] as const,
   reviews: (id: Id | undefined) => ['reviews', id] as const,
   unreadChats: ['chat', 'unread'] as const,
   chatHistory: ['chat', 'history'] as const,
@@ -315,34 +318,53 @@ export const useDeleteReview = (id: Id | undefined): UseMutationResult<unknown, 
 };
 
 // ---------------------------------------------------------------------------
-// Orders
+// Orders and returns
+//
+// All four of these tables used to fetch everything they could see and then
+// search and page in the browser - which meant the search box could only find
+// a row that had already been downloaded.
 // ---------------------------------------------------------------------------
-export const useBuyerOrders = <TData = BuyerOrderLine[]>(
-  options: Partial<QueryOptions<BuyerOrderLine[], TData>> = {}
-): UseQueryResult<TData> =>
-  useQuery<BuyerOrderLine[], Error, TData>({
-    queryKey: keys.buyerOrders,
-    queryFn: () => request<BuyerOrderLine[]>('/order/buyer'),
-    ...options,
-  });
 
-export const useSellerOrders = <TData = OrderLine[]>(
-  options: Partial<QueryOptions<OrderLine[], TData>> = {}
-): UseQueryResult<TData> =>
-  useQuery<OrderLine[], Error, TData>({
-    queryKey: keys.sellerOrders,
-    queryFn: () => request<OrderLine[]>('/order/seller'),
-    ...options,
-  });
+/** The three list parameters as a query string, used as the key and the URL. */
+export const listSearch = (params: ListParams): string => {
+  const query = new URLSearchParams();
+  if (params.search) query.set('search', params.search);
+  if (params.page && params.page > 1) query.set('page', String(params.page));
+  if (params.pageSize) query.set('pageSize', String(params.pageSize));
+  return query.toString();
+};
 
-export const useAllOrders = <TData = OrderLine[]>(
-  options: Partial<QueryOptions<OrderLine[], TData>> = {}
-): UseQueryResult<TData> =>
-  useQuery<OrderLine[], Error, TData>({
-    queryKey: keys.allOrders,
-    queryFn: () => request<OrderLine[]>('/order/admin/all'),
+const pagedQuery = <T>(
+  path: string,
+  key: (query: string) => readonly unknown[],
+  params: ListParams,
+  options: Partial<QueryOptions<Page<T>>>
+) => {
+  const search = listSearch(params);
+  return {
+    queryKey: key(search),
+    queryFn: () => request<Page<T>>(`${path}${search ? `?${search}` : ''}`),
+    placeholderData: keepPreviousData,
     ...options,
-  });
+  };
+};
+export const useBuyerOrders = (
+  params: ListParams = {},
+  options: Partial<QueryOptions<Page<BuyerOrderLine>>> = {}
+): UseQueryResult<Page<BuyerOrderLine>> =>
+  useQuery(pagedQuery<BuyerOrderLine>('/order/buyer', keys.buyerOrders, params, options));
+
+export const useSellerOrders = (
+  params: ListParams = {},
+  options: Partial<QueryOptions<Page<OrderLine>>> = {}
+): UseQueryResult<Page<OrderLine>> =>
+  useQuery(pagedQuery<OrderLine>('/order/seller', keys.sellerOrders, params, options));
+
+export const useAllOrders = (
+  params: ListParams = {},
+  options: Partial<QueryOptions<Page<OrderLine>>> = {}
+): UseQueryResult<Page<OrderLine>> =>
+  useQuery(pagedQuery<OrderLine>('/order/admin/all', keys.allOrders, params, options));
 
 export const useOrder = <TData = OrderDetail>(
   orderNumber: string | undefined,
@@ -418,14 +440,11 @@ export const useDeleteUser = (): UseMutationResult<MessageResponse, Error, Id> =
   });
 };
 
-export const useReturnRequests = <TData = ReturnRequest[]>(
-  options: Partial<QueryOptions<ReturnRequest[], TData>> = {}
-): UseQueryResult<TData> =>
-  useQuery<ReturnRequest[], Error, TData>({
-    queryKey: keys.returnRequests,
-    queryFn: () => request<ReturnRequest[]>('/return/requests'),
-    ...options,
-  });
+export const useReturnRequests = (
+  params: ListParams = {},
+  options: Partial<QueryOptions<Page<ReturnRequest>>> = {}
+): UseQueryResult<Page<ReturnRequest>> =>
+  useQuery(pagedQuery<ReturnRequest>('/return/requests', keys.returnRequests, params, options));
 
 export const useUpdateReturnStatus = (): UseMutationResult<
   ReturnRequest,
@@ -436,7 +455,7 @@ export const useUpdateReturnStatus = (): UseMutationResult<
   return useMutation({
     mutationFn: ({ id, status }: { id: Id; status: ReturnStatus }) =>
       request<ReturnRequest>(`/return/requests/${id}`, json('PATCH', { status })),
-    onSuccess: () => client.invalidateQueries({ queryKey: keys.returnRequests }),
+    onSuccess: () => client.invalidateQueries({ queryKey: ['returns'] }),
   });
 };
 

@@ -3,24 +3,38 @@ import { useState } from 'react';
 import type { BuyerOrderLine, Id } from '@shared/api.js';
 import { useNavigate } from 'react-router-dom';
 
-import { useBuyerOrders, useReturnRequests } from '../hooks/queries.js';
+import { useBuyerOrders } from '../hooks/queries.js';
+import { useDebounced } from '../hooks/useDebounced.js';
+import Pager from '../components/Pager.js';
+
+/** Orders per page. Each one may be several rows. */
+const PAGE_SIZE = 25;
 
 export default function BuyerBookList() {
   const [search, setSearch] = useState('');
   const navigate = useNavigate();
 
+  const [page, setPage] = useState(1);
+
+  /*
+   * This fetched every order this account has ever placed and searched them
+   * here - and, to know whether a book already had a return in progress, every
+   * return request the account had ever made. A return request carries the
+   * photographs of the defect as base64, so that second list was the expensive
+   * one. Each line now arrives with its own `returnStatus`.
+   */
+  const settledSearch = useDebounced(search);
   const ordersQuery = useBuyerOrders({
-    select: (data) => (Array.isArray(data) ? data : []),
+    search: settledSearch || undefined,
+    page,
+    pageSize: PAGE_SIZE,
   });
-  const orders = ordersQuery.data ?? [];
+
+  const orders = ordersQuery.data?.items ?? [];
+  const total = ordersQuery.data?.total ?? 0;
+  const pageCount = ordersQuery.data?.pageCount ?? 1;
+  const currentPage = ordersQuery.data?.page ?? page;
   const loading = ordersQuery.isPending;
-
-  // The server scopes return requests to the caller, so no e-mail is passed.
-  const { data: returnStatuses = {} } = useReturnRequests({
-    select: (list) =>
-      Object.fromEntries((list ?? []).map((request) => [request.bookId, request.status])),
-  });
-
   const refreshing = ordersQuery.isFetching;
   const handleRefresh = () => ordersQuery.refetch();
 
@@ -44,12 +58,6 @@ export default function BuyerBookList() {
     return currentDateTime - orderDateTime <= threeDaysInMs;
   };
 
-  const filteredOrders = orders.filter(
-    order =>
-      (order.title || '').toLowerCase().includes(search.toLowerCase()) ||
-      (order.author || '').toLowerCase().includes(search.toLowerCase()) ||
-      (order.sellerEmail || '').toLowerCase().includes(search.toLowerCase())
-  );
 
   // The page used to carry `overflow-x: hidden`, which cut the toolbar off
   // rather than letting it wrap: hidden overflow does not scroll, it amputates.
@@ -74,7 +82,10 @@ export default function BuyerBookList() {
           type="text"
           placeholder="Search by title, author, or seller..."
           value={search}
-          onChange={e => setSearch(e.target.value)}
+          onChange={(e) => {
+            setSearch(e.target.value);
+            setPage(1);
+          }}
           style={{ padding: 8, width: 300, borderRadius: 4, border: '1px solid #ccc', marginLeft: 16 }}
         />
         <button
@@ -116,10 +127,10 @@ export default function BuyerBookList() {
           <tbody>
             {loading ? (
               <tr><td colSpan={11}>Loading...</td></tr>
-            ) : filteredOrders.length === 0 ? (
+            ) : orders.length === 0 ? (
               <tr><td colSpan={11}>No books purchased yet.</td></tr>
             ) : (
-              filteredOrders.map((order, idx) => (
+              orders.map((order, idx) => (
                 <tr key={order._id || idx}>
                   <td>{order.title}</td>
                   <td>{order.author}</td>
@@ -132,13 +143,13 @@ export default function BuyerBookList() {
                   <td>{order.sellerEmail}</td>
                   <td>{order.createdAt ? new Date(order.createdAt).toLocaleDateString() : ''}</td>
                   <td>
-                    {returnStatuses[order.bookId] ? (
+                    {order.returnStatus ? (
                       <span className={`px-2 py-1 rounded ${
-                        returnStatuses[order.bookId] === 'pending' ? 'bg-yellow-200 text-yellow-800' :
-                        returnStatuses[order.bookId] === 'approved' ? 'bg-green-200 text-green-800' :
+                        order.returnStatus === 'pending' ? 'bg-yellow-200 text-yellow-800' :
+                        order.returnStatus === 'approved' ? 'bg-green-200 text-green-800' :
                         'bg-red-200 text-red-800'
                       }`}>
-                        Return {returnStatuses[order.bookId]}
+                        Return {order.returnStatus}
                       </span>
                     ) : isWithinReturnPeriod(order.createdAt) ? (
                       <button
@@ -157,6 +168,15 @@ export default function BuyerBookList() {
           </tbody>
         </table>
         </div>
+
+        <Pager
+          page={currentPage}
+          pageCount={pageCount}
+          pageSize={PAGE_SIZE}
+          total={total}
+          onPage={setPage}
+          noun="orders"
+        />
       </div>
     </div>
   );

@@ -17,12 +17,12 @@ const router = express.Router();
 router.use(requireAuth);
 
 // Admin routes are declared before '/:orderNumber' so they are not shadowed.
-router.get('/admin/all', requireAdmin, getAllOrders);
+router.get('/admin/all', requireAdmin, validate(orderSchemas.list), getAllOrders);
 router.delete('/:id', requireAdmin, validate(orderSchemas.byId), deleteOrder);
 
 router.post('/decrease-stock', validate(orderSchemas.create), decreaseStock);
-router.get('/buyer', getOrdersByBuyer);
-router.get('/seller', getOrdersBySeller);
+router.get('/buyer', validate(orderSchemas.list), getOrdersByBuyer);
+router.get('/seller', validate(orderSchemas.list), getOrdersBySeller);
 
 // Both of these additionally check that the caller is the buyer, the seller,
 // or an administrator before returning or changing anything.
