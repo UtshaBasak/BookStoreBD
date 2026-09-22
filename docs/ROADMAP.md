@@ -18,7 +18,7 @@ clean clone rather than the working tree, so `node_modules` cannot skew it.
 | Rule | Count | Why it is not a defect |
 | ---- | ----: | ---------------------- |
 | `js/sql-injection` | 14 | Every site sits behind a Zod schema that narrows the value to a primitive, so an operator object can never reach Mongoose. CodeQL cannot see through a schema. Adding a generic narrowing pass to `validate.ts` was tried and did not clear them, so it was reverted rather than left in as code with a justification that is not true. |
-| `js/xss-through-dom` | 3 | `URL.createObjectURL` can only produce a `blob:` URL; CodeQL models it as taint-propagating regardless. The only barriers the query accepts would corrupt a `blob:` or `data:` URL. The three sites are the file pickers in `ChatWindow`, `ChatPage` and `UpdateProfile`. |
+| `js/xss-through-dom` | 3 → **4** | `URL.createObjectURL` can only produce a `blob:` URL; CodeQL models it as taint-propagating regardless. The only barriers the query accepts would corrupt a `blob:` or `data:` URL. Three sites are the file pickers in `ChatWindow`, `ChatPage` and `UpdateProfile`. The fourth is new: `ReturnManagement` opens a defect photograph by fetching it with the session and handing the tab a blob, because a plain link carries no `Authorization` header. That one checks `blob.type` starts with `image/` before opening, since a blob opens in this origin and a `text/html` one would be script running as the site. |
 | `js/missing-token-validation` | 1 | The refresh cookie is `SameSite=Lax` and both endpoints that read it are POST, so a browser will not attach it cross-site. Every other endpoint authenticates from the `Authorization` header, which a third-party page cannot set. Pinned by tests asserting the cookie alone authenticates nothing. |
 
 ### Dismissing them
@@ -63,6 +63,36 @@ authenticates from the Authorization header, which a third-party page cannot
 set. Pinned by tests asserting the cookie alone authenticates nothing.
 ```
 
+### Stale as of the catalogue and table work
+
+**The table above was measured against `54c4876` and has not been re-measured
+since.** Everything between `6169a1b` and `4655392` rewrote how data is read:
+the catalogue, both administrator tables, the three order tables and the
+returns table each went from "fetch everything and filter in the browser" to a
+query with named parameters. That is precisely the code `js/sql-injection`
+looks at, so expect the count to move.
+
+What to expect, by class, from reading the new code:
+
+- **`js/sql-injection` will rise.** Each new list endpoint builds a Mongo filter
+  from request values: `filter.controller.ts`, `book.controller.ts`
+  (`adminBookList`), `user.route.ts`, `order.controller.ts` (`pageOfOrders`) and
+  `return.controller.ts`. The justification is unchanged and still true - every
+  one of those values arrives through a Zod schema that narrows it to a
+  primitive or an enum, and the free-text ones go through `escapeRegex` before
+  they become a pattern - but CodeQL cannot see through either.
+- **`js/xss-through-dom` is 4, not 3**, as the table now says.
+- **`js/missing-token-validation` is unchanged at 1.** No new endpoint reads a
+  cookie.
+- **Nothing new should appear that is a real defect.** The new endpoints are
+  the same shape as the old ones: validated input, no path chosen by the
+  caller, no string concatenated into a query.
+
+Re-measuring needs the CodeQL CLI, which is not installed on this machine, so
+these are predictions from the diff rather than counts. Run the workflow (or
+the CLI against a clean clone) before dismissing, and dismiss what it actually
+reports rather than this list.
+
 ### What changed since the last measurement
 
 The count in this table used to read 21. Two separate drifts, both now checked
@@ -86,12 +116,12 @@ rather than assumed:
 
 **Current baseline.** Lint, type-check, build and boot are green from a clean
 `npm ci`, and all three package roots report zero dependency vulnerabilities.
-CodeQL reports 18 findings, all confirmed false positives, measured against
-the current commit and itemised in the table above. Authentication and
+CodeQL reported 18 findings, all confirmed false positives, when last measured
+at `54c4876` - see the staleness note above before trusting that number. Authentication and
 authorisation are enforced server-side, sessions use short access tokens with
 rotating refresh tokens, and every endpoint that reads a body, query or param
 validates it against a Zod schema. All eight tasks are complete: the whole
-codebase is TypeScript under `strict`, **209 tests** (155 server, 54 client)
+codebase is TypeScript under `strict`, **475 tests** (330 server, 145 client)
 gate every push, `docker compose up` brings the whole stack up with no local
 Node or MongoDB install, the API emits structured logs with a correlation id
 per request, and book covers can be hosted on a CDN instead of living in the

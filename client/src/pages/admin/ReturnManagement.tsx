@@ -54,7 +54,14 @@ export default function ReturnManagement() {
       const response = await apiFetch(url);
       if (!response.ok) throw new Error(`Could not load that image (${response.status})`);
 
-      const objectUrl = URL.createObjectURL(await response.blob());
+      const blob = await response.blob();
+      // A blob opens in this origin, so what it claims to be matters: a
+      // text/html blob in a tab is script running as the site. The endpoint
+      // only ever serves image types, and this is the check that says so here
+      // rather than trusting that it always will.
+      if (!blob.type.startsWith('image/')) throw new Error('That file is not an image');
+
+      const objectUrl = URL.createObjectURL(blob);
       window.open(objectUrl, '_blank', 'noopener');
       // The new tab has it now; this handle is released once it has loaded.
       setTimeout(() => URL.revokeObjectURL(objectUrl), 60_000);

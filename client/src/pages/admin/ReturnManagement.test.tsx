@@ -155,6 +155,39 @@ describe('opening a photograph', () => {
   });
 });
 
+describe('what it refuses to open', () => {
+  it('anything that is not an image', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn((input: RequestInfo | URL) => {
+        const url = String(input);
+        if (url.includes('/image/')) {
+          return Promise.resolve(
+            new Response('<script>alert(1)</script>', {
+              status: 200,
+              headers: { 'Content-Type': 'text/html' },
+            })
+          );
+        }
+        return Promise.resolve(
+          new Response(JSON.stringify(answer()), {
+            status: 200,
+            headers: { 'Content-Type': 'application/json' },
+          })
+        );
+      })
+    );
+    renderPage();
+
+    await userEvent.click(await screen.findByRole('button', { name: 'View 1' }));
+
+    // A blob opens in this origin: a text/html one in a tab is script running
+    // as the site.
+    expect(await screen.findByText(/not an image/i)).toBeInTheDocument();
+    expect(window.open).not.toHaveBeenCalled();
+  });
+});
+
 describe('what it shows', () => {
   it('the count the API reported', async () => {
     stubFetch(answer({ total: 120, pageCount: 5 }));
