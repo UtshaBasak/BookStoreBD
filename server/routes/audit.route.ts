@@ -24,8 +24,12 @@ router.get(
       const { action, actorEmail, limit = 50, skip = 0 } = req.query;
 
       const filter: Record<string, unknown> = {};
-      if (action) filter.action = action;
-      if (actorEmail) filter.actorEmail = actorEmail;
+      // String(): `String({ $ne: null })` is "[object Object]", which matches
+      // nothing, where the object itself is an operator Mongo would honour.
+      // The schema already narrows these; this says so where the query is
+      // built, which is also the only place an analyser can see it.
+      if (action) filter.action = String(action);
+      if (actorEmail) filter.actorEmail = String(actorEmail);
 
       const [entries, total] = await Promise.all([
         AuditLog.find(filter).sort({ createdAt: -1 }).skip(skip).limit(limit).lean(),

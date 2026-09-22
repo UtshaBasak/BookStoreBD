@@ -13,9 +13,16 @@ import { defineModel } from './defineModel.js';
  * first.
  */
 const OneTimeCodeSchema = new Schema({
-  // One live code per address: issuing a second replaces the first, so an old
-  // code cannot be used once a new one has been asked for.
-  email: { type: String, required: true, unique: true },
+  /*
+   * The address, as a digest.
+   *
+   * One live code per address - issuing a second replaces the first, so an old
+   * code cannot be used once a new one has been asked for - but the address
+   * itself is not stored: a collection of "who asked for a code, and when" is
+   * not something worth keeping, and it means no value from a request ever
+   * reaches the query.
+   */
+  key: { type: String, required: true, unique: true },
   /** An HMAC of the code, never the code. See utils/otpStore.ts. */
   code: { type: String, required: true },
   expiresAt: { type: Date, required: true },

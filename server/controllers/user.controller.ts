@@ -24,7 +24,7 @@ export const getUserProfile = async (
             res.status(400).json({ message: 'Email required' });
             return;
         }
-        const user = await User.findOne({ email });
+        const user = await User.findOne({ email: String(email) });
         if (!user) {
             res.status(404).json({ message: 'User not found' });
             return;

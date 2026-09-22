@@ -58,7 +58,7 @@ describe('where a code lives', () => {
     await issueCode(EMAIL, CODE);
 
     // Read straight from the collection: nothing in this process is holding it.
-    const stored = await OneTimeCode.findOne({ email: EMAIL }).lean();
+    const stored = await OneTimeCode.findOne({}).lean();
 
     expect(stored).not.toBeNull();
     expect(stored?.expiresAt.getTime()).toBeGreaterThan(Date.now());
@@ -67,7 +67,7 @@ describe('where a code lives', () => {
   it('and not as the code itself', async () => {
     await issueCode(EMAIL, CODE);
 
-    const stored = await OneTimeCode.findOne({ email: EMAIL }).lean();
+    const stored = await OneTimeCode.findOne({}).lean();
 
     // Six digits is a million possibilities, so a plain hash is recovered from
     // a table instantly. A record that survives a restart is one that can be
@@ -75,6 +75,11 @@ describe('where a code lives', () => {
     // secret rather than the code.
     expect(stored?.code).not.toBe(CODE);
     expect(stored?.code).toMatch(/^[0-9a-f]{64}$/);
+
+    // Nor the address: a table of who asked for a code and when is not worth
+    // keeping, and it means nothing from a request reaches the query.
+    expect(JSON.stringify(stored)).not.toContain(EMAIL);
+    expect(stored?.key).toMatch(/^[0-9a-f]{64}$/);
   });
 
   it('with a TTL index, so nothing has to sweep it', async () => {
@@ -91,7 +96,7 @@ describe('where a code lives', () => {
     await issueCode(EMAIL, CODE);
     await issueCode(EMAIL, '654321');
 
-    expect(await OneTimeCode.countDocuments({ email: EMAIL })).toBe(1);
+    expect(await OneTimeCode.countDocuments()).toBe(1);
     // The old code is no longer good, which is the point of replacing it.
     expect(await consumeOtpAttempt(EMAIL, CODE)).toBeNull();
     expect(await consumeOtpAttempt(EMAIL, '654321')).not.toBeNull();
@@ -109,7 +114,7 @@ describe('checking one', () => {
     await issueCode(EMAIL, CODE);
 
     expect(await consumeOtpAttempt(EMAIL, '000000')).toBeNull();
-    expect((await OneTimeCode.findOne({ email: EMAIL }).lean())?.attempts).toBe(1);
+    expect((await OneTimeCode.findOne({}).lean())?.attempts).toBe(1);
   });
 
   it('throws the code away after too many guesses', async () => {
@@ -120,7 +125,7 @@ describe('checking one', () => {
     }
 
     // Gone, so even the right code is no good now.
-    expect(await OneTimeCode.countDocuments({ email: EMAIL })).toBe(0);
+    expect(await OneTimeCode.countDocuments()).toBe(0);
     expect(await consumeOtpAttempt(EMAIL, CODE)).toBeNull();
   });
 
@@ -128,10 +133,10 @@ describe('checking one', () => {
     await issueCode(EMAIL, CODE);
     // MongoDB's TTL monitor runs about once a minute, so a just-expired record
     // is still there to be found.
-    await OneTimeCode.updateOne({ email: EMAIL }, { expiresAt: new Date(Date.now() - 1000) });
+    await OneTimeCode.updateOne({}, { expiresAt: new Date(Date.now() - 1000) });
 
     expect(await consumeOtpAttempt(EMAIL, CODE)).toBeNull();
-    expect(await OneTimeCode.countDocuments({ email: EMAIL })).toBe(0);
+    expect(await OneTimeCode.countDocuments()).toBe(0);
   });
 
   it('refuses one that was never issued', async () => {
@@ -153,7 +158,7 @@ describe('what signup then asks', () => {
   it('and a checked code that has since expired does not count', async () => {
     await issueCode(EMAIL, CODE);
     await markVerified(EMAIL);
-    await OneTimeCode.updateOne({ email: EMAIL }, { expiresAt: new Date(Date.now() - 1000) });
+    await OneTimeCode.updateOne({}, { expiresAt: new Date(Date.now() - 1000) });
 
     expect(await hasVerifiedCode(EMAIL)).toBe(false);
   });
@@ -162,7 +167,7 @@ describe('what signup then asks', () => {
     await issueCode(EMAIL, CODE);
     await clearCode(EMAIL);
 
-    expect(await OneTimeCode.countDocuments({ email: EMAIL })).toBe(0);
+    expect(await OneTimeCode.countDocuments()).toBe(0);
   });
 });
 
@@ -173,7 +178,7 @@ describe('through the endpoints', () => {
       .send({ email: 'newcomer@test.com', purpose: 'register' });
 
     expect(res.status).toBe(200);
-    expect(await OneTimeCode.countDocuments({ email: 'newcomer@test.com' })).toBe(1);
+    expect(await OneTimeCode.countDocuments()).toBe(1);
   });
 
   it('and a wrong code still answers the same as no code at all', async () => {

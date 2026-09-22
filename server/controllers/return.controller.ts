@@ -29,7 +29,7 @@ export const returnBook = async (
     const defectDescription = req.body.defectDescription;
 
     // Get the book details
-    const book = await AddBook.findById(bookId);
+    const book = await AddBook.findById(String(bookId));
     if (!book) {
       res.status(404).json({ message: 'Book not found' });
       return;
@@ -61,7 +61,7 @@ export const returnBook = async (
     
     // Update the order status
     await Order.findOneAndUpdate(
-      { bookId, buyerEmail: userEmail },
+      { bookId: String(bookId), buyerEmail: String(userEmail) },
       { isReturned: 1 }
     );
 
@@ -180,8 +180,8 @@ export const updateReturnStatus = async (
     const status = req.body.status;
 
     const updatedRequest = await ReturnRequest.findByIdAndUpdate(
-      id,
-      { status },
+      String(id),
+      { status: String(status) },
       { returnDocument: 'after' }
     );
 

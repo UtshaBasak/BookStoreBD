@@ -145,13 +145,13 @@ export const decreaseStock = async (
       const bookId = item.bookId;
       const quantity = Number(item?.quantity);
       if (!bookId || !Number.isInteger(quantity) || quantity < 1) continue;
-      const book = await AddBook.findById(bookId);
+      const book = await AddBook.findById(String(bookId));
       if (!book) continue;
 
       // Reserve stock first: the conditional update is atomic, so two buyers
       // racing for the last copy cannot both succeed.
       const reserved = await AddBook.updateOne(
-        { _id: bookId, stock: { $gte: quantity } },
+        { _id: String(bookId), stock: { $gte: quantity } },
         { $inc: { stock: -quantity } }
       );
       if (reserved.modifiedCount === 0) {
@@ -336,7 +336,10 @@ export const updateOrderStatusByOrderNumber = async (
       return;
     }
 
-    const orders = await Order.updateMany({ orderNumber }, { status });
+    const orders = await Order.updateMany(
+      { orderNumber: String(orderNumber) },
+      { status: String(status) }
+    );
     if (orders.matchedCount === 0) {
       res.status(404).json({ message: 'Order not found' });
       return;

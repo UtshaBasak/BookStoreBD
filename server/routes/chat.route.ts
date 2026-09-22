@@ -287,7 +287,7 @@ router.post(
     // Only the recipient can mark a thread as read.
     const receiver = actingUser(req).email;
     await ChatMessage.updateMany(
-      { sender, receiver, read: false },
+      { sender: String(sender), receiver: String(receiver), read: false },
       { $set: { read: true } }
     );
     res.json({ success: true });

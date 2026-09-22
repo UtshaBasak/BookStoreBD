@@ -206,12 +206,12 @@ export const sendOtp = async (
             // The guard also fixes a real bug: `findOne({ username: undefined })`
             // strips the key and matches the first user in the collection, so a
             // request without a username was told the name was taken.
-            if (username && (await User.findOne({ username }))) {
+            if (username && (await User.findOne({ username: String(username) }))) {
                 res.status(400).json({ message: "Username already taken, try another." });
                 return;
             }
 
-            if (await User.findOne({ email })) {
+            if (await User.findOne({ email: String(email) })) {
                 // The same sentence a free address gets. Rather than issue a
                 // code that could not be used anyway, tell the owner of the
                 // address that somebody tried: useful to them, useless to
@@ -220,7 +220,7 @@ export const sendOtp = async (
                 res.json({ message: REGISTER_CODE_SENT });
                 return;
             }
-        } else if (!(await User.findOne({ email }))) {
+        } else if (!(await User.findOne({ email: String(email) }))) {
             // A reset - or a request that named no purpose at all - for an
             // address with no account. No code, no mail, and the same sentence
             // the owner of a real account would have seen. Answering anything
@@ -345,7 +345,7 @@ export const signin = async (
     const email = req.body.email;
     const password = req.body.password;
     try {
-        const validUser = await User.findOne({ email });
+        const validUser = await User.findOne({ email: String(email) });
 
         // Compare against a throwaway hash when there is no such account. The
         // work is pointless except that it costs what a real compare costs:
@@ -384,7 +384,7 @@ export const resetPassword = async (
         res.status(400).json({ message: INVALID_CODE });
         return;
     }
-    const user = await User.findOne({ email });
+    const user = await User.findOne({ email: String(email) });
     if (!user) {
         // Unreachable in practice, since a code is only issued to an address
         // that has an account - but if the account went away in the meantime,

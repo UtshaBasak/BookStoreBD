@@ -6,47 +6,56 @@ commit, so any one of them can be reverted without unpicking the others.
 
 ## Known CodeQL findings
 
-**8 findings, all false positives**, to be dismissed in the Security tab rather
+**4 findings, all false positives**, to be dismissed in the Security tab rather
 than fixed in code. Recorded here so the list stays short enough that a real
 finding is noticeable.
 
-Read from the Security tab on 22 September 2026, after the catalogue, table and
-returns work. It had opened 14; six of them were worth fixing rather than
-dismissing, and are fixed - see below.
+Measured locally on 22 September 2026 with CodeQL CLI 2.27.0, running the same
+`javascript-code-scanning` suite and `javascript-typescript` language the
+workflow uses, against a copy of the working tree with no `node_modules` in it.
 
 | Rule | Count | Why it is not a defect |
 | ---- | ----: | ---------------------- |
-| `js/sql-injection` | 8 | Every site sits behind a Zod schema that narrows the value to a primitive or an enum, so an operator object can never reach Mongoose; the free-text ones go through `escapeRegex` before they become a pattern. CodeQL cannot see through either. Adding a generic narrowing pass to `validate.ts` was tried and did not clear them, so it was reverted rather than left in as code with a justification that is not true. The sites are `auth.controller.ts` (5), `audit.route.ts` (2) and `review.controller.ts` (1). |
+| `js/xss-through-dom` | 3 | `URL.createObjectURL` can only produce a `blob:` URL; CodeQL models it as taint-propagating regardless. The only barriers the query accepts would corrupt a `blob:` or `data:` URL. The three sites are the file pickers in `ChatWindow`, `ChatPage` and `UpdateProfile`. |
+| `js/missing-token-validation` | 1 | The refresh cookie is `SameSite=Lax` and both endpoints that read it are POST, so a browser will not attach it cross-site. Every other endpoint authenticates from the `Authorization` header, which a third-party page cannot set. Pinned by tests asserting the cookie alone authenticates nothing. |
 
-### The six that were fixed instead
+### `js/sql-injection` went from 25 to 0
 
-CodeQL was right about all six, in the sense that the code did not say what it
-meant. None was exploitable as written; each is now correct rather than
-dismissed.
+This was the long-standing group, and the note here used to say it could not be
+cleared: "adding a generic narrowing pass to `validate.ts` was tried and did not
+clear them". That was true, and it was the wrong place to try. The schema
+narrows the value several frames earlier, where no analyser can follow it.
 
-- **`js/incomplete-url-substring-sanitization` × 4** - `imageUrl.ts`,
-  `Cart.tsx`, `Wishlist.tsx` and `BookView.tsx` each asked
-  `img.includes('res.cloudinary.com')` to decide whether to request a resized
-  image. That is also true of `https://evil.example/res.cloudinary.com/x.png`
-  and of `https://res.cloudinary.com.evil.example/x.png`. It decided only which
-  transformation to ask for, so it was not a way in - but it was a check that
-  did not mean what it said, and the same shape in a place that decided
-  something would be. One `isCloudinary()` compares the host exactly.
-- **`js/incomplete-url-substring-sanitization` × 1 (test)** - `seo.test.ts`
-  asserted `url.startsWith('https://books.example.com')`, which passes for
-  `https://books.example.com.evil.example/`. It asserts the trailing slash now.
-- **`js/missing-rate-limiting` × 1** - `/robots.txt` and `/sitemap.xml` sit in
-  front of the general limiter on purpose, because a search engine asking for a
-  sitemap is not the traffic that limiter exists to stop. But the sitemap reads
-  the catalogue, so with no ceiling at all it was an unauthenticated database
-  query anyone could repeat as fast as they liked. They have their own limiter
-  at 120 per fifteen minutes - far more than any crawler wants, and a ceiling.
+Two changes, each verified by re-running the suite rather than hoped for:
 
-### Dismissing the rest
+**Narrow at the sink.** Every value CodeQL traced from a request into a query
+is now wrapped where the query is built: `String(x)` for text and ids,
+`Number(x)` for the rating. That is not decoration and not analyser-appeasement.
+`String({ $ne: null })` is the literal `"[object Object]"` and `Number({ $gt: 0 })`
+is `NaN` - neither is an operator Mongo will honour, where the object itself is.
+The schemas still do the real validation; this says the same thing in the one
+place the analyser can see, and it is the honest statement of what the code
+relies on.
 
-Filter by **Rule** in the Security tab and dismiss one group at a time rather
-than ticking them all at once, so each dismissal carries a reason that is true
-of it. Reason: **False positive**.
+**One-time codes are filed under a digest.** `otpStore` accounted for nine of
+the twenty-five. It now keys records by an HMAC of the address rather than the
+address, so no request value reaches the query at all - and the collection stops
+being a record of which addresses asked for a code and when, which is worth not
+keeping on its own.
+
+```
+                              before   after
+js/sql-injection                  25       0
+js/xss-through-dom                 3       3
+js/missing-token-validation        1       1
+                              ------  ------
+                                  29       4
+```
+
+### Dismissing what is left
+
+Filter by **Rule** in the Security tab and dismiss one group at a time, so each
+dismissal carries a reason that is true of it. Reason: **False positive**.
 
 Do not instead silence the rules with a `query-filters` block in `codeql.yml`.
 That would hide a real injection just as effectively as a false one; the point
@@ -54,41 +63,49 @@ of dismissing individual alerts is that the rule stays live.
 
 Expect them back after a large refactor. A dismissal is tied to an alert's
 fingerprint, so when code moves far enough CodeQL opens a fresh alert for the
-same thing - which is exactly why the tab showed 188 closed alongside these.
+same thing.
 
-**Database query built from user-controlled sources** (8)
+**DOM text reinterpreted as HTML** (3)
 
 ```text
-False positive. Every one of these sites sits behind a Zod schema that narrows
-the value to a primitive or an enum before it reaches Mongoose, so an operator
-object like {"$ne": null} cannot get through, and free-text values are escaped
-before they become a regex. CodeQL's taint tracking cannot see through the
-validate() middleware. Pinned by tests in server/tests/security.test.ts.
+False positive. The source is URL.createObjectURL, which can only ever produce a
+blob: URL. safeImageSrc additionally allow-lists the scheme before the value
+reaches an <img src>. The only barriers this query accepts would corrupt a blob:
+or data: URL.
 ```
 
-### What this replaced
+**Missing CSRF middleware** (1)
 
-The table here used to read 18, measured with the CodeQL CLI at `54c4876`, and
-listed `js/xss-through-dom` (3) and `js/missing-token-validation` (1) alongside
-14 `js/sql-injection`. Those two rules report nothing now, and the
-`js/sql-injection` count fell to 8 across different files, which is what a
-rewrite of every list endpoint does to fingerprints. Read the tab rather than
-trusting a count written down here.
+```text
+False positive. The refresh cookie is SameSite=Lax and both endpoints that read
+it are POST, so a browser will not attach it cross-site. Every other endpoint
+authenticates from the Authorization header, which a third-party page cannot
+set. Pinned by tests asserting the cookie alone authenticates nothing.
+```
 
-One thing that review turned up which no analyser would have: the return form
-uploaded the buyer's photographs of the defect to `/user/upload-images`, which
-handed back base64 and stored nothing, and then created the request without
-them - and the upload form had no submit button, so even that request never
-went. A buyer photographed the damage and it went nowhere; an administrator
-decided the return on a sentence of text. One form now posts the description
-and the photographs together, and `/user/upload-images` is gone.
+### Re-measuring
+
+The CLI is not kept on this machine - it is a 663 MB download and about ninety
+seconds:
+
+```bash
+curl -sL -o codeql.tar.gz https://github.com/github/codeql-action/releases/download/codeql-bundle-v2.27.0/codeql-bundle-win64.tar.gz
+tar -xzf codeql.tar.gz
+./codeql/codeql database create db --language=javascript-typescript --source-root=<a copy without node_modules>
+./codeql/codeql database analyze db javascript-code-scanning.qls --format=sarif-latest --output=out.sarif
+```
+
+Analyse a copy of the working tree, not a `git clone` of it, or you measure the
+last commit rather than what you just changed - which is a mistake worth making
+only once.
 
 ---
 
 **Current baseline.** Lint, type-check, build and boot are green from a clean
 `npm ci`, and all three package roots report zero dependency vulnerabilities.
-CodeQL reports 8 findings, all confirmed false positives and itemised above;
-six others it opened were fixed rather than dismissed. Authentication and
+CodeQL reports 4 findings, all confirmed false positives and itemised above,
+measured locally with the CLI rather than read off the tab. The twenty-five
+`js/sql-injection` alerts are gone, fixed rather than dismissed. Authentication and
 authorisation are enforced server-side, sessions use short access tokens with
 rotating refresh tokens, and every endpoint that reads a body, query or param
 validates it against a Zod schema. All eight tasks are complete: the whole

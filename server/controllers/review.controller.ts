@@ -134,15 +134,18 @@ export const upsertReview: RequestHandler<{ id: string }> = async (req, res, nex
     const reviewer = await User.findById(actor.id).select('username').lean();
 
     const review = await Review.findOneAndUpdate(
-      { book: bookId, reviewerEmail: actor.email },
+      { book: String(bookId), reviewerEmail: String(actor.email) },
       {
-        book: bookId,
-        reviewerEmail: actor.email,
+        book: String(bookId),
+        reviewerEmail: String(actor.email),
         reviewerName: reviewer?.username || 'A buyer',
-        rating,
-        title,
-        body,
-        orderNumber,
+        // Narrowed here as well as in the schema. `Number({ $gt: 0 })` is NaN
+        // and `String({ $ne: null })` is "[object Object]": neither is an
+        // operator, which is the whole of what this is guarding against.
+        rating: Number(rating),
+        title: String(title),
+        body: String(body),
+        orderNumber: String(orderNumber),
       },
       { returnDocument: 'after', upsert: true, setDefaultsOnInsert: true }
     );

@@ -31,6 +31,17 @@ export const MAX_OTP_ATTEMPTS = 5;
 const digest = (code: string): string =>
   createHmac('sha256', jwtSecret()).update(code).digest('hex');
 
+/**
+ * The address a record is filed under.
+ *
+ * A digest rather than the address, for two reasons. A table of which
+ * addresses asked for a code and when is not worth keeping; and nothing taken
+ * from a request then reaches a query, which is the difference between
+ * trusting the schema upstream and not having to.
+ */
+const keyFor = (email: string): string =>
+  createHmac('sha256', jwtSecret()).update(`otp:${email}`).digest('hex');
+
 /** Constant-time, so a comparison cannot be timed a character at a time. */
 const sameDigest = (a: string, b: string): boolean => {
   const left = Buffer.from(a, 'hex');
@@ -41,9 +52,9 @@ const sameDigest = (a: string, b: string): boolean => {
 /** Issues a code for an address, replacing whatever it had. */
 export const issueCode = async (email: string, code: string): Promise<void> => {
   await OneTimeCode.findOneAndUpdate(
-    { email },
+    { key: keyFor(email) },
     {
-      email,
+      key: keyFor(email),
       code: digest(code),
       expiresAt: new Date(Date.now() + OTP_TTL_MS),
       verified: false,
@@ -67,13 +78,13 @@ export const consumeOtpAttempt = async (
   email: string,
   code: string
 ): Promise<OneTimeCodeAttributes | null> => {
-  const record = await OneTimeCode.findOne({ email }).lean();
+  const record = await OneTimeCode.findOne({ key: keyFor(email) }).lean();
   if (!record) return null;
 
   // Checked here rather than left to the TTL index, which sweeps about once a
   // minute and would otherwise let a just-expired code through.
   if (record.expiresAt.getTime() <= Date.now()) {
-    await OneTimeCode.deleteOne({ email });
+    await OneTimeCode.deleteOne({ key: keyFor(email) });
     return null;
   }
 
@@ -81,13 +92,13 @@ export const consumeOtpAttempt = async (
     // $inc rather than read-modify-write: two guesses arriving together must
     // both count, or the ceiling is a suggestion.
     const after = await OneTimeCode.findOneAndUpdate(
-      { email },
+      { key: keyFor(email) },
       { $inc: { attempts: 1 } },
       { returnDocument: 'after' }
     ).lean();
 
     if (after && after.attempts >= MAX_OTP_ATTEMPTS) {
-      await OneTimeCode.deleteOne({ email });
+      await OneTimeCode.deleteOne({ key: keyFor(email) });
       log.warn({ attempts: after.attempts }, 'One-time code discarded after repeated failures');
     }
     return null;
@@ -98,16 +109,16 @@ export const consumeOtpAttempt = async (
 
 /** Records that the code has been checked, which is what signup then requires. */
 export const markVerified = async (email: string): Promise<void> => {
-  await OneTimeCode.updateOne({ email }, { verified: true });
+  await OneTimeCode.updateOne({ key: keyFor(email) }, { verified: true });
 };
 
 /** Whether this address has a live, already-checked code. */
 export const hasVerifiedCode = async (email: string): Promise<boolean> => {
-  const record = await OneTimeCode.findOne({ email }, { verified: 1, expiresAt: 1 }).lean();
+  const record = await OneTimeCode.findOne({ key: keyFor(email) }, { verified: 1, expiresAt: 1 }).lean();
   return Boolean(record?.verified) && (record?.expiresAt.getTime() ?? 0) > Date.now();
 };
 
 /** Done with it: used, or no longer wanted. */
 export const clearCode = async (email: string): Promise<void> => {
-  await OneTimeCode.deleteOne({ email });
+  await OneTimeCode.deleteOne({ key: keyFor(email) });
 };
