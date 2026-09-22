@@ -54,6 +54,15 @@ const UserSchema = new Schema(
     { timestamps: true }
 );
 
+/*
+ * The administrator's user table lists everyone who is not an administrator,
+ * newest first, a page at a time. `_id` is on the end for the same reason as
+ * on the book indexes: the table sorts by `{ createdAt, _id }` so accounts
+ * created in the same second cannot swap between pages, and a sort is only
+ * served by an index when it is a prefix of that index's keys.
+ */
+UserSchema.index({ role: 1, createdAt: -1, _id: -1 });
+
 export type UserAttributes = InferSchemaType<typeof UserSchema>;
 export type UserDocument = HydratedDocument<UserAttributes>;
 

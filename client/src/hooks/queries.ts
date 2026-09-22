@@ -10,7 +10,7 @@ import {
 
 import type {
   AdminBookPage,
-  AdminUser,
+  AdminUserPage,
   Book,
   BookDetail,
   CataloguePage,
@@ -91,7 +91,8 @@ export const keys = {
   cart: ['cart'] as const,
   wishlist: ['wishlist'] as const,
   profile: (email?: string | null) => ['profile', email ?? 'me'] as const,
-  users: ['users'] as const,
+  /** One entry per distinct search, so turning a page keeps the last one. */
+  users: (query: string) => ['users', query] as const,
   buyerOrders: ['orders', 'buyer'] as const,
   sellerOrders: ['orders', 'seller'] as const,
   allOrders: ['orders', 'all'] as const,
@@ -384,16 +385,36 @@ export const useProfile = <TData = ProfileResponse>(
     ...options,
   });
 
-export const useUsers = <TData = AdminUser[]>(
-  options: Partial<QueryOptions<AdminUser[], TData>> = {}
-): UseQueryResult<TData> =>
-  useQuery<AdminUser[], Error, TData>({ queryKey: keys.users, queryFn: () => request<AdminUser[]>('/user'), ...options });
+/**
+ * One page of the accounts an administrator may act on.
+ *
+ * This used to fetch every account with every field except the password -
+ * including `profilePicture`, which is stored as a base64 data URI, so the
+ * response carried every user's photograph to draw a table of three columns.
+ */
+export const useUsers = (
+  params: { search?: string; page?: number; pageSize?: number } = {},
+  options: Partial<QueryOptions<AdminUserPage>> = {}
+): UseQueryResult<AdminUserPage> => {
+  const query = new URLSearchParams();
+  if (params.search) query.set('search', params.search);
+  if (params.page && params.page > 1) query.set('page', String(params.page));
+  if (params.pageSize) query.set('pageSize', String(params.pageSize));
+  const search = query.toString();
+
+  return useQuery<AdminUserPage, Error, AdminUserPage>({
+    queryKey: keys.users(search),
+    queryFn: () => request<AdminUserPage>(`/user${search ? `?${search}` : ''}`),
+    placeholderData: keepPreviousData,
+    ...options,
+  });
+};
 
 export const useDeleteUser = (): UseMutationResult<MessageResponse, Error, Id> => {
   const client = useQueryClient();
   return useMutation({
     mutationFn: (id: Id) => request<MessageResponse>(`/user/${id}`, json('DELETE')),
-    onSuccess: () => client.invalidateQueries({ queryKey: keys.users }),
+    onSuccess: () => client.invalidateQueries({ queryKey: ['users'] }),
   });
 };
 

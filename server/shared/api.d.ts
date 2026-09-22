@@ -432,6 +432,15 @@ export interface UpdateProfileRequest {
 }
 
 /** A full user record, as the administrator list returns it. */
+/** GET /user - one page of the accounts an administrator may act on. */
+export interface AdminUserPage {
+  items: AdminUser[];
+  total: number;
+  page: number;
+  pageSize: number;
+  pageCount: number;
+}
+
 export interface AdminUser {
   _id: Id;
   username: string;

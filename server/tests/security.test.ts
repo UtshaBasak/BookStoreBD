@@ -141,8 +141,9 @@ describe('error responses', () => {
 });
 
 describe('user listing', () => {
-  it('never includes password hashes', async () => {
+  it('never includes password hashes, or anything else it does not draw', async () => {
     await createUser({ email: 'admin@test.com', role: 'admin' });
+    await createUser({ email: 'shopper@test.com', username: 'A Shopper' });
     const adminRes = await request
       .post('/auth/signin')
       .send({ email: 'admin@test.com', password: PASSWORD });
@@ -151,8 +152,15 @@ describe('user listing', () => {
 
     expect(res.status).toBe(200);
     expect(JSON.stringify(res.body)).not.toContain('$2');
-    for (const user of res.body) {
+
+    for (const user of res.body.items) {
       expect(user.password).toBeUndefined();
+      // It used to send every field but the password, and `profilePicture` is
+      // a base64 data URI - so a table of three columns carried every user's
+      // photograph, and their address and phone number with it.
+      expect(user.profilePicture).toBeUndefined();
+      expect(user.address).toBeUndefined();
+      expect(user.phone).toBeUndefined();
     }
   });
 });

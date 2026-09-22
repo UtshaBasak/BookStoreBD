@@ -648,7 +648,7 @@ administrator without a migration.
 
 | Method   | Endpoint              | Description                                   |
 | -------- | --------------------- | --------------------------------------------- |
-| `GET`    | `/user`               | List all users (admin)                        |
+| `GET`    | `/user`               | One page of non-admin accounts (admin)        |
 | `GET`    | `/user/test`          | Liveness probe for the user router            |
 | `GET`    | `/user/profile`       | Fetch a profile by `?email=`                  |
 | `PUT`    | `/user/profile`       | Update a profile (multipart, optional avatar) |

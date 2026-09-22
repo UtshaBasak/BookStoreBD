@@ -26,7 +26,7 @@ Yes. Nothing is broken.
 | ----- | ------ |
 | Lint, both packages | clean |
 | Type-check under TypeScript 6.0.3 | clean |
-| Tests | 431 passing (298 server, 133 client) |
+| Tests | 447 passing (309 server, 138 client) |
 | `npm audit`, all three roots | 0 vulnerabilities |
 | Builds | API compiles to `dist/`, client bundles |
 | Production stack | browse, detail, cart, wishlist, profile, orders, clear — all `200` |
@@ -862,6 +862,27 @@ What is left is in the sections above, and none of it blocks a launch:
   bytes for twenty-five rows, one request, and the search reaches the database
   so it can find a listing that is not on the page you are looking at. With
   both pages moved, there is no "every listing" endpoint left to call.
+
+  User Management was the worst of the three, and not for the reason it looked
+  like. It asked for every account with `select('-password')` — every field
+  except the password — and `profilePicture` is stored as a base64 data URI.
+  Measured against 303 accounts, two thirds of them with a photograph:
+
+  ```
+  every account, every field but the password   10,890,235 bytes
+  one page of the three columns it draws             3,661 bytes
+  ```
+
+  It also sent every user's address and phone number to draw a table of name,
+  e-mail and join date. Those three fields are what it sends now.
+
+  And the index lesson arrived a second time, in a different disguise. The
+  filter was `role: { $ne: 'admin' }`, which is the natural way to say
+  "everyone else" — but an inequality on the leading field of an index leaves
+  the fields after it unordered, so the sort was blocking again: 303 keys read
+  and sorted in memory. `role: 'user'` selects exactly the same accounts, since
+  the enum has two values, and reads 25 keys in index order. Both tables have a
+  query-plan test now.
 - **A browser error reporter.** `reportError` is the seam and it currently goes
   nowhere in production.
 - **Redis for the one-time codes**, before the API runs on more than one

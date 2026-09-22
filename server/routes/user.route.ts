@@ -16,11 +16,13 @@ import { recordAudit } from '../utils/audit.js';
 import { isOwnedCloudinaryUrl } from '../config/cloudinary.js';
 import { createLogger } from '../config/logger.js';
 import { errorMessage } from '../utils/error.js';
-import { validate } from '../middleware/validate.js';
+import { validate, validatedQuery } from '../middleware/validate.js';
+import { contains } from '../utils/regex.js';
 import {
   authSchemas,
   userSchemas,
   type AddBookBody,
+  type AdminUserQuery,
   type IdParams,
 } from '../schemas/index.js';
 
@@ -134,15 +136,63 @@ router.post(
 // Administrator only
 // ---------------------------------------------------------------------------
 
-router.get('/', requireAuth, requireAdmin, async (req, res) => {
-  try {
-    const users = await User.find({}).select('-password');
-    res.status(200).json(users);
-  } catch (error) {
-    log.error({ err: error }, 'Error fetching users');
-    res.status(500).json({ message: 'Failed to fetch users', error: errorMessage(error) });
+/**
+ * One page of the accounts an administrator may act on.
+ *
+ * This used to answer with every account, `select('-password')` - which means
+ * every field except the password, and `profilePicture` is stored as a base64
+ * data URI. So the response carried every photograph of every user, to draw a
+ * table of three columns: name, e-mail, and the date they joined. Those three
+ * are what it sends now, for the twenty-five rows on screen.
+ *
+ * Administrators are left out, as they always were: the table's only action is
+ * Delete, and an administrator is not a row you may delete here.
+ */
+router.get(
+  '/',
+  requireAuth,
+  requireAdmin,
+  validate(userSchemas.adminList),
+  async (req, res) => {
+    const { search, page, pageSize } = validatedQuery<AdminUserQuery>(req);
+
+    const pattern = search ? contains(search) : null;
+    // A plain record: the values are regexes, which the generated filter type
+    // would have to be widened for anyway.
+    //
+    // `role: 'user'` rather than `{ $ne: 'admin' }`, although the enum has
+    // exactly two values and they select the same accounts. An inequality on
+    // the leading field of an index means the fields after it are no longer in
+    // order, so the sort becomes a blocking one: `explain()` read all 303 keys
+    // and sorted them in memory, where the equality reads 25 and is done.
+    const filter: Record<string, unknown> = {
+      role: 'user',
+      ...(pattern ? { $or: [{ username: pattern }, { email: pattern }] } : {}),
+    };
+
+    try {
+      const [items, total] = await Promise.all([
+        User.find(filter, { username: 1, email: 1, role: 1, createdAt: 1 })
+          .sort({ createdAt: -1, _id: -1 })
+          .skip((page - 1) * pageSize)
+          .limit(pageSize)
+          .lean(),
+        User.countDocuments(filter),
+      ]);
+
+      res.status(200).json({
+        items,
+        total,
+        page,
+        pageSize,
+        pageCount: Math.max(1, Math.ceil(total / pageSize)),
+      });
+    } catch (error) {
+      log.error({ err: error }, 'Error fetching users');
+      res.status(500).json({ message: 'Failed to fetch users', error: errorMessage(error) });
+    }
   }
-});
+);
 
 router.delete(
   '/:id',

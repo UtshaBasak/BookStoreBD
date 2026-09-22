@@ -251,6 +251,17 @@ export const userSchemas = {
    * Not `password` from common.ts: an account made before the length rule
    * exists would otherwise be unable to close itself.
    */
+  /**
+   * The administrator's user table: one page of the accounts it may act on,
+   * searchable by name or e-mail.
+   */
+  adminList: {
+    query: z.object({
+      search: shortText.optional(),
+      page: positiveInt.default(1),
+      pageSize: boundedInt(1, 100).default(25),
+    }),
+  },
   deleteMe: {
     body: z.object({
       password: z.string().min(1, 'Your password is required to delete the account').max(200),
@@ -316,6 +327,7 @@ export type UpdateStockBody = z.infer<typeof bookSchemas.updateStock.body>;
 export type UpdatePriceBody = z.infer<typeof bookSchemas.updatePrice.body>;
 
 export type AdminBookQuery = z.infer<typeof bookSchemas.adminList.query>;
+export type AdminUserQuery = z.infer<typeof userSchemas.adminList.query>;
 export type CatalogueQuery = z.infer<typeof filterSchemas.catalogue.query>;
 export type FeaturedQuery = z.infer<typeof filterSchemas.featured.query>;
 
