@@ -7,6 +7,10 @@ import './index.css';
 import App from './App.js';
 import ErrorBoundary from './components/ErrorBoundary.js';
 import { queryClient } from './config/queryClient.js';
+import { installErrorReporting } from './utils/report.js';
+
+// Before anything renders, so a failure during the first render is caught too.
+installErrorReporting();
 
 const container = document.getElementById('root');
 if (!container) throw new Error('No #root element to mount into');

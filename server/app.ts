@@ -25,6 +25,7 @@ import authRouter from './routes/auth.route.js';
 import bookRouter from './routes/book.route.js';
 import cartRouter from './routes/cart.route.js';
 import chatRouter from './routes/chat.route.js';
+import clientErrorRouter from './routes/clientError.route.js';
 import filterRouter from './routes/filter.route.js';
 import orderRouter from './routes/order.route.js';
 import purchaseRouter from './routes/purchase.route.js';
@@ -101,6 +102,7 @@ export const createApp = ({
   app.use(`${API_PREFIX}/book`, bookRouter);
   app.use(`${API_PREFIX}/cart`, cartRouter);
   app.use(`${API_PREFIX}/chat`, writeLimiter, chatRouter);
+  app.use(`${API_PREFIX}/client-error`, clientErrorRouter);
   app.use(`${API_PREFIX}/filter`, filterRouter);
   app.use(`${API_PREFIX}/order`, orderRouter);
   app.use(`${API_PREFIX}/purchase`, purchaseRouter);

@@ -26,7 +26,7 @@ Yes. Nothing is broken.
 | ----- | ------ |
 | Lint, both packages | clean |
 | Type-check under TypeScript 6.0.3 | clean |
-| Tests | 555 passing (389 server, 166 client) |
+| Tests | 571 passing (397 server, 174 client) |
 | `npm audit`, all three roots | 0 vulnerabilities |
 | Builds | API compiles to `dist/`, client bundles |
 | Production stack | browse, detail, cart, wishlist, profile, orders, clear — all `200` |
@@ -956,8 +956,32 @@ What is left is in the sections above, and none of it blocks a launch:
   `message` was `required`, and Mongoose's required check rejects an empty
   string, so an image-only message failed to save and the button answered 500.
 
-- **A browser error reporter.** `reportError` is the seam and it currently goes
-  nowhere in production.
+- ~~**A browser error reporter.** `reportError` is the seam and it currently
+  goes nowhere in production.~~ **It goes somewhere now.** A page that broke
+  for a real visitor broke silently: the only person who ever saw it was the
+  person it happened to, and they are not the one who can fix it.
+
+  Reports go to `POST /client-error`, which writes them into the same
+  structured log as everything else - with the request id, the URL, the stack
+  and the account when there is one - and forwards them to Sentry when a DSN
+  is configured.
+
+  Not the Sentry browser SDK, deliberately. It is about 30 KB on a site that
+  has spent this whole audit not sending 30 KB, it needs another origin in the
+  Content-Security-Policy, and it is inert until somebody signs up for an
+  account. What it would add - source-mapped stacks, breadcrumbs, alerting -
+  is worth having later and nothing here is in the way of it.
+
+  The bigger half was coverage. Every call site of `reportError` sits inside a
+  `catch`, so the only errors reaching it were ones somebody had already
+  thought about. A render that throws or a promise nobody awaited went
+  nowhere - and those are the ones that white-screen a page. `window.onerror`
+  and `unhandledrejection` are wired now.
+
+  It reports the same failure once per session and stops after twenty, because
+  a render loop should not be ten thousand log lines. Checked against a
+  production build in a browser: twelve thrown errors, three reports, all 204,
+  and three lines in the server log with their stacks.
 - ~~**Redis for the one-time codes**, before the API runs on more than one
   instance.~~ **Done, and it mattered on one instance too.** They lived in a
   `Map` in the process, so every restart threw away every code in flight -

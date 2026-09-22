@@ -49,6 +49,19 @@ export const crawlerLimiter = rateLimit({
   ...common,
 });
 
+/**
+ * Reports from browsers.
+ *
+ * Unauthenticated, and one log line per request, so it is an easy way to fill
+ * a log. A broken page produces a handful of reports, not hundreds - the
+ * client de-duplicates and caps its own too.
+ */
+export const clientErrorLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 60,
+  ...common,
+});
+
 /** Routes that accept uploads or write chat, profile and return data. */
 export const writeLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,

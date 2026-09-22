@@ -758,6 +758,18 @@ inconvenient review.
 | `GET`    | `/chat/unread/:email`  | Total unread message count                           |
 | `POST`   | `/chat/message`        | Send text, a picture, or both                        |
 | `POST`   | `/chat/read`           | Mark a thread as read                                |
+
+### Client errors — `/client-error`
+
+| Method | Endpoint         | Description                                    |
+| ------ | ---------------- | ---------------------------------------------- |
+| `POST` | `/client-error`  | A report from somebody's browser                |
+
+Open to anyone, because a page breaks for signed-out visitors too, and limited
+to 60 reports per fifteen minutes per address. Reports land in the same
+structured log as everything else, with the request id, and go to Sentry when
+`SENTRY_DSN` is set. The browser de-duplicates and caps its own: the same
+failure is reported once per session, and twenty in total.
 | `DELETE` | `/chat/delete`         | Delete a conversation between two users              |
 
 ---

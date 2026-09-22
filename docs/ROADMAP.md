@@ -92,7 +92,7 @@ six others it opened were fixed rather than dismissed. Authentication and
 authorisation are enforced server-side, sessions use short access tokens with
 rotating refresh tokens, and every endpoint that reads a body, query or param
 validates it against a Zod schema. All eight tasks are complete: the whole
-codebase is TypeScript under `strict`, **493 tests** (337 server, 156 client)
+codebase is TypeScript under `strict`, **571 tests** (397 server, 174 client)
 gate every push, `docker compose up` brings the whole stack up with no local
 Node or MongoDB install, the API emits structured logs with a correlation id
 per request, and book covers can be hosted on a CDN instead of living in the

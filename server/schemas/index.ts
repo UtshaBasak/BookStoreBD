@@ -325,6 +325,24 @@ export const reviewSchemas = {
   flagged: pagedList(),
 };
 
+/**
+ * A report from somebody's browser.
+ *
+ * Every field bounded, because this is an unauthenticated endpoint and a
+ * stack trace is the kind of thing that arrives megabytes long.
+ */
+export const clientErrorSchemas = {
+  report: {
+    body: z.object({
+      context: shortText.min(1),
+      message: shortText.min(1),
+      stack: mediumText.optional(),
+      url: urlText.optional(),
+      userAgent: shortText.optional(),
+    }),
+  },
+};
+
 /** Reading the audit trail, newest first. */
 export const auditSchemas = {
   list: {
@@ -368,6 +386,7 @@ export type AdminUserQuery = z.infer<typeof userSchemas.adminList.query>;
 export type OrderListQuery = z.infer<typeof orderSchemas.list.query>;
 export type ReturnListQuery = z.infer<typeof returnSchemas.list.query>;
 export type ReviewListQuery = z.infer<typeof reviewSchemas.flagged.query>;
+export type ClientErrorBody = z.infer<typeof clientErrorSchemas.report.body>;
 export type CatalogueQuery = z.infer<typeof filterSchemas.catalogue.query>;
 export type FeaturedQuery = z.infer<typeof filterSchemas.featured.query>;
 
