@@ -26,7 +26,7 @@ Yes. Nothing is broken.
 | ----- | ------ |
 | Lint, both packages | clean |
 | Type-check under TypeScript 6.0.3 | clean |
-| Tests | 535 passing (369 server, 166 client) |
+| Tests | 555 passing (389 server, 166 client) |
 | `npm audit`, all three roots | 0 vulnerabilities |
 | Builds | API compiles to `dist/`, client bundles |
 | Production stack | browse, detail, cart, wishlist, profile, orders, clear — all `200` |
@@ -929,6 +929,33 @@ What is left is in the sections above, and none of it blocks a launch:
   of a purchase. And the buyer's list used to fetch every return request the
   account had ever made — photographs included — only to work out which books
   had a return in progress; each line now carries its own `returnStatus`.
+- ~~**Chat attachments**, still base64 in MongoDB.~~ **They no longer travel in
+  JSON.** A picture sent in a conversation is stored on the message as base64,
+  so the thread carried every picture in it, in every page of it - and the
+  conversation list was worse: it loaded every message the account had ever
+  sent or received, attachments and all, to draw a list of names and a last
+  line each, then ran two more queries per conversation. Measured against 60
+  messages, a third of them with a photograph:
+
+  ```
+  conversation list   1,097,096 bytes loaded  ->    214 bytes sent
+  one page of a thread  381,729 bytes         ->  4,113 bytes
+  ```
+
+  Attachments are addresses now, behind a check that the caller is one of the
+  two people in the thread - which needed an `<img>` that can carry the
+  session, since a tag cannot. Profile pictures went the same way and are
+  public, like the profile endpoint that already returned the same bytes
+  inline.
+
+  The bytes are still in MongoDB. Moving them to Cloudinary would put a private
+  conversation's pictures on a public URL, which is a different decision from
+  the one taken for book covers.
+
+  It also turned out you could not send a picture without typing something:
+  `message` was `required`, and Mongoose's required check rejects an empty
+  string, so an image-only message failed to save and the button answered 500.
+
 - **A browser error reporter.** `reportError` is the seam and it currently goes
   nowhere in production.
 - ~~**Redis for the one-time codes**, before the API runs on more than one

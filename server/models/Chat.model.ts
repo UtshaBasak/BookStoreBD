@@ -11,12 +11,22 @@ const chatSchema = new Schema({
         type: String, 
         required: true
     },
+    /*
+     * Not `required`: Mongoose's required check rejects an empty string, so a
+     * message with only a picture could not be saved at all - the attachment
+     * button returned a 500 unless you also typed something. The route is what
+     * insists on one or the other.
+     */
     message: {
         type: String,
-        required: true
+        default: ''
     },
+    /**
+     * A base64 data URI. Served by address from /chat/messages/:id/image
+     * rather than sent inline, so a thread does not carry its pictures.
+     */
     image: {
-        type: String,  // Will store base64 encoded image
+        type: String,
     },
     timestamp: {
         type: Date,

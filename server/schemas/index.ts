@@ -205,6 +205,8 @@ export const purchaseSchemas = {
 
 // ---------------------------------------------------------------- chat
 export const chatSchemas = {
+  /** One attachment, served to the two people in the thread. */
+  image: { params: objectIdParam },
   messages: {
     query: z.object({
       sender: email,
@@ -266,6 +268,8 @@ export const userSchemas = {
     }),
   },
   byId: { params: objectIdParam },
+  /** Somebody's profile picture, by address rather than inline. */
+  avatar: { params: emailParam },
   /**
    * Deleting your own account asks for the password again.
    *

@@ -653,6 +653,7 @@ administrator without a migration.
 | `GET`    | `/user/profile`       | Fetch a profile by `?email=`                  |
 | `PUT`    | `/user/profile`       | Update a profile (multipart, optional avatar) |
 | `POST`   | `/user/add-book`      | Create a listing with up to 10 images         |
+| `GET`    | `/user/:email/avatar` | A profile picture, as an image                |
 | `POST`   | `/user/signup`        | Alias of `/auth/signup`, kept for older callers |
 | `POST`   | `/user/signin`        | Alias of `/auth/signin`, kept for older callers |
 | `DELETE` | `/user/:id`           | Delete a user (admin)                         |
@@ -752,9 +753,10 @@ inconvenient review.
 | Method   | Endpoint               | Description                                          |
 | -------- | ---------------------- | ---------------------------------------------------- |
 | `GET`    | `/chat/messages`       | Paginated thread (`?sender=&receiver=&page=&limit=`) |
+| `GET`    | `/chat/messages/:id/image` | One attachment, to the two in the thread     |
 | `GET`    | `/chat/history/:email` | Conversation list with unread counts                 |
 | `GET`    | `/chat/unread/:email`  | Total unread message count                           |
-| `POST`   | `/chat/message`        | Send a message, optionally with an image             |
+| `POST`   | `/chat/message`        | Send text, a picture, or both                        |
 | `POST`   | `/chat/read`           | Mark a thread as read                                |
 | `DELETE` | `/chat/delete`         | Delete a conversation between two users              |
 

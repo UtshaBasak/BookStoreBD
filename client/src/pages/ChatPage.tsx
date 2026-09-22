@@ -10,6 +10,7 @@ import { useToast } from '../hooks/useToast.js';
 import { getUserEmail } from '../utils/auth.js';
 import { safeObjectUrl } from '../utils/safeImageSrc.js';
 import { reportError } from '../utils/report.js';
+import AuthImage from '../components/AuthImage.js';
 
 export default function ChatPage() {
     const [conversations, setConversations] = useState<ChatSummary[]>([]);
@@ -461,7 +462,7 @@ export default function ChatPage() {
                                         }}>
                                             {msg.message && <div style={{ marginBottom: msg.image ? '0.5rem' : 0 }}>{msg.message}</div>}
                                             {msg.image && (
-                                                <img
+                                                <AuthImage
                                                     src={msg.image}
                                                     alt="Chat attachment"
                                                     style={{

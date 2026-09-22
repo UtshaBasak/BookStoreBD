@@ -8,9 +8,12 @@ import { displayNameFor } from '../utils/anonymous.js';
 import { createLogger } from '../config/logger.js';
 import { errorMessage } from '../utils/error.js';
 import { validate, validatedQuery } from '../middleware/validate.js';
+import { serveStoredImage } from '../utils/serveImage.js';
+import { API_PREFIX } from '../config/apiPaths.js';
 import {
   chatSchemas,
   type ChatMessagesQuery,
+  type IdParams,
   type DeleteConversationBody,
   type MarkReadBody,
   type SendChatBody,
@@ -51,19 +54,59 @@ router.get(
                 { sender: receiver, receiver: sender }
             ]
         })
-        .select('sender receiver message image timestamp')
+        // `image` is checked for presence, never sent: an attachment is stored
+        // on the document as base64, so selecting it put every picture in the
+        // thread into every page of it.
+        .select('sender receiver message timestamp image')
         .sort({ timestamp: -1 })
         .skip(skip)
         .limit(limit)
         .lean();
 
         res.json({
-            messages: messages.reverse(),
+            messages: messages.reverse().map((msg) => ({
+                ...msg,
+                image: msg.image ? `${API_PREFIX}/chat/messages/${String(msg._id)}/image` : null,
+            })),
             page,
             limit
         });
     } catch (error) {
         res.status(500).json({ message: errorMessage(error) });
+    }
+});
+
+/**
+ * One attachment.
+ *
+ * Only the two people in the thread, and an administrator. Served as its own
+ * request with a cache header, so a conversation's pictures are fetched when
+ * they are looked at rather than with every page of the thread.
+ */
+router.get(
+    '/messages/:id/image',
+    validate(chatSchemas.image),
+    async (req: Request<IdParams>, res: Response, next) => {
+    try {
+        const message = await ChatMessage.findById(req.params.id)
+            .select('sender receiver image')
+            .lean();
+
+        if (!message) {
+            res.status(404).json({ message: 'Message not found' });
+            return;
+        }
+
+        if (!isParticipant(req, message.sender, message.receiver)) {
+            res.status(403).json({ message: 'Not a participant in this conversation' });
+            return;
+        }
+
+        if (!serveStoredImage(req, res, message.image)) {
+            res.status(404).json({ message: 'No attachment on that message' });
+        }
+    } catch (error) {
+        next(error);
     }
 });
 
@@ -73,52 +116,80 @@ router.get('/history/:email', async (req, res) => {
         // Always the caller's own conversation list.
         const { email } = actingUser(req);
 
-        // Find all messages where user is sender or receiver
-        const messages = await ChatMessage.find({
-            $or: [{ sender: email }, { receiver: email }]
-        }).sort({ timestamp: -1 });
+        /*
+         * One aggregation rather than every message this account has ever sent
+         * or received.
+         *
+         * This used to load them all - bodies, and the base64 attachments with
+         * them - to work out a list of names and a last line each, then ran two
+         * more queries per conversation. The sidebar cost the whole history.
+         */
+        const conversations = await ChatMessage.aggregate<{
+            _id: string;
+            lastMessage: string;
+            lastWasImage: boolean;
+            lastMessageTime: Date;
+            unreadCount: number;
+        }>([
+            { $match: { $or: [{ sender: email }, { receiver: email }] } },
+            { $sort: { timestamp: -1 } },
+            {
+                $group: {
+                    _id: { $cond: [{ $eq: ['$sender', email] }, '$receiver', '$sender'] },
+                    lastMessage: { $first: '$message' },
+                    lastWasImage: { $first: { $cond: [{ $ifNull: ['$image', false] }, true, false] } },
+                    lastMessageTime: { $first: '$timestamp' },
+                    unreadCount: {
+                        $sum: {
+                            $cond: [
+                                { $and: [{ $eq: ['$receiver', email] }, { $eq: ['$read', false] }] },
+                                1,
+                                0,
+                            ],
+                        },
+                    },
+                },
+            },
+            { $sort: { lastMessageTime: -1 } },
+            { $limit: 200 },
+        ]);
 
-        // Get unique users from messages
-        const users = new Set<string>();
-        messages.forEach(msg => {
-            if (msg.sender !== email) users.add(msg.sender);
-            if (msg.receiver !== email) users.add(msg.receiver);
-        });
+        const emails = conversations.map((row) => row._id);
 
-        // Get user details and last message for each chat
-        const chatUsers = await Promise.all(
-            Array.from(users).map(async (userEmail) => {
-                const user = await User.findOne({ email: userEmail });
-                const lastMessage = messages.find(
-                    msg => msg.sender === userEmail || msg.receiver === userEmail
-                );
+        /*
+         * Names, and whether there is a picture - not the picture. A profile
+         * photograph is a base64 data URI too, so twenty conversations meant
+         * twenty of them in a list that draws each one 40 pixels wide.
+         */
+        const people = await User.aggregate<{ email: string; username: string; hasAvatar: boolean }>([
+            { $match: { email: { $in: emails } } },
+            {
+                $project: {
+                    email: 1,
+                    username: 1,
+                    hasAvatar: { $gt: [{ $strLenCP: { $ifNull: ['$profilePicture', ''] } }, 0] },
+                },
+            },
+        ]);
+        const byEmail = new Map(people.map((person) => [person.email, person]));
 
-                // Count unread messages for this conversation
-                const unreadCount = await ChatMessage.countDocuments({
-                    sender: userEmail,
-                    receiver: email,
-                    read: false
-                });
-
+        res.json(
+            conversations.map((row) => {
+                const person = byEmail.get(row._id);
                 return {
-                    email: userEmail,
+                    email: row._id,
                     // Never the raw tombstone: somebody who closed their account
                     // shows up as "Deleted user", and the thread still reads.
-                    username: displayNameFor(userEmail, user?.username),
-                    profilePicture: user?.profilePicture,
-                    lastMessage: lastMessage?.message || '',
-                    lastMessageTime: lastMessage?.timestamp || new Date(),
-                    unreadCount
+                    username: displayNameFor(row._id, person?.username),
+                    profilePicture: person?.hasAvatar
+                        ? `${API_PREFIX}/user/${encodeURIComponent(row._id)}/avatar`
+                        : undefined,
+                    lastMessage: row.lastMessage || (row.lastWasImage ? 'Photo' : ''),
+                    lastMessageTime: row.lastMessageTime,
+                    unreadCount: row.unreadCount,
                 };
             })
         );
-
-        // Sort by last message time
-        chatUsers.sort(
-            (a, b) => new Date(b.lastMessageTime).getTime() - new Date(a.lastMessageTime).getTime()
-        );
-
-        res.json(chatUsers);
     } catch (error) {
         log.error({ err: error }, 'Chat history error');
         res.status(500).json({ message: errorMessage(error) });
@@ -137,6 +208,13 @@ router.post(
         // anyone could post messages as somebody else.
         const sender = actingUser(req).email;
         const { receiver, message } = req.body;
+
+        // One or the other. An empty message with nothing attached is not a
+        // message; a picture on its own is.
+        if (!message?.trim() && !req.file) {
+            res.status(400).json({ message: 'Write something or attach a picture' });
+            return;
+        }
 
         let imageData: string | null = null;
         if (req.file) {

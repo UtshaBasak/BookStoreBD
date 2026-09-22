@@ -13,6 +13,7 @@ import { actingUser, requireAuth, requireAdmin, optionalAuth } from '../middlewa
 import { imageUpload, verifyImageBytes } from '../middleware/imageUpload.js';
 import { recordAudit } from '../utils/audit.js';
 import { collectImages } from '../utils/uploadedImages.js';
+import { serveStoredImage } from '../utils/serveImage.js';
 import { createLogger } from '../config/logger.js';
 import { errorMessage } from '../utils/error.js';
 import { validate, validatedQuery } from '../middleware/validate.js';
@@ -22,6 +23,7 @@ import {
   userSchemas,
   type AddBookBody,
   type AdminUserQuery,
+  type EmailParams,
   type IdParams,
 } from '../schemas/index.js';
 
@@ -50,6 +52,30 @@ router.post('/signin', validate(authSchemas.signin), signin);
 // A listing shows its seller's public details, so this stays readable without
 // a token; the handler only ever returns non-sensitive fields.
 router.get('/profile', optionalAuth, validate(userSchemas.profileQuery), getUserProfile);
+
+/**
+ * Somebody's profile picture, as an image.
+ *
+ * Stored on the account as a base64 data URI, so anything that listed people
+ * carried their photographs with it. Public, like the profile endpoint that
+ * used to return the same bytes inline, and cacheable - which a data URI in a
+ * JSON body never was.
+ */
+router.get(
+  '/:email/avatar',
+  validate(userSchemas.avatar),
+  async (req: Request<EmailParams>, res: Response, next) => {
+    try {
+      const user = await User.findOne({ email: req.params.email }).select('profilePicture').lean();
+
+      if (!serveStoredImage(req, res, user?.profilePicture)) {
+        res.status(404).json({ message: 'No profile picture' });
+      }
+    } catch (error) {
+      next(error);
+    }
+  }
+);
 
 // ---------------------------------------------------------------------------
 // Authenticated

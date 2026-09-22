@@ -36,6 +36,7 @@ export const createUser = async (overrides: UserOverrides = {}): Promise<UserDoc
     ...(overrides.address ? { address: overrides.address } : {}),
     ...(overrides.phone ? { phone: overrides.phone } : {}),
     ...(overrides.gender ? { gender: overrides.gender } : {}),
+    ...(overrides.profilePicture ? { profilePicture: overrides.profilePicture } : {}),
   });
 };
 
