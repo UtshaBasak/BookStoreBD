@@ -1,9 +1,17 @@
-import * as Sentry from '@sentry/node';
-
 import { config } from './env.js';
 import { createLogger } from './logger.js';
 
 const log = createLogger('sentry');
+
+/**
+ * The SDK, once it has been asked for.
+ *
+ * Loaded on demand rather than imported at the top: `@sentry/node` takes about
+ * 1.3 seconds to import, which is paid on every start and on every restart
+ * nodemon does after a save - and in development, where no DSN is ever set,
+ * it was paid for nothing.
+ */
+let Sentry: typeof import('@sentry/node') | null = null;
 
 let enabled = false;
 
@@ -13,12 +21,13 @@ let enabled = false;
  * Entirely optional: with `SENTRY_DSN` unset — which is the default, and the
  * case for every local run — this is a no-op and nothing is sent anywhere.
  */
-export const initErrorTracking = (): boolean => {
+export const initErrorTracking = async (): Promise<boolean> => {
   if (!config.sentryDsn) {
     log.debug('SENTRY_DSN not set; error tracking disabled');
     return false;
   }
 
+  Sentry = await import('@sentry/node');
   Sentry.init({
     dsn: config.sentryDsn,
     environment: config.env,
@@ -55,7 +64,7 @@ export const captureException = (
   error: unknown,
   context: Record<string, unknown> = {}
 ): void => {
-  if (!enabled) return;
+  if (!enabled || !Sentry) return;
   Sentry.captureException(error, { extra: context });
 };
 
