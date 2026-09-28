@@ -4,12 +4,12 @@
 
 **A MERN marketplace for new and second-hand books — with role-based access, order tracking and real-time buyer–seller chat.**
 
-[![CI](https://github.com/UtshaBasak/MernBookstore/actions/workflows/ci.yml/badge.svg)](https://github.com/UtshaBasak/MernBookstore/actions/workflows/ci.yml)
-[![CodeQL](https://github.com/UtshaBasak/MernBookstore/actions/workflows/codeql.yml/badge.svg)](https://github.com/UtshaBasak/MernBookstore/actions/workflows/codeql.yml)
+[![CI](https://github.com/UtshaBasak/BookStoreBD/actions/workflows/ci.yml/badge.svg)](https://github.com/UtshaBasak/BookStoreBD/actions/workflows/ci.yml)
+[![CodeQL](https://github.com/UtshaBasak/BookStoreBD/actions/workflows/codeql.yml/badge.svg)](https://github.com/UtshaBasak/BookStoreBD/actions/workflows/codeql.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Node](https://img.shields.io/badge/node-22.13%2B%20%7C%2024%20LTS-brightgreen.svg)](.nvmrc)
 
-[Report a bug](https://github.com/UtshaBasak/MernBookstore/issues/new?template=bug_report.md) · [Request a feature](https://github.com/UtshaBasak/MernBookstore/issues/new?template=feature_request.md)
+[Report a bug](https://github.com/UtshaBasak/BookStoreBD/issues/new?template=bug_report.md) · [Request a feature](https://github.com/UtshaBasak/BookStoreBD/issues/new?template=feature_request.md)
 
 </div>
 
@@ -245,8 +245,8 @@ MernBookstore/
 ### 1. Clone and install
 
 ```bash
-git clone https://github.com/UtshaBasak/MernBookstore.git
-cd MernBookstore
+git clone https://github.com/UtshaBasak/BookStoreBD.git
+cd BookStoreBD
 npm install          # root tooling
 npm run install:all  # client + server dependencies
 ```
@@ -860,6 +860,31 @@ interface work that stands between this and something that reads as a business.
 
 Contributions are welcome. See [CONTRIBUTING.md](CONTRIBUTING.md) for the branch
 naming convention, commit style, and the checks that run in CI.
+
+---
+
+## History
+
+BookStoreBD began as **MernBookstore**, a university group project by
+[@Prottasha0212](https://github.com/Prottasha0212),
+[@jihadul021](https://github.com/jihadul021),
+[@deeanatrahman](https://github.com/deeanatrahman) and
+[@UtshaBasak](https://github.com/UtshaBasak). The team's version lives on,
+unchanged, at [Prottasha0212/MernBookstore](https://github.com/Prottasha0212/MernBookstore).
+
+This repository continues from it with the full history kept, so every commit
+from the group project still carries its author. The tag `team-final` marks the
+team's last commit; everything after it is the continuation:
+
+```bash
+git log team-final          # the group project
+git log team-final..master  # what came after
+```
+
+The two are deployed separately and must keep separate databases. This version
+runs `mongoose.syncIndexes()` at start-up, which drops any index its schemas do
+not define, so pointing it at the original deployment's database would change
+that database.
 
 ---
 

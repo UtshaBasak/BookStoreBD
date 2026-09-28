@@ -31,7 +31,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/UtshaBasak/MernBookstore.git"
+    "url": "git+https://github.com/UtshaBasak/BookStoreBD.git"
   },
   "keywords": [
     "mern",
@@ -44,9 +44,9 @@
   ],
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/UtshaBasak/MernBookstore/issues"
+    "url": "https://github.com/UtshaBasak/BookStoreBD/issues"
   },
-  "homepage": "https://github.com/UtshaBasak/MernBookstore#readme",
+  "homepage": "https://github.com/UtshaBasak/BookStoreBD#readme",
   "devDependencies": {
     "concurrently": "^10.0.5"
   }

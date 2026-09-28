@@ -22,7 +22,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/UtshaBasak/MernBookstore.git",
+    "url": "git+https://github.com/UtshaBasak/BookStoreBD.git",
     "directory": "server"
   },
   "keywords": [
@@ -35,9 +35,9 @@
   ],
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/UtshaBasak/MernBookstore/issues"
+    "url": "https://github.com/UtshaBasak/BookStoreBD/issues"
   },
-  "homepage": "https://github.com/UtshaBasak/MernBookstore#readme",
+  "homepage": "https://github.com/UtshaBasak/BookStoreBD#readme",
   "dependencies": {
     "@sentry/node": "^11.0.0",
     "bcryptjs": "^3.0.2",

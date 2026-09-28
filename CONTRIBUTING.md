@@ -18,8 +18,8 @@ to get a change merged.
 ## Getting set up
 
 ```bash
-git clone https://github.com/UtshaBasak/MernBookstore.git
-cd MernBookstore
+git clone https://github.com/UtshaBasak/BookStoreBD.git
+cd BookStoreBD
 npm install
 npm run install:all
 
