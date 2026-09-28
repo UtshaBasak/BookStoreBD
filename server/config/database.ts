@@ -12,7 +12,20 @@ const log = createLogger('database');
 export const connectDatabase = async (): Promise<Connection> => {
   mongoose.set('strictQuery', true);
 
-  await mongoose.connect(mongoUri());
+  try {
+    await mongoose.connect(mongoUri());
+  } catch (error) {
+    // The usual cause in development is that Docker is not running yet, and
+    // the error Mongoose gives - a page of server-selection internals - does
+    // not say so. This line does; the full error follows it.
+    const refused = /ECONNREFUSED|ServerSelection/.test(String((error as Error)?.name ?? error));
+    if (refused) {
+      log.error(
+        'Cannot reach MongoDB. Is it running? For the local setup: docker compose up -d mongo'
+      );
+    }
+    throw error;
+  }
   log.info('MongoDB connected');
 
   // Mongoose only ever adds indexes; one whose definition changes leaves the

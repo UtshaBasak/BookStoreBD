@@ -7,7 +7,7 @@ import { initErrorTracking } from './config/sentry.js';
 
 const start = async () => {
   assertRequiredEnv();
-  initErrorTracking();
+  await initErrorTracking();
   await connectDatabase();
 
   const app = createApp();
