@@ -150,3 +150,23 @@ describe('every other page', () => {
     expect(meta(res.text, 'og:image')).toEqual(['/og-image.jpg']);
   });
 });
+
+describe('the pictures a preview shows', () => {
+  // A preview is drawn on someone else's page. With the site-wide
+  // same-origin policy the browser refused to draw the share card there.
+  it('may be shown on other sites', async () => {
+    writeFileSync(join(dist, 'og-image.jpg'), 'jpeg');
+    const book = await createBook({ images: ['data:image/png;base64,iVBORw0KGgo='] });
+
+    const card = await agent.get('/og-image.jpg');
+    expect(card.headers['cross-origin-resource-policy']).toBe('cross-origin');
+
+    const cover = await agent.get(`/api/book/${book._id}/cover`);
+    expect(cover.headers['cross-origin-resource-policy']).toBe('cross-origin');
+  });
+
+  it('while everything else stays same-origin', async () => {
+    expect((await agent.get('/')).headers['cross-origin-resource-policy']).toBe('same-origin');
+    expect((await agent.get('/api/filter')).headers['cross-origin-resource-policy']).toBe('same-origin');
+  });
+});
