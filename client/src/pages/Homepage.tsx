@@ -22,7 +22,7 @@ import { site } from '../config/site.js';
 import Footer from '../components/Footer.js';
 import Logo from '../components/Logo.js';
 import { getUserEmail } from '../utils/auth.js';
-import { openSocket } from '../utils/socket.js';
+import { subscribeToMessages } from '../utils/socket.js';
 import { flagsFor } from '../utils/bookFlags.js';
 import { PLACEHOLDER_IMAGE } from '../utils/safeImageSrc.js';
 import { sized, IMAGE_WIDTHS } from '../utils/imageUrl.js';
@@ -145,14 +145,11 @@ export default function Homepage() {
   useEffect(() => {
     if (!userEmail) return undefined;
 
-    const { socket, close } = openSocket();
-    socket.on('receive_message', (data: ChatMessage) => {
+    return subscribeToMessages((data: ChatMessage) => {
       if (data.receiver === userEmail && !window.location.pathname.includes('/chat')) {
         setLiveUnread((count) => count + 1);
       }
     });
-
-    return close;
   }, [userEmail]);
 
   const handleSignOut = async () => {
@@ -216,7 +213,7 @@ export default function Homepage() {
             type="button"
             className="logo-button"
             onClick={() => navigate('/')}
-            aria-label="Go to homepage"
+            aria-label="BookStoreBD home"
           >
             <Logo size={38} />
           </button>
@@ -387,84 +384,77 @@ export default function Homepage() {
         </div>
       </header>
 
-      <nav className="nav-bar">
+      {/*
+        Real links and a real button. These were spans with role="menuitem"
+        outside any menu, which a screen reader could not make sense of, and
+        which could not be opened in a new tab or followed by anything that
+        reads links - a crawler, or an assistant browsing on someone's behalf.
+      */}
+      <nav className="nav-bar" aria-label="Browse books">
         <div
           className="dropdown"
           style={{ zIndex: 20, position: 'relative' }}
           onMouseEnter={() => setShowDropdown('category')}
           onMouseLeave={() => setShowDropdown(false)}
-          onFocus={() => setShowDropdown('category')}
-          onBlur={() => setShowDropdown(false)}
-          tabIndex={0}
+          // Closed once focus leaves the chip and its menu altogether, not when
+          // it moves from the chip into the menu.
+          onBlur={(e) => {
+            if (!e.currentTarget.contains(e.relatedTarget as Node | null)) setShowDropdown(false);
+          }}
+          onKeyDown={(e) => {
+            if (e.key === 'Escape') setShowDropdown(false);
+          }}
         >
-          <span
+          <button
+            type="button"
             className="chip chip-strong"
+            aria-expanded={showDropdown === 'category'}
+            aria-controls="categories-menu"
+            // Opens rather than toggles: on a touch screen the tap is also a
+            // mouseenter, which has opened it already.
             onClick={() => setShowDropdown('category')}
-            tabIndex={0}
           >
-            Categories ▾
-          </span>
+            Categories <span aria-hidden="true">▾</span>
+          </button>
           {showDropdown === 'category' && (
-            <div
+            <ul
+              id="categories-menu"
               className="dropdown-content categories-menu"
-              style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: '0.25rem 1rem' }}
+              style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
+                gap: '0.25rem 1rem',
+                listStyle: 'none',
+                margin: 0,
+              }}
             >
-              {genres.map((genre, index) => (
-                <span
-                  key={index}
-                  style={{
-                    padding: '0.5rem 0.75rem',
-                    display: 'block',
-                    cursor: 'pointer',
-                  }}
-                  onClick={() => {
-                    setShowDropdown(false);
-                    navigate(`/filter?category=${encodeURIComponent(genre)}`);
-                  }}
-                  tabIndex={0}
-                  onKeyDown={e => {
-                    if (e.key === 'Enter' || e.key === ' ') {
-                      setShowDropdown(false);
-                      navigate(`/filter?category=${encodeURIComponent(genre)}`);
-                    }
-                  }}
-                  role="menuitem"
-                >
-                  {genre}
-                </span>
+              {genres.map((genre) => (
+                <li key={genre}>
+                  <Link
+                    to={`/filter?category=${encodeURIComponent(genre)}`}
+                    style={{ padding: '0.5rem 0.75rem' }}
+                    onClick={() => setShowDropdown(false)}
+                  >
+                    {genre}
+                  </Link>
+                </li>
               ))}
-            </div>
+            </ul>
           )}
         </div>
-        <span
-          className="chip"
-          onClick={() => navigate('/filter?bookType=new')}
-          tabIndex={0}
-          onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') navigate('/filter?bookType=new'); }}
-          role="menuitem"
-        >
-          ✨ New books
-        </span>
-        <span
-          className="chip"
-          onClick={() => navigate('/filter?bookType=old')}
-          tabIndex={0}
-          onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') navigate('/filter?bookType=old'); }}
-          role="menuitem"
-        >
-          ♻️ Second-hand
-        </span>
-        <span
-          className="chip"
-          onClick={() => navigate('/filter?inStock=1')}
-          tabIndex={0}
-          onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') navigate('/filter?inStock=1'); }}
-          role="menuitem"
-        >
+        <Link className="chip" to="/filter?bookType=new">
+          <span aria-hidden="true">✨</span>&nbsp;New books
+        </Link>
+        <Link className="chip" to="/filter?bookType=old">
+          <span aria-hidden="true">♻️</span>&nbsp;Second-hand
+        </Link>
+        <Link className="chip" to="/filter?inStock=1">
           In stock now
-        </span>
+        </Link>
       </nav>
 
+      {/* One main landmark, so a screen reader can jump past the header. */}
+      <main className="homepage-main">
       {/*
         The first screen. It was two stock AI images - a pile of books, a
         library with "BOOKSTORE" painted on its wall - which said nothing a
@@ -740,6 +730,7 @@ export default function Homepage() {
         </div>
         )}
       </section>
+      </main>
 
       {/* The footer carries the copyright line; a second, older one under it
           said 2025 and "BookStore", and contradicted it. */}

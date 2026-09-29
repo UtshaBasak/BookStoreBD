@@ -19,7 +19,7 @@ import './Cart.css';
 function CartTopBar() {
   return (
     <header className="header shop-topbar">
-      <Link to="/" className="logo-button" title="Go to Homepage" aria-label="Go to Homepage">
+      <Link to="/" className="logo-button" title="Go to Homepage" aria-label="BookStoreBD home">
         <Logo size={34} />
       </Link>
       <div className="user-options">

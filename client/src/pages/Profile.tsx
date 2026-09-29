@@ -122,7 +122,7 @@ export default function Profile() {
                     type="button"
                     className="logo-button"
                     onClick={() => navigate('/')}
-                    aria-label="Go to homepage"
+                    aria-label="BookStoreBD home"
                 >
                     <Logo size={38} />
                 </button>

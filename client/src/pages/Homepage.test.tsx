@@ -116,6 +116,6 @@ describe('the header', () => {
   it('names the shop BookStoreBD, as everywhere else', () => {
     renderHomepage();
 
-    expect(screen.getByRole('button', { name: 'Go to homepage' })).toHaveTextContent(/^BookStoreBD$/);
+    expect(screen.getByRole('button', { name: 'BookStoreBD home' })).toHaveTextContent(/^BookStoreBD$/);
   });
 });

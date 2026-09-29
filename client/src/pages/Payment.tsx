@@ -76,7 +76,7 @@ function CheckoutTopBar({ step, linkHome = false }: { step: 1 | 2 | 3; linkHome?
   return (
     <header className="header shop-topbar">
       {linkHome ? (
-        <Link to="/" className="logo-button" title="Go to Homepage" aria-label="Go to Homepage">
+        <Link to="/" className="logo-button" title="Go to Homepage" aria-label="BookStoreBD home">
           <Logo size={34} />
         </Link>
       ) : (

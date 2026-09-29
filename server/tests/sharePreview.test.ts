@@ -5,7 +5,7 @@
  * cannot break out of the tags it lands in, and that the page still arrives
  * when there is no book to describe.
  */
-import { mkdtempSync, rmSync, writeFileSync } from 'fs';
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'fs';
 import { tmpdir } from 'os';
 import { join } from 'path';
 
@@ -168,5 +168,42 @@ describe('the pictures a preview shows', () => {
   it('while everything else stays same-origin', async () => {
     expect((await agent.get('/')).headers['cross-origin-resource-policy']).toBe('same-origin');
     expect((await agent.get('/api/filter')).headers['cross-origin-resource-policy']).toBe('same-origin');
+  });
+});
+
+describe('the build files', () => {
+  it('are cached for a year under assets/, which are named after their contents', async () => {
+    mkdirSync(join(dist, 'assets'), { recursive: true });
+    writeFileSync(join(dist, 'assets', 'index-abc123.js'), 'console.log(1)');
+    writeFileSync(join(dist, 'robots-like.txt'), 'x');
+
+    const hashed = await agent.get('/assets/index-abc123.js');
+    expect(hashed.headers['cache-control']).toBe('public, max-age=31536000, immutable');
+
+    // Anything else can change under the same name, so it is not.
+    const plain = await agent.get('/robots-like.txt');
+    expect(plain.headers['cache-control']).not.toMatch(/immutable/);
+    expect((await agent.get('/')).headers['cache-control']).toBe('no-cache');
+  });
+});
+
+describe('a file that is not there', () => {
+  // Answering with the app's HTML told a tool the file existed and was
+  // broken: Lighthouse read "<!doctype" as a malformed ai-catalog.json.
+  it.each(['/.well-known/ai-catalog.json', '/assets/index-gone.js', '/manifest.webmanifest'])(
+    'is a 404 for %s, not the app',
+    async (file) => {
+      const res = await agent.get(file);
+
+      expect(res.status).toBe(404);
+      expect(res.text).not.toContain('<div id="root">');
+    }
+  );
+
+  it('while an address with no extension is still a page of the app', async () => {
+    const res = await agent.get('/seller/order-tracking/ABCDEF1234567890');
+
+    expect(res.status).toBe(200);
+    expect(res.text).toContain('<div id="root"></div>');
   });
 });

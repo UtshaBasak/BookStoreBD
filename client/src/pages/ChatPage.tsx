@@ -1,14 +1,13 @@
 import { useState, useEffect, useRef, type ChangeEvent, type UIEvent } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { FaArrowLeft, FaPaperPlane, FaComments, FaTrash, FaImage, FaBookOpen } from 'react-icons/fa';
-import type { Socket } from 'socket.io-client';
 
 import type { ChatMessage, ChatMessagesResponse, ChatSummary } from '@shared/api.js';
 
 import { API_BASE_URL, apiFetch } from '../config/api.js';
 import { useToast } from '../hooks/useToast.js';
 import { getUserEmail } from '../utils/auth.js';
-import { openSocket } from '../utils/socket.js';
+import { subscribeToMessages } from '../utils/socket.js';
 import { reportError } from '../utils/report.js';
 import AuthImage from '../components/AuthImage.js';
 import FilePreview from '../components/FilePreview.js';
@@ -25,7 +24,8 @@ export default function ChatPage() {
     const [page, setPage] = useState(1);
     const [loading, setLoading] = useState(false);
     const [hasMore, setHasMore] = useState(true);
-    const socketRef = useRef<Socket | null>(null);
+    /** What the open conversation does with a live message; nothing when none is open. */
+    const onMessageRef = useRef<((message: ChatMessage) => void) | null>(null);
     const fileInputRef = useRef<HTMLInputElement | null>(null);
     const navigate = useNavigate();
     const toast = useToast();
@@ -44,8 +44,7 @@ export default function ChatPage() {
     useEffect(() => {
         // Live messages. The server sends each person only what is addressed
         // to them, so nothing is joined and nothing is sent from here.
-        const { socket, close } = openSocket();
-        socketRef.current = socket;
+        const stop = subscribeToMessages((message) => onMessageRef.current?.(message));
         
         if (userEmail) {
             // Add logging to debug
@@ -61,10 +60,7 @@ export default function ChatPage() {
                 });
         }
 
-        return () => {
-            close();
-            socketRef.current = null;
-        };
+        return stop;
     }, [userEmail]);
 
     // Switching conversation resets the thread. Done during render, comparing
@@ -119,10 +115,10 @@ export default function ChatPage() {
                 }
             };
             
-            socketRef.current?.on('receive_message', handleMessage);
+            onMessageRef.current = handleMessage;
 
             return () => {
-                socketRef.current?.off('receive_message', handleMessage);
+                onMessageRef.current = null;
                 setMessages([]); // Clear messages when unmounting
             };
         }

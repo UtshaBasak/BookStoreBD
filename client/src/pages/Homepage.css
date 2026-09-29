@@ -15,6 +15,12 @@
   background: var(--color-page);
   box-sizing: border-box;
 }
+/* Lays its sections out as they were when they sat in .homepage directly. */
+.homepage-main {
+  display: flex;
+  flex-direction: column;
+  flex: 1 0 auto;
+}
 
 /* ---------------------------------------------------------------- header
    Frosted, and stuck to the top while the page scrolls under it. */
@@ -131,6 +137,7 @@
   font-weight: 600;
   font-size: 0.92rem;
   white-space: nowrap;
+  text-decoration: none;
   cursor: pointer;
   transition: background 0.2s, border-color 0.2s, color 0.2s;
 }
