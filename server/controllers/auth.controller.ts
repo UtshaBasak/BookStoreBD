@@ -31,6 +31,7 @@ import type {
   VerifyOtpBody,
 } from '../schemas/index.js';
 import { createLogger } from '../config/logger.js';
+import { alreadyRegisteredEmail, codeEmail, type Email } from '../utils/emailTemplates.js';
 import {
   clearCode,
   consumeOtpAttempt,
@@ -112,12 +113,15 @@ function createTransporter() {
     });
 }
 
-async function sendEmail(email: string, subject: string, text: string): Promise<void> {
+async function sendEmail(email: string, mail: Email): Promise<void> {
     await createTransporter().sendMail({
-        from: config.smtp.user,
+        // A name beside the address: a bare Gmail address in the inbox reads
+        // like the phishing these codes exist to guard against.
+        from: { name: 'BookStoreBD', address: String(config.smtp.user) },
         to: email,
-        subject,
-        text
+        subject: mail.subject,
+        text: mail.text,
+        html: mail.html,
     });
 }
 
@@ -134,14 +138,14 @@ const inFlightMail = new Set<Promise<void>>();
  * place for it: whether a particular address could be reached is not something
  * the caller is entitled to know.
  */
-const dispatchEmail = (email: string, subject: string, text: string): void => {
+const dispatchEmail = (email: string, mail: Email): void => {
     const sending: Promise<void> = new Promise<void>((resolve) => {
         // Deferred to the next turn so that not even building the transport
         // runs before the response is written. Measured on the running stack,
         // doing it inline costs a few milliseconds - small, but it is the only
         // remaining difference between the path that sends and the path that
         // does not.
-        setImmediate(() => resolve(sendEmail(email, subject, text)));
+        setImmediate(() => resolve(sendEmail(email, mail)));
     })
         .catch((err: unknown) => {
             log.error({ err }, 'Failed to send mail');
@@ -160,18 +164,6 @@ const dispatchEmail = (email: string, subject: string, text: string): void => {
 export const mailSettled = async (): Promise<void> => {
     await Promise.all([...inFlightMail]);
 };
-
-/** Tells the owner of an address that somebody tried to sign up with it. */
-const ALREADY_REGISTERED_NOTICE = [
-    'Someone entered this address on our sign-up form.',
-    '',
-    'This address already has an account, so nothing was created and no',
-    'verification code was issued.',
-    '',
-    'If that was you, sign in instead - or use "Forgot password" if you cannot',
-    'remember it. If it was not you, you can ignore this message. Your account',
-    'has not changed.',
-].join('\n');
 
 /**
  * Issues a one-time code, for signing up or for resetting a password.
@@ -216,7 +208,7 @@ export const sendOtp = async (
                 // code that could not be used anyway, tell the owner of the
                 // address that somebody tried: useful to them, useless to
                 // anyone else.
-                dispatchEmail(email, 'Someone tried to sign up with your address', ALREADY_REGISTERED_NOTICE);
+                dispatchEmail(email, alreadyRegisteredEmail());
                 res.json({ message: REGISTER_CODE_SENT });
                 return;
             }
@@ -233,7 +225,7 @@ export const sendOtp = async (
 
         const code = generateOTP();
         await issueCode(email, code);
-        dispatchEmail(email, "Your OTP Code", `Your verification code is: ${code}`);
+        dispatchEmail(email, codeEmail(purpose === 'register' ? 'register' : 'reset', code));
 
         res.json({ message: purpose === 'register' ? REGISTER_CODE_SENT : RESET_CODE_SENT });
     } catch (error) {

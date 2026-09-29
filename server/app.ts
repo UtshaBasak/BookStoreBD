@@ -57,9 +57,19 @@ export const createApp = ({
 }: CreateAppOptions = {}): Express => {
   const app = express();
 
-  // Behind Render's proxy, so the rate limiter keys on the real client IP
-  // rather than on the proxy's.
-  app.set('trust proxy', 1);
+  /*
+   * Who the visitor is, for the rate limits and the log.
+   *
+   * Every private address in X-Forwarded-For is a proxy of ours to skip, and
+   * the visitor is the first public one reading from the right. It trusted
+   * "one hop" before, but a request crosses more than one of Render's proxies,
+   * so req.ip came out as one of them - 10.30.119.5, 10.25.98.2 - and the
+   * limits counted the whole site as three visitors: one person hammering the
+   * sign-in form would have locked everyone out. An address a client writes
+   * into the header itself sits to the left of the real one and is never
+   * reached, so it cannot be used to dodge a limit.
+   */
+  app.set('trust proxy', 'loopback, linklocal, uniquelocal');
 
   // Nothing to gain from telling the world which framework this is.
   app.disable('x-powered-by');
