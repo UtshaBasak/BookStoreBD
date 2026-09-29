@@ -1,6 +1,7 @@
 import { useState, type ChangeEvent, type FormEvent } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 
+import Logo from '../components/Logo.js';
 import { API_BASE_URL, apiFetch } from '../config/api.js';
 import { useProfile } from '../hooks/queries.js';
 import { useToast } from '../hooks/useToast.js';
@@ -9,6 +10,10 @@ import { isOwnProfile } from '../utils/profile.js';
 import { safeImageSrc, safeObjectUrl } from '../utils/safeImageSrc.js';
 import { reportError } from '../utils/report.js';
 import type { ApiError } from '@shared/api.js';
+
+// The homepage's header bar, and the cards shared with the profile page.
+import './Homepage.css';
+import './Profile.css';
 
 /** The editable profile. Every field a string, because every field is an input. */
 interface ProfileForm {
@@ -126,275 +131,234 @@ export default function UpdateProfile() {
     };
 
     return (
-        <div style={{
-            backgroundImage: 'url(https://a-static.besthdwallpaper.com/a-peaceful-library-with-a-variety-of-books-on-the-shelves-wallpaper-1280x720-98073_45.jpg)',
-            backgroundSize: 'cover',
-            backgroundPosition: 'center',
-            minHeight: '100vh',
-            display: 'flex',
-            justifyContent: 'center',
-            alignItems: 'center',
-            padding: '2rem',
-            color: '#fff',
-            width: '100%',
-        }}>
-            <div style={{ position: 'absolute', top: 24, left: 24 }}>
+        <div className="pf-page">
+            <header className="header">
                 <button
                     type="button"
-                    onClick={() => navigate('/profile')}
-                    style={{
-                        background: '#2196F3',
-                        color: 'white',
-                        border: 'none',
-                        borderRadius: '4px',
-                        padding: '0.5rem 1rem',
-                        cursor: 'pointer',
-                        fontWeight: 500,
-                        fontSize: 16,
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '0.5rem'
-                    }}
+                    className="logo-button"
+                    onClick={() => navigate('/')}
+                    aria-label="Go to homepage"
                 >
-                    &#8592; Back to Profile
+                    <Logo size={38} />
                 </button>
-            </div>
-            <form onSubmit={handleSubmit} style={{
-                background: 'rgba(0, 0, 0, 0.5)',
-                padding: '2rem',
-                borderRadius: '8px',
-                width: '100%',
-                maxWidth: '400px',
-                boxShadow: '0 4px 8px rgba(0, 0, 0, 0.2)',
-            }}>
-                <h1 style={{ textAlign: 'center', marginBottom: '1rem' }}>Update Profile</h1>
-                {errorMsg && (
-                  <div style={{ color: 'red', marginBottom: '1rem' }}>{errorMsg}</div>
-                )}
+                <div className="user-options">
+                    <button type="button" className="btn btn-ghost" onClick={() => navigate('/profile')}>
+                        &#8592; Back to Profile
+                    </button>
+                </div>
+            </header>
 
-                {/* Profile Picture Preview */}
-                <div style={{ marginBottom: '1rem', textAlign: 'center' }}>
-                    {profilePicturePreview ? (
-                        <>
-                            <img
-                                src={safeImageSrc(profilePicturePreview)}
-                                alt="Profile Preview"
-                                style={{
-                                    width: '100px',
-                                    height: '100px',
-                                    borderRadius: '50%',
-                                    objectFit: 'cover',
-                                    border: '3px solid white'
-                                }}
-                            />
-                            <div>
-                                <button
-                                    type="button"
-                                    onClick={handleRemoveProfilePicture}
-                                    style={{
-                                        marginTop: '0.5rem',
-                                        background: '#e74c3c',
-                                        color: 'white',
-                                        border: 'none',
-                                        borderRadius: '4px',
-                                        padding: '0.25rem 0.75rem',
-                                        cursor: 'pointer'
-                                    }}
-                                >
-                                    Remove Profile Picture
-                                </button>
+            <main className="pf-main pf-main-narrow">
+                <div className="pf-page-head">
+                    <h1>Update Profile</h1>
+                    <p>Keep your details up to date so orders and payouts reach you.</p>
+                </div>
+
+                <form onSubmit={handleSubmit} className="card pf-form">
+                    {/* Profile Picture Preview */}
+                    <section className="pf-form-section">
+                        <h2>Photo</h2>
+                        <div className="pf-photo">
+                            {profilePicturePreview ? (
+                                <img
+                                    src={safeImageSrc(profilePicturePreview)}
+                                    alt="Profile Preview"
+                                    className="pf-avatar"
+                                />
+                            ) : (
+                                <div className="pf-avatar pf-avatar-initial" aria-hidden="true">
+                                    {formData.username && formData.username.length > 0
+                                      ? formData.username[0].toUpperCase()
+                                      : 'U'}
+                                </div>
+                            )}
+                            {/* Profile Picture Upload */}
+                            <div className="pf-photo-controls">
+                                <label htmlFor="up-picture" className="pf-label">Profile Picture:</label>
+                                <input
+                                    id="up-picture"
+                                    type="file"
+                                    accept="image/png,image/jpeg,image/webp,image/gif"
+                                    onChange={handleFileChange}
+                                    className="w-full max-w-full text-sm text-ink-muted file:mr-3 file:min-h-10 file:cursor-pointer file:rounded-full file:border-0 file:bg-brand-tint file:px-4 file:font-bold file:text-brand"
+                                />
+                                {profilePicturePreview && (
+                                    <button
+                                        type="button"
+                                        onClick={handleRemoveProfilePicture}
+                                        className="btn btn-danger"
+                                    >
+                                        Remove Profile Picture
+                                    </button>
+                                )}
                             </div>
-                        </>
-                    ) : (
-                        <div style={{
-                            width: '100px',
-                            height: '100px',
-                            borderRadius: '50%',
-                            background: '#bbb',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            fontSize: '2.5rem',
-                            color: '#fff',
-                            border: '3px solid white',
-                            margin: '0 auto'
-                        }}>
-                            {formData.username && formData.username.length > 0
-                              ? formData.username[0].toUpperCase()
-                              : 'U'}
                         </div>
+                    </section>
+
+                    {/* Username and Email fields */}
+                    <section className="pf-form-section">
+                        <h2>Account</h2>
+                        <div className="pf-grid pf-grid-2">
+                            <div>
+                                <label htmlFor="up-username" className="pf-label">Username:</label>
+                                <input
+                                    id="up-username"
+                                    type="text"
+                                    name="username"
+                                    value={formData.username}
+                                    onChange={handleChange}
+                                    className="field"
+                                />
+                            </div>
+                            <div>
+                                <label htmlFor="up-email" className="pf-label">Email:</label>
+                                <input
+                                    id="up-email"
+                                    type="email"
+                                    name="email"
+                                    value={formData.email}
+                                    onChange={handleChange}
+                                    className="field"
+                                />
+                            </div>
+                        </div>
+
+                        {/* New Password field */}
+                        <div style={{ marginTop: '1rem' }}>
+                            <label htmlFor="up-password" className="pf-label">New Password:</label>
+                            <input
+                                id="up-password"
+                                type="password"
+                                name="password"
+                                placeholder="Enter new password"
+                                onChange={handleChange}
+                                className="field"
+                                autoComplete="new-password"
+                                value={formData.password}
+                                aria-describedby="up-password-help"
+                            />
+                            <small id="up-password-help" className="pf-help">Leave blank to keep your current password.</small>
+                        </div>
+                    </section>
+
+                    <section className="pf-form-section">
+                        <h2>About you</h2>
+                        <div className="pf-grid">
+                            {/* Date of Birth field */}
+                            <div>
+                                <label htmlFor="up-dob" className="pf-label">Date of Birth:</label>
+                                <input
+                                    id="up-dob"
+                                    type="date"
+                                    name="dateOfBirth"
+                                    value={formData.dateOfBirth || ''}
+                                    onChange={handleChange}
+                                    className="field sm:max-w-xs"
+                                />
+                            </div>
+
+                            {/* Gender Selection */}
+                            <fieldset className="pf-fieldset">
+                                <legend className="pf-label">Gender:</legend>
+                                {/* Each option is a 44px pill: a radio is a 13px
+                                    box whatever anyone does, but the label is
+                                    what a thumb actually lands on. */}
+                                <div className="pf-pills">
+                                    {[
+                                        { value: 'male', label: 'Male' },
+                                        { value: 'female', label: 'Female' },
+                                        { value: '', label: 'None' },
+                                    ].map((option) => (
+                                        <label
+                                            key={option.label}
+                                            className={`pf-pill ${formData.gender === option.value ? 'pf-pill-on' : ''}`}
+                                        >
+                                            <input
+                                                type="radio"
+                                                name="gender"
+                                                value={option.value}
+                                                className="sr-only"
+                                                checked={formData.gender === option.value}
+                                                onChange={handleChange}
+                                            />
+                                            {option.label}
+                                        </label>
+                                    ))}
+                                </div>
+                            </fieldset>
+                        </div>
+                    </section>
+
+                    {/* Address and Phone fields */}
+                    <section className="pf-form-section">
+                        <h2>Contact</h2>
+                        <div className="pf-grid pf-grid-2">
+                            <div>
+                                <label htmlFor="up-address" className="pf-label">Address:</label>
+                                <input
+                                    id="up-address"
+                                    type="text"
+                                    name="address"
+                                    value={formData.address || ''}
+                                    onChange={handleChange}
+                                    className="field"
+                                />
+                            </div>
+                            <div>
+                                <label htmlFor="up-phone" className="pf-label">Phone:</label>
+                                <input
+                                    id="up-phone"
+                                    type="text"
+                                    name="phone"
+                                    value={formData.phone || ''}
+                                    onChange={handleChange}
+                                    className="field"
+                                    inputMode="numeric"
+                                    pattern="[0-9]*"
+                                />
+                            </div>
+                        </div>
+                    </section>
+
+                    {/*
+                      Where a seller's sales are paid. Asked for here rather than
+                      on the listing form, and required before a first listing.
+                    */}
+                    <section className="pf-form-section">
+                        <h2>Getting paid</h2>
+                        <div className={`pf-payout ${payoutFirst ? 'pf-payout-first' : ''}`}>
+                            <label htmlFor="bkash" className="pf-label">bKash merchant number (to get paid when your books sell):</label>
+                            <input
+                                id="bkash"
+                                type="tel"
+                                name="bkashMerchant"
+                                value={formData.bkashMerchant || ''}
+                                onChange={handleChange}
+                                className="field"
+                                inputMode="numeric"
+                                autoComplete="off"
+                                placeholder="01XXXXXXXXX"
+                                autoFocus={payoutFirst}
+                                aria-describedby="bkash-help"
+                            />
+                            <small id="bkash-help" className="pf-help">
+                                Only you and the shop can see it. Needed before you list a book.
+                            </small>
+                        </div>
+                    </section>
+
+                    {/* Next to the button rather than at the top of the form: on
+                        a phone the top is a long scroll away from where the
+                        visitor pressed Save. */}
+                    {errorMsg && (
+                      <div role="alert" className="pf-error">{errorMsg}</div>
                     )}
-                </div>
 
-                {/* Username and Email fields */}
-                <div style={{ marginBottom: '1rem' }}>
-                    <label>Username:</label>
-                    <input
-                        type="text"
-                        name="username"
-                        value={formData.username}
-                        onChange={handleChange}
-                        style={inputStyle}
-                    />
-                </div>
-                <div style={{ marginBottom: '1rem' }}>
-                    <label>Email:</label>
-                    <input
-                        type="email"
-                        name="email"
-                        value={formData.email}
-                        onChange={handleChange}
-                        style={inputStyle}
-                    />
-                </div>
-
-                {/* New Password field */}
-                <div style={{ marginBottom: '1rem' }}>
-                    <label>New Password:</label>
-                    <input
-                        type="password"
-                        name="password"
-                        placeholder="Enter new password"
-                        onChange={handleChange}
-                        style={inputStyle}
-                        autoComplete="new-password"
-                        value={formData.password}
-                    />
-                </div>
-
-                {/* Date of Birth field */}
-                <div style={{ marginBottom: '1rem' }}>
-                    <label>Date of Birth:</label>
-                    <input
-                        type="date"
-                        name="dateOfBirth"
-                        value={formData.dateOfBirth || ''}
-                        onChange={handleChange}
-                        style={inputStyle}
-                    />
-                </div>
-
-                {/* Gender Selection */}
-                <div style={{ marginBottom: '1rem' }}>
-                    <label>Gender:</label>
-                    {/* `min-h-[40px]` on each label below: a radio is a 13px
-                        box whatever anyone does, but the label is what a thumb
-                        actually lands on. */}
-                    <div style={{ display: 'flex', gap: '1rem', marginTop: '0.5rem', flexWrap: 'wrap' }}>
-                        <label className="inline-flex min-h-[40px] items-center gap-2">
-                            <input
-                                type="radio"
-                                name="gender"
-                                value="male"
-                                checked={formData.gender === 'male'}
-                                onChange={handleChange}
-                            /> Male
-                        </label>
-                        <label className="inline-flex min-h-[40px] items-center gap-2">
-                            <input
-                                type="radio"
-                                name="gender"
-                                value="female"
-                                checked={formData.gender === 'female'}
-                                onChange={handleChange}
-                            /> Female
-                        </label>
-                        <label className="inline-flex min-h-[40px] items-center gap-2">
-                            <input
-                                type="radio"
-                                name="gender"
-                                value=""
-                                checked={formData.gender === ''}
-                                onChange={handleChange}
-                            /> None
-                        </label>
-                    </div>
-                </div>
-
-                {/* Profile Picture Upload */}
-                <div style={{ marginBottom: '1rem' }}>
-                    <label>Profile Picture:</label>
-                    <input
-                        type="file"
-                        accept="image/png,image/jpeg,image/webp,image/gif"
-                        onChange={handleFileChange}
-                        style={{
-                            ...inputStyle,
-                            padding: '0.5rem 0'
-                        }}
-                    />
-                </div>
-
-                {/* Address and Phone fields */}
-                <div style={{ marginBottom: '1rem' }}>
-                    <label>Address:</label>
-                    <input
-                        type="text"
-                        name="address"
-                        value={formData.address || ''}
-                        onChange={handleChange}
-                        style={inputStyle}
-                    />
-                </div>
-                <div style={{ marginBottom: '1rem' }}>
-                    <label>Phone:</label>
-                    <input
-                        type="text"
-                        name="phone"
-                        value={formData.phone || ''}
-                        onChange={handleChange}
-                        style={inputStyle}
-                        inputMode="numeric"
-                        pattern="[0-9]*"
-                    />
-                </div>
-                {/*
-                  Where a seller's sales are paid. Asked for here rather than
-                  on the listing form, and required before a first listing.
-                */}
-                <div style={{ marginBottom: '1rem' }}>
-                    <label htmlFor="bkash">bKash merchant number (to get paid when your books sell):</label>
-                    <input
-                        id="bkash"
-                        type="tel"
-                        name="bkashMerchant"
-                        value={formData.bkashMerchant || ''}
-                        onChange={handleChange}
-                        style={inputStyle}
-                        inputMode="numeric"
-                        autoComplete="off"
-                        placeholder="01XXXXXXXXX"
-                        autoFocus={payoutFirst}
-                        aria-describedby="bkash-help"
-                    />
-                    <small id="bkash-help" style={{ display: 'block', color: '#ddd' }}>
-                        Only you and the shop can see it. Needed before you list a book.
-                    </small>
-                </div>
-
-                <button type="submit" style={{
-                    width: '100%',
-                    padding: '0.75rem',
-                    backgroundColor: '#007BFF',
-                    color: '#fff',
-                    border: 'none',
-                    borderRadius: '4px',
-                    cursor: 'pointer',
-                    marginTop: '1rem',
-                }}>
-                    Save Changes
-                </button>
-            </form>
+                    <button type="submit" className="btn btn-primary pf-submit">
+                        Save Changes
+                    </button>
+                </form>
+            </main>
         </div>
     );
 }
-
-const inputStyle = {
-    width: '100%',
-    padding: '0.5rem',
-    margin: '0.5rem 0',
-    borderRadius: '4px',
-    border: '1px solid #ccc',
-    backgroundColor: 'rgba(255, 255, 255, 0.9)',
-    color: '#000',
-};

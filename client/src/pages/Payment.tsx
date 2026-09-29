@@ -1,5 +1,8 @@
 import { useState, useEffect, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
+import {
+  FaArrowLeft, FaCheck, FaMapMarkerAlt, FaMinus, FaMoneyBillWave, FaPlus, FaTag, FaTrash, FaTruck,
+} from 'react-icons/fa';
 
 import type { ApiError, Book, CheckPromoResponse, CreateOrderResponse, Id } from '@shared/api.js';
 
@@ -9,6 +12,10 @@ import { isOwnProfile } from '../utils/profile.js';
 import { safeImageSrc, PLACEHOLDER_IMAGE } from '../utils/safeImageSrc.js';
 import { sized, IMAGE_WIDTHS } from '../utils/imageUrl.js';
 import { deliveryChargeFor, site } from '../config/site.js';
+import Logo from '../components/Logo.js';
+import './Homepage.css';
+import './Cart.css';
+import './Payment.css';
 
 /** How many of each book is being bought, keyed by book id. */
 type Quantities = Record<Id, number>;
@@ -62,6 +69,39 @@ const restoreConfirmedOrder = (): ConfirmedOrder | null => {
     return null;
   }
 };
+
+/** The slim bar across the top: the logo, and how far through checkout this is. */
+function CheckoutTopBar({ step, linkHome = false }: { step: 1 | 2 | 3; linkHome?: boolean }) {
+  const steps = ['Cart', 'Details', 'Done'];
+  return (
+    <header className="header shop-topbar">
+      {linkHome ? (
+        <Link to="/" className="logo-button" title="Go to Homepage" aria-label="Go to Homepage">
+          <Logo size={34} />
+        </Link>
+      ) : (
+        <Logo size={34} />
+      )}
+      <ol className="checkout-steps" aria-label="Checkout progress">
+        {steps.map((label, i) => {
+          const n = i + 1;
+          const done = n < step || step === 3;
+          const current = n === step;
+          return (
+            <li
+              key={label}
+              className={[done && 'is-done', current && 'is-current'].filter(Boolean).join(' ')}
+              aria-current={current ? 'step' : undefined}
+            >
+              <span className="step-dot" aria-hidden="true">{done ? <FaCheck /> : n}</span>
+              <span className="step-word">{label}</span>
+            </li>
+          );
+        })}
+      </ol>
+    </header>
+  );
+}
 
 export default function Payment() {
   const navigate = useNavigate();
@@ -153,13 +193,6 @@ export default function Payment() {
       return safeImageSrc(sized(img, IMAGE_WIDTHS.row), PLACEHOLDER_IMAGE);
     }
     return safeImageSrc(`${API_BASE_URL}/uploads/${encodeURIComponent(img)}`, PLACEHOLDER_IMAGE);
-  };
-
-  // Helper for sticker color
-  const getStickerColor = (bookType: string | undefined): string => {
-    if (bookType && bookType.toLowerCase() === 'new') return '#43a047';
-    if (bookType && bookType.toLowerCase() === 'old') return '#e65100';
-    return '#888';
   };
 
   const handleQuantityChange = (bookId: Id, delta: number, maxStock: number) => {
@@ -396,649 +429,508 @@ export default function Payment() {
     };
   }, [orderConfirmed]);
 
+  // Display only: every figure is worked out above, and shown here with the
+  // taka sign the rest of the shop uses.
+  const money = (amount: number) => `৳${amount.toFixed(2)}`;
+  const shippingShown = shippingKnown && shipping !== 0 ? money(shipping) : shippingLabel;
+
+  const typeBadge = (book: Book) =>
+    book.bookType ? (
+      <span
+        className="badge pay-cover-badge"
+        style={{
+          position: 'absolute',
+          background: book.bookType.toLowerCase() === 'new' ? '#facc15' : '#ffffff',
+          color: book.bookType.toLowerCase() === 'new' ? '#111827' : '#5b21b6',
+        }}
+      >
+        {book.bookType.toLowerCase() === 'new' ? 'NEW' : 'OLD'}
+      </span>
+    ) : null;
+
   if (!user.email) {
     return (
-      <div style={{ color: 'white', padding: '2rem', textAlign: 'center', background: '#222', minHeight: '100vh' }}>
-        Please sign in to proceed to payment.
+      <div className="shop-page">
+        <CheckoutTopBar step={2} linkHome />
+        <main className="shop-main">
+          <div className="card mx-auto max-w-md p-8 text-center">
+            <p className="m-0 mb-5 text-lg font-semibold text-ink">Please sign in to proceed to payment.</p>
+            <Link to="/sign-in" className="btn btn-primary">Sign in</Link>
+          </div>
+        </main>
       </div>
     );
   }
 
   if (loading) {
     return (
-      <div style={{ color: '#222', padding: '2rem', textAlign: 'center', minHeight: '100vh' }}>
-        Loading...
+      <div className="shop-page">
+        <CheckoutTopBar step={2} linkHome />
+        <main className="shop-main">
+          <p role="status" className="py-16 text-center font-semibold text-ink-muted">Loading...</p>
+        </main>
       </div>
     );
   }
 
   if (orderConfirmed) {
     return (
-      <div style={{
-        minHeight: '100vh',
-        width: '100%',
-        background: '#fafafa',
-        display: 'flex',
-        justifyContent: 'center',
-        alignItems: 'center',
-        padding: 0,
-        margin: 0,
-        boxSizing: 'border-box'
-      }}>
-        {/* Checkout is two columns beside each other on a desktop and one
-            column on a phone. It was two at every width: 56% of a 360px screen,
-            less 96px of padding, is about 106px to fill in an address in. */}
-        <div
-          className="relative flex min-h-screen w-full max-w-[1100px] flex-col lg:flex-row"
-          style={{ background: '#fff', boxShadow: '0 2px 16px rgba(0,0,0,0.06)' }}
-        >
-          <div
-            className="w-full min-w-0 p-4 sm:p-8 lg:w-[56%] lg:shrink-0 lg:p-12"
-            style={{
-            background: '#fff',
-            borderRight: '1px solid #eee',
-            display: 'flex',
-            flexDirection: 'column',
-            justifyContent: 'center',
-            alignItems: 'center'
-          }}>
-            <button
-              style={{
-                position: 'absolute',
-                top: 32,
-                left: 48,
-                background: '#ff9800',
-                color: '#fff',
-                border: 'none',
-                borderRadius: 6,
-                padding: '8px 20px',
-                fontWeight: 500,
-                fontSize: 16,
-                cursor: 'pointer'
-              }}
-              onClick={() => {
-                localStorage.removeItem('confirmedOrder');
-                window.removeEventListener('beforeunload', () => {});
-                window.removeEventListener('popstate', () => {});
-                navigate('/');
-              }}
-            >
-              Go To Home
-            </button>
-            <div style={{
-              flex: 1,
-              display: 'flex',
-              flexDirection: 'column',
-              justifyContent: 'center',
-              alignItems: 'center'
-            }}>
-              <div style={{
-                fontSize: 36,
-                fontWeight: 700,
-                color: '#222',
-                textAlign: 'center',
-                marginTop: 40,
-                marginBottom: 40,
-                letterSpacing: 1
-              }}>
-                Checkout Complete!<br />
-                Thank You For<br />
-                Your Purchase!
+      <div className="shop-page">
+        {/* No link home in the bar: leaving goes through the buttons below,
+            which also forget the stored confirmation. */}
+        <CheckoutTopBar step={3} />
+        <main className="shop-main">
+          <div className="grid items-start gap-5 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,1fr)]">
+            <section className="card confirm-card px-5 py-10 text-center sm:px-10">
+              <div className="confirm-check" aria-hidden="true">
+                <FaCheck />
+                <span className="confetti c1" />
+                <span className="confetti c2" />
+                <span className="confetti c3" />
+                <span className="confetti c4" />
+                <span className="confetti c5" />
               </div>
-              <button
-                style={{
-                  width: 260,
-                  padding: '14px 0',
-                  background: 'linear-gradient(90deg, #ff9800 0%, #e65100 100%)',
-                  color: '#fff',
-                  fontWeight: 500,
-                  fontSize: 16,
-                  border: 'none',
-                  borderRadius: 6,
-                  cursor: 'pointer'
-                }}
-                onClick={() => {
-                  localStorage.removeItem('confirmedOrder');
-                  window.removeEventListener('beforeunload', () => {});
-                  window.removeEventListener('popstate', () => {});
-                  navigate(`/order-tracking/${orderNumber}`);
-                }}
-                tabIndex={-1}
-              >
-                Track Your Order
-              </button>
-            </div>
-          </div>
-          <div style={{
-            maxWidth: '44%',
-            background: '#fff',
-            boxShadow: 'none',
-            padding: 48,
-            boxSizing: 'border-box',
-            display: 'flex',
-            flexDirection: 'column',
-            justifyContent: 'flex-start'
-          }}>
-            <div style={{
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              marginBottom: 16
-            }}>
-              <div style={{ color: '#e65100', fontWeight: 500, fontSize: 20 }}>Order Summary</div>
-              <div style={{ color: '#e65100', fontWeight: 500, fontSize: 18 }}>#{orderNumber}</div>
-            </div>
-            <div
-              style={{
-                marginBottom: 16,
-                borderBottom: '1px solid #eee',
-                paddingBottom: 8
-              }}
-            >
-              {cartBooks.map(book => (
-                <div key={book._id} style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  marginBottom: 18
-                }}>
-                  <div style={{ position: 'relative', marginRight: 14 }}>
-                    <img
-                      loading="lazy"
-                      decoding="async" src={getBookImageSrc(book)} alt={book.title} style={{
-                      width: 56, height: 56, objectFit: 'cover', borderRadius: 6, border: '1px solid #eee'
-                    }} />
-                    {book.bookType && (
-                      <span style={{
-                        position: 'absolute',
-                        top: 2,
-                        left: 2,
-                        background: getStickerColor(book.bookType),
-                        color: '#fff',
-                        fontWeight: 700,
-                        fontSize: 13,
-                        padding: '1px 7px',
-                        borderRadius: 8,
-                        letterSpacing: 1,
-                        zIndex: 2
-                      }}>
-                        {book.bookType.toLowerCase() === 'new' ? 'NEW' : 'OLD'}
-                      </span>
-                    )}
-                  </div>
-                  <div style={{ flex: 1 }}>
-                    <div style={{ fontWeight: 600, fontSize: 15 }}>{book.title}</div>
-                    <div style={{ fontSize: 13, color: '#888' }}>By {book.author}</div>
-                  </div>
-                  <div style={{ minWidth: 90, textAlign: 'right', fontSize: 15 }}>
-                    Quantity: <span style={{ fontWeight: 600 }}>{quantities[book._id] || 1}</span>
-                  </div>
-                  <div style={{ minWidth: 90, textAlign: 'right', fontWeight: 600, fontSize: 15, marginLeft: 12 }}>
-                    {(Number(book.price) * (quantities[book._id] || 1)).toFixed(2)} Tk.
-                  </div>
+              <h1 className="relative m-0" style={{ fontSize: 'clamp(1.8rem, 1.3rem + 2vw, 2.4rem)' }}>
+                Checkout Complete!
+              </h1>
+              <p className="relative m-0 mt-1 text-lg font-semibold text-ink-soft">Thank You For Your Purchase! 🎉</p>
+
+              <div className="relative mt-6">
+                <div className="text-xs font-bold tracking-wider text-ink-muted uppercase">Order number</div>
+                <div className="order-no">#{orderNumber}</div>
+              </div>
+
+              <p className="relative mx-auto mt-5 mb-0 max-w-sm text-sm leading-relaxed text-ink-muted">
+                Pay in cash when your books arrive - by courier in {site.delivery.daysInsideDhaka} working days in
+                Dhaka, {site.delivery.daysOutsideDhaka} elsewhere.
+              </p>
+
+              <div className="relative mt-7 flex flex-col items-stretch justify-center gap-3 sm:flex-row sm:items-center">
+                <button
+                  type="button"
+                  className="btn btn-accent"
+                  style={{ minHeight: 52, padding: '0 2rem', fontSize: 17 }}
+                  onClick={() => {
+                    localStorage.removeItem('confirmedOrder');
+                    window.removeEventListener('beforeunload', () => {});
+                    window.removeEventListener('popstate', () => {});
+                    navigate(`/order-tracking/${orderNumber}`);
+                  }}
+                >
+                  <FaTruck aria-hidden="true" /> Track Your Order
+                </button>
+                <button
+                  type="button"
+                  className="btn btn-ghost"
+                  style={{ minHeight: 52 }}
+                  onClick={() => {
+                    localStorage.removeItem('confirmedOrder');
+                    window.removeEventListener('beforeunload', () => {});
+                    window.removeEventListener('popstate', () => {});
+                    navigate('/');
+                  }}
+                >
+                  Go To Home
+                </button>
+              </div>
+            </section>
+
+            <aside className="card p-5 sm:p-7" aria-label="Order Summary">
+              <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+                <h2 className="m-0 text-lg">Order Summary</h2>
+                <span className="font-mono text-sm font-bold text-brand-dark">#{orderNumber}</span>
+              </div>
+              <ul className="m-0 list-none p-0">
+                {cartBooks.map(book => (
+                  <li key={book._id} className="flex items-center gap-3 border-b border-line py-3">
+                    <div className="relative shrink-0">
+                      <img
+                        loading="lazy"
+                        decoding="async"
+                        src={getBookImageSrc(book)}
+                        alt={book.title}
+                        className="pay-cover"
+                      />
+                      {typeBadge(book)}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <div className="leading-snug font-bold text-ink">{book.title}</div>
+                      <div className="text-xs text-ink-muted">By {book.author}</div>
+                      <div className="mt-1 text-sm text-ink-soft">
+                        Quantity: <span className="font-bold">{quantities[book._id] || 1}</span>
+                      </div>
+                    </div>
+                    <div className="price text-right">
+                      {money(Number(book.price) * (quantities[book._id] || 1))}
+                    </div>
+                  </li>
+                ))}
+              </ul>
+              <div className="mt-3">
+                <div className="sum-row">
+                  <span>Subtotal</span>
+                  <span>{money(subtotal)}</span>
                 </div>
-              ))}
-            </div>
-            <div style={{ marginBottom: 8 }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
-                <span style={{ color: '#888' }}>Subtotal</span>
-                <span style={{ color: '#888' }}>{subtotal.toFixed(2)} Tk.</span>
-              </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
-                <span style={{ color: '#888' }}>Shipping</span>
-                <span style={{ color: '#888' }}>{shippingLabel}</span>
-              </div>
-              {shownDiscount > 0 && (
-                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
-                  <span style={{ color: '#888' }}>Discount{promo ? ` (${promo})` : ''}</span>
-                  <span style={{ color: '#888' }}>-{shownDiscount.toFixed(2)} Tk.</span>
+                <div className="sum-row">
+                  <span>Shipping</span>
+                  <span>{shippingShown}</span>
                 </div>
-              )}
-            </div>
-            <div style={{
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              fontWeight: 700,
-              fontSize: 18,
-              marginTop: 8
-            }}>
-              <span>Total</span>
-              <span style={{ color: '#222' }}>{total.toFixed(2)} Tk.</span>
-            </div>
-            <div style={{
-              marginTop: 18,
-              fontWeight: 500,
-              color: '#e65100',
-              fontSize: 16
-            }}>
-              Payment Method: <span style={{ color: '#222', fontWeight: 600 }}>Cash On Delivery</span>
-            </div>
+                {shownDiscount > 0 && (
+                  <div className="sum-row">
+                    <span>Discount{promo ? ` (${promo})` : ''}</span>
+                    <span style={{ color: '#047857' }}>-{money(shownDiscount)}</span>
+                  </div>
+                )}
+              </div>
+              <div className="sum-total">
+                <span>Total</span>
+                <span>{money(total)}</span>
+              </div>
+              <div className="mt-5 grid gap-3 rounded-2xl bg-brand-tint p-4 text-sm">
+                <div className="flex items-center gap-2">
+                  <FaMoneyBillWave aria-hidden="true" className="shrink-0 text-brand" />
+                  <span>
+                    Payment Method: <span className="font-bold text-ink">Cash On Delivery</span>
+                  </span>
+                </div>
+                {address && (
+                  <div className="flex items-start gap-2">
+                    <FaMapMarkerAlt aria-hidden="true" className="mt-0.5 shrink-0 text-brand" />
+                    <span className="min-w-0" style={{ overflowWrap: 'anywhere' }}>
+                      Delivering to {address}, {district}, {division}
+                    </span>
+                  </div>
+                )}
+              </div>
+            </aside>
           </div>
-        </div>
+        </main>
       </div>
     );
   }
 
   return (
-    <div style={{
-      minHeight: '100vh',
-      width: '100%',
-      background: '#fafafa',
-      display: 'flex',
-      justifyContent: 'center',
-      alignItems: 'flex-start',
-      padding: 0,
-      margin: 0,
-      boxSizing: 'border-box'
-    }}>
-      {/* Checkout is two columns beside each other on a desktop and one
-          column on a phone. It was two at every width: 56% of a 360px screen,
-          less 96px of padding, is about 106px to fill in an address in. */}
-      <div
-        className="relative flex min-h-screen w-full max-w-[1100px] flex-col lg:flex-row"
-        style={{ background: '#fff', boxShadow: '0 2px 16px rgba(0,0,0,0.06)' }}
-      >
-        <div
-          className="w-full min-w-0 p-4 sm:p-8 lg:w-[56%] lg:shrink-0 lg:p-12"
-          style={{
-          background: '#fff',
-          borderRight: '1px solid #eee',
-          display: 'flex',
-          flexDirection: 'column',
-          justifyContent: 'flex-start'
-        }}>
-          <div style={{ marginBottom: 24, display: 'flex', alignItems: 'center', gap: 8 }}>
-            {/* A span with a tabIndex could be focused and then did nothing
-                on Enter. A button is focusable and works. */}
-            <button
-              type="button"
-              className="icon-button"
-              style={{ fontSize: 32, fontWeight: 700 }}
-              onClick={() => navigate('/cart')}
-              title="Go back to cart"
-              aria-label="Go back to cart"
-            >&larr;</button>
-            <h2 style={{ margin: 0, fontWeight: 700, fontSize: 32, color: '#e65100', userSelect: 'none' }}>Checkout</h2>
+    <div className="shop-page">
+      <CheckoutTopBar step={2} linkHome />
+      <main className="shop-main">
+        <div className="mb-5 flex items-center gap-2">
+          {/* A span with a tabIndex could be focused and then did nothing
+              on Enter. A button is focusable and works. */}
+          <button
+            type="button"
+            className="icon-button"
+            style={{ fontSize: 18, color: '#6d28d9', background: '#fff', border: '1px solid #e4dcfb', borderRadius: 999 }}
+            onClick={() => navigate('/cart')}
+            title="Go back to cart"
+            aria-label="Go back to cart"
+          ><FaArrowLeft /></button>
+          <div>
+            <h1 className="shop-title">Checkout</h1>
+            <p className="shop-sub">Almost there - tell us where to bring your books.</p>
           </div>
-          <div style={{ marginBottom: 32 }}>
-            <div style={{ color: '#e65100', fontWeight: 500, marginBottom: 8 }}>Payment Method</div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <span style={{
-                display: 'inline-block',
-                width: 10,
-                height: 10,
-                borderRadius: '50%',
-                background: '#e65100',
-                marginRight: 8
-              }}></span>
-              <span>Cash On Delivery</span>
-            </div>
-          </div>
-          <div style={{ marginBottom: 32 }}>
-            <div style={{ color: '#e65100', fontWeight: 500, marginBottom: 8 }}>Contact Information</div>
-            <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', marginBottom: 16 }}>
-              <input
-                placeholder="Name"
-                value={user.name}
-                onChange={e => handleUserChange('name', e.target.value)}
-                style={{
-                  flex: 1,
-                  padding: 10,
-                  border: '1px solid #ddd',
-                  borderRadius: 4
-                }}
-              />
-            </div>
-            <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap' }}>
-              <input
-                placeholder="Email Address"
-                value={user.email}
-                onChange={e => handleUserChange('email', e.target.value)}
-                style={{
-                  flex: 1,
-                  padding: 10,
-                  border: '1px solid #ddd',
-                  borderRadius: 4
-                }}
-              />
-              <input
-                placeholder="Phone Number"
-                type="number"
-                value={user.phone}
-                onChange={e => handleUserChange('phone', e.target.value)}
-                style={{
-                  flex: 1,
-                  padding: 10,
-                  border: '1px solid #ddd',
-                  borderRadius: 4
-                }}
-                onWheel={e => e.currentTarget.blur()}
-                min="0"
-                pattern="[0-9]*"
-              />
-            </div>
-          </div>
-          <div style={{ marginBottom: 32 }}>
-            <div style={{ color: '#e65100', fontWeight: 500, marginBottom: 8 }}>Delivery Information</div>
-            <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', marginBottom: 16 }}>
-              <select
-                style={{
-                  flex: 1,
-                  padding: 10,
-                  border: '1px solid #ddd',
-                  borderRadius: 4
-                }}
-                value={division}
-                onChange={e => {
-                  setDivision(e.target.value);
-                  setDistrict('');
-                }}
-              >
-                <option value="">Select Division</option>
-                {divisions.map(div => (
-                  <option key={div} value={div}>{div}</option>
-                ))}
-              </select>
-              <select
-                style={{
-                  flex: 1,
-                  padding: 10,
-                  border: '1px solid #ddd',
-                  borderRadius: 4
-                }}
-                value={district}
-                onChange={e => setDistrict(e.target.value)}
-                disabled={!division}
-              >
-                <option value="">Select District</option>
-                {division && (divisionDistricts[division] ?? []).map(dist => (
-                  <option key={dist} value={dist}>{dist}</option>
-                ))}
-              </select>
-            </div>
-            <textarea
-              placeholder="Please write detailed address"
-              rows={3}
-              value={address}
-              onChange={e => setAddress(e.target.value)}
-              style={{
-                width: '100%',
-                padding: 10,
-                border: '1px solid #ddd',
-                borderRadius: 4,
-                resize: 'none'
-              }}
-            />
-          </div>
-          <button style={{
-            width: '100%',
-            padding: '14px 0',
-            background: 'linear-gradient(90deg, #ff9800 0%, #e65100 100%)',
-            color: '#fff',
-            fontWeight: 500,
-            fontSize: 16,
-            border: 'none',
-            borderRadius: 6,
-            cursor: 'pointer',
-            marginTop: 16
-          }}
-            onClick={handleConfirmOrder}
-          >
-            Confirm Order
-          </button>
-          {confirmError && (
-            <div style={{ color: '#e74c3c', marginTop: 12, fontWeight: 500, textAlign: 'center' }}>
-              {confirmError}
-            </div>
-          )}
         </div>
-        <div
-          className="flex w-full min-w-0 flex-col justify-start p-4 sm:p-8 lg:w-[44%] lg:shrink-0 lg:p-12"
-          style={{ background: '#fff', boxSizing: 'border-box' }}
-        >
-          <div style={{
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            marginBottom: 16
-          }}>
-            <div style={{ color: '#e65100', fontWeight: 500 }}>Your Order</div>
-            {orderConfirmed && <div style={{ color: '#e65100', fontWeight: 500 }}>#{orderNumber}</div>}
-          </div>
-          <div style={{
-            maxHeight: 260,
-            overflowY: 'auto',
-            borderBottom: '1px solid #eee',
-            marginBottom: 16,
-            paddingBottom: 8
-          }}>
-            {cartBooks.length === 0 ? (
-              <div style={{ color: '#888', textAlign: 'center', padding: 24 }}>No books in cart.</div>
-            ) : (
-              cartBooks.map(book => (
-                <div key={book._id} style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  marginBottom: 16
-                }}>
-                  {/* `shrink-0`: in a flex row on a 360px screen the cover was
-                      squeezed to nothing and its NEW badge, positioned against
-                      it, landed on top of the book's title. */}
-                  <div className="shrink-0" style={{ position: 'relative', marginRight: 12 }}>
-                    <img
-                      loading="lazy"
-                      decoding="async" src={getBookImageSrc(book)} alt={book.title} style={{
-                      width: 48, height: 48, objectFit: 'cover', borderRadius: 4
-                    }} />
-                    {book.bookType && (
-                      <span style={{
-                        position: 'absolute',
-                        top: 2,
-                        left: 2,
-                        background: getStickerColor(book.bookType),
-                        color: '#fff',
-                        fontWeight: 700,
-                        fontSize: 12,
-                        padding: '1px 6px',
-                        borderRadius: 7,
-                        letterSpacing: 1,
-                        zIndex: 2
-                      }}>
-                        {book.bookType.toLowerCase() === 'new' ? 'NEW' : 'OLD'}
-                      </span>
-                    )}
-                  </div>
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontWeight: 500 }}>{book.title}</div>
-                    <div style={{ fontSize: 13, color: '#888' }}>By {book.author}</div>
-                  </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                    <button
-                      style={{
-                        width: 40,
-                        height: 40,
-                        borderRadius: '50%',
-                        border: '1px solid #ccc',
-                        background: '#fff',
-                        color: '#e65100',
-                        fontWeight: 700,
-                        cursor: 'pointer',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        padding: 0,
-                        fontSize: 18,
-                        lineHeight: 1
-                      }}
-                      onClick={() => handleQuantityChange(book._id, -1, book.stock)}
-                      disabled={quantities[book._id] <= 1}
-                      aria-label="Decrease quantity"
-                    >-</button>
-                    <div style={{ minWidth: 24, textAlign: 'center' }}>{quantities[book._id] || 1}</div>
-                    <button
-                      style={{
-                        width: 40,
-                        height: 40,
-                        borderRadius: '50%',
-                        border: '1px solid #ccc',
-                        background: '#fff',
-                        color: '#e65100',
-                        fontWeight: 700,
-                        cursor: 'pointer',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        padding: 0,
-                        fontSize: 18,
-                        lineHeight: 1
-                      }}
-                      onClick={() => handleQuantityChange(book._id, 1, book.stock)}
-                      disabled={quantities[book._id] >= book.stock}
-                      aria-label="Increase quantity"
-                    >+</button>
-                  </div>
-                  <div style={{ width: 80, textAlign: 'right', marginLeft: 12 }}>
-                    <div style={{ fontWeight: 500 }}>
-                      {(Number(book.price) * (quantities[book._id] || 1)).toFixed(2)} TK.
-                    </div>
-                  </div>
+
+        {/* Checkout is two columns beside each other on a desktop and one
+            column on a phone. It was two at every width: 56% of a 360px screen,
+            less 96px of padding, is about 106px to fill in an address in.
+            The summary comes first in the page, so a phone shows the basket
+            and its total before the form; on a desktop it moves to the right. */}
+        <div className="grid items-start gap-5 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,1fr)]">
+          <aside
+            className="card min-w-0 p-5 sm:p-7 lg:sticky lg:top-24 lg:col-start-2 lg:row-start-1"
+            aria-label="Your Order"
+          >
+            <div className="mb-1 flex items-center justify-between">
+              <h2 className="m-0 text-lg">Your Order</h2>
+              {orderConfirmed && <div className="font-bold text-brand">#{orderNumber}</div>}
+            </div>
+            <div className="lg:max-h-[340px] lg:overflow-y-auto">
+              {cartBooks.length === 0 ? (
+                <div className="p-6 text-center text-ink-muted">No books in cart.</div>
+              ) : (
+                <ul className="m-0 list-none p-0">
+                  {cartBooks.map(book => (
+                    <li key={book._id} className="flex gap-3 border-b border-line py-3">
+                      {/* `shrink-0`: in a flex row on a 360px screen the cover was
+                          squeezed to nothing and its NEW badge, positioned against
+                          it, landed on top of the book's title. */}
+                      <div className="relative shrink-0">
+                        <img
+                          loading="lazy"
+                          decoding="async"
+                          src={getBookImageSrc(book)}
+                          alt={book.title}
+                          className="pay-cover"
+                        />
+                        {typeBadge(book)}
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-start justify-between gap-1">
+                          <div className="min-w-0">
+                            <div className="leading-snug font-bold text-ink">{book.title}</div>
+                            <div className="text-xs text-ink-muted">By {book.author}</div>
+                          </div>
+                          <button
+                            type="button"
+                            className="icon-button shrink-0"
+                            style={{ color: '#dc2626', fontSize: 15, marginTop: -8, marginRight: -8 }}
+                            onClick={() => handleRemoveBook(book._id)}
+                            title="Remove from cart"
+                            aria-label="Remove from cart"
+                          ><FaTrash /></button>
+                        </div>
+                        <div className="mt-2 flex items-center justify-between gap-2">
+                          <div className="qty">
+                            <button
+                              type="button"
+                              className="qty-btn"
+                              onClick={() => handleQuantityChange(book._id, -1, book.stock)}
+                              disabled={quantities[book._id] <= 1}
+                              aria-label="Decrease quantity"
+                            ><FaMinus /></button>
+                            <div className="qty-num">{quantities[book._id] || 1}</div>
+                            <button
+                              type="button"
+                              className="qty-btn"
+                              onClick={() => handleQuantityChange(book._id, 1, book.stock)}
+                              disabled={quantities[book._id] >= book.stock}
+                              aria-label="Increase quantity"
+                            ><FaPlus /></button>
+                          </div>
+                          <div className="price">
+                            {money(Number(book.price) * (quantities[book._id] || 1))}
+                          </div>
+                        </div>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+
+            <div className="mt-3">
+              <div className="sum-row">
+                <span>Subtotal</span>
+                <span>{money(subtotal)}</span>
+              </div>
+              <div className="sum-row">
+                <span>Shipping</span>
+                <span>{shippingShown}</span>
+              </div>
+              <p className="m-0 mb-1 flex gap-2 text-xs leading-relaxed text-ink-muted">
+                <FaTruck aria-hidden="true" className="mt-0.5 shrink-0 text-brand-light" />
+                <span>
+                  {site.delivery.insideDhaka} Tk inside Dhaka, {site.delivery.outsideDhaka} Tk elsewhere,
+                  free with {freeDeliveryPromo.code} on {freeDeliveryPromo.minBooksTotal} Tk or more. By courier
+                  in {site.delivery.daysInsideDhaka} working days in Dhaka, {site.delivery.daysOutsideDhaka} elsewhere.
+                  {' '}{site.payment}.
+                </span>
+              </p>
+              {shownDiscount > 0 && (
+                <div className="sum-row">
+                  <span>Discount</span>
+                  <span style={{ color: '#047857' }}>-{money(shownDiscount)}</span>
+                </div>
+              )}
+              {/*
+                Hidden while no promotion is running: a code box that can only
+                ever say "not valid" invites a shopper to go hunting for a code
+                that does not exist. The rules are in server/config/promotions.ts.
+              */}
+              {site.promoCodes && (
+              <div className="promo-box">
+                {/*
+                  The moment it applies, not buried in the terms: a code nobody
+                  hears about gives nobody free delivery.
+                */}
+                {couldHaveFreeDelivery && (
+                  <p role="note" className="promo-hint">
+                    <span aria-hidden="true">🚚</span>
+                    <span>
+                      Your books come to {freeDeliveryPromo.minBooksTotal} Tk or more: use the code{' '}
+                      <strong>{freeDeliveryPromo.code}</strong> for free delivery
+                      {promoCurrent ? ' instead - one code per order.' : '.'}
+                    </span>
+                  </p>
+                )}
+                <label htmlFor="promo-code" className="pay-label">
+                  Promo code or voucher
+                </label>
+                <div className="flex flex-wrap gap-2">
+                  <input
+                    id="promo-code"
+                    className="field min-w-0 flex-1"
+                    style={{ minWidth: 140 }}
+                    value={promo}
+                    onChange={e => { setPromo(e.target.value); setPromoMsg(''); setPromoApplied(false); setDiscount(0); setFreeDelivery(false); }}
+                    onKeyDown={e => { if (e.key === 'Enter') void handleApplyPromo(); }}
+                    disabled={promoCurrent}
+                  />
                   <button
                     type="button"
-                    className="icon-button"
-                    style={{ color: '#e74c3c', marginLeft: 8, fontSize: 18 }}
-                    onClick={() => handleRemoveBook(book._id)}
-                    title="Remove from cart"
-                    aria-label="Remove from cart"
-                  >&#128465;</button>
+                    className="btn btn-primary"
+                    style={{ minHeight: 46 }}
+                    onClick={() => void handleApplyPromo()}
+                    disabled={promoCurrent}
+                  >Apply</button>
+                  {promoApplied && (
+                    <button
+                      type="button"
+                      className="btn btn-danger"
+                      style={{ minHeight: 46 }}
+                      onClick={handleRemovePromo}
+                    >Remove</button>
+                  )}
                 </div>
-              ))
-            )}
-          </div>
-          <div style={{ borderTop: '1px solid #eee', margin: '16px 0' }}></div>
-          <div style={{ marginBottom: 8 }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
-              <span style={{ color: '#888' }}>Subtotal</span>
-              <span style={{ color: '#888' }}>{subtotal.toFixed(2)} TK.</span>
+                {promoApplied && !promoCurrent ? (
+                  <div role="status" className="mt-2 text-sm font-semibold" style={{ color: '#c2410c' }}>
+                    Your basket changed. Apply the code again to use it.
+                  </div>
+                ) : promoMsg && (
+                  <div
+                    role="status"
+                    className="mt-2 text-sm font-semibold"
+                    style={{ color: promoCurrent ? '#047857' : '#b91c1c' }}
+                  >{promoMsg}</div>
+                )}
+                <p className="m-0 mt-2 flex items-center gap-2 text-xs text-ink-muted">
+                  <FaTag aria-hidden="true" className="shrink-0 text-accent" />
+                  <span>First order? <strong className="text-ink-soft">{firstOrder.code}</strong>: {firstOrder.description}.</span>
+                </p>
+              </div>
+              )}
             </div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
-              <span style={{ color: '#888' }}>Shipping</span>
-              <span style={{ color: '#888' }}>{shippingLabel}</span>
+            <div className="sum-total">
+              <span>Total</span>
+              <span>{money(total)}</span>
             </div>
-            <p style={{ margin: '0 0 8px', fontSize: 12, color: '#888', lineHeight: 1.4 }}>
-              {site.delivery.insideDhaka} Tk inside Dhaka, {site.delivery.outsideDhaka} Tk elsewhere,
-              free with {freeDeliveryPromo.code} on {freeDeliveryPromo.minBooksTotal} Tk or more. By courier
-              in {site.delivery.daysInsideDhaka} working days in Dhaka, {site.delivery.daysOutsideDhaka} elsewhere.
-              {' '}{site.payment}.
-            </p>
-            {shownDiscount > 0 && (
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
-                <span style={{ color: '#888' }}>Discount</span>
-                <span style={{ color: '#888' }}>-{shownDiscount.toFixed(2)} TK.</span>
+          </aside>
+
+          <section className="card min-w-0 p-5 sm:p-7 lg:col-start-1 lg:row-start-1" aria-label="Your details">
+            <h2 className="pay-section-title"><span className="num" aria-hidden="true">1</span>Payment Method</h2>
+            <div className="pay-method">
+              <span className="pay-radio" aria-hidden="true" />
+              <div className="min-w-0 flex-1">
+                <div className="font-bold text-ink">Cash On Delivery</div>
+                <div className="text-sm text-ink-muted">Pay the courier when your books arrive.</div>
+              </div>
+              <FaMoneyBillWave aria-hidden="true" className="shrink-0 text-2xl text-brand" />
+            </div>
+
+            <h2 className="pay-section-title"><span className="num" aria-hidden="true">2</span>Contact Information</h2>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <div className="sm:col-span-2">
+                <label htmlFor="checkout-name" className="pay-label">Name</label>
+                <input
+                  id="checkout-name"
+                  className="field"
+                  placeholder="Name"
+                  autoComplete="name"
+                  value={user.name}
+                  onChange={e => handleUserChange('name', e.target.value)}
+                />
+              </div>
+              <div>
+                <label htmlFor="checkout-email" className="pay-label">Email address</label>
+                <input
+                  id="checkout-email"
+                  className="field"
+                  placeholder="Email Address"
+                  autoComplete="email"
+                  value={user.email}
+                  onChange={e => handleUserChange('email', e.target.value)}
+                />
+              </div>
+              <div>
+                <label htmlFor="checkout-phone" className="pay-label">Phone number</label>
+                <input
+                  id="checkout-phone"
+                  className="field"
+                  placeholder="Phone Number"
+                  type="number"
+                  value={user.phone}
+                  onChange={e => handleUserChange('phone', e.target.value)}
+                  onWheel={e => e.currentTarget.blur()}
+                  min="0"
+                  pattern="[0-9]*"
+                />
+              </div>
+            </div>
+
+            <h2 className="pay-section-title"><span className="num" aria-hidden="true">3</span>Delivery Information</h2>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <div>
+                <label htmlFor="checkout-division" className="pay-label">Division</label>
+                <select
+                  id="checkout-division"
+                  className="field"
+                  value={division}
+                  onChange={e => {
+                    setDivision(e.target.value);
+                    setDistrict('');
+                  }}
+                >
+                  <option value="">Select Division</option>
+                  {divisions.map(div => (
+                    <option key={div} value={div}>{div}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label htmlFor="checkout-district" className="pay-label">District</label>
+                <select
+                  id="checkout-district"
+                  className="field"
+                  value={district}
+                  onChange={e => setDistrict(e.target.value)}
+                  disabled={!division}
+                >
+                  <option value="">Select District</option>
+                  {division && (divisionDistricts[division] ?? []).map(dist => (
+                    <option key={dist} value={dist}>{dist}</option>
+                  ))}
+                </select>
+              </div>
+              <div className="sm:col-span-2">
+                <label htmlFor="checkout-address" className="pay-label">Address</label>
+                <textarea
+                  id="checkout-address"
+                  className="field"
+                  placeholder="Please write detailed address"
+                  rows={3}
+                  value={address}
+                  onChange={e => setAddress(e.target.value)}
+                  style={{ minHeight: 96, padding: '12px 14px', resize: 'none' }}
+                />
+              </div>
+            </div>
+
+            {/* The total again beside the button on a phone, where the summary
+                is a long way back up the page. */}
+            <div className="mt-6 flex items-baseline justify-between rounded-2xl bg-accent-tint px-4 py-3 lg:hidden">
+              <span className="font-bold text-ink">To pay on delivery</span>
+              <span className="price text-xl">{money(total)}</span>
+            </div>
+
+            <button
+              type="button"
+              className="btn btn-accent mt-4 w-full lg:mt-7"
+              style={{ minHeight: 54, fontSize: 17 }}
+              onClick={handleConfirmOrder}
+            >
+              Confirm Order
+            </button>
+            {confirmError && (
+              <div className="mt-3 text-center font-semibold" style={{ color: '#b91c1c' }}>
+                {confirmError}
               </div>
             )}
-            {/*
-              Hidden while no promotion is running: a code box that can only
-              ever say "not valid" invites a shopper to go hunting for a code
-              that does not exist. The rules are in server/config/promotions.ts.
-            */}
-            {site.promoCodes && (
-            <div>
-              {/*
-                The moment it applies, not buried in the terms: a code nobody
-                hears about gives nobody free delivery.
-              */}
-              {couldHaveFreeDelivery && (
-                <p role="note" style={{
-                  margin: '8px 0 0',
-                  padding: '8px 10px',
-                  background: '#fff8e1',
-                  border: '1px solid #ffe082',
-                  borderRadius: 4,
-                  fontSize: 13,
-                  color: '#5d4037',
-                }}>
-                  Your books come to {freeDeliveryPromo.minBooksTotal} Tk or more: use the code{' '}
-                  <strong>{freeDeliveryPromo.code}</strong> for free delivery
-                  {promoCurrent ? ' instead - one code per order.' : '.'}
-                </p>
-              )}
-              <label htmlFor="promo-code" style={{ display: 'block', marginTop: 8, fontSize: 13, color: '#888' }}>
-                Promo code or voucher
-              </label>
-              <input
-                id="promo-code"
-                value={promo}
-                onChange={e => { setPromo(e.target.value); setPromoMsg(''); setPromoApplied(false); setDiscount(0); setFreeDelivery(false); }}
-                style={{
-                  width: '100%',
-                  marginTop: 4,
-                  padding: 8,
-                  border: '1px solid #ddd',
-                  borderRadius: 4
-                }}
-                onKeyDown={e => { if (e.key === 'Enter') void handleApplyPromo(); }}
-                disabled={promoCurrent}
-              />
-              <button
-                style={{
-                  marginTop: 8,
-                  padding: '6px 16px',
-                  background: '#e65100',
-                  color: '#fff',
-                  border: 'none',
-                  borderRadius: 4,
-                  cursor: 'pointer',
-                  fontWeight: 500,
-                  marginLeft: 4
-                }}
-                onClick={() => void handleApplyPromo()}
-                disabled={promoCurrent}
-              >Apply</button>
-              {promoApplied && (
-                <button
-                  style={{
-                    marginTop: 8,
-                    padding: '6px 16px',
-                    background: '#e74c3c',
-                    color: '#fff',
-                    border: 'none',
-                    borderRadius: 4,
-                    cursor: 'pointer',
-                    fontWeight: 500,
-                    marginLeft: 8
-                  }}
-                  onClick={handleRemovePromo}
-                >Remove</button>
-              )}
-              {promoApplied && !promoCurrent ? (
-                <div role="status" style={{ marginTop: 6, color: '#e65100', fontSize: 13 }}>
-                  Your basket changed. Apply the code again to use it.
-                </div>
-              ) : promoMsg && (
-                <div role="status" style={{
-                  marginTop: 6,
-                  color: promoCurrent ? 'green' : '#e74c3c',
-                  fontSize: 13
-                }}>{promoMsg}</div>
-              )}
-              <p style={{ margin: '6px 0 0', fontSize: 12, color: '#888' }}>
-                First order? <strong>{firstOrder.code}</strong>: {firstOrder.description}.
-              </p>
-            </div>
-            )}
-          </div>
-          <div style={{
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            fontWeight: 600,
-            fontSize: 18
-          }}>
-            <span>Total</span>
-            <span style={{ color: '#222' }}>{total.toFixed(2)} TK.</span>
-          </div>
+            <p className="m-0 mt-3 text-center text-xs text-ink-muted">
+              ↩️ Changed your mind? {site.returns.windowDays}-day returns on every book.
+            </p>
+          </section>
         </div>
-      </div>
+      </main>
     </div>
   );
 }

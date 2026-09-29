@@ -1,7 +1,10 @@
 import { useState, type ChangeEvent } from 'react';
-import { useParams } from 'react-router-dom';
+import { Link, useParams } from 'react-router-dom';
+import { FaCheck } from 'react-icons/fa';
 
-import '../styles/orderTracking.css';
+import './Seller.css';
+import Logo from '../components/Logo.js';
+import { site } from '../config/site.js';
 import { useOrder, useUpdateOrderStatus } from '../hooks/queries.js';
 import { getUserEmail, getUserRole } from '../utils/auth.js';
 
@@ -37,177 +40,190 @@ export default function SellerOrderTrackingPage() {
     }
   };
 
-  if (!order) return <div>Loading...</div>;
+  const topbar = (
+    <header className="sl-topbar">
+      <Link to="/" className="sl-logo-link" aria-label={`${site.name} home`}>
+        <Logo size={34} />
+      </Link>
+      <div className="sl-topbar-actions">
+        <button type="button" onClick={() => window.location.href='/profile'} className="btn btn-ghost">
+          ← Back to Profile
+        </button>
+        <button type="button" onClick={() => window.location.reload()} className="btn btn-primary">
+          ⟳ Refresh
+        </button>
+      </div>
+    </header>
+  );
+
+  if (!order) {
+    return (
+      <div className="sl-page">
+        {topbar}
+        <div className="sl-wrap" style={{ paddingTop: '1.5rem' }}>
+          {/* A failed lookup used to leave "Loading..." on the screen for good. */}
+          {orderQuery.isError ? (
+            <div className="card sl-empty">
+              <span className="sl-empty-emoji" aria-hidden="true">🔎</span>
+              <h3>We could not load this order</h3>
+              <p>Check the order number, or go back to your orders and open it from there.</p>
+              <Link to="/seller-orders" className="btn btn-primary">Your orders</Link>
+            </div>
+          ) : (
+            <div className="card sl-loading"><span className="sl-spinner" aria-hidden="true" /> Loading...</div>
+          )}
+        </div>
+      </div>
+    );
+  }
 
   // Filter books for this seller
   const sellerBooks = (order.books ?? []).filter(book => book.sellerEmail === userEmail);
 
-  // Only admin or the seller of this order can update status
+  // Only admin or the seller of this order can update status. There is no
+  // 'seller' role - accounts are 'user' or 'admin' - so this used to require
+  // one that never exists and the control appeared for administrators only.
+  // Selling is decided the way the API decides it: by whose books these are.
   const canUpdateStatus =
     userRole === 'admin' ||
-    (userRole === 'seller' && userEmail && userEmail === order.sellerEmail);
+    (Boolean(userEmail) && (order.sellerEmail === userEmail || sellerBooks.length > 0));
+
+  const status = order.status || 'Order Confirmed';
+  const currentStage = ORDER_STAGES.indexOf(status);
 
   return (
-    <div className="order-tracking-outer">
-      <div style={{ position: 'absolute', top: 24, right: 32, display: 'flex', gap: 16, zIndex: 10 }}>
-        <button
-          onClick={() => window.location.href='/profile'}
-          style={{
-            background: '#fff',
-            border: '2px solid #2196F3',
-            color: '#2196F3',
-            fontWeight: 700,
-            fontSize: 16,
-            borderRadius: 8,
-            padding: '8px 20px',
-            cursor: 'pointer',
-            boxShadow: '0 2px 8px rgba(33,150,243,0.08)',
-            transition: 'all 0.18s',
-            outline: 'none',
-            marginRight: 0
-          }}
-          onMouseOver={e => { e.currentTarget.style.background = '#2196F3'; e.currentTarget.style.color = '#fff'; }}
-          onMouseOut={e => { e.currentTarget.style.background = '#fff'; e.currentTarget.style.color = '#2196F3'; }}
-        >
-          ← Back to Profile
-        </button>
-        <button
-          onClick={() => window.location.reload()}
-          style={{
-            background: '#2196F3',
-            border: '2px solid #2196F3',
-            color: '#fff',
-            fontWeight: 700,
-            fontSize: 16,
-            borderRadius: 8,
-            padding: '8px 20px',
-            cursor: 'pointer',
-            boxShadow: '0 2px 8px rgba(33,150,243,0.08)',
-            transition: 'all 0.18s',
-            outline: 'none'
-          }}
-          onMouseOver={e => { e.currentTarget.style.background = '#1769aa'; }}
-          onMouseOut={e => { e.currentTarget.style.background = '#2196F3'; }}
-        >
-          ⟳ Refresh
-        </button>
-      </div>
-      <div className="order-tracking-card">
-        <h2 style={{ textAlign: 'center', marginBottom: 24, color: '#e65100', letterSpacing: 1 }}>Track Order (Seller)</h2>
-        <div className="order-info" style={{ fontSize: 17, marginBottom: 24, textAlign: 'left', paddingLeft: 8 }}>
-          <p><b>Order Number:</b> <span style={{ color: '#e65100', fontFamily: 'monospace', fontSize: 18 }}>{order.orderNumber}</span></p>
-          <p><b>Placed On:</b> {order.createdAt ? new Date(order.createdAt).toLocaleString() : ''}</p>
-          <p><b>Status:</b> <span style={{ color: '#e65100', fontWeight: 600 }}>{order.status || 'Order Confirmed'}</span></p>
-          <div style={{ margin: '20px 0 10px 0', fontWeight: 600, color: '#444' }}>Payment Method</div>
-          <div style={{ color: '#e65100', fontWeight: 500, marginBottom: 12 }}>{order.paymentMethod || 'Cash on Delivery'}</div>
-          <div style={{ fontWeight: 600, color: '#444', marginBottom: 2 }}>Buyer Information</div>
-          <div style={{ marginBottom: 2 }}>Name: <b>{order.contactName}</b></div>
-          <div style={{ marginBottom: 2 }}>Email: <b>{order.buyerEmail}</b></div>
-        </div>
-        <div className="order-progress-bar" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', margin: '32px 0 24px 0', padding: '0 12px' }}>
-          {ORDER_STAGES.map((stage, idx) => {
-            const isActive = idx <= (ORDER_STAGES.indexOf(order.status || 'Order Confirmed'));
-            const isCurrent = idx === (ORDER_STAGES.indexOf(order.status || 'Order Confirmed'));
-            return (
-              <div key={stage} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', position: 'relative' }}>
-                <div
-                  style={{
-                    width: 36,
-                    height: 36,
-                    borderRadius: '50%',
-                    background: isActive ? (isCurrent ? '#fff3e0' : '#e65100') : '#eee',
-                    border: isCurrent ? '3px solid #e65100' : '2px solid #bbb',
-                    color: isActive ? '#e65100' : '#bbb',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    fontWeight: 700,
-                    fontSize: 18,
-                    boxShadow: isCurrent ? '0 0 8px #ffcc80' : '',
-                    zIndex: 2,
-                    transition: 'all 0.2s',
-                  }}
+    <div className="sl-page">
+      {topbar}
+      <div className="sl-wrap">
+        <section className="sl-hero">
+          <span className="sl-kicker">🚚 Order tracking</span>
+          <h2>Track Order (Seller)</h2>
+          <p className="sl-hero-sub">
+            Keep the buyer in the loop: move the order along as you pack and send it.
+          </p>
+        </section>
+
+        <div className="sl-track-grid">
+          <section className="card sl-card">
+            <h3 className="sl-card-title" style={{ justifyContent: 'space-between', flexWrap: 'wrap' }}>
+              <span>Progress</span>
+              <span className={`sl-pill ${status === 'Delivered' ? 'is-done' : currentStage <= 0 ? 'is-pending' : 'is-progress'}`}>
+                {status}
+              </span>
+            </h3>
+            <ol className="sl-steps" aria-label="Order progress">
+              {ORDER_STAGES.map((stage, idx) => {
+                const isActive = idx <= currentStage;
+                const isCurrent = idx === currentStage;
+                return (
+                  <li
+                    key={stage}
+                    className={isCurrent ? 'is-done is-current' : isActive ? 'is-done' : ''}
+                    aria-current={isCurrent ? 'step' : undefined}
+                  >
+                    <span className="sl-step-dot">
+                      {isActive && (!isCurrent || stage === 'Delivered') ? <FaCheck aria-hidden="true" /> : idx + 1}
+                    </span>
+                    <span className="sl-step-label">{stage}</span>
+                  </li>
+                );
+              })}
+            </ol>
+
+            {canUpdateStatus && (
+              <div className="sl-status-box">
+                <label htmlFor="seller-order-status" className="sl-label" style={{ marginBottom: 0 }}>
+                  Update Status:
+                </label>
+                <select
+                  id="seller-order-status"
+                  value={order.status}
+                  onChange={handleStatusChange}
+                  disabled={updating}
+                  className="field"
                 >
-                  {isCurrent ? <span style={{fontSize:22}}>★</span> : idx + 1}
-                </div>
-                {idx < ORDER_STAGES.length - 1 && (
-                  <div style={{
-                    position: 'absolute',
-                    top: 18,
-                    left: '100%',
-                    width: '100%',
-                    height: 4,
-                    background: isActive ? '#e65100' : '#eee',
-                    zIndex: 1,
-                    transition: 'background 0.2s',
-                  }} />
-                )}
-                <span style={{ marginTop: 10, color: isActive ? '#e65100' : '#bbb', fontWeight: isCurrent ? 700 : 500, fontSize: 15 }}>{stage}</span>
+                  {ORDER_STAGES.map(stage => (
+                    <option key={stage} value={stage}>{stage}</option>
+                  ))}
+                </select>
+                <p className="sl-status-help">{updating ? 'Saving...' : 'The buyer sees the new status on their tracking page.'}</p>
+                {error && <span role="alert" className="sl-error">{error}</span>}
               </div>
-            );
-          })}
+            )}
+          </section>
+
+          <section className="card sl-card">
+            <h3 className="sl-card-title">Order</h3>
+            <dl className="sl-info">
+              <div style={{ gridColumn: '1 / -1' }}>
+                <dt>Order Number</dt>
+                <dd className="sl-order-no-value">{order.orderNumber}</dd>
+              </div>
+              <div>
+                <dt>Placed On</dt>
+                <dd>{order.createdAt ? new Date(order.createdAt).toLocaleString() : ''}</dd>
+              </div>
+              <div>
+                <dt>Payment Method</dt>
+                <dd>{order.paymentMethod || 'Cash on Delivery'}</dd>
+              </div>
+            </dl>
+            <h3 className="sl-card-title" style={{ margin: '1.5rem 0 0.9rem' }}>Buyer Information</h3>
+            <dl className="sl-info">
+              <div>
+                <dt>Name</dt>
+                <dd>{order.contactName}</dd>
+              </div>
+              <div style={{ gridColumn: '1 / -1' }}>
+                <dt>Email</dt>
+                <dd>{order.buyerEmail}</dd>
+              </div>
+            </dl>
+          </section>
         </div>
-        {canUpdateStatus && (
-          <div style={{ marginTop: 28, textAlign: 'center' }}>
-            <label>
-              <b>Update Status: </b>
-              <select
-                value={order.status}
-                onChange={handleStatusChange}
-                disabled={updating}
-                className="min-h-[40px]"
-               style={{ marginLeft: 8, padding: '6px 8px', borderRadius: 4 }}
-              >
-                {ORDER_STAGES.map(stage => (
-                  <option key={stage} value={stage}>{stage}</option>
-                ))}
-              </select>
-            </label>
-            {error && <span style={{ color: 'red', marginLeft: 12 }}>{error}</span>}
-          </div>
-        )}
-      </div>
-      {/* Seller Order Details Table OUTSIDE the card */}
-      <div className="w-full min-w-0 p-3 sm:p-6" style={{ maxWidth: 900, margin: '32px auto 0 auto', background: '#fff', borderRadius: 12, boxShadow: '0 2px 12px rgba(0, 0, 0, 0.06)' }}>
-        <div style={{ marginBottom: 12, fontWeight: 600, color: '#444', fontSize: 20 }}>Order Details</div>
+
+        {/* Seller Order Details Table OUTSIDE the card */}
+        <section className="card sl-card" style={{ marginTop: '1.25rem' }}>
+          <h3 className="sl-card-title">Order Details</h3>
           <div className="table-scroll">
-          <table className="styled-table" style={{ width: '100%', borderCollapse: 'collapse', fontSize: 15, background: '#fff' }}>
-            <thead style={{ background: '#2196F3' }}>
-              <tr>
-                <th style={{ color: '#fff' }}>Title</th>
-                <th style={{ color: '#fff' }}>Author</th>
-                <th style={{ color: '#fff' }}>Category</th>
-                <th style={{ color: '#fff' }}>Book Type</th>
-                <th style={{ color: '#fff' }}>Condition</th>
-                <th style={{ color: '#fff' }}>No. of Pages</th>
-                <th style={{ color: '#fff' }}>Price (Tk.)</th>
-                <th style={{ color: '#fff' }}>Quantity</th>
-                <th style={{ color: '#fff' }}>Total Cost</th>
-              </tr>
-            </thead>
-            <tbody>
-              {sellerBooks.map((ob, idx) => (
-                <tr key={ob._id || idx}>
-                  <td>{ob.title}</td>
-                  <td>{ob.author}</td>
-                  <td>{Array.isArray(ob.category) ? ob.category.join(', ') : ob.category}</td>
-                  <td>{ob.bookType}</td>
-                  <td>{ob.condition}</td>
-                  <td>{ob.pages}</td>
-                  <td>{ob.price}</td>
-                  <td>{ob.quantity}</td>
-                  <td>{(Number(ob.price) * Number(ob.quantity)).toFixed(2)}</td>
+            <table className="styled-table sl-table sl-stack">
+              <thead>
+                <tr>
+                  <th>Title</th>
+                  <th>Author</th>
+                  <th>Category</th>
+                  <th>Book Type</th>
+                  <th>Condition</th>
+                  <th>No. of Pages</th>
+                  <th>Price (Tk.)</th>
+                  <th>Quantity</th>
+                  <th>Total Cost</th>
                 </tr>
-              ))}
-            </tbody>
-            <tfoot>
-              <tr>
-                <td colSpan={8} style={{ textAlign: 'right', fontWeight: 600 }}>Order Total:</td>
-                <td style={{ fontWeight: 700 }}>{sellerBooks.reduce((sum, ob) => sum + (Number(ob.price) * Number(ob.quantity)), 0).toFixed(2)}</td>
-              </tr>
-            </tfoot>
-          </table>
+              </thead>
+              <tbody>
+                {sellerBooks.map((ob, idx) => (
+                  <tr key={ob._id || idx}>
+                    <td data-label="Title" className="sl-title-cell">{ob.title}</td>
+                    <td data-label="Author">{ob.author}</td>
+                    <td data-label="Category">{Array.isArray(ob.category) ? ob.category.join(', ') : ob.category}</td>
+                    <td data-label="Book Type">{ob.bookType}</td>
+                    <td data-label="Condition">{ob.condition}</td>
+                    <td data-label="No. of Pages">{ob.pages}</td>
+                    <td data-label="Price (Tk.)" className="sl-num">৳{ob.price}</td>
+                    <td data-label="Quantity">{ob.quantity}</td>
+                    <td data-label="Total Cost" className="sl-price">৳{(Number(ob.price) * Number(ob.quantity)).toFixed(2)}</td>
+                  </tr>
+                ))}
+              </tbody>
+              <tfoot>
+                <tr>
+                  <td colSpan={8} style={{ textAlign: 'right', fontWeight: 700 }}>Order Total:</td>
+                  <td className="sl-price">৳{sellerBooks.reduce((sum, ob) => sum + (Number(ob.price) * Number(ob.quantity)), 0).toFixed(2)}</td>
+                </tr>
+              </tfoot>
+            </table>
           </div>
+        </section>
       </div>
     </div>
   );

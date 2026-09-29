@@ -22,6 +22,10 @@ const BLOCKED: Record<string, string> = {
   'not-purchased': 'Only somebody who has bought this book can review it.',
 };
 
+/** Reply, Report and the like: words rather than buttons, but a thumb's width. */
+const TEXT_BUTTON =
+  'inline-flex min-h-10 items-center rounded-full bg-transparent px-3 font-semibold underline hover:bg-[#f3efff] disabled:no-underline disabled:opacity-70';
+
 const when = (value?: string): string =>
   value ? new Date(value).toLocaleDateString(undefined, { dateStyle: 'medium' }) : '';
 
@@ -124,22 +128,28 @@ export default function BookReviews({ bookId }: { bookId: Id | undefined }) {
   const showForm = data.canReview && (editing || !data.mine);
 
   return (
-    <section className="mt-10 border-t border-[#eee] pt-8">
-      <h2 className="mb-4 text-xl font-bold" style={{ color: '#8B6F6F' }}>
+    // A card of its own on the book page, like the details above it.
+    <section className="card p-5 sm:p-6">
+      <h2 className="mb-4 text-xl font-extrabold" style={{ color: '#111827' }}>
         Ratings and reviews
       </h2>
 
       {total === 0 ? (
-        <p className="mb-4 text-[#666]">
+        <p className="mb-4" style={{ color: '#6b7280' }}>
           No reviews yet. {data.canReview ? 'Yours would be the first.' : ''}
         </p>
       ) : (
-        <div className="mb-6 flex flex-wrap items-center gap-6">
+        <div
+          className="mb-6 flex flex-wrap items-center gap-6 rounded-2xl p-4"
+          style={{ background: '#f8f7fc', border: '1px solid #ece8f7' }}
+        >
           <div className="flex items-center gap-3">
-            <span className="text-3xl font-bold">{data.average.toFixed(1)}</span>
+            <span className="text-4xl font-extrabold" style={{ color: '#111827', letterSpacing: '-0.03em' }}>
+              {data.average.toFixed(1)}
+            </span>
             <div>
               <Stars value={data.average} size={18} />
-              <p className="m-0 text-sm text-[#666]">
+              <p className="m-0 text-sm" style={{ color: '#6b7280' }}>
                 {total} {total === 1 ? 'review' : 'reviews'}
               </p>
             </div>
@@ -153,14 +163,14 @@ export default function BookReviews({ bookId }: { bookId: Id | undefined }) {
               const share = total === 0 ? 0 : Math.round((count / total) * 100);
               return (
                 <div key={star} className="flex items-center gap-2 text-sm">
-                  <span className="w-8 shrink-0 text-right">{star}★</span>
-                  <span className="h-2 flex-1 rounded bg-[#eee]">
+                  <span className="w-8 shrink-0 text-right font-semibold" style={{ color: '#374151' }}>{star}★</span>
+                  <span className="h-2 flex-1 rounded-full" style={{ background: '#e4dcfb' }}>
                     <span
-                      className="block h-2 rounded"
-                      style={{ width: `${share}%`, background: '#f5a623' }}
+                      className="block h-2 rounded-full"
+                      style={{ width: `${share}%`, background: 'linear-gradient(90deg, #ff8a3d, #ff5c35)' }}
                     />
                   </span>
-                  <span className="w-8 shrink-0 text-[#666]">{count}</span>
+                  <span className="w-8 shrink-0" style={{ color: '#6b7280' }}>{count}</span>
                 </div>
               );
             })}
@@ -170,10 +180,13 @@ export default function BookReviews({ bookId }: { bookId: Id | undefined }) {
 
       {/* Why there is no form, when there is no form. */}
       {!data.canReview && data.reason && (
-        <p className="mb-6 text-sm text-[#666]">
+        <p
+          className="mb-6 rounded-xl px-4 py-3 text-sm"
+          style={{ background: '#f3efff', color: '#374151' }}
+        >
           {data.reason === 'sign-in' ? (
             <>
-              <Link to="/sign-in" className="underline">
+              <Link to="/sign-in" className="font-bold underline">
                 Sign in
               </Link>{' '}
               to leave a review.
@@ -186,33 +199,23 @@ export default function BookReviews({ bookId }: { bookId: Id | undefined }) {
 
       {data.canReview && data.mine && !editing && (
         <div className="mb-6 flex flex-wrap gap-3">
-          <button
-            type="button"
-            onClick={() => setEditing(true)}
-            className="inline-flex min-h-[44px] items-center rounded-lg px-4 text-white"
-            style={{ background: '#8B6F6F' }}
-          >
+          <button type="button" onClick={() => setEditing(true)} className="btn btn-primary">
             Edit your review
           </button>
-          <button
-            type="button"
-            onClick={remove}
-            className="inline-flex min-h-[44px] items-center rounded-lg border px-4"
-            style={{ borderColor: '#c0392b', color: '#c0392b', background: 'transparent' }}
-          >
+          <button type="button" onClick={remove} className="btn btn-danger">
             Remove it
           </button>
         </div>
       )}
 
       {showForm && (
-        <div className="mb-8 rounded-xl bg-[#faf8f7] p-4">
-          <p className="mb-2 font-semibold">
+        <div className={`${data.reviews.length > 0 ? 'mb-4 ' : ''}rounded-2xl p-4 sm:p-5`} style={{ background: '#f8f7fc', border: '1px solid #ece8f7' }}>
+          <p className="mb-2 font-bold" style={{ color: '#111827' }}>
             {data.mine ? 'Edit your review' : 'Write a review'}
           </p>
           <StarInput value={rating} onChange={setRating} disabled={saving} />
 
-          <label className="mt-3 block text-sm font-medium" htmlFor="review-title">
+          <label className="mb-1 mt-3 block text-sm font-semibold" htmlFor="review-title" style={{ color: '#374151' }}>
             Headline (optional)
           </label>
           <input
@@ -220,10 +223,10 @@ export default function BookReviews({ bookId }: { bookId: Id | undefined }) {
             value={title}
             maxLength={120}
             onChange={(event) => setTitle(event.target.value)}
-            className="min-h-[44px] w-full rounded-lg border border-[#d9cfc9] px-3"
+            className="field"
           />
 
-          <label className="mt-3 block text-sm font-medium" htmlFor="review-body">
+          <label className="mb-1 mt-3 block text-sm font-semibold" htmlFor="review-body" style={{ color: '#374151' }}>
             What should another buyer know? (optional)
           </label>
           <textarea
@@ -232,16 +235,17 @@ export default function BookReviews({ bookId }: { bookId: Id | undefined }) {
             rows={4}
             maxLength={2000}
             onChange={(event) => setBody(event.target.value)}
-            className="w-full rounded-lg border border-[#d9cfc9] p-3"
+            className="field"
+            style={{ minHeight: 110, padding: '12px 14px' }}
           />
 
-          <div className="mt-3 flex flex-wrap gap-3">
+          <div className="mt-4 flex flex-wrap gap-3">
             <button
               type="button"
               onClick={submit}
               disabled={saving}
-              className="inline-flex min-h-[44px] items-center rounded-lg px-5 text-white"
-              style={{ background: '#8B6F6F', cursor: saving ? 'not-allowed' : 'pointer' }}
+              className="btn btn-primary"
+              style={{ cursor: saving ? 'not-allowed' : 'pointer', opacity: saving ? 0.7 : 1 }}
             >
               {data.mine ? 'Save changes' : 'Post review'}
             </button>
@@ -252,8 +256,7 @@ export default function BookReviews({ bookId }: { bookId: Id | undefined }) {
                   setDraft(null);
                   setEditing(false);
                 }}
-                className="inline-flex min-h-[44px] items-center rounded-lg border border-[#d9cfc9] px-4"
-                style={{ background: 'transparent' }}
+                className="btn btn-ghost"
               >
                 Cancel
               </button>
@@ -262,46 +265,50 @@ export default function BookReviews({ bookId }: { bookId: Id | undefined }) {
         </div>
       )}
 
+      {data.reviews.length > 0 && (
       <ul className="m-0 list-none p-0">
         {data.reviews.map((review) => (
-          <li key={review._id} className="border-t border-[#eee] py-4">
+          <li key={review._id} className="py-4" style={{ borderTop: '1px solid #ece8f7' }}>
             <div className="flex flex-wrap items-center gap-2">
-              <Stars value={review.rating} size={14} />
-              <strong>{review.reviewerName}</strong>
+              <span
+                aria-hidden="true"
+                className="inline-flex h-8 w-8 items-center justify-center rounded-full text-sm font-extrabold text-white"
+                style={{ background: 'linear-gradient(135deg, #6d28d9, #c026d3)' }}
+              >
+                {(review.reviewerName || '?').charAt(0).toUpperCase()}
+              </span>
+              <strong style={{ color: '#111827' }}>{review.reviewerName}</strong>
               {/* The badge is the whole point of restricting who may write:
                   it is what makes the score worth reading. */}
-              <span
-                className="rounded px-2 py-[2px] text-xs font-semibold"
-                style={{ background: '#e8f5e9', color: '#2e7d32' }}
-              >
+              <span className="badge" style={{ background: '#ecfdf5', color: '#047857' }}>
                 Verified purchase
               </span>
-              <span className="text-sm text-[#888]">{when(review.createdAt)}</span>
+              <span className="text-sm" style={{ color: '#6b7280' }}>{when(review.createdAt)}</span>
             </div>
-            {review.title && <p className="mb-1 mt-2 font-semibold">{review.title}</p>}
-            {review.body && <p className="m-0 whitespace-pre-line text-[#444]">{review.body}</p>}
+            <div className="mt-2">
+              <Stars value={review.rating} size={14} />
+            </div>
+            {review.title && <p className="mb-1 mt-1 font-bold" style={{ color: '#111827' }}>{review.title}</p>}
+            {review.body && <p className="m-0 whitespace-pre-line" style={{ color: '#374151' }}>{review.body}</p>}
 
             {/* The seller's answer, indented under what it answers. */}
             {review.reply && (
               <div
-                className="mt-3 rounded border-l-4 p-3"
-                style={{ borderColor: '#90caf9', background: '#f4f9ff' }}
+                className="mt-3 rounded-xl border-l-4 p-3"
+                style={{ borderColor: '#8b5cf6', background: '#f3efff' }}
               >
                 <div className="flex flex-wrap items-center gap-2">
-                  <strong>{review.reply.byName}</strong>
-                  <span
-                    className="rounded px-2 py-[2px] text-xs font-semibold"
-                    style={{ background: '#e3f2fd', color: '#1565c0' }}
-                  >
+                  <strong style={{ color: '#111827' }}>{review.reply.byName}</strong>
+                  <span className="badge" style={{ background: '#fff', color: '#5b21b6' }}>
                     Seller
                   </span>
-                  <span className="text-sm text-[#888]">{when(review.reply.at)}</span>
+                  <span className="text-sm" style={{ color: '#6b7280' }}>{when(review.reply.at)}</span>
                 </div>
-                <p className="m-0 mt-1 whitespace-pre-line text-[#444]">{review.reply.body}</p>
+                <p className="m-0 mt-1 whitespace-pre-line" style={{ color: '#374151' }}>{review.reply.body}</p>
               </div>
             )}
 
-            <div className="mt-2 flex flex-wrap items-center gap-3 text-sm">
+            <div className="mt-2 flex flex-wrap items-center gap-1 text-sm">
               {/*
                 * A review the seller cannot answer is one they can only argue
                 * with by deleting it, which they cannot do.
@@ -310,8 +317,8 @@ export default function BookReviews({ bookId }: { bookId: Id | undefined }) {
                 (replyTo?.id === review._id ? null : (
                   <button
                     type="button"
-                    className="underline"
-                    style={{ color: '#1565c0' }}
+                    className={TEXT_BUTTON}
+                    style={{ color: '#5b21b6' }}
                     onClick={() =>
                       setReplyTo({ id: String(review._id), body: review.reply?.body ?? '' })
                     }
@@ -323,8 +330,8 @@ export default function BookReviews({ bookId }: { bookId: Id | undefined }) {
               {data.isSeller && review.reply && (
                 <button
                   type="button"
-                  className="underline"
-                  style={{ color: '#c0392b' }}
+                  className={TEXT_BUTTON}
+                  style={{ color: '#dc2626' }}
                   onClick={() => void removeReply(String(review._id))}
                 >
                   Remove reply
@@ -335,8 +342,8 @@ export default function BookReviews({ bookId }: { bookId: Id | undefined }) {
               {!data.isSeller && data.reason !== 'sign-in' && data.mine?._id !== review._id && (
                 <button
                   type="button"
-                  className="underline"
-                  style={{ color: '#888' }}
+                  className={TEXT_BUTTON}
+                  style={{ color: '#6b7280' }}
                   disabled={reported.includes(String(review._id))}
                   onClick={() => void report(String(review._id))}
                 >
@@ -347,32 +354,31 @@ export default function BookReviews({ bookId }: { bookId: Id | undefined }) {
 
             {replyTo?.id === review._id && (
               <div className="mt-2">
-                <label htmlFor={`reply-${String(review._id)}`} className="mb-1 block text-sm">
+                <label
+                  htmlFor={`reply-${String(review._id)}`}
+                  className="mb-1 block text-sm font-semibold"
+                  style={{ color: '#374151' }}
+                >
                   Your reply, as the seller
                 </label>
                 <textarea
                   id={`reply-${String(review._id)}`}
                   rows={3}
-                  className="w-full rounded border p-2"
+                  className="field"
+                  style={{ minHeight: 90, padding: '12px 14px' }}
                   value={replyTo.body}
                   onChange={(e) => setReplyTo({ id: replyTo.id, body: e.target.value })}
                 />
-                <div className="mt-2 flex gap-2">
+                <div className="mt-2 flex flex-wrap gap-2">
                   <button
                     type="button"
                     disabled={replying}
-                    className="rounded px-3 py-2 text-white"
-                    style={{ background: '#1565c0', minHeight: 40 }}
+                    className="btn btn-primary"
                     onClick={() => void submitReply(String(review._id), replyTo.body)}
                   >
                     {replying ? 'Publishing...' : 'Publish reply'}
                   </button>
-                  <button
-                    type="button"
-                    className="rounded px-3 py-2"
-                    style={{ minHeight: 40 }}
-                    onClick={() => setReplyTo(null)}
-                  >
+                  <button type="button" className="btn btn-ghost" onClick={() => setReplyTo(null)}>
                     Cancel
                   </button>
                 </div>
@@ -381,6 +387,7 @@ export default function BookReviews({ bookId }: { bookId: Id | undefined }) {
           </li>
         ))}
       </ul>
+      )}
     </section>
   );
 }

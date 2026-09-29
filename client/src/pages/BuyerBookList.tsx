@@ -2,13 +2,23 @@ import { useState } from 'react';
 
 import type { BuyerOrderLine } from '@shared/api.js';
 import { useNavigate } from 'react-router-dom';
+import { FaSearch, FaUndoAlt } from 'react-icons/fa';
 
 import { useBuyerOrders } from '../hooks/queries.js';
 import { useDebounced } from '../hooks/useDebounced.js';
 import Pager from '../components/Pager.js';
+import '../styles/orderTracking.css';
 
 /** Orders per page. Each one may be several rows. */
 const PAGE_SIZE = 25;
+
+/** A return's pill: pending amber, approved green, anything else red. */
+const returnColours = (status: string) =>
+  status === 'pending'
+    ? { background: '#fff7ed', color: '#c2410c' }
+    : status === 'approved'
+      ? { background: '#ecfdf5', color: '#047857' }
+      : { background: '#fef2f2', color: '#b91c1c' };
 
 export default function BuyerBookList() {
   const [search, setSearch] = useState('');
@@ -64,53 +74,55 @@ export default function BuyerBookList() {
   // The page used to carry `overflow-x: hidden`, which cut the toolbar off
   // rather than letting it wrap: hidden overflow does not scroll, it amputates.
   return (
-    <div className="min-h-screen w-full p-4 sm:p-8" style={{ boxSizing: 'border-box', background: '#fff' }}>
-      <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-        <button
-          onClick={() => navigate('/profile')}
-          style={{
-            backgroundColor: '#2196F3',
-            color: 'white',
-            padding: '0.5rem 1rem',
-            border: 'none',
-            borderRadius: '4px',
-            cursor: 'pointer',
-            marginBottom: '1rem'
-          }}
-        >
-          ← Return to Profile
-        </button>
-        <input
-          type="text"
-          placeholder="Search by title, author, or seller..."
-          value={search}
-          onChange={(e) => {
-            setSearch(e.target.value);
-            setPage(1);
-          }}
-          style={{ padding: 8, width: 300, borderRadius: 4, border: '1px solid #ccc', marginLeft: 16 }}
-        />
-        <button
-          onClick={handleRefresh}
-          disabled={refreshing}
-          style={{
-            backgroundColor: '#43a047',
-            color: 'white',
-            padding: '0.5rem 1.5rem',
-            border: 'none',
-            borderRadius: '4px',
-            cursor: refreshing ? 'not-allowed' : 'pointer',
-            fontWeight: 'bold',
-            marginLeft: 16
-          }}
-        >
-          {refreshing ? 'Refreshing...' : 'Refresh'}
-        </button>
-      </div>
-      <h2>Your Purchased Books</h2>
-      <div style={{ overflowX: 'auto', background: '#fff' }}>
+    <div className="ot-page">
+      <div className="ot-wrap" style={{ maxWidth: 1200 }}>
+        <div className="ot-toolbar">
+          <button type="button" className="btn btn-ghost" onClick={() => navigate('/profile')}>
+            ← Return to Profile
+          </button>
+        </div>
+
+        <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
+          <div>
+            <p className="ot-kicker">📚 Your library</p>
+            <h1 className="m-0" style={{ fontSize: 'clamp(1.6rem, 1.2rem + 1.6vw, 2.2rem)' }}>Your Purchased Books</h1>
+            <p className="m-0 mt-1 text-sm text-ink-muted">
+              Something wrong with a book? Ask for a return from its row.
+            </p>
+          </div>
+        </div>
+
+        <div className="mb-2 flex flex-wrap items-center gap-2">
+          <div className="relative min-w-0 flex-1" style={{ maxWidth: 440, minWidth: 220 }}>
+            <FaSearch
+              aria-hidden="true"
+              className="pointer-events-none absolute top-1/2 left-4 -translate-y-1/2 text-ink-muted"
+            />
+            <input
+              type="text"
+              className="field"
+              style={{ paddingLeft: 42, borderRadius: 999 }}
+              placeholder="Search by title, author, or seller..."
+              value={search}
+              onChange={(e) => {
+                setSearch(e.target.value);
+                setPage(1);
+              }}
+            />
+          </div>
+          <button
+            type="button"
+            className="btn btn-ghost"
+            onClick={handleRefresh}
+            disabled={refreshing}
+            style={{ cursor: refreshing ? 'not-allowed' : 'pointer' }}
+          >
+            {refreshing ? 'Refreshing...' : 'Refresh'}
+          </button>
+        </div>
+
         <div className="table-scroll">
-        <table className="styled-table">
+        <table className="styled-table ot-table">
           <thead>
             <tr>
               <th>Title</th>
@@ -135,38 +147,35 @@ export default function BuyerBookList() {
             {loading ? (
               <tr><td colSpan={11}>Loading...</td></tr>
             ) : orders.length === 0 ? (
-              <tr><td colSpan={11}>No books purchased yet.</td></tr>
+              <tr><td colSpan={11} className="py-8 text-center text-ink-muted">No books purchased yet.</td></tr>
             ) : (
               orders.map((order, idx) => (
                 <tr key={order._id || idx}>
-                  <td>{order.title}</td>
-                  <td>
+                  <td className="font-semibold text-ink" style={{ minWidth: 140 }}>{order.title}</td>
+                  <td style={{ minWidth: 150 }}>
                     {order.returnStatus ? (
-                      <span className={`px-2 py-1 rounded ${
-                        order.returnStatus === 'pending' ? 'bg-yellow-200 text-yellow-800' :
-                        order.returnStatus === 'approved' ? 'bg-green-200 text-green-800' :
-                        'bg-red-200 text-red-800'
-                      }`}>
+                      <span className="ot-pill" style={returnColours(order.returnStatus)}>
                         Return {order.returnStatus}
                       </span>
                     ) : order.returnableUntil ? (
                       <div className="flex flex-col items-start gap-1">
                         <button
+                          type="button"
                           onClick={() => handleReturn(order)}
-                          className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
-                          style={{ minHeight: 44 }}
+                          className="btn btn-primary"
+                          style={{ minHeight: 44, padding: '0 18px' }}
                         >
-                          Return
+                          <FaUndoAlt aria-hidden="true" size={12} /> Return
                         </button>
-                        <span className="text-xs text-gray-600">
+                        <span className="text-xs text-ink-muted">
                           Until {new Date(order.returnableUntil).toLocaleDateString()}
                         </span>
                       </div>
                     ) : (
-                      <span className="text-gray-600">{returnLabel(order)}</span>
+                      <span className="text-sm text-ink-muted">{returnLabel(order)}</span>
                     )}
                     {order.returnStatus === 'approved' && (
-                      <p className="mt-1 text-xs text-gray-600">
+                      <p className="m-0 mt-1 text-xs text-ink-muted">
                         We have e-mailed you where to send it.
                       </p>
                     )}
@@ -176,7 +185,7 @@ export default function BuyerBookList() {
                   <td>{order.bookType}</td>
                   <td>{order.condition}</td>
                   <td>{order.pages}</td>
-                  <td>{order.price}</td>
+                  <td className="font-bold" style={{ color: '#ff5c35' }}>{order.price}</td>
                   <td>{order.quantity}</td>
                   <td>{order.sellerEmail}</td>
                   <td>{order.createdAt ? new Date(order.createdAt).toLocaleDateString() : ''}</td>

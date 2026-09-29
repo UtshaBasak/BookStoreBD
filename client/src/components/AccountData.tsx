@@ -79,9 +79,9 @@ export default function AccountData() {
   };
 
   return (
-    <section className="mt-6 w-full rounded-xl bg-white/95 p-4 text-left text-[#3b2f2f] sm:p-6">
-      <h2 className="mb-1 text-lg font-bold">Your data</h2>
-      <p className="mb-4 text-sm text-[#6b5d5d]">
+    <section className="card mt-6 w-full p-5 text-left text-ink sm:p-6">
+      <h2 className="mt-0 mb-1 text-lg">Your data</h2>
+      <p className="mb-4 text-sm text-ink-muted">
         Take a copy of everything this account holds, or close it for good.
       </p>
 
@@ -89,16 +89,15 @@ export default function AccountData() {
         type="button"
         onClick={downloadMyData}
         disabled={busy}
-        className="inline-flex min-h-[44px] items-center rounded-lg px-4 text-white"
-        style={{ background: '#8B6F6F', cursor: busy ? 'not-allowed' : 'pointer' }}
+        className="btn btn-primary disabled:cursor-not-allowed disabled:opacity-60"
       >
         Download my data
       </button>
 
-      <hr className="my-5 border-[#e7ded9]" />
+      <hr className="my-5 border-0 border-t border-line" />
 
-      <h3 className="mb-1 font-semibold text-[#c0392b]">Delete this account</h3>
-      <p className="mb-3 text-sm text-[#6b5d5d]">
+      <h3 className="mt-0 mb-1 text-base text-danger-dark">Delete this account</h3>
+      <p className="mb-4 text-sm text-ink-muted">
         This cannot be undone. Your profile, listings, cart and wishlist are removed.
         Orders are kept as accounting records, and your messages stay in the other
         person&rsquo;s conversation &mdash; both with your details stripped out and shown
@@ -109,8 +108,7 @@ export default function AccountData() {
         <button
           type="button"
           onClick={() => setConfirming(true)}
-          className="inline-flex min-h-[44px] items-center rounded-lg border px-4"
-          style={{ borderColor: '#c0392b', color: '#c0392b', background: 'transparent' }}
+          className="btn btn-danger"
         >
           Delete my account
         </button>
@@ -118,7 +116,7 @@ export default function AccountData() {
         <div className="flex flex-col gap-3">
           {/* The password again, not just the button: this is irreversible, and
               a borrowed laptop should not be enough to do it. */}
-          <label className="text-sm font-medium" htmlFor="delete-password">
+          <label className="text-sm font-bold text-ink-soft" htmlFor="delete-password">
             Enter your password to confirm
           </label>
           <input
@@ -127,18 +125,16 @@ export default function AccountData() {
             autoComplete="current-password"
             value={password}
             onChange={(event) => setPassword(event.target.value)}
-            className="min-h-[44px] w-full rounded-lg border border-[#d9cfc9] px-3 sm:max-w-sm"
+            className="field sm:max-w-sm"
           />
           <div className="flex flex-wrap gap-3">
             <button
               type="button"
               onClick={deleteMyAccount}
               disabled={busy || password.length === 0}
-              className="inline-flex min-h-[44px] items-center rounded-lg px-4 text-white"
-              style={{
-                background: password.length === 0 ? '#d9a7a1' : '#c0392b',
-                cursor: busy || password.length === 0 ? 'not-allowed' : 'pointer',
-              }}
+              // Solid red once it can be pressed: the last, irreversible step
+              // should not look like the harmless button that led to it.
+              className="btn btn-danger disabled:cursor-not-allowed disabled:opacity-50 enabled:border-danger-dark enabled:bg-danger-dark enabled:text-white enabled:hover:bg-danger"
             >
               Delete my account for good
             </button>
@@ -148,8 +144,7 @@ export default function AccountData() {
                 setConfirming(false);
                 setPassword('');
               }}
-              className="inline-flex min-h-[44px] items-center rounded-lg border border-[#d9cfc9] px-4"
-              style={{ background: 'transparent' }}
+              className="btn btn-ghost"
             >
               Keep my account
             </button>

@@ -1,8 +1,11 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
+import { FaCheckCircle, FaClock, FaSearch, FaSyncAlt, FaTruck, FaWallet } from 'react-icons/fa';
 
 import type { OrderLine, SellerOrderLine } from '@shared/api.js';
 
+import './Seller.css';
+import Logo from '../components/Logo.js';
 import { useSellerOrders } from '../hooks/queries.js';
 import { useDebounced } from '../hooks/useDebounced.js';
 import Pager from '../components/Pager.js';
@@ -22,7 +25,7 @@ const date = (iso: string | null | undefined) => (iso ? new Date(iso).toLocaleDa
  * server's, worked out by the same rule the payouts page uses; a seller used
  * to have no way of knowing whether, or when, they would be paid.
  */
-const paymentFor = (lines: SellerOrderLine[]): { text: string; tone: 'good' | 'plain' } => {
+const paymentFor = (lines: SellerOrderLine[]): { text: string; tone: 'good' | 'due' | 'plain' } => {
   const open = lines.filter((line) => line.payoutState !== 'returned');
   if (open.length === 0) {
     return { text: 'Returned by the buyer: nothing to pay, and no fee.', tone: 'plain' };
@@ -35,7 +38,7 @@ const paymentFor = (lines: SellerOrderLine[]): { text: string; tone: 'good' | 'p
   const waiting = open.find((line) => line.payoutState !== 'paid') ?? open[0];
   switch (waiting?.payoutState) {
     case 'due':
-      return { text: 'Due: we will send it to your bKash merchant number.', tone: 'plain' };
+      return { text: 'Due: we will send it to your bKash merchant number.', tone: 'due' };
     case 'in-return-window':
       return {
         text: `Payable from ${date(waiting.payableFrom)}, when the buyer's ${String(site.returns.windowDays)}-day return window closes.`,
@@ -49,6 +52,14 @@ const paymentFor = (lines: SellerOrderLine[]): { text: string; tone: 'good' | 'p
         tone: 'plain',
       };
   }
+};
+
+/** The colour of an order's status pill: waiting, moving, arrived, or gone wrong. */
+const statusTone = (status: string) => {
+  if (status === 'Delivered') return 'is-done';
+  if (status === 'Order Confirmed' || status === 'Pending') return 'is-pending';
+  if (/cancel|return|fail|reject/i.test(status)) return 'is-bad';
+  return 'is-progress';
 };
 
 export default function SellerOrderList() {
@@ -91,64 +102,61 @@ export default function SellerOrderList() {
   const grouped = groupOrdersByOrderNumber(orders);
 
   return (
-    <div style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100vh', background: '#fff', overflowY: 'auto' }}>
-      <div style={{ width: '100%', minHeight: '100vh', boxSizing: 'border-box', padding: '2rem', maxWidth: 1400, margin: '0 auto' }}>
-        <div style={{ marginBottom: '1rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <button
-            onClick={() => navigate('/profile')}
-            style={{
-              backgroundColor: '#2196F3',
-              color: 'white',
-              padding: '0.5rem 1rem',
-              border: 'none',
-              borderRadius: '4px',
-              cursor: 'pointer',
-              marginBottom: '1rem'
-            }}
-          >
-            ← Return to Profile
-          </button>
-          <button
-            onClick={fetchOrders}
-            disabled={refreshing}
-            style={{
-              backgroundColor: '#43a047',
-              color: 'white',
-              padding: '0.5rem 1.5rem',
-              border: 'none',
-              borderRadius: '4px',
-              cursor: refreshing ? 'not-allowed' : 'pointer',
-              fontWeight: 'bold',
-              marginLeft: 16,
-              marginBottom: '1rem'
-            }}
-          >
-            {refreshing ? 'Refreshing...' : 'Refresh'}
-          </button>
+    <div className="sl-page">
+      <header className="sl-topbar">
+        <Link to="/" className="sl-logo-link" aria-label={`${site.name} home`}>
+          <Logo size={34} />
+        </Link>
+        <button type="button" onClick={() => navigate('/profile')} className="btn btn-ghost">
+          ← Return to Profile
+        </button>
+      </header>
+
+      <div className="sl-wrap">
+        <section className="sl-hero">
+          <div className="sl-hero-row">
+            <div>
+              <span className="sl-kicker">📦 Sales</span>
+              <h2>Your Orders (as Seller)</h2>
+              <p className="sl-hero-sub">
+                What sold, what you receive after the {site.sellerFeePercent}% fee, and when it reaches your bKash.
+              </p>
+            </div>
+          </div>
+        </section>
+
+        <div className="sl-toolbar">
+          <div className="sl-search" style={{ maxWidth: 520 }}>
+            <FaSearch aria-hidden="true" />
+            <input
+              type="text"
+              placeholder="Search by order number, title, author, or buyer..."
+              aria-label="Search your orders"
+              value={search}
+              onChange={(e) => {
+                setSearch(e.target.value);
+                setPage(1);
+              }}
+              className="field"
+            />
+          </div>
+          <div className="sl-toolbar-actions">
+            <button type="button" onClick={fetchOrders} disabled={refreshing} className="btn btn-ghost">
+              <FaSyncAlt aria-hidden="true" /> {refreshing ? 'Refreshing...' : 'Refresh'}
+            </button>
+          </div>
         </div>
-        <h2>Your Orders (as Seller)</h2>
-        <input
-          type="text"
-          placeholder="Search by order number, title, author, or buyer..."
-          value={search}
-          onChange={(e) => {
-            setSearch(e.target.value);
-            setPage(1);
-          }}
-          style={{
-            padding: '0.5rem',
-            marginBottom: '1rem',
-            width: '100%',
-            maxWidth: '400px',
-            borderRadius: '4px',
-            border: '1px solid #ccc'
-          }}
-        />
-        <div style={{ overflowX: 'auto' }}>
+
+        <div>
           {loading ? (
-            <div>Loading...</div>
+            <div className="card sl-loading"><span className="sl-spinner" aria-hidden="true" /> Loading...</div>
           ) : Object.keys(grouped).length === 0 ? (
-            <div>No orders found.</div>
+            <div className="card sl-empty">
+              <span className="sl-empty-emoji" aria-hidden="true">🛍️</span>
+              <h3>No orders found.</h3>
+              <p>{search ? 'Try a different order number, title or buyer.' : 'When someone buys one of your books, it shows up here.'}</p>
+              {!search && <Link to="/add-book" className="btn btn-accent">List a book</Link>}
+            </div>
           ) : (
             Object.entries(grouped).map(([orderNumber, orderBooks]) => {
               const order = orderBooks[0];
@@ -161,81 +169,70 @@ export default function SellerOrderList() {
               const displayOrderNumber = order.orderNumber && !/@|T\d{2}:\d{2}/.test(order.orderNumber)
                 ? order.orderNumber
                 : orderNumber;
+              const status = order.status || 'Order Confirmed';
               return (
-                <div key={orderNumber} style={{
-                  marginBottom: 32,
-                  background: '#fff',
-                  borderRadius: 8,
-                  boxShadow: '0 2px 8px rgba(0,0,0,0.06)',
-                  padding: 24,
-                  position: 'relative'
-                }}>
-                  {/* Track Your Order button */}
-                  <button
-                    onClick={() => navigate(`/seller/order-tracking/${order.orderNumber ? order.orderNumber : order._id}`)}
-                    style={{
-                      position: 'absolute',
-                      top: 24,
-                      right: 24,
-                      backgroundColor: '#2196F3',
-                      color: 'white',
-                      border: 'none',
-                      borderRadius: 4,
-                      padding: '0.5rem 1.5rem',
-                      fontWeight: 'bold',
-                      cursor: 'pointer',
-                      zIndex: 2
-                    }}
-                  >
-                    Track Your Order
-                  </button>
-                  <div style={{ marginBottom: 8, fontWeight: 600, fontSize: 18 }}>
-                    Order Placed On: {order.createdAt ? new Date(order.createdAt).toLocaleDateString() : ''} <br />
-                    Order Number: <span style={{ color: '#e65100' }}>{displayOrderNumber}</span>
-                    <span style={{ marginLeft: 24, color: '#2196F3', fontWeight: 500 }}>
-                      Status: {order.status || 'Order Confirmed'}
-                    </span>
-                    <br />
-                    Buyer: <span style={{ color: '#2196F3' }}>{order.buyerEmail}</span>
+                <article key={orderNumber} className="card sl-card sl-order">
+                  <div className="sl-order-head">
+                    <div style={{ minWidth: 0 }}>
+                      <p className="sl-order-no">
+                        <span className="sl-muted" style={{ fontSize: '0.85rem', fontWeight: 700 }}>Order Number:</span>
+                        <span className="sl-order-no-value">{displayOrderNumber}</span>
+                        <span className={`sl-pill ${statusTone(status)}`}>
+                          <span className="sr-only">Status: </span>{status}
+                        </span>
+                      </p>
+                      <p className="sl-order-meta">
+                        <span><b>Order Placed On:</b> {order.createdAt ? new Date(order.createdAt).toLocaleDateString() : ''}</span>
+                        <span><b>Buyer:</b> {order.buyerEmail}</span>
+                      </p>
+                    </div>
+                    {/* Track Your Order button */}
+                    <button
+                      type="button"
+                      onClick={() => navigate(`/seller/order-tracking/${order.orderNumber ? order.orderNumber : order._id}`)}
+                      className="btn btn-primary"
+                    >
+                      <FaTruck aria-hidden="true" /> Track Your Order
+                    </button>
                   </div>
                   <div className="table-scroll">
-                  <table className="styled-table">
-  <thead>
-    <tr>
-      <th>Title</th>
-      <th>Author</th>
-      <th>Category</th>
-      <th>Book Type</th>
-      <th>Condition</th>
-      <th>No. of Pages</th>
-      <th>Price (Tk.)</th>
-      <th>Quantity</th>
-      <th>Total Cost</th>
-    </tr>
-  </thead>
-
-                    <tbody>
-                      {orderBooks.map((ob, idx) => (
-                        <tr key={ob._id || idx}>
-                          <td>{ob.title}</td>
-                          <td>{ob.author}</td>
-                          <td>{Array.isArray(ob.category) ? ob.category.join(', ') : ob.category}</td>
-                          <td>{ob.bookType}</td>
-                          <td>{ob.condition}</td>
-                          <td>{ob.pages}</td>
-                          <td>{ob.price}</td>
-                          <td>{ob.quantity}</td>
-                          <td>{(Number(ob.price) * Number(ob.quantity)).toFixed(2)}</td>
+                    <table className="styled-table sl-table sl-stack">
+                      <thead>
+                        <tr>
+                          <th>Title</th>
+                          <th>Author</th>
+                          <th>Category</th>
+                          <th>Book Type</th>
+                          <th>Condition</th>
+                          <th>No. of Pages</th>
+                          <th>Price (Tk.)</th>
+                          <th>Quantity</th>
+                          <th>Total Cost</th>
                         </tr>
-                      ))}
-                    </tbody>
-                    <tfoot>
-                      <tr>
-                        <td colSpan={8} style={{ textAlign: 'right', fontWeight: 600 }}>Order Total:</td>
-                        <td style={{ fontWeight: 700 }}>{totalCost.toFixed(2)}</td>
-                      </tr>
-                    </tfoot>
-                  </table>
+                      </thead>
+
+                      <tbody>
+                        {orderBooks.map((ob, idx) => (
+                          <tr key={ob._id || idx}>
+                            <td data-label="Title" className="sl-title-cell">{ob.title}</td>
+                            <td data-label="Author">{ob.author}</td>
+                            <td data-label="Category">{Array.isArray(ob.category) ? ob.category.join(', ') : ob.category}</td>
+                            <td data-label="Book Type">{ob.bookType}</td>
+                            <td data-label="Condition">{ob.condition}</td>
+                            <td data-label="No. of Pages">{ob.pages}</td>
+                            <td data-label="Price (Tk.)" className="sl-num">৳{ob.price}</td>
+                            <td data-label="Quantity">{ob.quantity}</td>
+                            <td data-label="Total Cost" className="sl-price">৳{(Number(ob.price) * Number(ob.quantity)).toFixed(2)}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                      <tfoot>
+                        <tr>
+                          <td colSpan={8} style={{ textAlign: 'right', fontWeight: 700 }}>Order Total:</td>
+                          <td className="sl-price">৳{totalCost.toFixed(2)}</td>
+                        </tr>
+                      </tfoot>
+                    </table>
                   </div>
                   {/*
                     The terms say the seller can see this here. Outside the
@@ -243,51 +240,39 @@ export default function SellerOrderList() {
                     it off the screen. Delivery is not part of the book total,
                     so it is not in the fee.
                   */}
-                  <dl
-                    style={{
-                      display: 'grid',
-                      gridTemplateColumns: 'auto auto',
-                      justifyContent: 'end',
-                      columnGap: 24,
-                      rowGap: 4,
-                      margin: '12px 0 0',
-                      fontSize: 15,
-                    }}
-                  >
-                    <dt>Books{payableTotal !== totalCost ? ' (not returned)' : ''}</dt>
-                    <dd style={{ margin: 0, textAlign: 'right' }}>{payableTotal.toFixed(2)} Tk</dd>
-                    <dt>{site.name} fee ({site.sellerFeePercent}%)</dt>
-                    <dd style={{ margin: 0, textAlign: 'right' }}>-{sellerFee(payableTotal).toFixed(2)} Tk</dd>
-                    <dt style={{ fontWeight: 700 }}>You receive</dt>
-                    <dd style={{ margin: 0, textAlign: 'right', fontWeight: 700 }}>
-                      {(payableTotal - sellerFee(payableTotal)).toFixed(2)} Tk
-                    </dd>
-                  </dl>
-                  <p
-                    data-testid="payout-state"
-                    style={{
-                      margin: '10px 0 0',
-                      textAlign: 'right',
-                      fontSize: 14,
-                      color: payment.tone === 'good' ? '#2e7d32' : '#555',
-                      fontWeight: payment.tone === 'good' ? 600 : 400,
-                    }}
-                  >
-                    {payment.text}
-                  </p>
-                </div>
+                  <div className="sl-order-foot">
+                    <dl className="sl-summary">
+                      <dt>Books{payableTotal !== totalCost ? ' (not returned)' : ''}</dt>
+                      <dd>{payableTotal.toFixed(2)} Tk</dd>
+                      <dt>{site.name} fee ({site.sellerFeePercent}%)</dt>
+                      <dd>-{sellerFee(payableTotal).toFixed(2)} Tk</dd>
+                      <dt className="sl-receive">You receive</dt>
+                      <dd className="sl-receive">
+                        {(payableTotal - sellerFee(payableTotal)).toFixed(2)} Tk
+                      </dd>
+                    </dl>
+                  </div>
+                  <div className="sl-payout-row">
+                    <p data-testid="payout-state" className={`sl-payout is-${payment.tone}`}>
+                      {payment.tone === 'good' ? <FaCheckCircle aria-hidden="true" /> : payment.tone === 'due' ? <FaWallet aria-hidden="true" /> : <FaClock aria-hidden="true" />}
+                      <span>{payment.text}</span>
+                    </p>
+                  </div>
+                </article>
               );
             })
           )}
 
-          <Pager
-            page={currentPage}
-            pageCount={pageCount}
-            pageSize={PAGE_SIZE}
-            total={total}
-            onPage={setPage}
-            noun="orders"
-          />
+          <div className="sl-pager">
+            <Pager
+              page={currentPage}
+              pageCount={pageCount}
+              pageSize={PAGE_SIZE}
+              total={total}
+              onPage={setPage}
+              noun="orders"
+            />
+          </div>
         </div>
       </div>
     </div>

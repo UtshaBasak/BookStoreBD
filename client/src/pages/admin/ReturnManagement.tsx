@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
+import { FaCheck, FaImage, FaSearch, FaTimes, FaUndoAlt } from 'react-icons/fa';
 
 import type { Id, ReturnStatus } from '@shared/api.js';
 
@@ -9,6 +10,11 @@ import { useDebounced } from '../../hooks/useDebounced.js';
 import { useToast } from '../../hooks/useToast.js';
 import { messageOf } from '../../utils/apiError.js';
 import Pager from '../../components/Pager.js';
+import '../AdminPanel.css';
+
+/** The colour of a request's status pill. */
+const statusTone = (status: string) =>
+  status === 'approved' ? 'is-good' : status === 'rejected' ? 'is-bad' : 'is-pending';
 
 /** Requests per page. */
 const PAGE_SIZE = 25;
@@ -85,94 +91,125 @@ export default function ReturnManagement() {
   };
 
   return (
-    <div className="p-4">
-      <h2 className="text-2xl font-bold mb-4">Return Request Management</h2>
+    <div className="admin-page">
+      <header className="admin-page-head">
+        <div>
+          <h2 className="admin-page-title">
+            <span className="admin-page-icon" aria-hidden="true">
+              <FaUndoAlt />
+            </span>
+            Return Request Management
+          </h2>
+          <p className="admin-lede">
+            Check the buyer&apos;s photographs, then approve or reject. An approved refund is paid to
+            the bKash number shown.
+          </p>
+        </div>
+      </header>
 
-      <div className="mb-4">
-        <input
-          type="text"
-          placeholder="Search by book, buyer, seller, or description..."
-          value={search}
-          onChange={(e) => {
-            setSearch(e.target.value);
-            setPage(1);
-          }}
-          style={{ padding: 8, width: 320, maxWidth: '100%', borderRadius: 4, border: '1px solid #ccc' }}
-        />
+      <div className="admin-toolbar">
+        <div className="admin-search">
+          <FaSearch className="admin-search-icon" aria-hidden="true" />
+          <input
+            type="text"
+            className="field"
+            placeholder="Search by book, buyer, seller, or description..."
+            value={search}
+            onChange={(e) => {
+              setSearch(e.target.value);
+              setPage(1);
+            }}
+          />
+        </div>
       </div>
 
       {loading ? (
-        <p>Loading...</p>
+        <p className="admin-loading">Loading...</p>
       ) : returnRequests.length === 0 ? (
-        <p>No return requests found</p>
+        <div className="admin-card admin-empty">
+          <span className="admin-empty-mark" aria-hidden="true">
+            📦
+          </span>
+          <p>No return requests found</p>
+        </div>
       ) : (
-        <div className="overflow-x-auto tp-9">
-          <table className="min-w-full bg-white border border-gray-300">
+        <div className="admin-card">
+        <div className="table-scroll">
+          <table className="styled-table">
             <thead>
               <tr>
-                <th className="p-2">Book Title</th>
-                <th className="p-2">Order</th>
-                <th className="p-2">Buyer</th>
-                <th className="p-2">Refund to (bKash)</th>
-                <th className="p-2">Seller</th>
-                <th className="p-2">Description</th>
-                <th className="p-2">Images</th>
-                <th className="p-2">Status</th>
-                <th className="p-2">Actions</th>
+                <th>Book Title</th>
+                <th>Order</th>
+                <th>Buyer</th>
+                <th>Refund to (bKash)</th>
+                <th>Seller</th>
+                <th>Description</th>
+                <th>Images</th>
+                <th>Status</th>
+                <th className="admin-sticky-end">Actions</th>
               </tr>
             </thead>
             <tbody>
               {returnRequests.map((request) => (
-                <tr key={request._id} className="border-b hover:bg-gray-50">
-                  <td className="p-2">{request.bookTitle || 'N/A'}</td>
-                  <td className="p-2">
+                <tr key={request._id}>
+                  <td className="admin-cell-strong" style={{ minWidth: 140 }}>{request.bookTitle || 'N/A'}</td>
+                  <td>
                     {request.orderNumber ? (
-                      <Link to={`/admin/order-tracking/${request.orderNumber}`}>{request.orderNumber}</Link>
+                      <Link className="admin-mono" to={`/admin/order-tracking/${request.orderNumber}`}>{request.orderNumber}</Link>
                     ) : (
                       'N/A'
                     )}
                   </td>
-                  <td className="p-2">{request.userEmail || 'N/A'}</td>
+                  <td>{request.userEmail || 'N/A'}</td>
                   {/* Refunds are paid by bKash; without this an approval could not be paid. */}
-                  <td className="p-2">{request.refundBkash || 'Not given'}</td>
-                  <td className="p-2">{request.sellerEmail || 'N/A'}</td>
-                  <td className="p-2">{request.defectDescription || 'N/A'}</td>
-                  <td className="p-2">
+                  <td className="admin-mono admin-nowrap">{request.refundBkash || 'Not given'}</td>
+                  <td>{request.sellerEmail || 'N/A'}</td>
+                  <td style={{ minWidth: 200, maxWidth: 320 }}>{request.defectDescription || 'N/A'}</td>
+                  <td>
                     {request.images && request.images.length > 0 ? (
-                      <div className="flex flex-wrap gap-2">
+                      <div className="admin-row-actions" style={{ flexWrap: 'nowrap' }}>
                         {request.images.map((image, index) => (
                           <button
                             key={image}
                             type="button"
                             onClick={() => void openImage(image)}
                             disabled={opening === image}
-                            className="bg-blue-500 text-white px-2 py-1 rounded"
+                            className="btn btn-ghost admin-btn-sm"
                           >
+                            <FaImage aria-hidden="true" />
                             {opening === image ? 'Opening...' : `View ${index + 1}`}
                           </button>
                         ))}
                       </div>
                     ) : (
-                      'No images'
+                      <span className="admin-cell-muted">No images</span>
                     )}
                   </td>
-                  <td className="p-2">{request.status || 'pending'}</td>
-                  <td className="p-2">
+                  <td>
+                    <span className={`badge admin-status ${statusTone(request.status || 'pending')}`}>
+                      {request.status || 'pending'}
+                    </span>
+                  </td>
+                  <td className="admin-sticky-end">
                     {request.status === 'pending' && (
-                      <>
+                      <div className="admin-row-actions" style={{ flexWrap: 'nowrap' }}>
                         <button
+                          type="button"
                           onClick={() => handleStatusUpdate(request._id, 'approved')}
-                          className="bg-green-500 text-white px-2 py-1 rounded mr-2"
+                          className="btn btn-primary admin-btn-sm"
                         >
+                          <FaCheck aria-hidden="true" />
                           Approve
                         </button>
                         <button
+                          type="button"
                           onClick={() => handleStatusUpdate(request._id, 'rejected')}
-                          className="bg-red-500 text-white px-2 py-1 rounded"
+                          className="btn btn-danger admin-btn-sm"
                         >
+                          <FaTimes aria-hidden="true" />
                           Reject
                         </button>
-                      </>
+                      </div>
                     )}
                   </td>
                 </tr>
@@ -180,16 +217,19 @@ export default function ReturnManagement() {
             </tbody>
           </table>
         </div>
+        </div>
       )}
 
-      <Pager
-        page={currentPage}
-        pageCount={pageCount}
-        pageSize={PAGE_SIZE}
-        total={total}
-        onPage={setPage}
-        noun="requests"
-      />
+      <div className="admin-pager">
+        <Pager
+          page={currentPage}
+          pageCount={pageCount}
+          pageSize={PAGE_SIZE}
+          total={total}
+          onPage={setPage}
+          noun="requests"
+        />
+      </div>
     </div>
   );
 }

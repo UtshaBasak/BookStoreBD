@@ -1,6 +1,18 @@
 import { useState, useMemo } from 'react';
-import { FaSearch, FaHome, FaHeart, FaRegHeart, FaShoppingCart } from 'react-icons/fa';
-import { useLocation, useNavigate } from 'react-router-dom';
+import {
+  FaSearch,
+  FaHome,
+  FaHeart,
+  FaRegHeart,
+  FaShoppingCart,
+  FaShoppingBag,
+  FaSlidersH,
+  FaChevronDown,
+  FaChevronUp,
+} from 'react-icons/fa';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
+import './Homepage.css';
+import './Filter.css';
 
 import type { BookType, CatalogueParams, CatalogueSort } from '@shared/api.js';
 
@@ -19,6 +31,7 @@ import { flagsFor } from '../utils/bookFlags.js';
 import { PLACEHOLDER_IMAGE } from '../utils/safeImageSrc.js';
 import { sized, IMAGE_WIDTHS } from '../utils/imageUrl.js';
 import { Stars } from '../components/Stars.js';
+import Logo from '../components/Logo.js';
 
 interface FilterState {
   bookType: string;
@@ -44,6 +57,8 @@ interface FilterEdits {
  * screenful of base64 covers to decode at six hundred.
  */
 const PAGE_SIZE = 12;
+
+const capitalise = (value: string): string => value.charAt(0).toUpperCase() + value.slice(1);
 
 const categories = [
   'Fiction',
@@ -247,109 +262,147 @@ export default function BookFilter() {
     toggleCartMutation({ bookId, inCart: Boolean(cart[bookId]) });
   };
 
+  /** One pill in the panel. `aria-pressed` says out loud which ones are on. */
+  const chipClass = (on: boolean) => `chip${on ? ' is-on' : ''}`;
+
   return (
-    // Layout in Tailwind classes from here down, rather than in inline style
-    // objects: a media query is the one thing an inline style cannot express,
-    // and this page was 682px wider than a phone because of it.
-    <div
-      className="min-h-screen w-full bg-cover bg-fixed bg-center bg-no-repeat p-4 text-white sm:p-8"
-      style={{
-        backgroundImage: `url('https://images.unsplash.com/photo-1524995997946-a1c2e315a42f?auto=format&fit=crop&w=1950&q=80')`,
-        boxSizing: 'border-box',
-        fontFamily: 'Arial, sans-serif',
-      }}
-    >
+    // Layout in Tailwind classes and Filter.css from here down, rather than
+    // in inline style objects: a media query is the one thing an inline style
+    // cannot express, and this page was 682px wider than a phone because of it.
+    <div className="browse">
+      {/* The site's own header, as on the homepage: the logo, the search and
+          the way home. The page used to sit on a photograph of a library. */}
+      <header className="header">
+        <div className="logo">
+          <Link to="/" className="logo-button">
+            <Logo size={38} />
+          </Link>
+        </div>
+
+        <div className="search-bar" role="search">
+          <FaSearch className="search-icon" aria-hidden="true" />
+          <input
+            type="search"
+            id="catalogue-search"
+            name="search"
+            aria-label="Search books or authors"
+            placeholder="Search books or authors..."
+            value={searchInput}
+            onChange={(e) => setSearchInput(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') handleSearch();
+            }}
+          />
+          <button type="button" onClick={handleSearch} aria-label="Search">
+            Search
+          </button>
+        </div>
+
+        <div className="user-options">
+          <button
+            type="button"
+            className="icon-button browse-home"
+            style={{ color: '#6d28d9' }}
+            onClick={() => navigate('/')}
+            title="Go to Homepage"
+            aria-label="Go to Homepage"
+          >
+            <FaHome />
+          </button>
+          <button
+            type="button"
+            className="icon-button"
+            style={{ color: '#ff5c35' }}
+            onClick={() => navigate('/wishlist')}
+            title="Wishlist"
+            aria-label="Wishlist"
+          >
+            <FaHeart />
+          </button>
+          <Link to="/cart" className="icon-link" style={{ color: '#6d28d9' }} title="Cart" aria-label="Cart">
+            <FaShoppingBag />
+          </Link>
+          {!signedIn && (
+            <Link to="/sign-in" className="btn btn-primary" style={{ minHeight: 40, padding: '0 1.1rem' }}>
+              Sign in
+            </Link>
+          )}
+        </div>
+      </header>
+
       {/* One column on a phone, sidebar beside the results from `lg` up. */}
-      <div className="flex flex-col gap-6 lg:flex-row lg:gap-8">
+      <main className="browse-main">
         {/* Opens the panel below, and says how many filters are on so that a
             collapsed panel cannot hide the reason a search looks empty. */}
         <button
           type="button"
-          className="flex w-full items-center justify-between gap-2 rounded-xl px-4 py-3 text-left font-semibold text-white lg:hidden"
-          style={{ backgroundColor: 'rgba(0, 0, 0, 0.55)' }}
+          className="filter-toggle"
           onClick={() => setShowFilters((open) => !open)}
           aria-expanded={showFilters}
           aria-controls="filter-panel"
         >
-          <span>
-            Filters
-            {activeFilterCount > 0 ? ` · ${activeFilterCount} on` : ''}
+          <span className="inline-flex items-center gap-2">
+            <FaSlidersH aria-hidden="true" style={{ color: '#6d28d9' }} />
+            <span>
+              Filters
+              {activeFilterCount > 0 ? ` · ${activeFilterCount} on` : ''}
+            </span>
           </span>
-          <span aria-hidden="true">{showFilters ? '\u25b2' : '\u25bc'}</span>
+          <span aria-hidden="true" style={{ color: '#6d28d9' }}>
+            {showFilters ? <FaChevronUp /> : <FaChevronDown />}
+          </span>
         </button>
 
         {/* Filter Section */}
-        <div
+        <aside
           id="filter-panel"
-          // Full width above the results on a phone; a sticky 250px column
+          // Full width above the results on a phone; a sticky 280px column
           // beside them on a desktop, where there is room for one.
-          className={`${showFilters ? 'flex' : 'hidden'} z-30 h-fit w-full flex-col gap-4 self-start rounded-xl p-4 lg:sticky lg:top-6 lg:flex lg:w-[250px] lg:shrink-0`}
-          style={{ backgroundColor: 'rgba(0, 0, 0, 0.4)' }}
+          className={`${showFilters ? 'flex' : 'hidden'} card filter-panel z-30 lg:flex`}
+          aria-label="Filters"
         >
-          {/* Book Type (as button list, equal boxes) */}
-          <div style={{ backgroundColor: 'rgba(0,0,0,0.6)', borderRadius: '12px', padding: '1rem' }}>
-            <strong>Book Type</strong>
-            <div style={{ marginTop: '0.5rem', display: 'flex', flexDirection: 'column', gap: 4 }}>
+          {/* Book Type */}
+          <div className="filter-group">
+            <h2>Book Type</h2>
+            <div className="filter-chips">
               {['old', 'new'].map((type) => (
                 <button
                   key={type}
                   type="button"
-                  style={{
-                    background: filters.bookType === type ? '#e65100' : '#fff',
-                    color: filters.bookType === type ? '#fff' : '#222',
-                    border: 'none',
-                    borderRadius: 6,
-                    padding: '8px 0',
-                    cursor: 'pointer',
-                    fontWeight: 500,
-                    fontSize: 15,
-                    textAlign: 'center',
-                    width: '100%',
-                    minHeight: 44,
-                    transition: 'background 0.2s, color 0.2s'
-                  }}
+                  className={chipClass(filters.bookType === type)}
+                  aria-pressed={filters.bookType === type}
                   onClick={() => handleRadioToggle('bookType', type)}
                 >
+                  {/* Hidden from the name of the button, which stays "OLD". */}
+                  <span aria-hidden="true">{type === 'old' ? '♻️' : '✨'}</span>
                   {type.toUpperCase()}
                 </button>
               ))}
             </div>
           </div>
-          {/* Condition (as button list, equal boxes, only for old) */}
+          {/* Condition (only for old) */}
           {filters.bookType === 'old' && (
-            <div style={{ backgroundColor: 'rgba(0,0,0,0.6)', borderRadius: '12px', padding: '1rem' }}>
-              <strong>Condition</strong>
-              <div style={{ marginTop: '0.5rem', display: 'flex', flexDirection: 'column', gap: 4 }}>
+            <div className="filter-group">
+              <h2>Condition</h2>
+              <div className="filter-chips">
                 {['mint', 'very good', 'good', 'fair', 'poor'].map((cond) => (
                   <button
                     key={cond}
                     type="button"
-                    style={{
-                      background: filters.condition === cond ? '#e65100' : '#fff',
-                      color: filters.condition === cond ? '#fff' : '#222',
-                      border: 'none',
-                      borderRadius: 6,
-                      padding: '8px 0',
-                      cursor: 'pointer',
-                      fontWeight: 500,
-                      fontSize: 15,
-                      textAlign: 'center',
-                      width: '100%',
-                      minHeight: 44,
-                      transition: 'background 0.2s, color 0.2s'
-                    }}
+                    className={chipClass(filters.condition === cond)}
+                    aria-pressed={filters.condition === cond}
                     onClick={() => handleRadioToggle('condition', cond)}
                   >
-                    {cond.charAt(0).toUpperCase() + cond.slice(1)}
+                    {capitalise(cond)}
                   </button>
                 ))}
               </div>
             </div>
           )}
-          {/* Category (multi-select, equal boxes, vertical list) */}
-          <div style={{ backgroundColor: 'rgba(0,0,0,0.6)', borderRadius: '12px', padding: '1rem' }}>
-            <strong>Category</strong>
-            <div style={{ marginTop: '0.5rem', display: 'flex', flexDirection: 'column', gap: 4 }}>
+          {/* Category (multi-select) */}
+          <div className="filter-group">
+            <h2>Category</h2>
+            <div className="filter-chips">
               {categories.map((cat) => {
                 const catKey = cat.toLowerCase();
                 const selected = filters.category.includes(catKey);
@@ -357,21 +410,8 @@ export default function BookFilter() {
                   <button
                     key={cat}
                     type="button"
-                    style={{
-                      background: selected ? '#e65100' : '#fff',
-                      color: selected ? '#fff' : '#222',
-                      border: 'none',
-                      borderRadius: 6,
-                      padding: '8px 0',
-                      marginBottom: 0,
-                      cursor: 'pointer',
-                      fontWeight: 500,
-                      fontSize: 15,
-                      textAlign: 'center',
-                      width: '100%',
-                      minHeight: 44,
-                      transition: 'background 0.2s, color 0.2s'
-                    }}
+                    className={chipClass(selected)}
+                    aria-pressed={selected}
                     onClick={() => handleCategoryToggle(catKey)}
                   >
                     {cat}
@@ -381,22 +421,17 @@ export default function BookFilter() {
             </div>
           </div>
           {/* Price Range */}
-          <div
-            style={{
-              backgroundColor: 'rgba(0,0,0,0.6)',
-              borderRadius: '12px',
-              padding: '1rem',
-            }}
-          >
-            <strong>Price (Taka)</strong>
-            <div style={{ marginTop: '0.5rem' }}>
+          <div className="filter-group">
+            <h2>Price (Taka)</h2>
+            <div className="price-fields">
               <input
                 type="number"
                 id="price-from"
                 name="minPrice"
                 aria-label="Lowest price in Taka"
                 placeholder="From"
-                style={{ width: '80px', marginRight: '0.5rem' }}
+                className="field"
+                inputMode="numeric"
                 value={priceFilter.from}
                 onChange={(e) => {
                   const value = e.target.value;
@@ -404,13 +439,15 @@ export default function BookFilter() {
                   update({ page: 1 });
                 }}
               />
+              <span aria-hidden="true">–</span>
               <input
                 type="number"
                 id="price-to"
                 name="maxPrice"
                 aria-label="Highest price in Taka"
                 placeholder="To"
-                style={{ width: '80px' }}
+                className="field"
+                inputMode="numeric"
                 value={priceFilter.to}
                 onChange={(e) => {
                   const value = e.target.value;
@@ -421,15 +458,9 @@ export default function BookFilter() {
             </div>
           </div>
           {/* Rating */}
-          <div
-            style={{
-              backgroundColor: 'rgba(0,0,0,0.6)',
-              borderRadius: '12px',
-              padding: '1rem',
-            }}
-          >
-            <strong>Rating</strong>
-            <div className="mt-2 flex flex-col gap-1">
+          <div className="filter-group">
+            <h2>Rating</h2>
+            <div className="filter-chips">
               {[4, 3, 2].map((floor) => (
                 <button
                   key={floor}
@@ -438,41 +469,30 @@ export default function BookFilter() {
                     setFilters((prev) => ({ ...prev, rating: prev.rating === floor ? 0 : floor }))
                   }
                   aria-pressed={filters.rating === floor}
-                  className="flex min-h-[44px] items-center gap-2 rounded-md px-3"
-                  style={{
-                    background: filters.rating === floor ? '#e65100' : '#fff',
-                    color: filters.rating === floor ? '#fff' : '#222',
-                    border: 'none',
-                    cursor: 'pointer',
-                  }}
+                  className={chipClass(filters.rating === floor)}
                 >
-                  <Stars value={floor} size={14} />
-                  <span style={{ fontSize: 14 }}>&amp; up</span>
+                  {/* A white backing keeps the orange stars legible on the
+                      violet of a chosen chip. */}
+                  <span
+                    className="inline-flex rounded-full px-1.5 py-0.5"
+                    style={{ background: filters.rating === floor ? '#fff' : 'transparent' }}
+                  >
+                    <Stars value={floor} size={13} />
+                  </span>
+                  <span>&amp; up</span>
                 </button>
               ))}
             </div>
           </div>
 
           {/* In Stock Toggle */}
-          <div style={{ backgroundColor: 'rgba(0,0,0,0.6)', borderRadius: '12px', padding: '1rem' }}>
-            <strong>Stock</strong>
-            <div style={{ marginTop: '0.5rem' }}>
+          <div className="filter-group">
+            <h2>Stock</h2>
+            <div className="filter-chips">
               <button
                 type="button"
-                style={{
-                  background: inStockOnly ? '#e65100' : '#fff',
-                  color: inStockOnly ? '#fff' : '#222',
-                  border: 'none',
-                  borderRadius: 6,
-                  padding: '8px 0',
-                  cursor: 'pointer',
-                  fontWeight: 500,
-                  fontSize: 15,
-                  textAlign: 'center',
-                  width: '100%',
-                  minHeight: 44,
-                  transition: 'background 0.2s, color 0.2s'
-                }}
+                className={chipClass(inStockOnly)}
+                aria-pressed={inStockOnly}
                 onClick={() => {
                   setInStockOnly(v => {
                     const next = !v;
@@ -489,80 +509,30 @@ export default function BookFilter() {
               </button>
             </div>
           </div>
-        </div>
+        </aside>
 
-        {/* Right Side: Search + Results */}
-        {/* `min-w-0`: without it a flex child refuses to shrink below the
-            width of its content, which is how a two-column grid of book cards
-            pushed the page sideways. */}
-        <div className="flex min-w-0 flex-1 flex-col gap-4">
-          {/* Search, sort and home. Wraps onto a second line when it has to. */}
-          <div className="relative flex w-full flex-wrap items-center gap-4">
-            {/* Search Bar */}
-            <div className="relative flex min-w-[180px] flex-1 items-center">
-              <input
-                type="search"
-                id="catalogue-search"
-                name="search"
-                aria-label="Search books or authors"
-                placeholder="Search books or authors..."
-                value={searchInput}
-                onChange={(e) => setSearchInput(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') handleSearch();
-                }}
-                style={{
-                  background: 'rgba(0,0,0,0.5)',
-                  border: 'none',
-                  color: 'white',
-                  fontSize: '1rem',
-                  outline: 'none',
-                  width: '100%',
-                  borderRadius: 25,
-                  padding: '0.5rem 1rem',
-                  paddingRight: 44
-                }}
-              />
-              {/* Search Button (inside bar, rightmost) */}
-              <button
-                className="icon-button"
-                style={{
-                  position: 'absolute',
-                  right: 6,
-                  top: '50%',
-                  transform: 'translateY(-50%)',
-                  background: '#fff',
-                  color: '#e65100',
-                  borderRadius: '50%',
-                  boxShadow: '0 1px 4px rgba(0,0,0,0.10)'
-                }}
-                onClick={handleSearch}
-                aria-label="Search"
-              >
-                <FaSearch />
-              </button>
+        {/* Right Side: Results. `min-width: 0` in Filter.css: without it a
+            flex child refuses to shrink below the width of its content, which
+            is how a grid of book cards pushed the page sideways. */}
+        <section className="results" aria-label="Results">
+          <div className="results-bar">
+            <div className="min-w-0">
+              <h1>{searchTerm ? `Results for “${searchTerm}”` : 'Browse books'}</h1>
+              <p className="results-count">
+                {catalogue ? `${total} ${total === 1 ? 'book' : 'books'}` : 'Finding books…'}
+              </p>
             </div>
-            {/* Sort Dropdown (right endpoint) */}
+            {/* Sort Dropdown */}
             <select
               id="catalogue-sort"
               name="sort"
               aria-label="Sort books"
+              className="field sort-field"
               value={sortOption}
               onChange={(e) => {
                 setSortOption(e.target.value as CatalogueSort);
                 // Page 3 of an order nobody is using any more is a dead end.
                 update({ page: 1 });
-              }}
-              style={{
-                background: '#fff',
-                color: '#222',
-                border: 'none',
-                borderRadius: 6,
-                padding: '0.5rem 1rem',
-                minHeight: 44,
-                fontWeight: 500,
-                fontSize: 15,
-                cursor: 'pointer',
               }}
               title="Sort books"
             >
@@ -571,186 +541,124 @@ export default function BookFilter() {
               <option value="priceHighLow">Price - High to Low</option>
               <option value="priceLowHigh">Price - Low to High</option>
             </select>
-            {/* Home Button (right, separated) */}
-            <button
-              className="icon-button ml-auto"
-              style={{
-                background: '#fff',
-                color: '#222',
-                borderRadius: '50%',
-                boxShadow: '0 2px 8px rgba(0,0,0,0.10)'
-              }}
-              onClick={() => navigate('/')}
-              title="Go to Homepage"
-              aria-label="Go to Homepage"
-            >
-              <FaHome />
-            </button>
           </div>
 
-          {/* Book List */}
-          {/* One card per row on a phone, two from `md` up. It was always two,
-              and two cards of this width do not fit in 360px. */}
+          {/* Book List: two to a row on a phone, as many as fit above that. */}
           <div
-            className="grid w-full grid-cols-1 gap-6 rounded-xl p-4 md:grid-cols-2"
+            className="results-grid"
             style={{
-              backgroundColor: 'rgba(0, 0, 0, 0.4)',
               // The previous page stays on screen while the next one is
               // fetched, dimmed rather than replaced by an empty grid.
-              opacity: isFetching ? 0.6 : 1,
-              transition: 'opacity 150ms ease',
+              opacity: isFetching && catalogue ? 0.6 : 1,
             }}
             aria-busy={isFetching}
           >
-            {total === 0 ? (
-              <p style={{ gridColumn: '1 / -1' }}>No book or author found</p>
+            {!catalogue && isFetching ? (
+              // The first load: the shape of the grid, rather than "nothing
+              // found" - which is what the empty answer used to say meanwhile.
+              Array.from({ length: 8 }, (_, i) => (
+                <div key={i} className="book-card animate-pulse" aria-hidden="true">
+                  <div className="book-image rounded-[14px]" style={{ background: '#f3efff' }} />
+                  <div className="mb-2 h-4 w-4/5 rounded-full" style={{ background: '#ece8f7' }} />
+                  <div className="mb-3 h-3 w-1/2 rounded-full" style={{ background: '#f3efff' }} />
+                  <div className="h-10 rounded-full" style={{ background: '#f3efff' }} />
+                </div>
+              ))
+            ) : total === 0 ? (
+              <div className="empty-results">
+                <p style={{ fontSize: 34, marginBottom: 6 }} aria-hidden="true">🔎</p>
+                <p style={{ fontSize: 18, fontWeight: 700, color: '#111827' }}>No book or author found</p>
+                <p style={{ marginTop: 6 }}>Try a shorter search, or turn a filter or two off.</p>
+              </div>
             ) : (
               booksOnThisPage.map((book) => {
                 const isOld = (book.bookType || '').toLowerCase() === 'old';
                 const isInWishlist = !!wishlist[book._id];
                 const isInCart = !!cart[book._id];
+                const category = Array.isArray(book.category) ? book.category.join(', ') : (book.category || '');
                 return (
-                  <div
+                  <article
                     key={book._id}
-                    className="relative flex min-w-0 cursor-pointer items-start gap-4 rounded-xl p-4 sm:gap-6"
-                    style={{
-                      // Dark rather than a 15% white wash: the page sits on a
-                      // photograph of a bookshelf, and white text on a 15%
-                      // white card over a busy photo is hard to read on a
-                      // phone in daylight.
-                      backgroundColor: 'rgba(0, 0, 0, 0.62)',
-                      boxShadow: '0 4px 8px rgba(0, 0, 0, 0.3)',
-                      minHeight: 180
-                    }}
+                    className="book-card"
                     onClick={() => navigate(`/book/${book._id}`)}
                   >
-                    {/* Book Image with sticker */}
-                    <div className="relative shrink-0" style={{ width: 100, height: 150 }}>
+                    {/* Cover, with its sticker and the heart */}
+                    <div className="book-image">
                       <img
                         loading="lazy"
                         decoding="async"
                         src={sized(book.images?.[0] ?? PLACEHOLDER_IMAGE, IMAGE_WIDTHS.card)}
                         alt={book.title}
-                        style={{
-                          width: '100px',
-                          height: '150px',
-                          borderRadius: '8px',
-                          objectFit: 'cover',
-                          background: '#fff'
-                        }}
                       />
-                      {/* Book type sticker */}
-                      <span
-                        style={{
-                          position: 'absolute',
-                          top: 8,
-                          left: 8,
-                          background: isOld ? '#e65100' : '#43a047',
-                          color: '#fff',
-                          fontWeight: 700,
-                          fontSize: 13,
-                          padding: '2px 10px',
-                          borderRadius: 8,
-                          letterSpacing: 1,
-                          zIndex: 2
+                      {/* Book type sticker, and a used book's condition
+                          under it rather than on a line of its own. */}
+                      <div className="card-badges">
+                        <span
+                          className="badge"
+                          style={{
+                            background: isOld ? '#ffffff' : '#facc15',
+                            color: isOld ? '#5b21b6' : '#111827',
+                          }}
+                        >
+                          {isOld ? 'Used' : 'New'}
+                        </span>
+                        {isOld && book.condition && (
+                          <span className="badge" style={{ background: '#1e1b4b', color: '#fff' }}>
+                            {capitalise(book.condition)}
+                          </span>
+                        )}
+                      </div>
+                      {/* Wishlist toggle */}
+                      <button
+                        type="button"
+                        className="card-heart"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleToggleWishlist(book._id);
                         }}
+                        title={isInWishlist ? 'Remove from Wishlist' : 'Add to Wishlist'}
+                        aria-label={isInWishlist ? 'Remove from Wishlist' : 'Add to Wishlist'}
+                        aria-pressed={isInWishlist}
                       >
-                        {isOld ? 'OLD' : 'NEW'}
-                      </span>
+                        {isInWishlist ? <FaHeart /> : <FaRegHeart />}
+                      </button>
                     </div>
                     {/* Book Info */}
-                    <div className="flex min-w-0 flex-1 flex-col gap-1">
-                      <div className="break-words text-lg font-bold">
-                        {book.title}
-                      </div>
-                      <div>Author: {book.author}</div>
-                      <div>Category: {Array.isArray(book.category) ? book.category.join(', ') : (book.category || 'N/A')}</div>
-                      <div>Price: {book.price} Tk</div>
+                    <div className="book-info">
+                      <h3>{book.title}</h3>
+                      <div className="card-author">{book.author}</div>
+                      {category && <div className="card-meta">{category}</div>}
+                      <div className="card-price">৳{book.price}</div>
                       {(book.ratingCount ?? 0) > 0 ? (
-                        <div className="flex items-center gap-2">
-                          <Stars value={book.ratingAverage ?? 0} size={14} />
-                          <span style={{ fontSize: 14 }}>
+                        <div className="card-rating">
+                          <Stars value={book.ratingAverage ?? 0} size={12} />
+                          <span>
                             {(book.ratingAverage ?? 0).toFixed(1)} ({book.ratingCount})
                           </span>
                         </div>
                       ) : (
-                        <div style={{ fontSize: 14, opacity: 0.75 }}>No reviews yet</div>
+                        <div className="card-rating">No reviews yet</div>
                       )}
-                      {/* Show condition only for old books */}
-                      {isOld && (
-                        <div>Condition: {book.condition ? (book.condition.charAt(0).toUpperCase() + book.condition.slice(1)) : 'N/A'}</div>
-                      )}
-                      {/* Action Buttons */}
-                      {/* Wraps: at 360px the two controls together are wider
-                          than the card, which was the last of this page's
-                          sideways scroll. */}
-                      <div className="mt-2 flex flex-wrap gap-3">
-                        {/* Wishlist toggle */}
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation(); // Add this
-                            handleToggleWishlist(book._id);
-                          }}
-                          style={{
-                            background: isInWishlist ? '#e65100' : '#fff',
-                            color: isInWishlist ? '#fff' : '#e65100',
-                            border: '1px solid #e65100',
-                            borderRadius: 6,
-                            padding: '10px 14px',
-                            fontWeight: 500,
-                            cursor: 'pointer',
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: 6
-                          }}
-                        >
-                          {isInWishlist ? <FaHeart /> : <FaRegHeart />}
-                          {isInWishlist ? 'Remove from Wishlist' : 'Add to Wishlist'}
-                        </button>
-                        {/* Cart toggle or Out of Stock */}
+                      {/* Cart toggle or Out of Stock */}
+                      <div className="card-actions">
                         {book.stock === 0 ? (
-                          <span
-                            style={{
-                              background: '#e74c3c',
-                              color: '#fff',
-                              fontWeight: 700,
-                              fontSize: 13,
-                              padding: '4px 14px',
-                              borderRadius: 8,
-                              letterSpacing: 1,
-                              minWidth: 90,
-                              textAlign: 'center',
-                              display: 'inline-block'
-                            }}
-                          >
-                            Out of Stock
-                          </span>
+                          <div className="card-sold-out">Out of Stock</div>
                         ) : (
                           <button
+                            type="button"
+                            className={isInCart ? 'btn btn-danger' : 'btn btn-primary'}
                             onClick={(e) => {
-                              e.stopPropagation(); // Add this
+                              e.stopPropagation();
                               handleToggleCart(book._id);
                             }}
-                            style={{
-                              background: isInCart ? '#e65100' : '#fff',
-                              color: isInCart ? '#fff' : '#e65100',
-                              border: '1px solid #e65100',
-                              borderRadius: 6,
-                              padding: '10px 14px',
-                              fontWeight: 500,
-                              cursor: 'pointer',
-                              display: 'flex',
-                              alignItems: 'center',
-                              gap: 6
-                            }}
                           >
-                            <FaShoppingCart />
+                            <FaShoppingCart aria-hidden="true" />
                             {isInCart ? 'Remove from Cart' : 'Add to Cart'}
                           </button>
                         )}
                       </div>
                     </div>
-                  </div>
+                  </article>
                 );
               })
             )}
@@ -759,8 +667,8 @@ export default function BookFilter() {
           {/* Paging. Below the results, because that is where somebody is when
               they have run out of them. */}
           {total > 0 && (
-            <div className="flex flex-wrap items-center justify-between gap-3 pb-4">
-              <p className="m-0 text-sm">
+            <div className="pager">
+              <p className="m-0 text-sm" style={{ color: '#6b7280' }}>
                 Showing {firstOnPage}&ndash;{lastOnPage} of {total}
               </p>
 
@@ -770,17 +678,12 @@ export default function BookFilter() {
                     type="button"
                     onClick={() => setPage(currentPage - 1)}
                     disabled={currentPage === 1}
-                    className="inline-flex min-h-[44px] items-center rounded-lg px-4"
-                    style={{
-                      background: '#fff',
-                      color: currentPage === 1 ? '#999' : '#222',
-                      cursor: currentPage === 1 ? 'not-allowed' : 'pointer',
-                    }}
+                    className="btn btn-ghost"
                   >
                     Previous
                   </button>
 
-                  <span className="px-1 text-sm">
+                  <span className="px-1 text-sm font-semibold" style={{ color: '#374151' }}>
                     Page {currentPage} of {pageCount}
                   </span>
 
@@ -788,12 +691,7 @@ export default function BookFilter() {
                     type="button"
                     onClick={() => setPage(currentPage + 1)}
                     disabled={currentPage === pageCount}
-                    className="inline-flex min-h-[44px] items-center rounded-lg px-4"
-                    style={{
-                      background: '#fff',
-                      color: currentPage === pageCount ? '#999' : '#222',
-                      cursor: currentPage === pageCount ? 'not-allowed' : 'pointer',
-                    }}
+                    className="btn btn-ghost"
                   >
                     Next
                   </button>
@@ -801,8 +699,8 @@ export default function BookFilter() {
               )}
             </div>
           )}
-        </div>
-      </div>
+        </section>
+      </main>
     </div>
   );
 }

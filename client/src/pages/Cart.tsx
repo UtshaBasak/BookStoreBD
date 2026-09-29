@@ -1,15 +1,35 @@
-import { FaTrash, FaHome, FaHeart, FaRegHeart } from 'react-icons/fa';
+import { FaTrash, FaHeart, FaRegHeart, FaShoppingBag, FaMoneyBillWave, FaUndoAlt, FaTruck } from 'react-icons/fa';
 import { useNavigate, Link } from 'react-router-dom';
 
 import type { Book } from '@shared/api.js';
 
+import Logo from '../components/Logo.js';
 import { API_BASE_URL } from '../config/api.js';
+import { site } from '../config/site.js';
 import { useCart, useToggleCart, useToggleWishlist, useWishlist } from '../hooks/queries.js';
 import { promptSignIn, useToast } from '../hooks/useToast.js';
 import { getUserEmail } from '../utils/auth.js';
 import { flagsFor } from '../utils/bookFlags.js';
 import { PLACEHOLDER_IMAGE } from '../utils/safeImageSrc.js';
 import { isCloudinary, sized, IMAGE_WIDTHS } from '../utils/imageUrl.js';
+import './Homepage.css';
+import './Cart.css';
+
+/** The slim bar every state of the page shares: the logo home, and the wishlist. */
+function CartTopBar() {
+  return (
+    <header className="header shop-topbar">
+      <Link to="/" className="logo-button" title="Go to Homepage" aria-label="Go to Homepage">
+        <Logo size={34} />
+      </Link>
+      <div className="user-options">
+        <Link to="/wishlist" className="icon-link" title="Go to Wishlist" aria-label="Go to Wishlist" style={{ color: '#ff5c35' }}>
+          <FaHeart size={20} />
+        </Link>
+      </div>
+    </header>
+  );
+}
 
 export default function Cart() {
   const navigate = useNavigate();
@@ -55,221 +75,180 @@ export default function Cart() {
     return `${API_BASE_URL}/uploads/${img}`;
   };
 
+  // One of each: how many of a book is chosen at checkout, where the stock is
+  // checked, so this is what the basket comes to before that.
+  const subtotal = cartBooks.reduce((sum, book) => sum + Number(book.price || 0), 0);
+
   if (!userEmail) {
     return (
-      <div style={{ color: 'white', padding: '2rem', textAlign: 'center', background: '#222', minHeight: '100vh' }}>
-        Please sign in to view your cart.
+      <div className="shop-page">
+        <CartTopBar />
+        <main className="shop-main">
+          <div className="card mx-auto max-w-md p-8 text-center">
+            <FaShoppingBag aria-hidden="true" className="mx-auto mb-3 text-4xl text-brand" />
+            <p className="m-0 mb-5 text-lg font-semibold text-ink">Please sign in to view your cart.</p>
+            <Link to="/sign-in" className="btn btn-primary">Sign in</Link>
+          </div>
+        </main>
       </div>
     );
   }
 
   if (error) {
     return (
-      <div style={{ color: 'red', padding: '2rem', textAlign: 'center', background: '#222', minHeight: '100vh' }}>
-        {error}
+      <div className="shop-page">
+        <CartTopBar />
+        <main className="shop-main">
+          <div role="alert" className="card mx-auto max-w-md p-8 text-center font-semibold" style={{ color: '#b91c1c' }}>
+            {error}
+          </div>
+        </main>
       </div>
     );
   }
 
   return (
-    <div
-      style={{
-        backgroundImage: `url('https://images.unsplash.com/photo-1524995997946-a1c2e315a42f?auto=format&fit=crop&w=1400&q=80')`,
-        backgroundSize: 'cover',
-        backgroundPosition: 'center',
-        minHeight: '100vh',
-        width: '100%',
-        padding: '2rem',
-        fontFamily: 'Arial, sans-serif',
-        color: 'white',
-        boxSizing: 'border-box',
-        position: 'relative'
-      }}
-    >
-      {/* Home Icon in Top Left */}
-      <FaHome
-        style={{
-          position: 'absolute',
-          top: 24,
-          left: 24,
-          fontSize: '2rem',
-          cursor: 'pointer',
-          color: 'black',
-          zIndex: 10
-        }}
-        onClick={() => navigate('/')}
-        title="Go to Homepage"
-      />
+    <div className="shop-page">
+      <CartTopBar />
 
-      {/* Wishlist Button in Top Right */}
-      <Link
-        to="/wishlist"
-        style={{
-          position: 'absolute',
-          top: 24,
-          right: 24,
-          color: '#e65100',
-          background: '#fff',
-          borderRadius: '50%',
-          width: 44,
-          height: 44,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          boxShadow: '0 2px 8px rgba(0,0,0,0.12)',
-          zIndex: 10,
-          textDecoration: 'none'
-        }}
-        title="Go to Wishlist"
-      >
-        <FaHeart size={22} />
-      </Link>
-
-      {/* Cart Heading at Top Center */}
-      <div
-        style={{
-          width: '100%',
-          display: 'flex',
-          justifyContent: 'center',
-          alignItems: 'flex-start',
-          marginTop: 0,
-          marginBottom: '2.5rem',
-        }}
-      >
-        <h3
-          style={{
-            fontSize: '2.5rem',
-            color: 'white',
-            margin: 0,
-            textAlign: 'center',
-            fontWeight: 700,
-            letterSpacing: 1,
-          }}
-        >
-          Cart
-        </h3>
-      </div>
-
-      {/* Cart Items Centered Vertically */}
-      <div
-        style={{
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          justifyContent: 'flex-start',
-          minHeight: 'calc(100vh - 7rem)',
-        }}
-      >
-        <div
-          className="w-full max-w-[600px] px-3"
-          style={{ display: 'flex', flexDirection: 'column', gap: '1rem', alignItems: 'center' }}
-        >
-          {cartBooks.length === 0 ? (
-            <p>No books in cart.</p>
-          ) : (
-            cartBooks.map((book) => (
-              <div
-                key={book._id}
-                style={{
-                  backgroundColor: 'rgba(0, 0, 0, 0.5)',
-                  borderRadius: '15px',
-                  padding: '1rem',
-                  display: 'flex',
-                  flexWrap: 'wrap',
-                  alignItems: 'center',
-                  gap: '1rem',
-                  // Was `width: fit-content` over `minWidth: 350px`, which is
-                  // wider than a 360px screen once the padding is counted.
-                  width: '100%',
-                  maxWidth: '600px',
-                  boxSizing: 'border-box',
-                }}
-              >
-                <img
-                  loading="lazy"
-                  decoding="async"
-                  src={getBookImageSrc(book)}
-                  alt={book.title}
-                  style={{
-                    width: 80,
-                    height: 120,
-                    objectFit: 'cover',
-                    borderRadius: '8px',
-                    background: '#fff',
-                    boxShadow: '0 2px 8px rgba(0,0,0,0.08)'
-                  }}
-                />
-
-                <div style={{ flex: 1 }}>
-                  <div>
-                    <strong>Title:</strong> {book.title}
-                    <span style={{
-                      marginLeft: 8,
-                      fontSize: 13,
-                      fontWeight: 600,
-                      color: book.bookType === 'old' ? '#e65100' : '#43a047',
-                      background: 'rgba(255,255,255,0.13)',
-                      borderRadius: 8,
-                      padding: '2px 10px'
-                    }}>
-                      {book.bookType ? book.bookType.toUpperCase() : ''}
-                    </span>
-                  </div>
-                  <div><strong>Author:</strong> {book.author}</div>
-                  <div>
-                    <strong>Category:</strong> {Array.isArray(book.category) ? book.category.join(', ') : (book.category || 'N/A')}
-                  </div>
-                </div>
-
-                {/* Wishlist icon */}
-                <button
-                  type="button"
-                  className="icon-button"
-                  style={{ color: wishlist[book._id] ? '#e65100' : '#ccc', marginLeft: 12 }}
-                  onClick={() => handleToggleWishlist(book._id)}
-                  title={wishlist[book._id] ? 'Remove from wishlist' : 'Add to wishlist'}
-                  aria-label="Toggle wishlist"
-                >
-                  {wishlist[book._id] ? <FaHeart /> : <FaRegHeart />}
-                </button>
-
-                {/* Remove from cart */}
-                <button
-                  type="button"
-                  className="icon-button"
-                  style={{ color: '#e74c3c', marginLeft: 12 }}
-                  onClick={() => handleRemoveFromCart(book._id)}
-                  title="Remove from cart"
-                  aria-label="Remove from cart"
-                >
-                  <FaTrash />
-                </button>
-              </div>
-            ))
-          )}
+      <main className="shop-main">
+        <div className="mb-5 flex flex-wrap items-end justify-between gap-2">
+          <div>
+            <h1 className="shop-title">Cart</h1>
+            {cartBooks.length > 0 && (
+              <p className="shop-sub">
+                {cartBooks.length} book{cartBooks.length === 1 ? '' : 's'} waiting for you
+              </p>
+            )}
+          </div>
         </div>
 
-        {/* Proceed to Checkout Button */}
-        {cartBooks.length > 0 && (
-          <button
-            style={{
-              marginTop: '2rem',
-              padding: '0.75rem 2rem',
-              background: '#43a047', // green
-              color: '#fff',
-              border: 'none',
-              borderRadius: 6,
-              fontWeight: 600,
-              fontSize: 18,
-              cursor: 'pointer',
-              boxShadow: '0 2px 8px rgba(0,0,0,0.12)'
-            }}
-            onClick={() => navigate('/payment')}
-          >
-            Proceed to Checkout
-          </button>
+        {cartBooks.length === 0 ? (
+          <div className="card mx-auto max-w-lg px-6 py-10 text-center">
+            <div
+              aria-hidden="true"
+              className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full text-2xl"
+              style={{ background: '#f3efff', color: '#6d28d9' }}
+            >
+              <FaShoppingBag />
+            </div>
+            <p className="m-0 text-lg font-bold text-ink">No books in cart.</p>
+            <p className="mx-0 mt-1 mb-5 text-ink-muted">Find something good to read - new and second-hand.</p>
+            <Link to="/filter" className="btn btn-primary">Browse books</Link>
+          </div>
+        ) : (
+          <div className="grid items-start gap-5 lg:grid-cols-[minmax(0,1fr)_360px]">
+            <ul className="m-0 grid list-none gap-3 p-0">
+              {cartBooks.map((book) => (
+                <li key={book._id} className="card cart-item">
+                  <img
+                    loading="lazy"
+                    decoding="async"
+                    src={getBookImageSrc(book)}
+                    alt={book.title}
+                    className="cart-cover"
+                  />
+
+                  <div className="flex min-w-0 flex-1 flex-col">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="min-w-0">
+                        {book.bookType && (
+                          <span
+                            className="badge mb-1"
+                            style={{
+                              background: book.bookType === 'old' ? '#f3efff' : '#facc15',
+                              color: book.bookType === 'old' ? '#5b21b6' : '#111827',
+                            }}
+                          >
+                            {book.bookType === 'old' ? 'Used' : book.bookType.toUpperCase()}
+                          </span>
+                        )}
+                        <h2 className="cart-item-title">{book.title}</h2>
+                        <p className="m-0 mt-0.5 text-sm text-ink-muted">by {book.author}</p>
+                      </div>
+
+                      {/* Wishlist icon */}
+                      <button
+                        type="button"
+                        className="icon-button shrink-0"
+                        style={{ color: wishlist[book._id] ? '#ff5c35' : '#9ca3af', fontSize: 20 }}
+                        onClick={() => handleToggleWishlist(book._id)}
+                        title={wishlist[book._id] ? 'Remove from wishlist' : 'Add to wishlist'}
+                        aria-label="Toggle wishlist"
+                      >
+                        {wishlist[book._id] ? <FaHeart /> : <FaRegHeart />}
+                      </button>
+                    </div>
+
+                    <p className="m-0 mt-1 text-xs text-ink-muted">
+                      {Array.isArray(book.category) ? book.category.join(', ') : (book.category || 'N/A')}
+                    </p>
+
+                    <div className="mt-auto flex flex-wrap items-center justify-between gap-2 pt-3">
+                      <span className="price text-xl">৳{book.price}</span>
+
+                      {/* Remove from cart */}
+                      <button
+                        type="button"
+                        className="btn btn-danger"
+                        style={{ minHeight: 40, padding: '0 14px', fontSize: 14 }}
+                        onClick={() => handleRemoveFromCart(book._id)}
+                        title="Remove from cart"
+                        aria-label="Remove from cart"
+                      >
+                        <FaTrash aria-hidden="true" size={12} /> Remove
+                      </button>
+                    </div>
+                  </div>
+                </li>
+              ))}
+            </ul>
+
+            {/* On a desktop the summary stays in view beside a long basket. */}
+            <aside className="card p-5 sm:p-6 lg:sticky lg:top-24" aria-label="Order summary">
+              <h2 className="m-0 mb-3 text-lg">Order summary</h2>
+              <div className="sum-row">
+                <span>Subtotal ({cartBooks.length} book{cartBooks.length === 1 ? '' : 's'})</span>
+                <span>৳{subtotal.toFixed(2)}</span>
+              </div>
+              <div className="sum-row">
+                <span>Delivery</span>
+                <span className="text-sm">Worked out at checkout</span>
+              </div>
+              <p className="m-0 text-xs leading-relaxed text-ink-muted">
+                {site.delivery.insideDhaka} Tk inside Dhaka, {site.delivery.outsideDhaka} Tk elsewhere. Choose how
+                many of each book at checkout.
+              </p>
+              <div className="sum-total">
+                <span>Total</span>
+                <span>৳{subtotal.toFixed(2)}</span>
+              </div>
+
+              {/* Proceed to Checkout Button */}
+              <button
+                type="button"
+                className="btn btn-accent mt-5 w-full"
+                style={{ minHeight: 52, fontSize: 17 }}
+                onClick={() => navigate('/payment')}
+              >
+                Proceed to Checkout
+              </button>
+              <Link to="/filter" className="btn btn-ghost mt-2 w-full">
+                Continue shopping
+              </Link>
+
+              <ul className="trust-list">
+                <li><FaMoneyBillWave aria-hidden="true" /> {site.payment} - pay when it arrives</li>
+                <li><FaUndoAlt aria-hidden="true" /> {site.returns.windowDays}-day returns</li>
+                <li>
+                  <FaTruck aria-hidden="true" /> {site.delivery.daysInsideDhaka} working days in Dhaka,{' '}
+                  {site.delivery.daysOutsideDhaka} elsewhere
+                </li>
+              </ul>
+            </aside>
+          </div>
         )}
-      </div>
+      </main>
     </div>
   );
 }

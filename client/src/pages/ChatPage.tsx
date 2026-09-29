@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, type ChangeEvent, type UIEvent } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { FaArrowLeft, FaPaperPlane, FaComments, FaTrash, FaImage } from 'react-icons/fa';
+import { Link, useNavigate } from 'react-router-dom';
+import { FaArrowLeft, FaPaperPlane, FaComments, FaTrash, FaImage, FaBookOpen } from 'react-icons/fa';
 import { io, type Socket } from 'socket.io-client';
 
 import type { ChatMessage, ChatMessagesResponse, ChatSummary } from '@shared/api.js';
@@ -11,6 +11,9 @@ import { getUserEmail } from '../utils/auth.js';
 import { safeObjectUrl } from '../utils/safeImageSrc.js';
 import { reportError } from '../utils/report.js';
 import AuthImage from '../components/AuthImage.js';
+import Logo from '../components/Logo.js';
+import './Homepage.css';
+import '../components/Chat.css';
 
 export default function ChatPage() {
     const [conversations, setConversations] = useState<ChatSummary[]>([]);
@@ -235,260 +238,173 @@ export default function ChatPage() {
     };
 
     return (
-        <div style={{ 
-            minHeight: '100vh',
-            backgroundColor: '#f0f2f5',
-            display: 'flex',
-            flexDirection: 'column'
-        }}>
-            {/* Header */}
-            <div style={{ 
-                padding: '1rem',
-                background: '#fff',
-                boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '1rem',
-                position: 'sticky',
-                top: 0,
-                zIndex: 100
-            }}>
-                <button 
-                    onClick={() => navigate('/')}
-                    style={{ 
-                        background: 'none',
-                        border: 'none',
-                        cursor: 'pointer',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '0.5rem',
-                        color: '#8B6F6F',
-                        fontSize: '1rem',
-                        padding: '0.5rem'
-                    }}
-                >
-                    <FaArrowLeft size={20} />
-                    Back to Home
-                </button>
-                <div style={{ 
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '0.5rem',
-                    color: '#8B6F6F'
-                }}>
-                    <FaComments size={24} />
-                    <h1 style={{ margin: 0, fontSize: '1.5rem' }}>Messages</h1>
+        <div className="chat-page">
+            {/* The homepage's frosted bar, with the page's name beside the logo. */}
+            <header className="header">
+                <div className="chat-header-title">
+                    <Link to="/" className="logo-link inline-flex min-h-[44px] items-center no-underline">
+                        <Logo size={34} />
+                    </Link>
+                    <span className="chat-divider" aria-hidden="true" />
+                    <FaComments className="chat-header-icon" size={22} aria-hidden="true" />
+                    <h1>Messages</h1>
                 </div>
-            </div>
+                <button
+                    type="button"
+                    className="btn btn-ghost chat-home"
+                    onClick={() => navigate('/')}
+                >
+                    <FaArrowLeft size={14} aria-hidden="true" />
+                    <span className="chat-home-label">Back to Home</span>
+                </button>
+            </header>
 
             {/* Main Content.
 
                 On a phone the two panes take it in turns, the way every chat
                 application does it: the list until a conversation is picked,
                 then the conversation with a way back. Side by side from `lg`,
-                where both fit. The message pane used to carry
+                where both fit (see Chat.css). The message pane used to carry
                 `minWidth: 1000px`, which put the page 999px past the edge of a
                 360px screen. */}
-            <div className="mx-auto flex w-full max-w-[1600px] flex-1 flex-col gap-4 p-2 sm:p-4 lg:w-[85%] lg:flex-row">
+            <div className={`chat-shell${selectedUser ? ' has-thread' : ''}`}>
                 {/* Conversations List */}
-                <div
-                    className={`${selectedUser ? 'hidden lg:block' : 'block'} w-full overflow-hidden rounded-xl lg:w-[300px] lg:shrink-0`}
-                    style={{
-                        background: '#fff',
-                        boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
-                    }}
-                >
-                    <div style={{ padding: '1rem', borderBottom: '1px solid #eee' }}>
-                        <h2 style={{ margin: 0, color: '#666' }}>Conversations</h2>
+                <section className="card chat-list" aria-label="Conversations">
+                    <div className="chat-list-head">
+                        <h2>Conversations</h2>
+                        {conversations.length > 0 && (
+                            <span className="badge chat-count">{conversations.length}</span>
+                        )}
                     </div>
-                    <div style={{ overflowY: 'auto', maxHeight: 'calc(100vh - 180px)' }}>
+                    <div className="chat-list-body">
                         {/* An empty panel says nothing about what to do next. */}
                         {conversations.length === 0 && (
-                            <div style={{ padding: '2rem 1rem', textAlign: 'center', color: '#666' }}>
-                                <p style={{ margin: '0 0 0.5rem' }}>No conversations yet.</p>
-                                <p style={{ margin: 0, fontSize: '0.9rem' }}>
+                            <div className="chat-empty">
+                                <span className="chat-empty-icon is-small" aria-hidden="true">
+                                    <FaComments size={26} />
+                                </span>
+                                <p style={{ margin: '0.75rem 0 0.25rem', fontWeight: 700, color: '#111827' }}>No conversations yet.</p>
+                                <p style={{ fontSize: '0.9rem' }}>
                                     Open any book and use <strong>Chat with Seller</strong> to start one.
                                 </p>
+                                <Link to="/filter" className="btn btn-ghost">
+                                    <FaBookOpen size={14} aria-hidden="true" />
+                                    Browse books
+                                </Link>
                             </div>
                         )}
-                        {conversations.map(user => (
-                            <div
-                                key={user.email}
-                                style={{
-                                    padding: '1rem',
-                                    background: selectedUser?.email === user.email ? '#f0f2f5' : '#fff',
-                                    borderBottom: '1px solid #eee',
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    gap: '1rem',
-                                    transition: 'background-color 0.2s'
-                                }}
-                            >
-                                <div 
-                                    onClick={() => setSelectedUser(user)}
-                                    style={{
-                                        flex: 1,
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        gap: '1rem',
-                                        cursor: 'pointer'
-                                    }}
+                        {conversations.map(user => {
+                            const active = selectedUser?.email === user.email;
+                            const unread = user.unreadCount > 0;
+                            return (
+                                <div
+                                    key={user.email}
+                                    className={`chat-row${active ? ' is-active' : ''}${unread ? ' is-unread' : ''}`}
                                 >
-                                    <img
-                                        src={user.profilePicture || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.username || 'U')}&background=8B6F6F&color=fff`}
-                                        alt=""
-                                        style={{ 
-                                            width: 50,
-                                            height: 50,
-                                            borderRadius: '50%',
-                                            objectFit: 'cover'
+                                    <button
+                                        type="button"
+                                        className="chat-row-main"
+                                        onClick={() => setSelectedUser(user)}
+                                        aria-current={active ? 'true' : undefined}
+                                    >
+                                        <Avatar user={user} />
+                                        <span className="chat-row-text">
+                                            <span className="chat-row-top">
+                                                <span className="chat-row-name">
+                                                    {user.username || user.email}
+                                                </span>
+                                                <span className="chat-row-time">
+                                                    {shortWhen(user.lastMessageTime)}
+                                                </span>
+                                            </span>
+                                            <span className="chat-row-bottom">
+                                                <span className="chat-row-preview">
+                                                    {user.lastMessage || 'Start a conversation'}
+                                                </span>
+                                                {unread && (
+                                                    <span className="chat-unread" aria-label={`${user.unreadCount} unread`}>
+                                                        {user.unreadCount > 99 ? '99+' : user.unreadCount}
+                                                    </span>
+                                                )}
+                                            </span>
+                                        </span>
+                                    </button>
+                                    <button
+                                        type="button"
+                                        className="chat-delete"
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            deleteConversation(user);
                                         }}
-                                    />
-                                    <div style={{ flex: 1 }}>
-                                        <div style={{ 
-                                            fontWeight: user.unreadCount > 0 ? 700 : 600,
-                                            color: '#333',
-                                            marginBottom: '0.25rem'
-                                        }}>
-                                            {user.username || user.email}
-                                        </div>
-                                        <div style={{ 
-                                            fontSize: '0.875rem',
-                                            color: '#666',
-                                            whiteSpace: 'nowrap',
-                                            overflow: 'hidden',
-                                            textOverflow: 'ellipsis',
-                                            fontWeight: user.unreadCount > 0 ? 600 : 'normal'
-                                        }}>
-                                            {user.lastMessage || 'Start a conversation'}
-                                        </div>
-                                    </div>
+                                        title="Delete conversation"
+                                        aria-label="Delete conversation"
+                                    >
+                                        <FaTrash size={15} />
+                                    </button>
                                 </div>
-                                <button
-                                    onClick={(e) => {
-                                        e.stopPropagation();
-                                        deleteConversation(user);
-                                    }}
-                                    style={{
-                                        background: 'none',
-                                        border: 'none',
-                                        color: '#dc3545',
-                                        cursor: 'pointer',
-                                        padding: '8px',
-                                        opacity: 0.7,
-                                        transition: 'opacity 0.2s'
-                                    }}
-                                    title="Delete conversation"
-                                >
-                                    <FaTrash size={16} />
-                                </button>
-                            </div>
-                        ))}
+                            );
+                        })}
                     </div>
-                </div>
+                </section>
 
                 {/* Message Area */}
-                <div
-                    className={`${selectedUser ? 'flex' : 'hidden lg:flex'} min-w-0 flex-1 flex-col overflow-hidden rounded-xl`}
-                    style={{
-                        background: '#fff',
-                        boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
-                        height: 'calc(100vh - 150px)',
-                        maxHeight: 'calc(100vh - 150px)'
-                    }}
-                >
+                <section className="card chat-thread" aria-label="Messages">
                     {selectedUser ? (
                         <>
-                            <div style={{
-                                padding: '1rem',
-                                borderBottom: '1px solid #eee',
-                                background: '#fff',
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: '1rem'
-                            }}>
+                            <div className="chat-thread-head">
                                 {/* The only way back to the list on a phone,
                                     where the list is not on screen. */}
                                 <button
                                     type="button"
-                                    className="icon-button lg:hidden"
+                                    className="icon-button chat-back-list"
                                     onClick={() => setSelectedUser(null)}
                                     aria-label="Back to conversations"
                                 >
-                                    <FaArrowLeft />
+                                    <FaArrowLeft size={18} />
                                 </button>
-                                <img
-                                    src={selectedUser.profilePicture || `https://ui-avatars.com/api/?name=${encodeURIComponent(selectedUser.username || 'U')}&background=8B6F6F&color=fff`}
-                                    alt=""
-                                    style={{ width: 40, height: 40, borderRadius: '50%' }}
-                                />
-                                <div>
-                                    <h2 style={{ margin: 0, fontSize: '1.1rem' }}>
+                                <Avatar user={selectedUser} className="is-small" />
+                                <div className="chat-thread-who">
+                                    <h2>
                                         {selectedUser.username || selectedUser.email}
                                     </h2>
                                 </div>
                             </div>
 
-                            <div 
+                            <div
                                 ref={messagesContainerRef}
                                 onScroll={handleScroll}
-                                style={{ 
-                                    flex: 1,
-                                    overflowY: 'auto',
-                                    padding: '1rem',
-                                    display: 'flex',
-                                    flexDirection: 'column',
-                                    gap: '0.5rem',
-                                    background: '#f0f2f5'
-                                }}
+                                className="chat-messages"
                             >
-                                {loading && <div style={{ textAlign: 'center', padding: '10px' }}>Loading...</div>}
-                                {messages.map((msg, i) => (
-                                    <div
-                                        key={i}
-                                        // 60% of a 360px screen is 216px for a
-                                        // message; 85% until there is room.
-                                        className="my-2 max-w-[85%] sm:max-w-[60%]"
-                                        style={{
-                                            alignSelf: msg.sender === userEmail ? 'flex-end' : 'flex-start'
-                                        }}
-                                    >
-                                        <div style={{
-                                            background: msg.sender === userEmail ? '#8B6F6F' : '#fff',
-                                            color: msg.sender === userEmail ? '#fff' : '#333',
-                                            padding: msg.image ? '0.5rem' : '0.75rem 1rem',
-                                            borderRadius: '1rem',
-                                            boxShadow: '0 1px 2px rgba(0,0,0,0.1)'
-                                        }}>
-                                            {msg.message && <div style={{ marginBottom: msg.image ? '0.5rem' : 0 }}>{msg.message}</div>}
-                                            {msg.image && (
-                                                <AuthImage
-                                                    src={msg.image}
-                                                    alt="Chat attachment"
-                                                    style={{
-                                                        maxWidth: '100%',
-                                                        maxHeight: '200px',
-                                                        width: 'auto',
-                                                        height: 'auto',
-                                                        borderRadius: '0.5rem',
-                                                        display: 'block'
-                                                    }}
-                                                />
+                                {loading && <div className="chat-loading">Loading...</div>}
+                                {messages.map((msg, i) => {
+                                    const own = msg.sender === userEmail;
+                                    return (
+                                        <div
+                                            key={i}
+                                            className={`chat-msg${own ? ' is-own' : ''}`}
+                                        >
+                                            <div className={`chat-bubble${msg.image ? ' has-image' : ''}`}>
+                                                {msg.image && (
+                                                    <AuthImage
+                                                        src={msg.image}
+                                                        alt="Chat attachment"
+                                                        className="chat-bubble-image"
+                                                    />
+                                                )}
+                                                {msg.message && <div className="chat-bubble-text">{msg.message}</div>}
+                                            </div>
+                                            {msg.timestamp && (
+                                                <time className="chat-time" dateTime={msg.timestamp}>
+                                                    {messageWhen(msg.timestamp)}
+                                                </time>
                                             )}
                                         </div>
-                                    </div>
-                                ))}
+                                    );
+                                })}
                                 <div ref={messagesEndRef} />
                             </div>
 
-                            <div style={{ 
-                                padding: '1rem',
-                                background: '#fff',
-                                borderTop: '1px solid #eee',
-                                display: 'flex',
-                                gap: '1rem',
-                                alignItems: 'center'
-                            }}>
+                            <div className="chat-composer">
                                 <input
                                     type="file"
                                     accept="image/png,image/jpeg,image/webp,image/gif"
@@ -497,52 +413,26 @@ export default function ChatPage() {
                                     style={{ display: 'none' }}
                                 />
                                 <button
+                                    type="button"
+                                    className="chat-attach"
                                     onClick={() => fileInputRef.current?.click()}
-                                    style={{
-                                        background: 'none',
-                                        border: 'none',
-                                        color: '#8B6F6F',
-                                        cursor: 'pointer',
-                                        padding: '8px'
-                                    }}
                                     title="Add image"
+                                    aria-label="Add image"
                                 >
-                                    <FaImage size={20} />
+                                    <FaImage size={19} />
                                 </button>
-                                
+
                                 {selectedImage && (
-                                    <div style={{ 
-                                        position: 'relative', 
-                                        width: 40, 
-                                        height: 40 
-                                    }}>
+                                    <div className="chat-preview">
                                         <img
                                             src={safeObjectUrl(selectedImage)}
                                             alt="Selected"
-                                            style={{
-                                                width: '100%',
-                                                height: '100%',
-                                                objectFit: 'cover',
-                                                borderRadius: '4px'
-                                            }}
                                         />
                                         <button
+                                            type="button"
+                                            className="chat-preview-remove"
                                             onClick={() => setSelectedImage(null)}
-                                            style={{
-                                                position: 'absolute',
-                                                top: -8,
-                                                right: -8,
-                                                background: '#fff',
-                                                border: '1px solid #ddd',
-                                                borderRadius: '50%',
-                                                width: 20,
-                                                height: 20,
-                                                display: 'flex',
-                                                alignItems: 'center',
-                                                justifyContent: 'center',
-                                                cursor: 'pointer',
-                                                fontSize: '12px'
-                                            }}
+                                            aria-label="Remove image"
                                         >
                                             ×
                                         </button>
@@ -551,59 +441,80 @@ export default function ChatPage() {
 
                                 <input
                                     type="text"
+                                    className="field chat-input"
                                     value={newMessage}
                                     onChange={(e) => setNewMessage(e.target.value)}
                                     onKeyPress={(e) => e.key === 'Enter' && sendMessage()}
                                     placeholder="Type a message..."
-                                    style={{
-                                        flex: 1,
-                                        padding: '0.75rem 1rem',
-                                        border: '1px solid #ddd',
-                                        borderRadius: '2rem',
-                                        outline: 'none',
-                                        fontSize: '1rem'
-                                    }}
                                 />
                                 <button
+                                    type="button"
+                                    className="btn btn-primary chat-send"
                                     onClick={() => sendMessage()}
-                                    style={{
-                                        background: '#8B6F6F',
-                                        color: 'white',
-                                        border: 'none',
-                                        borderRadius: '50%',
-                                        width: 45,
-                                        height: 45,
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        justifyContent: 'center',
-                                        cursor: 'pointer',
-                                        transition: 'background-color 0.2s'
-                                    }}
+                                    aria-label="Send message"
                                 >
-                                    <FaPaperPlane size={20} />
+                                    <FaPaperPlane size={17} />
                                 </button>
                             </div>
                         </>
                     ) : (
-                        <div style={{ 
-                            flex: 1,
-                            display: 'flex',
-                            flexDirection: 'column',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            color: '#666',
-                            padding: '2rem',
-                            textAlign: 'center'
-                        }}>
-                            <FaComments size={48} style={{ marginBottom: '1rem', color: '#8B6F6F' }} />
-                            <h2 style={{ margin: '0 0 0.5rem 0' }}>Your Messages</h2>
-                            <p style={{ margin: 0, color: '#888' }}>
+                        <div className="chat-empty">
+                            <span className="chat-empty-icon" aria-hidden="true">
+                                <FaComments size={36} />
+                            </span>
+                            <h2>Your Messages</h2>
+                            <p>
                                 Select a conversation to start chatting
                             </p>
                         </div>
                     )}
-                </div>
+                </section>
             </div>
         </div>
     );
+}
+
+/** Two letters for someone with no photo: "nadia_books" is NB. */
+function initialsOf(name: string) {
+    const words = name.split(/[\s._@-]+/).filter(Boolean);
+    const letters = words.length > 1 ? words[0][0] + words[1][0] : name.slice(0, 2);
+    return letters.toUpperCase() || '?';
+}
+
+/*
+ * A photo when there is one, initials on the brand gradient when not. It used
+ * to fall back to ui-avatars.com, which meant a request to a third party with
+ * the person's name in it, in the old brown.
+ */
+function Avatar({ user, className = '' }: { user: ChatSummary; className?: string }) {
+    if (user.profilePicture) {
+        return <img src={user.profilePicture} alt="" className={`chat-avatar ${className}`} />;
+    }
+    return (
+        <span className={`chat-avatar ${className}`} aria-hidden="true">
+            {initialsOf(user.username || user.email)}
+        </span>
+    );
+}
+
+const sameDay = (a: Date, b: Date) => a.toDateString() === b.toDateString();
+
+/** "3:05 pm" today, "12 Sep" before that - for the list. */
+function shortWhen(iso?: string) {
+    if (!iso) return '';
+    const d = new Date(iso);
+    if (Number.isNaN(d.getTime())) return '';
+    return sameDay(d, new Date())
+        ? d.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })
+        : d.toLocaleDateString([], { day: 'numeric', month: 'short' });
+}
+
+/** The time under a bubble, with the date too when it was not today. */
+function messageWhen(iso: string) {
+    const d = new Date(iso);
+    if (Number.isNaN(d.getTime())) return '';
+    const time = d.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+    return sameDay(d, new Date())
+        ? time
+        : `${d.toLocaleDateString([], { day: 'numeric', month: 'short' })}, ${time}`;
 }

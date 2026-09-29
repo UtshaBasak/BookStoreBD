@@ -1,12 +1,17 @@
 import { useState, useEffect, type ChangeEvent, type FormEvent } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { FaBookOpen, FaHeart, FaKey, FaTruck } from 'react-icons/fa';
 
 import type { ApiError } from '@shared/api.js';
 
+import Logo from '../components/Logo.js';
 import { API_BASE_URL, apiFetch } from '../config/api.js';
+import { site } from '../config/site.js';
 import { useToast } from '../hooks/useToast.js';
 import { isAdmin, isAuthenticated, setSession } from '../utils/auth.js';
 import { reportError } from '../utils/report.js';
+
+import './Auth.css';
 
 export default function SignIn() {
     const navigate = useNavigate();
@@ -111,51 +116,26 @@ export default function SignIn() {
         }
     };
 
+    // Every step of the reset reports back in one line, and the ones that went
+    // well are green. It used to be red for anything short of the last step,
+    // so "OTP sent to your email." read as a failure.
+    const forgotOk = /^(OTP sent|OTP verified|Password reset)/.test(forgotMsg);
+
     return (
-        <div
-            style={{
-                backgroundImage: `url(https://images.unsplash.com/photo-1481627834876-b7833e8f5570?fm=jpg&q=60&w=3000&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxzZWFyY2h8M3x8bGlicmFyeXxlbnwwfHwwfHx8MA%3D%3D)`,
-                backgroundSize: 'cover',
-                backgroundPosition: 'center',
-                height: '100vh',
-                width: '100%',
-                margin: 0,
-                padding: 0,
-                display: 'flex',
-                justifyContent: 'center',
-                alignItems: 'center',
-                flexDirection: 'column',
-                color: 'white',
-                fontFamily: 'Arial, sans-serif',
-                boxSizing: 'border-box',
-            }}
-        >
-            {/* Header */}
-            <h1
-                style={{
-                    fontSize: '2.5rem',
-                    fontWeight: 'bold',
-                    textAlign: 'center',
-                    marginBottom: '1rem',
-                    textShadow: '2px 2px 4px rgba(0, 0, 0, 0.5)',
-                }}
-            >
-                WELCOME TO OUR BOOKSTORE
-            </h1>
+        <div className="auth-page aurora">
+            <AuthPitch />
 
             {/* Sign-In Form */}
-            <div
-                style={{
-                    backgroundColor: 'rgba(0, 0, 0, 0.7)',
-                    padding: '2rem',
-                    borderRadius: '8px',
-                    width: '300px',
-                    textAlign: 'center',
-                }}
-            >
-                <h2 style={{ fontSize: '1.5rem', marginBottom: '1.5rem' }}>Sign In</h2>
-                <form onSubmit={handleSubmit}>
-                    <div style={{ marginBottom: '1rem' }}>
+            <main className="card auth-card">
+                <Link to="/" className="auth-logo" aria-label={`${site.name} home`}>
+                    <Logo size={40} />
+                </Link>
+                <h1 className="auth-title">Sign In</h1>
+                <p className="auth-sub">Welcome back! Your cart, wishlist and orders are waiting.</p>
+
+                <form onSubmit={handleSubmit} className="auth-form">
+                    <div>
+                        <label htmlFor="email" className="auth-label">Email</label>
                         <input
                             type="email"
                             placeholder="Email"
@@ -165,19 +145,22 @@ export default function SignIn() {
                             // fill the form, and a browser warns about it.
                             autoComplete="username"
                             onChange={handleChange}
-                            style={{
-                                width: '100%',
-                                padding: '0.5rem',
-                                border: 'none',
-                                borderBottom: '1px solid white',
-                                background: 'transparent',
-                                color: 'white',
-                                fontSize: '1rem',
-                                outline: 'none',
-                            }}
+                            className="field"
                         />
                     </div>
-                    <div style={{ marginBottom: '1.5rem' }}>
+                    <div>
+                        <div className="auth-label-row">
+                            <label htmlFor="password" className="auth-label">Password</label>
+                            {/* A span with an onClick and no tabIndex at all: a
+                                keyboard user could not reach the password reset. */}
+                            <button
+                                type="button"
+                                className="auth-text-button"
+                                onClick={() => setShowForgot(true)}
+                            >
+                                Forgot Password?
+                            </button>
+                        </div>
                         <input
                             type="password"
                             placeholder="Password"
@@ -185,115 +168,88 @@ export default function SignIn() {
                             name="password"
                             autoComplete="current-password"
                             onChange={handleChange}
-                            style={{
-                                width: '100%',
-                                padding: '0.5rem',
-                                border: 'none',
-                                borderBottom: '1px solid white',
-                                background: 'transparent',
-                                color: 'white',
-                                fontSize: '1rem',
-                                outline: 'none',
-                            }}
+                            className="field"
                         />
                     </div>
 
-                    <button
-                        type="submit"
-                        style={{
-                            width: '100%',
-                            padding: '0.75rem',
-                            backgroundColor: '#333',
-                            color: 'white',
-                            border: 'none',
-                            borderRadius: '4px',
-                            fontSize: '1rem',
-                            cursor: 'pointer',
-                            transition: 'background-color 0.3s',
-                        }}
-                        onMouseOver={(e) => (e.currentTarget.style.backgroundColor = '#555')}
-                        onMouseOut={(e) => (e.currentTarget.style.backgroundColor = '#333')}
-                    >
+                    <button type="submit" className="btn btn-primary auth-wide">
                         Sign In
                     </button>
                 </form>
-                <p style={{ marginTop: '1rem', fontSize: '0.9rem' }}>
-                    {/* A span with an onClick and no tabIndex at all: a
-                        keyboard user could not reach the password reset. */}
-                    <button
-                        type="button"
-                        className="inline-flex min-h-[40px] items-center"
-                        style={{ background: 'transparent', border: 'none', color: 'white', textDecoration: 'underline', cursor: 'pointer', font: 'inherit' }}
-                        onClick={() => setShowForgot(true)}
-                    >
-                        Forgot Password?
-                    </button>
-                </p>
-                <p style={{ marginTop: '1rem', fontSize: '0.9rem' }}>
+
+                <p className="auth-divider">New here?</p>
+                <p className="auth-switch">
                     Not registered?{' '}
-                    <Link
-                        to="/sign-up"
-                        className="inline-flex min-h-[40px] items-center rounded px-3"
-                        style={{ color: 'white', textDecoration: 'none', backgroundColor: '#8B6F6F' }}
-                    >
+                    <Link to="/sign-up" className="auth-switch-link">
                        <b> SIGN UP</b>
                     </Link>
                 </p>
                 {/* Go To Home Button */}
-                <button
-                    type="button"
-                    style={{
-                        width: '100%',
-                        padding: '0.75rem',
-                        backgroundColor: '#8B6F6F',
-                        color: 'white',
-                        border: 'none',
-                        borderRadius: '4px',
-                        fontSize: '1rem',
-                        cursor: 'pointer',
-                        marginTop: '1rem',
-                        transition: 'background-color 0.3s',
-                    }}
-                    onClick={() => navigate('/')}
-                    onMouseOver={e => (e.currentTarget.style.backgroundColor = '#6d5454')}
-                    onMouseOut={e => (e.currentTarget.style.backgroundColor = '#8B6F6F')}
-                >
+                <button type="button" className="btn btn-ghost auth-wide" onClick={() => navigate('/')}>
                     Go To Home
                 </button>
-            </div>
+            </main>
 
             {/* Forgot Password Modal */}
             {showForgot && (
-                <div style={{
-                    position: 'fixed', top: 0, left: 0, width: '100%', height: '100vh',
-                    background: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000
-                }}>
-                    <div style={{ background: '#fff', color: '#222', padding: 32, borderRadius: 8, minWidth: 320 }}>
-                        <h3>Forgot Password</h3>
-                        {forgotStep === 'email' && (
-                            <>
-                                <input type="email" name="reset-email" autoComplete="username" placeholder="Enter your email" value={forgotEmail} onChange={e => setForgotEmail(e.target.value)} style={{ width: '100%', marginBottom: 12, padding: 8 }} />
-                                <button onClick={handleForgotSendOtp} style={{ width: '100%', padding: 10, background: '#333', color: '#fff', border: 'none', borderRadius: 4 }}>Send OTP</button>
-                            </>
-                        )}
-                        {forgotStep === 'otp' && (
-                            <>
-                                <input type="text" name="reset-otp" inputMode="numeric" autoComplete="one-time-code" placeholder="Enter OTP" value={forgotOtp} onChange={e => setForgotOtp(e.target.value)} style={{ width: '100%', marginBottom: 12, padding: 8 }} />
-                                <button onClick={handleForgotVerifyOtp} style={{ width: '100%', padding: 10, background: '#333', color: '#fff', border: 'none', borderRadius: 4 }}>Verify OTP</button>
-                                <button onClick={handleForgotSendOtp} style={{ marginTop: 8, background: 'none', color: '#00f', border: 'none', cursor: 'pointer' }}>Resend OTP</button>
-                            </>
-                        )}
-                        {forgotStep === 'reset' && (
-                            <>
-                                <input type="password" name="new-password" autoComplete="new-password" placeholder="New Password" value={newPassword} onChange={e => setNewPassword(e.target.value)} style={{ width: '100%', marginBottom: 12, padding: 8 }} />
-                                <button onClick={handleForgotResetPassword} style={{ width: '100%', padding: 10, background: '#333', color: '#fff', border: 'none', borderRadius: 4 }}>Set New Password</button>
-                            </>
-                        )}
-                        <div style={{ color: forgotMsg.startsWith('Password reset') ? 'green' : 'red', marginTop: 8 }}>{forgotMsg}</div>
-                        <button onClick={() => setShowForgot(false)} style={{ marginTop: 16, background: '#e74c3c', color: '#fff', border: 'none', borderRadius: 4, padding: 8, width: '100%' }}>Close</button>
+                <div className="auth-overlay">
+                    <div className="card auth-modal" role="dialog" aria-modal="true" aria-labelledby="forgot-title">
+                        <span className="auth-modal-icon" aria-hidden="true"><FaKey /></span>
+                        <h3 id="forgot-title" className="auth-modal-title">Forgot Password</h3>
+                        <p className="auth-sub" style={{ marginBottom: '1.25rem' }}>
+                            {forgotStep === 'email' && "Enter your email and we'll send you a code."}
+                            {forgotStep === 'otp' && `Enter the code we sent to ${forgotEmail}.`}
+                            {forgotStep === 'reset' && 'Choose a new password for your account.'}
+                        </p>
+                        <div className="auth-form">
+                            {forgotStep === 'email' && (
+                                <>
+                                    <input type="email" name="reset-email" autoComplete="username" aria-label="Email" placeholder="Enter your email" value={forgotEmail} onChange={e => setForgotEmail(e.target.value)} className="field" />
+                                    <button onClick={handleForgotSendOtp} className="btn btn-primary auth-wide">Send OTP</button>
+                                </>
+                            )}
+                            {forgotStep === 'otp' && (
+                                <>
+                                    <input type="text" name="reset-otp" inputMode="numeric" autoComplete="one-time-code" aria-label="OTP" placeholder="Enter OTP" value={forgotOtp} onChange={e => setForgotOtp(e.target.value)} className="field" />
+                                    <button onClick={handleForgotVerifyOtp} className="btn btn-primary auth-wide">Verify OTP</button>
+                                    <button onClick={handleForgotSendOtp} className="auth-text-button" style={{ justifySelf: 'center' }}>Resend OTP</button>
+                                </>
+                            )}
+                            {forgotStep === 'reset' && (
+                                <>
+                                    <input type="password" name="new-password" autoComplete="new-password" aria-label="New Password" placeholder="New Password" value={newPassword} onChange={e => setNewPassword(e.target.value)} className="field" />
+                                    <button onClick={handleForgotResetPassword} className="btn btn-primary auth-wide">Set New Password</button>
+                                </>
+                            )}
+                            {forgotMsg && (
+                                <p role="status" className={`auth-message ${forgotOk ? 'auth-message-ok' : 'auth-message-error'}`}>{forgotMsg}</p>
+                            )}
+                            <button onClick={() => setShowForgot(false)} className="btn btn-ghost auth-wide">Close</button>
+                        </div>
                     </div>
                 </div>
             )}
         </div>
+    );
+}
+
+/**
+ * What the shop is, beside the form on a wide screen. Hidden from screen
+ * readers: it is decoration, and the form is what they came for.
+ */
+function AuthPitch() {
+    return (
+        <section className="auth-pitch" aria-hidden="true">
+            <p className="auth-kicker">📚 Welcome to our bookstore</p>
+            <p className="auth-pitch-title">
+                Your next favourite book is <span className="auth-highlight">one tap</span> away.
+            </p>
+            <p className="auth-pitch-sub">New and second-hand books from readers across Bangladesh.</p>
+            <ul className="auth-perks">
+                <li><span className="auth-perk-icon"><FaBookOpen /></span>New and second-hand, fairly priced</li>
+                <li><span className="auth-perk-icon"><FaTruck /></span>Delivered to your door</li>
+                <li><span className="auth-perk-icon"><FaHeart /></span>Save favourites to your wishlist</li>
+            </ul>
+        </section>
     );
 }

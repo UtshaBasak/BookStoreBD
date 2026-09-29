@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { FaChevronLeft, FaChevronRight, FaHeart, FaRegHeart, FaBell, FaComments } from 'react-icons/fa';
+import { FaChevronLeft, FaChevronRight, FaHeart, FaRegHeart, FaBell, FaComments, FaShoppingBag, FaSearch } from 'react-icons/fa';
 import './Homepage.css';
 import { io } from 'socket.io-client';
 
@@ -21,6 +21,7 @@ import { useSeo } from '../hooks/useSeo.js';
 import { Stars } from '../components/Stars.js';
 import { site } from '../config/site.js';
 import Footer from '../components/Footer.js';
+import Logo from '../components/Logo.js';
 import { getUserEmail } from '../utils/auth.js';
 import { flagsFor } from '../utils/bookFlags.js';
 import { PLACEHOLDER_IMAGE } from '../utils/safeImageSrc.js';
@@ -215,30 +216,20 @@ export default function Homepage() {
               white screen every time somebody tapped the name of the shop. */}
           <button
             type="button"
-            className="p-0 text-3xl font-bold"
-            // Inline, because a page stylesheet's plain `button` rule beats a
-            // Tailwind utility: Tailwind 4 puts its own rules in a cascade
-            // layer, and an unlayered rule wins over a layered one whatever
-            // the specificity says.
-            style={{
-              background: 'transparent',
-              border: 'none',
-              color: '#8B6F6F',
-              cursor: 'pointer',
-              userSelect: 'none',
-            }}
+            className="logo-button"
             onClick={() => navigate('/')}
             aria-label="Go to homepage"
           >
-            {site.name}
+            <Logo size={38} />
           </button>
         </div>
         <div className="search-bar">
+          <FaSearch className="search-icon" aria-hidden="true" />
           <input
             type="search"
             name="search"
             aria-label="Search books"
-            placeholder="Search books..."
+            placeholder="Search by title, author or ISBN"
             value={searchInput}
             onChange={e => setSearchInput(e.target.value)}
             onKeyDown={e => {
@@ -247,13 +238,13 @@ export default function Homepage() {
           />
           <button onClick={handleHomepageSearch}>Search</button>
         </div>
-        <div className="user-options" style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: '1.5rem' }}>
+        <div className="user-options" style={{ position: 'relative' }}>
 
         {user && (
             <button
               type="button"
               className="chat-icon icon-button"
-              style={{ color: '#8B6F6F' }}
+              style={{ color: '#6d28d9' }}
               onClick={() => navigate('/chat')}
               title="Chat"
               aria-label="Chat"
@@ -264,7 +255,7 @@ export default function Homepage() {
                   position: 'absolute',
                   top: -8,
                   right: -8,
-                  background: '#e65100',
+                  background: '#ff5c35',
                   color: 'white',
                   borderRadius: '50%',
                   padding: '2px 6px',
@@ -284,7 +275,7 @@ export default function Homepage() {
           <button
             type="button"
             className="notification-icon icon-button"
-            style={{ color: '#8B6F6F' }}
+            style={{ color: '#6d28d9' }}
             title="Notifications"
             onClick={() => toast.info('No new notifications.')}
             aria-label="Notifications"
@@ -295,19 +286,19 @@ export default function Homepage() {
           <button
             type="button"
             className="wishlist-icon icon-button"
-            style={{ color: '#e65100' }}
+            style={{ color: '#ff5c35' }}
             onClick={() => navigate('/wishlist')}
             title="Wishlist"
             aria-label="Wishlist"
           >
             <FaHeart />
           </button>
-          <Link to="/cart" className="icon-link" style={{ color: '#8B6F6F' }} title="Cart" aria-label="Cart">
-            🛒
+          <Link to="/cart" className="icon-link" style={{ color: '#6d28d9' }} title="Cart" aria-label="Cart">
+            <FaShoppingBag />
           </Link>
           {user ? (
             <div
-              style={{ display: 'inline-block', marginLeft: '1rem', cursor: 'pointer', position: 'relative' }}
+              style={{ display: 'inline-block', marginLeft: '0.25rem', cursor: 'pointer', position: 'relative' }}
               tabIndex={0}
               onMouseEnter={() => setShowDropdown('profile')}
               onMouseLeave={() => setShowDropdown(false)}
@@ -317,7 +308,7 @@ export default function Homepage() {
               <img
                 src={
                   profilePic ||
-                  `https://ui-avatars.com/api/?name=${encodeURIComponent(username ? username[0] : 'U')}`
+                  `https://ui-avatars.com/api/?name=${encodeURIComponent(username ? username[0] : 'U')}&background=6d28d9&color=fff&bold=true`
                 }
                 alt="Profile"
                 style={{
@@ -325,7 +316,7 @@ export default function Homepage() {
                   height: 36,
                   borderRadius: '50%',
                   objectFit: 'cover',
-                  border: '2px solid #8B6F6F',
+                  border: '2px solid #6d28d9',
                   verticalAlign: 'middle',
                 }}
               />
@@ -374,7 +365,7 @@ export default function Homepage() {
                       padding: '0.75rem 1rem',
                       textAlign: 'left',
                       cursor: 'pointer',
-                      color: '#e74c3c',
+                      color: '#ef4444',
                       fontWeight: 500,
                       borderRadius: '0 0 6px 6px'
                     }}
@@ -389,10 +380,10 @@ export default function Homepage() {
           ) : (
             <Link
               to="/sign-in"
-              className="inline-flex min-h-[44px] items-center px-2"
-              style={{ color: '#8B6F6F', fontWeight: 600, textDecoration: 'none', fontSize: 16 }}
+              className="btn btn-primary"
+              style={{ minHeight: 40, padding: '0 1.1rem' }}
             >
-              Sign In
+              Sign in
             </Link>
           )}
         </div>
@@ -409,28 +400,16 @@ export default function Homepage() {
           tabIndex={0}
         >
           <span
-            style={{ cursor: 'pointer', color: '#333', textDecoration: 'none', fontWeight: 500 }}
+            className="chip chip-strong"
             onClick={() => setShowDropdown('category')}
             tabIndex={0}
           >
-            Category
+            Categories ▾
           </span>
           {showDropdown === 'category' && (
             <div
-              className="dropdown-content"
-              style={{
-                zIndex: 30,
-                minWidth: 400,
-                padding: '0.5rem 0.5rem',
-                display: 'grid',
-                gridTemplateColumns: '1fr 1fr',
-                gap: '0.25rem 1.5rem',
-                maxWidth: 500,
-                position: 'absolute',
-                top: '100%',
-                left: 0,
-                background: '#fff',
-              }}
+              className="dropdown-content categories-menu"
+              style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.25rem 1rem' }}
             >
               {genres.map((genre, index) => (
                 <span
@@ -461,68 +440,88 @@ export default function Homepage() {
           )}
         </div>
         <span
-          style={{ cursor: 'pointer', color: '#333', textDecoration: 'none', fontWeight: 500 }}
+          className="chip"
           onClick={() => navigate('/filter?bookType=new')}
           tabIndex={0}
           onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') navigate('/filter?bookType=new'); }}
           role="menuitem"
         >
-          New Books
+          ✨ New books
         </span>
         <span
-          style={{ cursor: 'pointer', color: '#333', textDecoration: 'none', fontWeight: 500 }}
+          className="chip"
           onClick={() => navigate('/filter?bookType=old')}
           tabIndex={0}
           onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') navigate('/filter?bookType=old'); }}
           role="menuitem"
         >
-          Old Books
+          ♻️ Second-hand
         </span>
         <span
-          style={{ cursor: 'pointer', color: '#333', textDecoration: 'none', fontWeight: 500 }}
+          className="chip"
           onClick={() => navigate('/filter?inStock=1')}
           tabIndex={0}
           onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') navigate('/filter?inStock=1'); }}
           role="menuitem"
         >
-          In Stock
+          In stock now
         </span>
       </nav>
 
-      {/* The `src` here was commented out, so this was a 400px-tall empty box
-          with a broken image in it - the whole of the first screen on a phone,
-          above everything a shopper came for. banner.png was sitting unused in
-          public/ the whole time. */}
-      <div className="hero-banner" style={{ zIndex: 1, position: 'relative' }}>
-        <img src="/banner.png" alt={`Books for sale at ${site.name}`} />
-      </div>
-
-      <div style={{
-        width: '100%',
-        margin: '0 auto',
-        marginTop: '0.5rem',
-        marginBottom: '2rem',
-        display: 'flex',
-        justifyContent: 'center',
-        alignItems: 'center',
-        position: 'relative',
-        zIndex: 2,
-        background: '#fff'
-      }}>
-        <img
-          src="/banner1.png"
-          alt="Books Banner"
-          style={{
-            width: '80%',
-            // maxWidth: 1200,
-            height: '60%',
-            objectFit: 'cover',
-            borderRadius: 16,
-            boxShadow: '0 4px 16px rgba(0,0,0,0.08)',
-            background: '#fff'
-          }}
-        />
-      </div>
+      {/*
+        The first screen. It was two stock AI images - a pile of books, a
+        library with "BOOKSTORE" painted on its wall - which said nothing a
+        shopper could act on and looked like a site from another decade. It
+        says what the shop is, lets them search straight away, and names the
+        three things that make buying second-hand here safe.
+      */}
+      <section className="hero">
+        <div className="hero-inner">
+          <p className="hero-kicker">📚 New & second-hand books across Bangladesh</p>
+          <h1 className="hero-title">
+            Your next favourite book is <span className="hero-highlight">one tap</span> away.
+          </h1>
+          <p className="hero-sub">
+            Buy for less, sell the ones you have finished, and keep good books moving.
+          </p>
+          <form
+            className="hero-search"
+            role="search"
+            onSubmit={(e) => {
+              e.preventDefault();
+              handleHomepageSearch();
+            }}
+          >
+            <FaSearch aria-hidden="true" className="hero-search-icon" />
+            <input
+              type="search"
+              aria-label="Search books"
+              placeholder="Try “Humayun Ahmed” or “physics”"
+              value={searchInput}
+              onChange={(e) => setSearchInput(e.target.value)}
+            />
+            <button type="submit" className="btn btn-accent">Search</button>
+          </form>
+          <div className="hero-actions">
+            <Link to="/filter" className="btn btn-primary">Browse all books</Link>
+            <Link to="/add-book" className="btn btn-ghost">Sell a book</Link>
+          </div>
+          <ul className="hero-perks" aria-label="Why buy here">
+            <li>💵 {site.payment}</li>
+            <li>↩️ {site.returns.windowDays}-day returns</li>
+            <li>🚚 From {site.delivery.insideDhaka} Tk delivery</li>
+          </ul>
+        </div>
+        {/* Book spines, drawn: colour and movement without a photograph. */}
+        <div className="hero-art" aria-hidden="true">
+          <span className="spine s1" />
+          <span className="spine s2" />
+          <span className="spine s3" />
+          <span className="spine s4" />
+          <span className="spine s5" />
+          <span className="hero-sun" />
+        </div>
+      </section>
 
       <section className="popular-section">
         <h2>Latest Books</h2>
@@ -534,10 +533,10 @@ export default function Homepage() {
               maxWidth: 520,
               padding: '28px 20px',
               textAlign: 'center',
-              background: '#f5f0ee',
-              border: '1px dashed #c9b8b3',
+              background: '#f3efff',
+              border: '1px dashed #d6ccf7',
               borderRadius: 12,
-              color: '#4a3f3f',
+              color: '#374151',
               lineHeight: 1.5,
             }}
           >
@@ -548,7 +547,7 @@ export default function Homepage() {
             <Link
               to="/add-book"
               className="inline-flex min-h-11 items-center rounded-lg px-5 font-semibold text-white no-underline"
-              style={{ background: '#8B6F6F' }}
+              style={{ background: '#6d28d9' }}
             >
               List a book
             </Link>
@@ -608,10 +607,11 @@ export default function Homepage() {
                   display: 'inline-block',
                   verticalAlign: 'top',
                   width: 220,
-                  marginRight: 24,
+                  marginRight: 20,
                   position: 'relative',
                   zIndex: 0,
-                  cursor: 'pointer'
+                  cursor: 'pointer',
+                  whiteSpace: 'normal',
                 }}
                 onClick={() => navigate(`/book/${book._id}`)}
               >
@@ -631,25 +631,21 @@ export default function Homepage() {
                     // left eager: it is what the browser measures as the load.
                     loading="lazy"
                     decoding="async"
-                    style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: 4 }}
+                    style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: 14 }}
                   />
                   <div
+                    className="badge"
                     style={{
                       position: 'absolute',
-                      top: 8,
-                      left: 8,
-                      background: book.bookType === 'old' ? '#e65100' : '#4CAF50',
-                      color: '#fff',
-                      fontWeight: 700,
-                      fontSize: 13,
-                      padding: '2px 10px',
-                      borderRadius: 12,
-                      boxShadow: '0 2px 6px rgba(0,0,0,0.08)',
+                      top: 10,
+                      left: 10,
+                      background: book.bookType === 'old' ? '#ffffff' : '#facc15',
+                      color: book.bookType === 'old' ? '#5b21b6' : '#111827',
+                      boxShadow: '0 2px 8px rgba(30,27,75,0.18)',
                       zIndex: 1,
-                      letterSpacing: 1,
                     }}
                   >
-                    {book.bookType === 'old' ? 'OLD' : 'NEW'}
+                    {book.bookType === 'old' ? 'Used' : 'New'}
                   </div>
                   {user && (
                     <span
@@ -663,7 +659,7 @@ export default function Homepage() {
                         right: 8,
                         cursor: 'pointer',
                         fontSize: 22,
-                        color: wishlist[book._id] ? '#e65100' : '#fff',
+                        color: wishlist[book._id] ? '#ff5c35' : '#fff',
                         textShadow: '0 1px 4px rgba(0,0,0,0.18)',
                         zIndex: 2
                       }}
@@ -678,8 +674,8 @@ export default function Homepage() {
                   <div style={{ color: '#666', fontSize: 13, marginBottom: 4 }}>
                     {book.author}
                   </div>
-                  <div style={{ color: '#222', fontWeight: 600, marginBottom: 4 }}>
-                    {book.price} Tk
+                  <div style={{ color: '#ff5c35', fontWeight: 800, fontSize: 18, marginBottom: 4 }}>
+                    ৳{book.price}
                   </div>
                   {(book.ratingCount ?? 0) > 0 && (
                     <div className="mb-2 flex items-center justify-center gap-1">
@@ -687,18 +683,16 @@ export default function Homepage() {
                       <span style={{ color: '#666', fontSize: 12 }}>({book.ratingCount})</span>
                     </div>
                   )}
-                  <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'center', marginTop: 8 }}>
+                  <div style={{ display: 'flex', gap: '0.5rem', marginTop: 10 }}>
                     {book.stock === 0 ? (
                       <div
                         style={{
-                          background: '#e74c3c',
-                          color: '#fff',
+                          background: '#f3f4f6',
+                          color: '#6b7280',
                           fontWeight: 700,
                           fontSize: 13,
-                          padding: '2px 10px',
-                          borderRadius: 12,
-                          boxShadow: '0 2px 6px rgba(0,0,0,0.18)',
-                          letterSpacing: 1,
+                          padding: '8px 14px',
+                          borderRadius: 999,
                           minWidth: 90,
                           textAlign: 'center'
                         }}
@@ -707,14 +701,8 @@ export default function Homepage() {
                       </div>
                     ) : (
                       <button
-                        style={{
-                          background: cart[book._id] ? '#e74c3c' : '#8B6F6F',
-                          color: 'white',
-                          border: 'none',
-                          borderRadius: 4,
-                          padding: '0.3rem 0.8rem',
-                          cursor: 'pointer'
-                        }}
+                        className={cart[book._id] ? 'btn btn-danger' : 'btn btn-primary'}
+                        style={{ minHeight: 40, padding: '0 1rem', fontSize: 14, width: '100%' }}
                         onClick={(e) => {
                           e.stopPropagation();
                           toggleCart(book._id);

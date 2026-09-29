@@ -1,96 +1,19 @@
 /*
- * Every rule here is scoped to `.user-management`.
+ * The user table's own rules; the look it shares with the other admin pages is
+ * in AdminPanel.css.
  *
  * A stylesheet imported by a page is not scoped to it: Vite puts it in the one
- * bundle, and a bare `button { background-color: #e74c3c }` in this file was
- * painting every button in the application red - which is most of the reason
- * the rest of the app sets `background` inline on each one. It also beat the
- * Tailwind utilities, because Tailwind 4 puts its own rules in a cascade layer
- * and an unlayered rule wins over a layered one whatever the specificity.
+ * bundle, and a bare `button { background-color: #ef4444 }` in this file once
+ * painted every button in the application red. It also beat the Tailwind
+ * utilities, because Tailwind 4 puts its own rules in a cascade layer and an
+ * unlayered rule wins over a layered one whatever the specificity. So every
+ * rule here stays scoped to `.user-management`, and none sets a button's
+ * colour - the old ones overrode `btn-danger`.
  */
 
-/* User Management Container */
-.user-management {
-  padding: 12px;
-  background-color: #ffffff;
-  border-radius: 8px;
-  box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.1);
-  margin: 12px auto;
-  max-width: 1200px;
-  box-sizing: border-box;
-}
-
-@media (min-width: 900px) {
-  .user-management {
-    padding: 20px;
-    margin: 20px auto;
-  }
-}
-
-/* Header Section */
-.user-management-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 20px;
-}
-
-.user-management-header h1 {
-  font-size: 2rem;
-  color: #2c3e50;
-}
-
-.add-user-button {
-  padding: 10px 20px;
-  background-color: #3498db;
-  color: white;
-  border: none;
-  border-radius: 5px;
-  font-size: 1rem;
-  cursor: pointer;
-  transition: background-color 0.3s ease;
-}
-
-.add-user-button:hover {
-  background-color: #2980b9;
-}
-
-.user-management table {
-  width: 100%;
-  border-collapse: collapse;
-  margin-top: 20px;
-}
-
-.user-management thead {
-  background-color: #34495e;
-  color: white;
-}
-
-.user-management th,
-.user-management td {
-  padding: 10px;
-  text-align: left;
-  border: 1px solid #ddd;
-}
-
-.user-management tbody tr:nth-child(even) {
-  background-color: #f2f2f2;
-}
-
-.user-management tbody tr:hover {
-  background-color: #f1f1f1;
-}
-
-.user-management button {
-  padding: 5px 10px;
-  background-color: #e74c3c;
-  color: white;
-  border: none;
-  border-radius: 3px;
-  cursor: pointer;
-  transition: background-color 0.3s ease;
-}
-
-.user-management button:hover {
-  background-color: #c0392b;
+/* Email addresses are long; on a phone they wrap rather than widening the
+   table past the screen. */
+.user-management .styled-table td.user-email {
+  overflow-wrap: anywhere;
+  min-width: 160px;
 }

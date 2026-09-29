@@ -3,14 +3,26 @@
     Stands in for a missing book cover. Local on purpose: this used to point at
     via.placeholder.com, which no longer resolves, so every coverless listing
     rendered as a broken image. A vector scales to every size the app asks for
-    (80x120 in lists, 300x450 on the detail page) from one file.
+    (80x120 in lists, 300x450 on the detail page) from one file. In the site's
+    violet and sunset colours, so a coverless book still looks like it belongs.
   -->
-  <rect width="120" height="180" fill="#f1ece9" />
-  <rect x="26" y="42" width="68" height="86" rx="4" fill="#ded3cd" />
-  <rect x="26" y="42" width="12" height="86" rx="4" fill="#c9b9b1" />
-  <rect x="48" y="62" width="34" height="4" rx="2" fill="#f1ece9" />
-  <rect x="48" y="74" width="34" height="4" rx="2" fill="#f1ece9" />
-  <rect x="48" y="86" width="22" height="4" rx="2" fill="#f1ece9" />
-  <text x="60" y="150" font-family="system-ui, sans-serif" font-size="11"
-        fill="#8B6F6F" text-anchor="middle">No cover</text>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#f3efff"/>
+      <stop offset="1" stop-color="#fff1ec"/>
+    </linearGradient>
+    <linearGradient id="book" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#8b5cf6"/>
+      <stop offset="1" stop-color="#c026d3"/>
+    </linearGradient>
+  </defs>
+  <rect width="120" height="180" fill="url(#bg)"/>
+  <rect x="30" y="40" width="60" height="84" rx="6" fill="url(#book)"/>
+  <rect x="30" y="40" width="11" height="84" rx="5" fill="#5b21b6" opacity="0.55"/>
+  <rect x="50" y="60" width="30" height="4" rx="2" fill="#fff" opacity="0.9"/>
+  <rect x="50" y="71" width="30" height="4" rx="2" fill="#fff" opacity="0.7"/>
+  <rect x="50" y="82" width="18" height="4" rx="2" fill="#fff" opacity="0.7"/>
+  <circle cx="84" cy="44" r="7" fill="#facc15"/>
+  <text x="60" y="150" font-family="system-ui, sans-serif" font-size="11" font-weight="700"
+        fill="#6d28d9" text-anchor="middle">No cover yet</text>
 </svg>

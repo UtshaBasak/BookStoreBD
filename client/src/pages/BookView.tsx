@@ -1,8 +1,19 @@
 import { useEffect, useRef, useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import { FaHeart, FaRegHeart, FaChevronLeft, FaChevronRight, FaComments, FaBell } from 'react-icons/fa';
+import {
+    FaHeart,
+    FaRegHeart,
+    FaChevronLeft,
+    FaChevronRight,
+    FaComments,
+    FaBell,
+    FaSearch,
+    FaShoppingBag,
+} from 'react-icons/fa';
+import './Homepage.css';
+import './BookView.css';
 
-import type { Book, BookDetail, ChatMessage } from '@shared/api.js';
+import type { ChatMessage } from '@shared/api.js';
 
 import socket from '../utils/socket';  // Add this import
 import ChatWindow from '../components/ChatWindow';
@@ -22,6 +33,7 @@ import BookReviews from '../components/BookReviews.js';
 import { Stars } from '../components/Stars.js';
 import { messageOf } from '../utils/apiError.js';
 import { site } from '../config/site.js';
+import Logo from '../components/Logo.js';
 import { getUserEmail } from '../utils/auth.js';
 import { flagsFor } from '../utils/bookFlags.js';
 import { PLACEHOLDER_IMAGE } from '../utils/safeImageSrc.js';
@@ -32,6 +44,8 @@ export default function BookView() {
     const [showDropdown, setShowDropdown] = useState(false);
     const [searchQuery, setSearchQuery] = useState('');
     const [showChat, setShowChat] = useState(false);
+    /** Which photograph is on show, for the book it was chosen on. */
+    const [picked, setPicked] = useState<{ id?: string; index: number }>({ index: 0 });
     const { id } = useParams();
     const navigate = useNavigate();
     const toast = useToast();
@@ -207,9 +221,8 @@ export default function BookView() {
         }
     };
 
-    const getBookImageSrc = (book: Book | BookDetail | null | undefined): string => {
-        if (!book) return PLACEHOLDER_IMAGE;
-        const img = book.images?.[0];
+    /** Where one of a book's images is, whichever way it was stored. */
+    const imageSrc = (img: string | undefined): string => {
         if (!img) return PLACEHOLDER_IMAGE;
         if (img.startsWith('data:image/')) return img;
         // Cloudinary delivers the size the page draws, not the original.
@@ -221,36 +234,62 @@ export default function BookView() {
     };
 
     if (loading) {
-        return <div style={{ textAlign: 'center', padding: '2rem' }}>Loading...</div>;
+        return (
+            <div className="book-page-state" role="status">
+                <span className="book-page-spinner" aria-hidden="true" />
+                Loading...
+            </div>
+        );
     }
 
     if (error) {
-        return <div style={{ textAlign: 'center', padding: '2rem', color: 'red' }}>Error: {error}</div>;
+        return (
+            <div className="book-page-state" role="alert" style={{ color: '#b91c1c' }}>
+                Error: {error}
+                <Link to="/filter" className="btn btn-ghost">Browse books</Link>
+            </div>
+        );
     }
 
     if (!book) {
-        return <div style={{ textAlign: 'center', padding: '2rem' }}>Book not found</div>;
+        return (
+            <div className="book-page-state">
+                Book not found
+                <Link to="/filter" className="btn btn-ghost">Browse books</Link>
+            </div>
+        );
     }
 
+    const images = book.images?.length ? book.images : [undefined];
+    const shownIndex = Math.min(picked.id === id ? picked.index : 0, images.length - 1);
+    const isOld = book.bookType === 'old';
+    const inCart = Boolean(cart[book._id]);
+    const inWishlist = Boolean(wishlist[book._id]);
+    const sellerName = sellerInfo?.username || book?.sellerEmail;
+    const capitalise = (value: string) => value.charAt(0).toUpperCase() + value.slice(1);
+
     return (
-        <div style={{ minHeight: '100vh', width: '100%', display: 'flex', flexDirection: 'column' }}>
+        <div className="homepage book-page">
+            {/* The homepage's header, rather than an older copy of it. */}
             <header className="header">
                 <div className="logo">
-                    <span
-                        style={{ cursor: 'pointer', color: '#8B6F6F', fontSize: '2rem', fontWeight: 'bold', userSelect: 'none' }}
-                        onClick={() => { navigate('/'); window.location.reload(); }}
-                        tabIndex={0}
-                        onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { navigate('/'); window.location.reload(); } }}
+                    {/* A button, and no reload: the queries refetch on their
+                        own, as on the homepage. */}
+                    <button
+                        type="button"
+                        className="logo-button"
+                        onClick={() => navigate('/')}
                         aria-label="Go to homepage"
-                        role="button"
                     >
-                        {site.name}
-                    </span>
+                        <Logo size={38} />
+                    </button>
                 </div>
 
-                <div className="search-bar">
+                <div className="search-bar" role="search">
+                    <FaSearch className="search-icon" aria-hidden="true" />
                     <input
-                        type="text"
+                        type="search"
+                        aria-label="Search books"
                         placeholder="Search books..."
                         value={searchQuery}
                         onChange={e => setSearchQuery(e.target.value)}
@@ -263,43 +302,29 @@ export default function BookView() {
                     <button onClick={() => navigate(`/filter?search=${encodeURIComponent(searchQuery.trim())}`)}>Search</button>
                 </div>
 
-                <div className="user-options" style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: '1.5rem' }}>
+                <div className="user-options" style={{ position: 'relative' }}>
                     {user && (
                         <button
                             type="button"
                             className="chat-icon icon-button"
-                            style={{ color: '#8B6F6F' }}
+                            style={{ color: '#6d28d9' }}
                             onClick={() => navigate('/chat')}
                             title="Chat"
                             aria-label="Chat"
                         >
                             <FaComments />
                             {unreadCount > 0 && (
-                                <span style={{
-                                    position: 'absolute',
-                                    top: -8,
-                                    right: -8,
-                                    background: '#e65100',
-                                    color: 'white',
-                                    borderRadius: '50%',
-                                    padding: '2px 6px',
-                                    fontSize: '12px',
-                                    minWidth: '18px',
-                                    height: '18px',
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    justifyContent: 'center'
-                                }}>
+                                <span className="book-page-unread">
                                     {unreadCount > 99 ? '99+' : unreadCount}
                                 </span>
                             )}
                         </button>
                     )}
-                    
+
                     <button
                         type="button"
                         className="notification-icon icon-button"
-                        style={{ color: '#8B6F6F' }}
+                        style={{ color: '#6d28d9' }}
                         title="Notifications"
                         onClick={() => toast.info('No new notifications.')}
                         aria-label="Notifications"
@@ -310,7 +335,7 @@ export default function BookView() {
                     <button
                         type="button"
                         className="wishlist-icon icon-button"
-                        style={{ color: '#e65100' }}
+                        style={{ color: '#ff5c35' }}
                         onClick={() => navigate('/wishlist')}
                         title="Wishlist"
                         aria-label="Wishlist"
@@ -318,76 +343,42 @@ export default function BookView() {
                         <FaHeart />
                     </button>
 
-                    <Link to="/cart" className="icon-link" style={{ color: '#8B6F6F' }} title="Cart" aria-label="Cart">
-                        🛒
+                    <Link to="/cart" className="icon-link" style={{ color: '#6d28d9' }} title="Cart" aria-label="Cart">
+                        <FaShoppingBag />
                     </Link>
 
                     {user ? (
                         <div
-                            style={{ display: 'inline-block', marginLeft: '1rem', cursor: 'pointer', position: 'relative' }}
+                            style={{ display: 'inline-block', marginLeft: '0.25rem', cursor: 'pointer', position: 'relative' }}
                             tabIndex={0}
                             onMouseEnter={() => setShowDropdown(true)}
                             onMouseLeave={() => setShowDropdown(false)}
                         >
                             <img
-                                src={profilePic || `https://ui-avatars.com/api/?name=${encodeURIComponent(username ? username[0] : 'U')}`}
+                                src={
+                                    profilePic ||
+                                    `https://ui-avatars.com/api/?name=${encodeURIComponent(username ? username[0] : 'U')}&background=6d28d9&color=fff&bold=true`
+                                }
                                 alt="Profile"
                                 style={{
                                     width: 36,
                                     height: 36,
                                     borderRadius: '50%',
                                     objectFit: 'cover',
-                                    border: '2px solid #8B6F6F',
+                                    border: '2px solid #6d28d9',
                                     verticalAlign: 'middle',
                                 }}
                             />
                             {showDropdown && (
-                                <div
-                                    style={{
-                                        position: 'absolute',
-                                        top: '100%',
-                                        right: 0,
-                                        background: '#fff',
-                                        color: '#333',
-                                        border: '1px solid #ddd',
-                                        borderRadius: 6,
-                                        boxShadow: '0 2px 8px rgba(0,0,0,0.12)',
-                                        minWidth: 140,
-                                        zIndex: 10
-                                    }}
-                                >
-                                    <button
-                                        style={{
-                                            width: '100%',
-                                            background: 'none',
-                                            border: 'none',
-                                            padding: '0.75rem 1rem',
-                                            textAlign: 'left',
-                                            cursor: 'pointer',
-                                            color: '#333',
-                                            fontWeight: 500,
-                                            borderRadius: '6px 6px 0 0',
-                                            borderBottom: '1px solid #eee'
-                                        }}
-                                        onClick={handleViewProfile}
-                                        tabIndex={0}
-                                    >
+                                <div className="book-page-menu">
+                                    <button type="button" onClick={handleViewProfile} tabIndex={0}>
                                         View Profile
                                     </button>
                                     <button
-                                        style={{
-                                            width: '100%',
-                                            background: 'none',
-                                            border: 'none',
-                                            padding: '0.75rem 1rem',
-                                            textAlign: 'left',
-                                            cursor: 'pointer',
-                                            color: '#e74c3c',
-                                            fontWeight: 500,
-                                            borderRadius: '0 0 6px 6px'
-                                        }}
+                                        type="button"
                                         onClick={handleSignOut}
                                         tabIndex={0}
+                                        style={{ color: '#ef4444' }}
                                     >
                                         Sign Out
                                     </button>
@@ -397,8 +388,8 @@ export default function BookView() {
                     ) : (
                         <Link
                             to="/sign-in"
-                            className="inline-flex min-h-[44px] items-center px-2"
-                            style={{ color: '#8B6F6F', fontWeight: 600, textDecoration: 'none', fontSize: 16 }}
+                            className="btn btn-primary"
+                            style={{ minHeight: 40, padding: '0 1.1rem' }}
                         >
                             Sign In
                         </Link>
@@ -407,268 +398,265 @@ export default function BookView() {
             </header>
 
             {/* Main Content */}
-            <div className="flex-1 p-4 sm:p-8" style={{ backgroundColor: '#f5f5f5' }}>
-                <div
-                    className="mx-auto max-w-[1200px] rounded-lg bg-white p-4 sm:p-8"
-                    style={{ boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}
-                >
-                    <div className="flex flex-wrap gap-6 sm:gap-8">
-                        {/* The cover column: full width on a phone, a fixed 300px
-                            beside the details once there is room. It was 300px
-                            at every width, which is wider than a 360px screen
-                            once the page padding is taken off. */}
-                        <div className="w-full sm:w-[300px] sm:shrink-0">
-                            <div style={{ position: 'relative' }}>
-                                <img
-                                    src={getBookImageSrc(book)}
-                                    alt={book.title}
-                                    style={{ width: '100%', height: '400px', objectFit: 'cover', borderRadius: '8px' }}
-                                />
-                                {/* Book type label */}
-                                <div style={{
+            <main className="book-page-main">
+                <div className="book-layout">
+                    {/* The cover column: full width on a phone, a fixed column
+                        beside the details once there is room. It was 300px at
+                        every width, which is wider than a 360px screen once the
+                        page padding is taken off. */}
+                    <div className="book-gallery">
+                        <div className="book-cover">
+                            <img src={imageSrc(images[shownIndex])} alt={book.title} />
+                            {/* Book type label */}
+                            <span
+                                className="badge"
+                                style={{
                                     position: 'absolute',
-                                    top: 8,
-                                    left: 8,
-                                    background: book.bookType === 'old' ? '#e65100' : '#4CAF50',
-                                    color: '#fff',
-                                    padding: '4px 12px',
-                                    borderRadius: '12px',
-                                    fontSize: '0.875rem',
-                                    fontWeight: '600'
-                                }}>
-                                    {book.bookType === 'old' ? 'OLD' : 'NEW'}
-                                </div>
-                            </div>
-
-                            {/* Stock Status */}
-                            <div style={{ 
-                                marginTop: '1rem',
-                                padding: '0.5rem',
-                                background: '#f8f9fa',
-                                color: '#333',
-                                borderRadius: '4px',
-                                textAlign: 'center',
-                                fontWeight: '500'
-                            }}>
-                                {book.stock > 0 
-                                    ? `${book.stock} copies available` 
-                                    : 'Out of Stock'}
-                            </div>
-
-                            {/* Cart and Wishlist Buttons */}
-                            <div style={{ display: 'flex', gap: '1rem', marginTop: '1rem' }}>
-                                <button
-                                    onClick={() => toggleCart(book._id)}
-                                    disabled={book.stock === 0}
-                                    style={{
-                                        flex: 1,
-                                        padding: '0.75rem',
-                                        background: book.stock === 0 ? '#ccc' : (cart[book._id] ? '#e74c3c' : '#8B6F6F'),
-                                        color: 'white',
-                                        border: 'none',
-                                        borderRadius: '4px',
-                                        cursor: book.stock === 0 ? 'not-allowed' : 'pointer'
-                                    }}
-                                >
-                                    {book.stock === 0 ? 'Out of Stock' : (cart[book._id] ? 'Remove from Cart' : 'Add to Cart')}
-                                </button>
-                                <button
-                                    onClick={() => toggleWishlist(book._id)}
-                                    style={{
-                                        padding: '0.75rem',
-                                        background: wishlist[book._id] ? '#e65100' : '#8B6F6F',
-                                        color: 'white',
-                                        border: 'none',
-                                        borderRadius: '4px',
-                                        cursor: 'pointer',
-                                        width: '50px'
-                                    }}
-                                >
-                                    {wishlist[book._id] ? <FaHeart /> : <FaRegHeart />}
-                                </button>
-                            </div>
+                                    top: 14,
+                                    left: 14,
+                                    fontSize: '0.8rem',
+                                    padding: '5px 12px',
+                                    background: isOld ? '#ffffff' : '#facc15',
+                                    color: isOld ? '#5b21b6' : '#111827',
+                                    boxShadow: '0 2px 8px rgba(30,27,75,0.18)',
+                                }}
+                            >
+                                {isOld ? 'Used' : 'New'}
+                            </span>
                         </div>
 
-                        {/* Right Column - Book Info */}
-                        <div style={{ flex: 1 }}>
-                            <h1 style={{ fontSize: '2rem', marginBottom: '0.5rem', color: '#333' }}>{book.title}</h1>
-                            <p style={{ fontSize: '1.25rem', color: '#666', marginBottom: '0.5rem' }}>By {book.author}</p>
+                        {/* The other photographs, when a seller took more than
+                            one - the back cover, the spine, a worn corner. */}
+                        {images.length > 1 && (
+                            <div className="book-thumbs" role="group" aria-label="Photos of this book">
+                                {images.map((img, index) => (
+                                    <button
+                                        key={index}
+                                        type="button"
+                                        className={`book-thumb${index === shownIndex ? ' is-on' : ''}`}
+                                        onClick={() => setPicked({ id, index })}
+                                        aria-label={`Photo ${index + 1} of ${images.length}`}
+                                        aria-pressed={index === shownIndex}
+                                    >
+                                        <img src={imageSrc(img)} alt="" loading="lazy" decoding="async" />
+                                    </button>
+                                ))}
+                            </div>
+                        )}
+                    </div>
+
+                    {/* Right Column - Book Info */}
+                    <div className="book-details">
+                        <div className="card book-summary">
+                            {book.category?.length > 0 && (
+                                <p className="book-kicker">{book.category.join(' · ')}</p>
+                            )}
+                            <h1 className="book-title">{book.title}</h1>
+                            <p className="book-author">By {book.author}</p>
                             {(book.ratingCount ?? 0) > 0 ? (
-                                <a
-                                    href="#reviews"
-                                    className="mb-4 inline-flex min-h-[40px] items-center gap-2 no-underline"
-                                    style={{ color: '#444' }}
-                                >
+                                <a href="#reviews" className="book-rating">
                                     <Stars value={book.ratingAverage ?? 0} size={18} />
-                                    <span style={{ fontWeight: 600 }}>{(book.ratingAverage ?? 0).toFixed(1)}</span>
-                                    <span style={{ color: '#666' }}>
+                                    <span style={{ fontWeight: 700, color: '#111827' }}>
+                                        {(book.ratingAverage ?? 0).toFixed(1)}
+                                    </span>
+                                    <span style={{ color: '#6b7280' }}>
                                         ({book.ratingCount} {book.ratingCount === 1 ? 'review' : 'reviews'})
                                     </span>
                                 </a>
                             ) : (
-                                <p style={{ color: '#888', marginBottom: '1rem' }}>No reviews yet</p>
-                            )}
-                            <p style={{ fontSize: '1.5rem', color: '#e65100', fontWeight: '600', marginBottom: '1.5rem' }}>
-                                {book.price} Tk
-                            </p>
-                            <div style={{ 
-                                background: '#f8f9fa', 
-                                padding: '1.5rem', 
-                                borderRadius: '8px',
-                                marginBottom: '1.5rem'
-                            }}>
-                                <h3 style={{ color: '#333', marginBottom: '1rem' }}>Book Details</h3>
-                                <div style={{ display: 'grid', gap: '0.75rem', color: '#666' }}>
-                                    <div><strong>Category:</strong> {book.category.join(', ')}</div> 
-                                    <div><strong>Publisher:</strong> {book.publisher || 'N/A'}</div>
-                                    <div><strong>ISBN:</strong> {book.isbn || 'N/A'}</div>
-                                    <div><strong>Language:</strong> {book.language || 'N/A'}</div>
-                                    <div><strong>Pages:</strong> {book.pages || 'N/A'}</div>
-                                    {book.bookType === 'old' && (
-                                        <>
-                                            <div><strong>Condition:</strong> {book.condition}</div>
-                                            <div><strong>Condition Details:</strong> {book.conditionDetails || 'N/A'}</div>
-                                        </>
-                                    )}
-                                    <div>
-                                        <strong>Seller:</strong> {sellerInfo?.username || book?.sellerEmail}
-                                        {userEmail !== book?.sellerEmail && (
-                                            <button
-                                                // The chat window only renders
-                                                // for a signed-in visitor, so
-                                                // this button did nothing at
-                                                // all when pressed by anyone
-                                                // else - a dead control on the
-                                                // page a shopper lands on.
-                                                onClick={() => {
-                                                    if (!userEmail) {
-                                                        toast.info('Sign in to message the seller.', {
-                                                            action: {
-                                                                label: 'Sign in',
-                                                                onClick: () => navigate('/sign-in'),
-                                                            },
-                                                        });
-                                                        return;
-                                                    }
-                                                    setShowChat(true);
-                                                }}
-                                                style={{
-                                                    marginLeft: 12,
-                                                    backgroundColor: '#8B6F6F',
-                                                    color: 'white',
-                                                    border: 'none',
-                                                    borderRadius: 20,
-                                                    padding: '8px 14px',
-                                                    fontSize: 14,
-                                                    cursor: 'pointer',
-                                                    display: 'inline-flex',
-                                                    alignItems: 'center',
-                                                    gap: 6
-                                                }}
-                                            >
-                                                <FaComments /> Chat with Seller
-                                            </button>
-                                        )}
-                                    </div>
-                                </div>
-                            </div>
-                            {book.desc && (
-                                <div>
-                                    <h3 style={{ color: '#333', marginBottom: '0.75rem' }}>Description</h3>
-                                    <p style={{ color: '#666', lineHeight: '1.6' }}>{book.desc}</p>
-                                </div>
+                                <p className="book-rating" style={{ color: '#6b7280' }}>No reviews yet</p>
                             )}
 
-                            <div id="reviews">
-                                <BookReviews bookId={id} />
+                            <div className="book-price-row">
+                                <span className="book-price">৳{book.price}</span>
+                                {/* Stock Status */}
+                                <span
+                                    className="badge"
+                                    style={
+                                        book.stock > 0
+                                            ? { background: '#ecfdf5', color: '#047857' }
+                                            : { background: '#fef2f2', color: '#b91c1c' }
+                                    }
+                                >
+                                    {book.stock > 0
+                                        ? `${book.stock} copies available`
+                                        : 'Out of Stock'}
+                                </span>
                             </div>
-                        </div>
-                    </div>
 
-                    {/* Similar Books Section */}
-                    {book.relatedBooks?.length > 0 && (
-                        <div style={{ marginTop: '3rem', borderTop: '1px solid #eee', paddingTop: '2rem' }}>
-                            <h2 style={{ color: '#8B6F6F', marginBottom: '1.5rem' }}>Similar Books</h2>
-                            <div style={{ position: 'relative' }}>
-                                <button onClick={handleScrollLeft} className="scroll-button" style={{ left: 0 }}>
-                                    <FaChevronLeft />
+                            {/* Cart and Wishlist Buttons */}
+                            <div className="book-actions">
+                                <button
+                                    type="button"
+                                    onClick={() => toggleCart(book._id)}
+                                    disabled={book.stock === 0}
+                                    className={
+                                        book.stock === 0
+                                            ? 'btn book-sold-out'
+                                            : inCart
+                                              ? 'btn btn-danger'
+                                              : 'btn btn-primary'
+                                    }
+                                >
+                                    {book.stock > 0 && <FaShoppingBag aria-hidden="true" />}
+                                    {book.stock === 0 ? 'Out of Stock' : (inCart ? 'Remove from Cart' : 'Add to Cart')}
                                 </button>
-                                <div
-                                    ref={scrollRef}
-                                    style={{
-                                        overflowX: 'auto',
-                                        whiteSpace: 'nowrap',
-                                        padding: '1rem 48px',
-                                        scrollBehavior: 'smooth',
-                                        WebkitOverflowScrolling: 'touch',
-                                        msOverflowStyle: 'none',
-                                        scrollbarWidth: 'none'
+                                <button
+                                    type="button"
+                                    onClick={() => toggleWishlist(book._id)}
+                                    className="btn btn-ghost book-wish"
+                                    aria-label={inWishlist ? 'Remove from wishlist' : 'Add to wishlist'}
+                                    aria-pressed={inWishlist}
+                                    title={inWishlist ? 'Remove from wishlist' : 'Add to wishlist'}
+                                >
+                                    {inWishlist ? (
+                                        <FaHeart aria-hidden="true" style={{ color: '#ff5c35' }} />
+                                    ) : (
+                                        <FaRegHeart aria-hidden="true" />
+                                    )}
+                                    <span className="book-wish-text">Wishlist</span>
+                                </button>
+                            </div>
+
+                            <ul className="book-perks" aria-label="Buying here">
+                                <li>💵 {site.payment}</li>
+                                <li>↩️ {site.returns.windowDays}-day returns</li>
+                                <li>🚚 From {site.delivery.insideDhaka} Tk delivery</li>
+                            </ul>
+                        </div>
+
+                        {/* The seller, and the way to reach them. */}
+                        <div className="card book-seller">
+                            <span className="book-seller-avatar" aria-hidden="true">
+                                {(sellerName || '?').charAt(0).toUpperCase()}
+                            </span>
+                            <div className="book-seller-who">
+                                <p className="book-seller-label">Seller:</p>
+                                <p className="book-seller-name">{sellerName}</p>
+                            </div>
+                            {userEmail !== book?.sellerEmail && (
+                                <button
+                                    type="button"
+                                    className="btn btn-ghost"
+                                    // The chat window only renders for a
+                                    // signed-in visitor, so this button did
+                                    // nothing at all when pressed by anyone
+                                    // else - a dead control on the page a
+                                    // shopper lands on.
+                                    onClick={() => {
+                                        if (!userEmail) {
+                                            toast.info('Sign in to message the seller.', {
+                                                action: {
+                                                    label: 'Sign in',
+                                                    onClick: () => navigate('/sign-in'),
+                                                },
+                                            });
+                                            return;
+                                        }
+                                        setShowChat(true);
                                     }}
                                 >
-                                    {book.relatedBooks.map((relatedBook) => (
-                                        <div
-                                            key={relatedBook._id}
-                                            onClick={() => navigate(`/book/${relatedBook._id}`)}
-                                            style={{
-                                                display: 'inline-block',
-                                                width: '200px',
-                                                marginRight: '1.5rem',
-                                                verticalAlign: 'top',
-                                                cursor: 'pointer',
-                                                transition: 'transform 0.2s',
-                                            }}
-                                        >
-                                            <div style={{ position: 'relative' }}>
-                                                <img
-                                                    loading="lazy"
-                                                    decoding="async"
-                                                    src={sized(relatedBook.images?.[0] || PLACEHOLDER_IMAGE, IMAGE_WIDTHS.card)}
-                                                    alt={relatedBook.title}
-                                                    style={{
-                                                        width: '100%',
-                                                        height: '280px',
-                                                        objectFit: 'cover',
-                                                        borderRadius: '4px'
-                                                    }}
-                                                />
-                                                <div
-                                                    style={{
-                                                        position: 'absolute',
-                                                        top: 8,
-                                                        left: 8,
-                                                        background: relatedBook.bookType === 'old' ? '#e65100' : '#4CAF50',
-                                                        color: '#fff',
-                                                        padding: '2px 8px',
-                                                        borderRadius: '12px',
-                                                        fontSize: '0.75rem',
-                                                        fontWeight: '600'
-                                                    }}
-                                                >
-                                                    {relatedBook.bookType === 'old' ? 'OLD' : 'NEW'}
-                                                </div>
-                                            </div>
-                                            <h3 style={{ 
-                                                fontSize: '1rem',
-                                                marginTop: '0.5rem',
-                                                marginBottom: '0.25rem',
-                                                color: '#333',
-                                                whiteSpace: 'normal'
-                                            }}>
-                                                {relatedBook.title}
-                                            </h3>
-                                            <p style={{ fontSize: '0.875rem', color: '#666' }}>{relatedBook.author}</p>
-                                            <p style={{ color: '#e65100', fontWeight: '600' }}>{relatedBook.price} Tk</p>
-                                        </div>
-                                    ))}
-                                </div>
-                                <button onClick={handleScrollRight} className="scroll-button" style={{ right: 0 }}>
-                                    <FaChevronRight />
+                                    <FaComments aria-hidden="true" /> Chat with Seller
                                 </button>
-                            </div>
+                            )}
                         </div>
-                    )}
+
+                        <div className="card book-section">
+                            <h2>Book Details</h2>
+                            <dl className="book-facts">
+                                <div><dt>Category</dt><dd>{book.category.join(', ')}</dd></div>
+                                <div><dt>Publisher</dt><dd>{book.publisher || 'N/A'}</dd></div>
+                                <div><dt>ISBN</dt><dd>{book.isbn || 'N/A'}</dd></div>
+                                <div><dt>Language</dt><dd>{book.language || 'N/A'}</dd></div>
+                                <div><dt>Pages</dt><dd>{book.pages || 'N/A'}</dd></div>
+                                {isOld && (
+                                    <>
+                                        <div><dt>Condition</dt><dd>{book.condition ? capitalise(book.condition) : 'N/A'}</dd></div>
+                                        <div className="book-facts-wide">
+                                            <dt>Condition Details</dt>
+                                            <dd>{book.conditionDetails || 'N/A'}</dd>
+                                        </div>
+                                    </>
+                                )}
+                            </dl>
+                        </div>
+
+                        {book.desc && (
+                            <div className="card book-section">
+                                <h2>Description</h2>
+                                <p className="book-desc">{book.desc}</p>
+                            </div>
+                        )}
+
+                        <div id="reviews">
+                            <BookReviews bookId={id} />
+                        </div>
+                    </div>
                 </div>
-            </div>
+
+                {/* Similar Books Section */}
+                {book.relatedBooks?.length > 0 && (
+                    <section className="popular-section book-similar">
+                        <h2>Similar Books</h2>
+                        <div style={{ position: 'relative' }}>
+                            <button
+                                type="button"
+                                onClick={handleScrollLeft}
+                                className="scroll-button"
+                                style={{ left: 0 }}
+                                aria-label="Scroll left"
+                            >
+                                <FaChevronLeft />
+                            </button>
+                            <div ref={scrollRef} className="book-similar-strip">
+                                {book.relatedBooks.map((relatedBook) => (
+                                    <Link
+                                        key={relatedBook._id}
+                                        to={`/book/${relatedBook._id}`}
+                                        className="book-card book-similar-card"
+                                    >
+                                        <div className="book-image" style={{ position: 'relative' }}>
+                                            <img
+                                                loading="lazy"
+                                                decoding="async"
+                                                src={sized(relatedBook.images?.[0] || PLACEHOLDER_IMAGE, IMAGE_WIDTHS.card)}
+                                                alt={relatedBook.title}
+                                            />
+                                            <span
+                                                className="badge"
+                                                style={{
+                                                    position: 'absolute',
+                                                    top: 10,
+                                                    left: 10,
+                                                    background: relatedBook.bookType === 'old' ? '#ffffff' : '#facc15',
+                                                    color: relatedBook.bookType === 'old' ? '#5b21b6' : '#111827',
+                                                    boxShadow: '0 2px 8px rgba(30,27,75,0.18)',
+                                                }}
+                                            >
+                                                {relatedBook.bookType === 'old' ? 'Used' : 'New'}
+                                            </span>
+                                        </div>
+                                        <div className="book-info">
+                                            <h3>{relatedBook.title}</h3>
+                                            <p className="book-similar-author">{relatedBook.author}</p>
+                                            <p className="book-similar-price">৳{relatedBook.price}</p>
+                                        </div>
+                                    </Link>
+                                ))}
+                            </div>
+                            <button
+                                type="button"
+                                onClick={handleScrollRight}
+                                className="scroll-button"
+                                style={{ right: 0 }}
+                                aria-label="Scroll right"
+                            >
+                                <FaChevronRight />
+                            </button>
+                        </div>
+                    </section>
+                )}
+            </main>
 
             {/* Chat Window */}
             {showChat && userEmail && book?.sellerEmail && (

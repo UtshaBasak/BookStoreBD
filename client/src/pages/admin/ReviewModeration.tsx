@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { FaCheck, FaFlag, FaTrashAlt } from 'react-icons/fa';
 
 import type { Id } from '@shared/api.js';
 
@@ -7,6 +8,7 @@ import { useToast } from '../../hooks/useToast.js';
 import { messageOf } from '../../utils/apiError.js';
 import Pager from '../../components/Pager.js';
 import { Stars } from '../../components/Stars.js';
+import '../AdminPanel.css';
 
 /** Reports per page. */
 const PAGE_SIZE = 25;
@@ -54,44 +56,66 @@ export default function ReviewModeration() {
     }
   };
 
-  if (query.isPending) return <div className="p-4">Loading...</div>;
-  if (query.error) return <div className="p-4">Error: {query.error.message}</div>;
+  if (query.isPending) return <div className="admin-loading">Loading...</div>;
+  if (query.error) return <div className="admin-alert">Error: {query.error.message}</div>;
 
   return (
-    <div className="p-4">
-      <h2 className="mb-4 text-2xl font-bold">Reported Reviews</h2>
+    <div className="admin-page">
+      <header className="admin-page-head">
+        <div>
+          <h2 className="admin-page-title">
+            <span className="admin-page-icon" aria-hidden="true">
+              <FaFlag />
+            </span>
+            Reported Reviews
+          </h2>
+          <p className="admin-lede">
+            A reported review stays up until you decide. Clear the reports if it is fair, or
+            remove it if it breaks the rules.
+          </p>
+        </div>
+      </header>
 
       {reviews.length === 0 ? (
-        <p>Nothing has been reported.</p>
+        <div className="admin-card admin-empty">
+          <span className="admin-empty-mark" aria-hidden="true">
+            ✨
+          </span>
+          <p>Nothing has been reported.</p>
+        </div>
       ) : (
-        <ul className="m-0 list-none p-0">
+        <ul className="admin-reviews">
           {reviews.map((review) => (
-            <li
-              key={review._id}
-              className="mb-4 rounded border p-4"
-              style={{ borderColor: '#ddd', background: '#fff' }}
-            >
-              <div className="flex flex-wrap items-center gap-2">
+            <li key={review._id} className="admin-card admin-review">
+              <div className="admin-review-head">
+                <span className="admin-avatar" aria-hidden="true">
+                  {review.reviewerName ? review.reviewerName.charAt(0) : '?'}
+                </span>
+                <div style={{ minWidth: 0, flex: '1 1 180px' }}>
+                  <strong style={{ color: '#111827' }}>{review.reviewerName}</strong>
+                  <div className="admin-cell-muted" style={{ overflowWrap: 'anywhere' }}>
+                    <span>{review.reviewerEmail}</span>
+                    {' · '}
+                    <span className="admin-nowrap">{when(review.createdAt)}</span>
+                  </div>
+                </div>
                 <Stars value={review.rating} size={14} />
-                <strong>{review.reviewerName}</strong>
-                <span className="text-sm text-[#666]">{review.reviewerEmail}</span>
-                <span className="text-sm text-[#888]">{when(review.createdAt)}</span>
-                <span
-                  className="rounded px-2 py-[2px] text-xs font-semibold"
-                  style={{ background: '#ffebee', color: '#c62828' }}
-                >
+                <span className="badge admin-status is-bad">
+                  <FaFlag aria-hidden="true" />
                   {review.flagCount} report{review.flagCount === 1 ? '' : 's'}
                 </span>
               </div>
 
-              <p className="mb-1 mt-2 text-sm text-[#555]">on “{review.bookTitle}”</p>
-              {review.title && <p className="mb-1 font-semibold">{review.title}</p>}
-              {review.body && <p className="m-0 whitespace-pre-line text-[#444]">{review.body}</p>}
+              <div className="admin-review-quote">
+                <p className="admin-cell-muted" style={{ margin: '0 0 4px' }}>on “{review.bookTitle}”</p>
+                {review.title && <p style={{ margin: '0 0 4px', fontWeight: 700, color: '#111827' }}>{review.title}</p>}
+                {review.body && <p style={{ margin: 0, whiteSpace: 'pre-line', color: '#374151' }}>{review.body}</p>}
+              </div>
 
               {review.reasons.length > 0 && (
-                <div className="mt-2 text-sm">
+                <div className="admin-reasons">
                   <strong>What the reporters said:</strong>
-                  <ul className="m-0 mt-1 pl-5">
+                  <ul>
                     {review.reasons.map((reason, index) => (
                       <li key={`${String(review._id)}-${String(index)}`}>{reason}</li>
                     ))}
@@ -99,21 +123,21 @@ export default function ReviewModeration() {
                 </div>
               )}
 
-              <div className="mt-3 flex flex-wrap gap-2">
+              <div className="admin-review-actions">
                 <button
                   type="button"
-                  className="rounded px-3 py-2 text-white"
-                  style={{ background: '#43a047', minHeight: 40 }}
+                  className="btn btn-ghost"
                   onClick={() => void clearReports(review._id)}
                 >
+                  <FaCheck aria-hidden="true" />
                   It is fine — clear the reports
                 </button>
                 <button
                   type="button"
-                  className="rounded px-3 py-2 text-white"
-                  style={{ background: '#c62828', minHeight: 40 }}
+                  className="btn btn-danger"
                   onClick={() => void deleteReview(review.book, review.reviewerEmail)}
                 >
+                  <FaTrashAlt aria-hidden="true" />
                   Remove the review
                 </button>
               </div>
@@ -122,14 +146,16 @@ export default function ReviewModeration() {
         </ul>
       )}
 
-      <Pager
-        page={currentPage}
-        pageCount={pageCount}
-        pageSize={PAGE_SIZE}
-        total={total}
-        onPage={setPage}
-        noun="reports"
-      />
+      <div className="admin-pager">
+        <Pager
+          page={currentPage}
+          pageCount={pageCount}
+          pageSize={PAGE_SIZE}
+          total={total}
+          onPage={setPage}
+          noun="reports"
+        />
+      </div>
     </div>
   );
 }

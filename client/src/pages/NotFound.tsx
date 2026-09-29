@@ -1,5 +1,7 @@
 import { Link } from 'react-router-dom';
+import { FaBookOpen, FaHome } from 'react-icons/fa';
 
+import Logo from '../components/Logo.js';
 import { useSeo } from '../hooks/useSeo.js';
 import { site } from '../config/site.js';
 
@@ -15,28 +17,49 @@ export default function NotFound() {
   });
 
   return (
-    <main className="mx-auto flex min-h-screen max-w-xl flex-col items-center justify-center gap-4 px-4 text-center">
-      <p className="text-6xl font-bold text-[#8B6F6F]">404</p>
-      <h1 className="text-2xl font-bold">We cannot find that page</h1>
-      <p className="text-[#6b5d5d]">
-        The link may be out of date, or the book may have been taken down. Everything
-        {' '}
-        {site.name} has is still one click away.
-      </p>
-      <div className="mt-2 flex flex-wrap justify-center gap-3">
-        <Link
-          to="/"
-          className="inline-flex min-h-[44px] items-center rounded-lg px-5 text-white no-underline"
-          style={{ background: '#8B6F6F' }}
+    <main
+      className="relative flex min-h-screen flex-col items-center justify-center overflow-hidden px-4 py-12 text-center"
+      style={{
+        background:
+          'radial-gradient(620px 360px at 10% 0%, rgba(139, 92, 246, 0.2), transparent 70%),' +
+          'radial-gradient(560px 340px at 95% 100%, rgba(255, 92, 53, 0.16), transparent 70%),' +
+          '#f8f7fc',
+      }}
+    >
+      <Link to="/" className="mb-8 inline-flex min-h-[44px] items-center no-underline" aria-label={`${site.name} home`}>
+        <Logo size={34} />
+      </Link>
+
+      <div className="card w-full max-w-xl px-6 pb-9 pt-6 sm:px-10">
+        <p
+          className="m-0 select-none font-extrabold leading-none tracking-tighter"
+          style={{
+            fontSize: 'clamp(6rem, 4rem + 10vw, 9rem)',
+            background: 'linear-gradient(120deg, #6d28d9 0%, #c026d3 55%, #ff5c35 100%)',
+            WebkitBackgroundClip: 'text',
+            backgroundClip: 'text',
+            color: 'transparent',
+          }}
         >
-          Go to the homepage
-        </Link>
-        <Link
-          to="/filter"
-          className="inline-flex min-h-[44px] items-center rounded-lg border border-[#8B6F6F] px-5 text-[#8B6F6F] no-underline"
-        >
-          Browse all books
-        </Link>
+          404
+        </p>
+        <p className="mb-1 mt-1 text-3xl" aria-hidden="true">📚🔍</p>
+        <h1 className="mb-3 mt-2 text-2xl sm:text-3xl">We cannot find that page</h1>
+        <p className="mx-auto mb-0 max-w-md text-ink-soft">
+          The link may be out of date, or the book may have been taken down. Everything
+          {' '}
+          {site.name} has is still one click away.
+        </p>
+        <div className="mt-7 flex flex-wrap justify-center gap-3">
+          <Link to="/" className="btn btn-primary">
+            <FaHome aria-hidden="true" />
+            Go to the homepage
+          </Link>
+          <Link to="/filter" className="btn btn-ghost">
+            <FaBookOpen aria-hidden="true" />
+            Browse all books
+          </Link>
+        </div>
       </div>
     </main>
   );

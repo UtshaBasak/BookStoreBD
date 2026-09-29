@@ -1,0 +1,325 @@
+/*
+ * Sign in and sign up: a white card on the aurora backdrop, with a short pitch
+ * beside it on a wide screen. Every rule here is outside a cascade layer, so it
+ * beats the shared `.btn-*` classes - hence classes of its own throughout and
+ * no bare `button` or `a` selectors.
+ */
+.auth-page {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: clamp(2rem, 6vw, 5rem);
+  padding: clamp(1.25rem, 5vw, 3rem) 16px;
+  box-sizing: border-box;
+}
+
+/* ------------------------------------------------------------------ pitch
+   Only where there is room: on a phone the form is the whole point, and it
+   should sit at the top of the screen rather than under a banner. */
+.auth-pitch {
+  display: none;
+  max-width: 440px;
+  color: #fff;
+}
+
+@media (min-width: 900px) {
+  .auth-pitch {
+    display: block;
+  }
+}
+
+.auth-kicker {
+  display: inline-block;
+  margin: 0 0 1rem;
+  padding: 6px 14px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.14);
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.auth-pitch-title {
+  font-weight: 800;
+  margin: 0 0 0.9rem;
+  color: #fff;
+  font-size: clamp(2rem, 1.2rem + 2.2vw, 3rem);
+  line-height: 1.08;
+  letter-spacing: -0.035em;
+}
+
+.auth-highlight {
+  background: linear-gradient(90deg, #facc15, #ff8a3d);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.auth-pitch-sub {
+  margin: 0 0 1.5rem;
+  color: rgba(255, 255, 255, 0.78);
+  font-size: 1.05rem;
+}
+
+.auth-perks {
+  display: grid;
+  gap: 0.7rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.auth-perks li {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  color: rgba(255, 255, 255, 0.9);
+  font-weight: 600;
+}
+
+.auth-perk-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  width: 36px;
+  height: 36px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.12);
+  color: #facc15;
+}
+
+/* ------------------------------------------------------------------- card */
+.auth-card {
+  width: 100%;
+  max-width: 420px;
+  padding: clamp(1.5rem, 5vw, 2.25rem);
+  box-sizing: border-box;
+  box-shadow: 0 24px 60px rgba(15, 10, 50, 0.45);
+}
+
+.auth-logo {
+  display: inline-flex;
+  margin-bottom: 1.25rem;
+  border-radius: 12px;
+}
+
+.auth-title {
+  margin: 0 0 0.35rem;
+  font-size: 1.75rem;
+  line-height: 1.15;
+}
+
+.auth-sub {
+  margin: 0 0 1.5rem;
+  color: var(--color-ink-muted);
+  font-size: 0.95rem;
+}
+
+.auth-form {
+  display: grid;
+  gap: 1rem;
+}
+
+.auth-label-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-bottom: 0.35rem;
+}
+
+.auth-label {
+  display: block;
+  margin-bottom: 0.35rem;
+  color: var(--color-ink-soft);
+  font-size: 0.88rem;
+  font-weight: 700;
+}
+.auth-label-row .auth-label {
+  margin-bottom: 0;
+}
+
+.auth-wide {
+  width: 100%;
+}
+
+/* A button that reads as a link: "Forgot Password?", "Resend OTP". */
+.auth-text-button {
+  display: inline-flex;
+  align-items: center;
+  min-height: 40px;
+  padding: 0 4px;
+  background: transparent;
+  border: none;
+  border-radius: 8px;
+  color: var(--color-brand);
+  font: inherit;
+  font-size: 0.88rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+.auth-text-button:hover {
+  background: transparent;
+  color: var(--color-brand-dark);
+  text-decoration: underline;
+}
+
+.auth-fine-print {
+  margin: 0;
+  color: var(--color-ink-muted);
+  font-size: 0.8rem;
+  line-height: 1.5;
+}
+
+.auth-message {
+  margin: 0;
+  padding: 10px 14px;
+  border-radius: 12px;
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+.auth-message-ok {
+  background: #ecfdf5;
+  color: #047857;
+}
+.auth-message-error {
+  background: #fef2f2;
+  color: #b91c1c;
+}
+
+.auth-divider {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin: 1.5rem 0 1rem;
+  color: var(--color-ink-muted);
+  font-size: 0.85rem;
+}
+.auth-divider::before,
+.auth-divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--color-line);
+}
+
+.auth-switch {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 0.25rem 0.5rem;
+  margin: 0 0 0.75rem;
+  color: var(--color-ink-soft);
+  font-size: 0.92rem;
+}
+
+/* "SIGN UP" / "SIGN IN": the words are kept as they were, so the capitals are
+   set small and spaced to read as a deliberate label rather than a shout. */
+.auth-switch-link {
+  display: inline-flex;
+  align-items: center;
+  min-height: 40px;
+  padding: 0 4px;
+  font-size: 0.85rem;
+  letter-spacing: 0.06em;
+}
+
+/* ----------------------------------------------------------------- steps */
+.auth-steps {
+  display: flex;
+  gap: 0.4rem;
+  margin: 0 0 1.5rem;
+  padding: 0;
+  list-style: none;
+}
+
+.auth-step {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  color: var(--color-ink-muted);
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+.auth-step::before {
+  content: '';
+  height: 5px;
+  border-radius: 999px;
+  background: var(--color-line);
+}
+.auth-step-done::before,
+.auth-step-current::before {
+  background: linear-gradient(90deg, var(--color-brand), var(--color-brand-light));
+}
+.auth-step-current {
+  color: var(--color-brand);
+}
+.auth-step-done {
+  color: var(--color-ink-soft);
+}
+
+.auth-note {
+  margin: 0;
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: var(--color-brand-tint);
+  color: var(--color-brand-dark);
+  font-size: 0.9rem;
+  overflow-wrap: anywhere;
+}
+
+.auth-done {
+  display: grid;
+  justify-items: center;
+  gap: 0.5rem;
+  padding: 1rem 0 0.5rem;
+  text-align: center;
+}
+.auth-done-emoji {
+  font-size: 2.5rem;
+  line-height: 1;
+}
+
+/* ----------------------------------------------------------------- modal */
+.auth-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  background: rgba(15, 10, 50, 0.6);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+}
+
+.auth-modal {
+  width: 100%;
+  max-width: 400px;
+  padding: clamp(1.5rem, 5vw, 2rem);
+  box-sizing: border-box;
+  box-shadow: var(--shadow-lift);
+}
+
+.auth-modal-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  margin-bottom: 1rem;
+  border-radius: 14px;
+  background: var(--color-brand-tint);
+  color: var(--color-brand);
+  font-size: 1.25rem;
+}
+
+.auth-modal-title {
+  margin: 0 0 0.35rem;
+  font-size: 1.35rem;
+}

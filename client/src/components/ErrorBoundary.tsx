@@ -46,7 +46,10 @@ export default class ErrorBoundary extends React.Component<
 
     return (
       <div role="alert" style={styles.wrap}>
-        <div style={styles.card}>
+        <div className="card" style={styles.card}>
+          <div aria-hidden="true" style={styles.icon}>
+            📖
+          </div>
           <h1 style={styles.heading}>Something went wrong</h1>
           <p style={styles.body}>
             The page hit an unexpected error. You can try again, or go back to the
@@ -58,10 +61,10 @@ export default class ErrorBoundary extends React.Component<
           )}
 
           <div style={styles.actions}>
-            <button type="button" onClick={this.handleReset} style={styles.primary}>
+            <button type="button" onClick={this.handleReset} className="btn btn-primary">
               Try again
             </button>
-            <a href="/" style={styles.secondary}>
+            <a href="/" className="btn btn-ghost">
               Back to books
             </a>
           </div>
@@ -71,6 +74,9 @@ export default class ErrorBoundary extends React.Component<
   }
 }
 
+// Inline, not Tailwind or a stylesheet of its own: this screen is shown when
+// something has already gone wrong, so it leans on as little as possible. The
+// buttons use the shared `btn` classes from index.css, which is always loaded.
 const styles: Record<string, CSSProperties> = {
   wrap: {
     minHeight: '100vh',
@@ -78,47 +84,45 @@ const styles: Record<string, CSSProperties> = {
     alignItems: 'center',
     justifyContent: 'center',
     padding: '1rem',
-    background: '#f5f3f1',
+    boxSizing: 'border-box',
+    background:
+      'radial-gradient(560px 320px at 10% 0%, rgba(139, 92, 246, 0.2), transparent 70%),' +
+      'radial-gradient(520px 320px at 95% 100%, rgba(255, 92, 53, 0.14), transparent 70%),' +
+      '#f8f7fc',
   },
   card: {
     maxWidth: 480,
     width: '100%',
-    background: '#fff',
-    borderRadius: 12,
-    padding: '2rem',
-    boxShadow: '0 2px 16px rgba(0,0,0,0.08)',
+    boxSizing: 'border-box',
+    padding: '2.25rem 1.75rem 2rem',
     textAlign: 'center',
   },
-  heading: { margin: '0 0 0.75rem', fontSize: '1.4rem', color: '#3b2f2f' },
-  body: { margin: '0 0 1.25rem', color: '#6b5d5d', lineHeight: 1.5 },
+  icon: {
+    width: 72,
+    height: 72,
+    margin: '0 auto 1.1rem',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 22,
+    fontSize: 34,
+    background: 'linear-gradient(135deg, #f3efff 0%, #fff1ec 100%)',
+    border: '1px solid #e4dcfb',
+  },
+  heading: { margin: '0 0 0.6rem', fontSize: '1.5rem', color: '#111827' },
+  body: { margin: '0 0 1.5rem', color: '#374151', lineHeight: 1.6 },
   details: {
     textAlign: 'left',
-    background: '#faf7f5',
-    border: '1px solid #e7ded9',
-    borderRadius: 6,
-    padding: '0.75rem',
+    background: '#f3efff',
+    border: '1px solid #e4dcfb',
+    borderRadius: 12,
+    padding: '0.75rem 0.9rem',
     fontSize: '0.8rem',
     overflowX: 'auto',
-    marginBottom: '1.25rem',
-    color: '#8a4b4b',
+    whiteSpace: 'pre-wrap',
+    wordBreak: 'break-word',
+    margin: '0 0 1.5rem',
+    color: '#5b21b6',
   },
   actions: { display: 'flex', gap: '0.75rem', justifyContent: 'center', flexWrap: 'wrap' },
-  primary: {
-    background: '#8B6F6F',
-    color: '#fff',
-    border: 'none',
-    borderRadius: 6,
-    padding: '0.6rem 1.2rem',
-    cursor: 'pointer',
-    fontWeight: 600,
-  },
-  secondary: {
-    background: 'transparent',
-    color: '#8B6F6F',
-    border: '1px solid #8B6F6F',
-    borderRadius: 6,
-    padding: '0.6rem 1.2rem',
-    textDecoration: 'none',
-    fontWeight: 600,
-  },
 };

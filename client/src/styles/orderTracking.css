@@ -1,3 +1,11 @@
+/*
+ * Order tracking. Imported by App.tsx as well as the three tracking pages, so
+ * it applies everywhere: every rule is on a class of its own.
+ *
+ * The first block is what the seller and admin tracking pages still use. The
+ * `ot-` block below it is the buyer's page - a card layout and a stepper -
+ * and can be adopted by the other two class by class.
+ */
 .order-tracking-outer {
   min-height: 100vh;
   width: 100%;
@@ -7,7 +15,7 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  background: #fafafa;
+  background: var(--color-page);
   padding: 0 12px 24px;
   box-sizing: border-box;
 }
@@ -23,8 +31,9 @@
   width: 100%;
   box-sizing: border-box;
   background: #fff;
-  border-radius: 18px;
-  box-shadow: 0 8px 32px rgba(230,81,0,0.10), 0 1.5px 8px rgba(0,0,0,0.06);
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-card);
   /* 36px of padding each side leaves 288px of a 360px screen. */
   padding: 32px 20px 24px;
   display: flex;
@@ -35,14 +44,14 @@
 }
 
 .order-tracking-card:hover {
-  box-shadow: 0 12px 40px rgba(230,81,0,0.15), 0 2px 12px rgba(0,0,0,0.10);
+  box-shadow: var(--shadow-lift);
 }
 
 .order-info {
   width: 100%;
   margin-bottom: 24px;
   font-size: 17px;
-  color: #222;
+  color: var(--color-ink);
 }
 
 .order-progress-bar {
@@ -63,14 +72,14 @@
     box-shadow: 0 2px 16px rgba(0,0,0,0.08);
     padding: 2rem 2.5rem;
   }
-  
+
   .tracking-stages {
     display: flex;
     justify-content: space-between;
     align-items: center;
     margin: 2rem 0;
   }
-  
+
   .stage {
     display: flex;
     flex-direction: column;
@@ -79,7 +88,7 @@
     position: relative;
     color: #bbb;
   }
-  
+
   .stage-dot {
     width: 18px;
     height: 18px;
@@ -89,16 +98,16 @@
     border: 2px solid #bbb;
     transition: background 0.3s, border 0.3s;
   }
-  
+
   .stage.active {
-    color: #43a047;
+    color: #10b981;
   }
-  
+
   .stage.active .stage-dot {
-    background: #43a047;
-    border-color: #43a047;
+    background: #10b981;
+    border-color: #10b981;
   }
-  
+
   .stage-label {
     font-size: 0.95rem;
     font-weight: 600;
@@ -115,7 +124,7 @@
       padding: 0 !important;
     }
   }
-  
+
   .stage:not(:last-child)::after {
     content: '';
     position: absolute;
@@ -126,11 +135,11 @@
     background: #bbb;
     z-index: 0;
   }
-  
+
   .stage.active:not(:last-child)::after {
-    background: #43a047;
+    background: #10b981;
   }
-  
+
   .order-card {
     background: #f9f9f9;
     border-radius: 8px;
@@ -143,4 +152,240 @@
     flex-direction: column;
     gap: 0.5rem;
   }
-  
+
+/* ------------------------------------------------------------ ot- (buyer) */
+.ot-page {
+  min-height: 100vh;
+  background: var(--color-page);
+}
+
+.ot-wrap {
+  width: 100%;
+  max-width: 1000px;
+  margin: 0 auto;
+  padding: 1rem 16px 3rem;
+  box-sizing: border-box;
+}
+@media (min-width: 640px) {
+  .ot-wrap {
+    padding: 1.5rem 24px 4rem;
+  }
+}
+
+.ot-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 1rem;
+}
+
+.ot-kicker {
+  margin: 0 0 4px;
+  color: var(--color-brand);
+  font-size: 0.78rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.ot-mono {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  color: var(--color-brand-dark);
+  overflow-wrap: anywhere;
+}
+
+.ot-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 22px;
+  margin: 14px 0 0;
+  padding: 0;
+  list-style: none;
+  color: var(--color-ink-soft);
+  font-size: 0.92rem;
+}
+.ot-meta b {
+  color: var(--color-ink-muted);
+  font-weight: 600;
+}
+
+/* A status as a coloured pill. The colours are given inline, per status. */
+.ot-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 12px;
+  border-radius: 999px;
+  font-size: 0.85rem;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+/* ----- the stepper: down the screen on a phone, across it from 640px */
+.ot-stepper {
+  display: grid;
+  margin: 24px 0 0;
+  padding: 0;
+  list-style: none;
+}
+.ot-step {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding-bottom: 22px;
+}
+.ot-step:last-child {
+  padding-bottom: 0;
+}
+/* The line to the next step. */
+.ot-step::before {
+  content: '';
+  position: absolute;
+  left: 19px;
+  top: 40px;
+  bottom: 0;
+  width: 3px;
+  border-radius: 3px;
+  background: var(--color-brand-line);
+}
+.ot-step:last-child::before {
+  display: none;
+}
+.ot-step.is-done::before {
+  background: linear-gradient(var(--color-brand), var(--color-brand-light));
+}
+
+.ot-dot {
+  position: relative;
+  z-index: 1;
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  border: 2px solid var(--color-brand-line);
+  background: #fff;
+  color: var(--color-ink-muted);
+  font-weight: 800;
+  font-size: 0.95rem;
+}
+.is-done .ot-dot {
+  border-color: transparent;
+  background: linear-gradient(135deg, var(--color-brand), var(--color-brand-light));
+  color: #fff;
+  box-shadow: 0 4px 12px rgba(109, 40, 217, 0.3);
+}
+.is-current .ot-dot {
+  border: 3px solid var(--color-brand);
+  color: var(--color-brand);
+  box-shadow: 0 0 0 6px rgba(139, 92, 246, 0.18);
+}
+
+.ot-label {
+  color: var(--color-ink-muted);
+  font-weight: 600;
+  font-size: 0.95rem;
+  line-height: 1.25;
+}
+.is-done .ot-label {
+  color: var(--color-ink);
+}
+.is-current .ot-label {
+  color: var(--color-brand-dark);
+  font-weight: 800;
+}
+
+@media (min-width: 640px) {
+  .ot-stepper {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+  }
+  .ot-step {
+    flex-direction: column;
+    gap: 10px;
+    padding-bottom: 0;
+    text-align: center;
+  }
+  .ot-step::before {
+    left: calc(50% + 24px);
+    right: calc(-50% + 24px);
+    top: 19px;
+    bottom: auto;
+    width: auto;
+    height: 3px;
+  }
+  .ot-label {
+    font-size: 0.88rem;
+  }
+}
+
+/* ----- the three detail cards, and the rows inside them */
+.ot-info-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 10px;
+  font-size: 0.95rem;
+}
+.ot-info-title svg {
+  color: var(--color-brand);
+}
+.ot-row {
+  margin: 0 0 4px;
+  color: var(--color-ink-muted);
+  font-size: 0.9rem;
+  overflow-wrap: anywhere;
+}
+.ot-row b {
+  color: var(--color-ink);
+  font-weight: 600;
+}
+
+/* The order's figures under its table, rather than in a footer row that sat
+   off the right-hand edge of a phone. */
+.ot-totals {
+  display: grid;
+  gap: 4px;
+  width: 100%;
+  max-width: 340px;
+  margin: 16px 0 0 auto;
+}
+.ot-totals > div {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  color: var(--color-ink-soft);
+  font-size: 0.95rem;
+}
+.ot-totals > div > :last-child {
+  color: var(--color-ink);
+  font-weight: 700;
+}
+.ot-totals > .ot-grand {
+  margin-top: 6px;
+  padding-top: 10px;
+  border-top: 1px dashed var(--color-brand-line);
+  color: var(--color-ink);
+  font-weight: 800;
+  font-size: 1.1rem;
+}
+.ot-totals > .ot-grand > :last-child {
+  color: var(--color-accent);
+  font-weight: 800;
+  font-size: 1.3rem;
+}
+
+/* Headings on one line: "No. of pages" stacked three deep made the header
+   taller than the rows. The table scrolls sideways inside `table-scroll`. */
+.ot-table th {
+  white-space: nowrap;
+}
+.ot-table td {
+  vertical-align: middle;
+}

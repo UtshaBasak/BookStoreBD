@@ -1,13 +1,35 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { FaHome, FaHeart, FaShoppingCart } from 'react-icons/fa';
+import {
+    FaBirthdayCake,
+    FaBook,
+    FaBoxOpen,
+    FaCheckCircle,
+    FaExclamationTriangle,
+    FaHeart,
+    FaHome,
+    FaMapMarkerAlt,
+    FaPhone,
+    FaPlus,
+    FaShoppingBag,
+    FaShoppingCart,
+    FaSignOutAlt,
+    FaStore,
+    FaUser,
+    FaUserEdit,
+} from 'react-icons/fa';
 
 import type { OwnProfile } from '@shared/api.js';
 
 import AccountData from '../components/AccountData.js';
+import Logo from '../components/Logo.js';
 import { signOut } from '../config/api.js';
 import { useProfile } from '../hooks/queries.js';
 import { getUserEmail, isAdmin } from '../utils/auth.js';
+
+// The homepage's header bar, then this page's own cards.
+import './Homepage.css';
+import './Profile.css';
 
 export default function Profile() {
     const [profileMode, setProfileMode] = useState('buyer'); // 'buyer' or 'seller'
@@ -30,291 +52,228 @@ export default function Profile() {
     const showIfFilled = (val: unknown) =>
         val !== undefined && val !== null && String(val).trim() !== '';
 
+    const isSeller = profileMode === 'seller';
+    const gender = profileData.gender ?? '';
+    const details = [
+        showIfFilled(profileData.dateOfBirth) && {
+            label: 'Date of Birth',
+            value: new Date(profileData.dateOfBirth ?? 0).toLocaleDateString(),
+            icon: <FaBirthdayCake />,
+        },
+        showIfFilled(profileData.gender) && {
+            label: 'Gender',
+            value: gender.charAt(0).toUpperCase() + gender.slice(1),
+            icon: <FaUser />,
+        },
+        showIfFilled(profileData.address) && { label: 'Address', value: profileData.address, icon: <FaMapMarkerAlt /> },
+        showIfFilled(profileData.phone) && { label: 'Phone', value: profileData.phone, icon: <FaPhone /> },
+    ].filter((detail) => detail !== false);
+
+    const tiles = [
+        {
+            key: 'update',
+            title: 'Update Profile',
+            desc: 'Photo, contact details and password',
+            icon: <FaUserEdit />,
+            onClick: () => navigate('/update-profile'),
+        },
+        ...(isSeller
+            ? [{
+                key: 'add',
+                title: 'Add Book',
+                desc: 'List a book for sale in a couple of minutes',
+                icon: <FaPlus />,
+                onClick: () => navigate('/add-book'),
+                accent: true,
+            }]
+            : []),
+        {
+            key: 'orders',
+            title: 'Order List',
+            desc: isSeller ? 'Orders from your buyers' : 'Track what you have bought',
+            icon: <FaBoxOpen />,
+            onClick: () => {
+                if (profileMode === 'seller') {
+                    navigate('/seller-orders');
+                } else {
+                    navigate('/buyer/orders');
+                }
+            },
+        },
+        {
+            key: 'books',
+            title: 'Book List',
+            desc: isSeller ? 'The books you are selling' : 'Every book you have bought',
+            icon: <FaBook />,
+            onClick: () => {
+                if (profileMode === 'seller') {
+                    navigate('/seller-books');
+                } else {
+                    navigate('/buyer-books');
+                }
+            },
+        },
+    ];
+
     return (
-        <div
-            style={{
-                backgroundImage: 'url(https://a-static.besthdwallpaper.com/a-peaceful-library-with-a-variety-of-books-on-the-shelves-wallpaper-1280x720-98073_45.jpg)',
-                backgroundSize: 'cover',
-                backgroundPosition: 'center',
-                minHeight: '100vh',
-                display: 'flex',
-                justifyContent: 'center',
-                alignItems: 'center',
-                padding: '2rem',
-                color: '#fff',
-                width: '100%',
-                position: 'relative'
-            }}
-        >
-            {/* Home icon button */}
-            <div style={{ position: 'absolute', top: 24, left: 24 }}>
+        <div className="pf-page">
+            <header className="header">
                 <button
                     type="button"
+                    className="logo-button"
                     onClick={() => navigate('/')}
-                    style={{
-                        background: '#fff',
-                        color: '#333',
-                        border: 'none',
-                        borderRadius: '50%',
-                        width: 40,
-                        height: 40,
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
-                        cursor: 'pointer'
-                    }}
-                    title="Go to Homepage"
+                    aria-label="Go to homepage"
                 >
-                    <FaHome size={22} />
+                    <Logo size={38} />
                 </button>
-            </div>
-            {/* Cart and Wishlist buttons for buyer profile */}
-            {profileMode === 'buyer' && (
-                <div style={{ position: 'absolute', top: 24, right: 24, display: 'flex', gap: '1rem', zIndex: 10 }}>
-                    <Link
-                        to="/wishlist"
-                        style={{
-                            color: '#e65100',
-                            background: '#fff',
-                            borderRadius: '50%',
-                            width: 40,
-                            height: 40,
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            boxShadow: '0 2px 8px rgba(0,0,0,0.12)',
-                            textDecoration: 'none'
-                        }}
-                        title="Go to Wishlist"
+                <div className="user-options">
+                    {/* Home icon button */}
+                    <button
+                        type="button"
+                        className="icon-button"
+                        style={{ color: '#6d28d9' }}
+                        onClick={() => navigate('/')}
+                        title="Go to Homepage"
                     >
-                        <FaHeart size={20} />
-                    </Link>
-                    <Link
-                        to="/cart"
-                        style={{
-                            color: '#8B6F6F',
-                            background: '#fff',
-                            borderRadius: '50%',
-                            width: 40,
-                            height: 40,
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            boxShadow: '0 2px 8px rgba(0,0,0,0.12)',
-                            textDecoration: 'none'
-                        }}
-                        title="Go to Cart"
-                    >
-                        <FaShoppingCart size={20} />
-                    </Link>
-                </div>
-            )}
-            <div
-                style={{
-                    background: 'rgba(0, 0, 0, 0.5)',
-                    padding: '2rem',
-                    borderRadius: '8px',
-                    width: '100%',
-                    maxWidth: '400px',
-                    boxShadow: '0 4px 8px rgba(0, 0, 0, 0.2)',
-                }}
-            >
-                <h1 style={{ textAlign: 'center', marginBottom: '2rem' }}>Profile</h1>
-
-                {/* Profile Mode Switch */}
-                <div style={{ display: 'flex', justifyContent: 'center', gap: '2rem', marginBottom: '1.5rem' }}>
-                    <label className="min-h-[40px]" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                        <input
-                            type="radio"
-                            name="profileMode"
-                            value="buyer"
-                            checked={profileMode === 'buyer'}
-                            onChange={() => setProfileMode('buyer')}
-                        />
-                        Buyer Profile
-                    </label>
-                    <label className="min-h-[40px]" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                        <input
-                            type="radio"
-                            name="profileMode"
-                            value="seller"
-                            checked={profileMode === 'seller'}
-                            onChange={() => setProfileMode('seller')}
-                        />
-                        Seller Profile
-                    </label>
-                </div>
-
-                {/* Profile Picture Segment */}
-                <div style={{ marginBottom: '1rem', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
-                    {showIfFilled(profileData.profilePicture) ? (
-                        <img
-                            src={profileData.profilePicture ?? undefined}
-                            alt="Profile"
-                            style={{
-                                width: '100px',
-                                height: '100px',
-                                borderRadius: '50%',
-                                objectFit: 'cover',
-                                border: '3px solid white',
-                                display: 'block'
-                            }}
-                        />
-                    ) : (
-                        <div style={{
-                            width: '100px',
-                            height: '100px',
-                            borderRadius: '50%',
-                            background: '#bbb',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            fontSize: '2.5rem',
-                            color: '#fff',
-                            border: '3px solid white'
-                        }}>
-                            {profileData.username && profileData.username.length > 0
-                              ? profileData.username[0].toUpperCase()
-                              : 'U'}
-                        </div>
+                        <FaHome />
+                    </button>
+                    {/* Cart and Wishlist buttons for buyer profile */}
+                    {profileMode === 'buyer' && (
+                        <>
+                            <Link to="/wishlist" className="icon-link" style={{ color: '#ff5c35' }} title="Go to Wishlist">
+                                <FaHeart />
+                            </Link>
+                            <Link to="/cart" className="icon-link" style={{ color: '#6d28d9' }} title="Go to Cart">
+                                <FaShoppingCart />
+                            </Link>
+                        </>
                     )}
                 </div>
+            </header>
 
-                {/* User Information */}
-                <div style={{ marginBottom: '1rem' }}>
-                    <p><strong>Username:</strong> {profileData.username}</p>
-                </div>
-                <div style={{ marginBottom: '1rem' }}>
-                    <p><strong>Email:</strong> {profileData.email}</p>
-                </div>
-                {showIfFilled(profileData.dateOfBirth) && (
-                    <div style={{ marginBottom: '1rem' }}>
-                        <p><strong>Date of Birth:</strong> {new Date(profileData.dateOfBirth ?? 0).toLocaleDateString()}</p>
+            <main className="pf-main">
+                <section className="card pf-hero">
+                    <div className="pf-banner" aria-hidden="true" />
+                    <div className="pf-hero-body">
+                        {/* Profile Picture Segment */}
+                        {showIfFilled(profileData.profilePicture) ? (
+                            <img
+                                src={profileData.profilePicture ?? undefined}
+                                alt="Profile"
+                                className="pf-avatar"
+                            />
+                        ) : (
+                            <div className="pf-avatar pf-avatar-initial" aria-hidden="true">
+                                {profileData.username && profileData.username.length > 0
+                                  ? profileData.username[0].toUpperCase()
+                                  : 'U'}
+                            </div>
+                        )}
+
+                        {/* User Information */}
+                        <div className="pf-identity">
+                            <p className="pf-kicker">Profile</p>
+                            <h1 className="pf-name">{profileData.username || 'Your profile'}</h1>
+                            <p className="pf-email">{profileData.email}</p>
+                        </div>
+
+                        {/* Profile Mode Switch */}
+                        <div className="pf-mode" role="radiogroup" aria-label="Profile mode">
+                            <label className={`pf-mode-option ${profileMode === 'buyer' ? 'pf-mode-option-on' : ''}`}>
+                                <input
+                                    type="radio"
+                                    name="profileMode"
+                                    value="buyer"
+                                    className="sr-only"
+                                    checked={profileMode === 'buyer'}
+                                    onChange={() => setProfileMode('buyer')}
+                                />
+                                <FaShoppingBag aria-hidden="true" />
+                                Buyer Profile
+                            </label>
+                            <label className={`pf-mode-option ${profileMode === 'seller' ? 'pf-mode-option-on' : ''}`}>
+                                <input
+                                    type="radio"
+                                    name="profileMode"
+                                    value="seller"
+                                    className="sr-only"
+                                    checked={profileMode === 'seller'}
+                                    onChange={() => setProfileMode('seller')}
+                                />
+                                <FaStore aria-hidden="true" />
+                                Seller Profile
+                            </label>
+                        </div>
                     </div>
-                )}
-                {showIfFilled(profileData.gender) && (
-                    <div style={{ marginBottom: '1rem' }}>
-                        <p><strong>Gender:</strong> {(profileData.gender ?? '').charAt(0).toUpperCase() + (profileData.gender ?? '').slice(1)}</p>
-                    </div>
-                )}
-                {showIfFilled(profileData.address) && (
-                    <div style={{ marginBottom: '1rem' }}>
-                        <p><strong>Address:</strong> {profileData.address}</p>
-                    </div>
-                )}
-                {showIfFilled(profileData.phone) && (
-                    <div style={{ marginBottom: '1rem' }}>
-                        <p><strong>Phone:</strong> {profileData.phone}</p>
-                    </div>
-                )}
+
+                    {details.length > 0 && (
+                        <dl className="pf-details">
+                            {details.map((detail) => (
+                                <div key={detail.label} className="pf-detail">
+                                    <span className="pf-detail-icon" aria-hidden="true">{detail.icon}</span>
+                                    <div style={{ minWidth: 0 }}>
+                                        <dt>{detail.label}</dt>
+                                        <dd>{detail.value}</dd>
+                                    </div>
+                                </div>
+                            ))}
+                        </dl>
+                    )}
+                </section>
+
                 {/* Where sales are paid - and, without it, why listing will not work. */}
                 {profileMode === 'seller' && (
-                    <div style={{ marginBottom: '1rem' }}>
-                        {profileData.bkashMerchant ? (
+                    profileData.bkashMerchant ? (
+                        <div className="pf-note pf-note-ok">
+                            <FaCheckCircle className="pf-note-icon" aria-hidden="true" />
                             <p><strong>Paid to bKash:</strong> {profileData.bkashMerchant}</p>
-                        ) : (
+                        </div>
+                    ) : (
+                        <div className="pf-note pf-note-warn">
+                            <FaExclamationTriangle className="pf-note-icon" aria-hidden="true" />
                             <p>
                                 <strong>To sell, add your bKash merchant number</strong> so we can pay you.{' '}
-                                <Link to="/update-profile#bkash" style={{ color: '#ffd54f' }}>Add it now</Link>
                             </p>
-                        )}
-                    </div>
+                            <Link to="/update-profile#bkash" className="btn btn-accent">Add it now</Link>
+                        </div>
+                    )
                 )}
 
                 {/* Buttons */}
-                <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center', marginTop: '1.5rem', flexWrap: 'wrap' }}>
+                <h2 className="pf-section-title">{isSeller ? 'Your shop' : 'Your account'}</h2>
+                <div className="pf-tiles">
+                    {tiles.map((tile) => (
+                        <div key={tile.key} className={`card pf-tile ${tile.accent ? 'pf-tile-accent' : ''}`}>
+                            <span className="pf-tile-icon" aria-hidden="true">{tile.icon}</span>
+                            <button
+                                type="button"
+                                className="pf-tile-button"
+                                onClick={tile.onClick}
+                                aria-describedby={`tile-${tile.key}`}
+                            >
+                                {tile.title}
+                            </button>
+                            <p id={`tile-${tile.key}`} className="pf-tile-desc">{tile.desc}</p>
+                        </div>
+                    ))}
+                </div>
+
+                <div className="pf-signout">
                     <button
-                        onClick={() => navigate('/update-profile')}
-                        style={{
-                            backgroundColor: '#4CAF50',
-                            color: 'white',
-                            padding: '0.5rem 1rem',
-                            border: 'none',
-                            borderRadius: '4px',
-                            cursor: 'pointer',
-                            transition: 'background-color 0.3s'
-                        }}
-                    >
-                        Update Profile
-                    </button>
-                    {profileMode === 'seller' && (
-                        <button
-                            onClick={() => navigate('/add-book')}
-                            style={{
-                                backgroundColor: '#2196F3',
-                                color: 'white',
-                                padding: '0.5rem 1rem',
-                                border: 'none',
-                                borderRadius: '4px',
-                                cursor: 'pointer',
-                                transition: 'background-color 0.3s'
-                            }}
-                        >
-                            Add Book
-                        </button>
-                    )}
-                    <button
-                        onClick={() => {
-                            if (profileMode === 'seller') {
-                                navigate('/seller-orders');
-                            } else {
-                                navigate('/buyer/orders');
-                            }
-                        }}
-                        style={{
-                            backgroundColor: '#FF9800',
-                            color: 'white',
-                            padding: '0.5rem 1rem',
-                            border: 'none',
-                            borderRadius: '4px',
-                            cursor: 'pointer',
-                            transition: 'background-color 0.3s'
-                        }}
-                    >
-                        Order List
-                    </button>
-                    <button
-                        onClick={() => {
-                            if (profileMode === 'seller') {
-                                navigate('/seller-books');
-                            } else {
-                                navigate('/buyer-books');
-                            }
-                        }}
-                        style={{
-                            backgroundColor: '#9C27B0',
-                            color: 'white',
-                            padding: '0.5rem 1rem',
-                            border: 'none',
-                            borderRadius: '4px',
-                            cursor: 'pointer',
-                            transition: 'background-color 0.3s'
-                        }}
-                    >
-                        Book List
-                    </button>
-                    <button
+                        type="button"
+                        className="btn btn-danger"
                         onClick={async () => {
                             await signOut();
                             window.location.href = '/sign-in';
                         }}
-                        style={{
-                            backgroundColor: '#e74c3c',
-                            color: 'white',
-                            padding: '0.5rem 1rem',
-                            border: 'none',
-                            borderRadius: '4px',
-                            cursor: 'pointer',
-                            transition: 'background-color 0.3s'
-                        }}
                     >
+                        <FaSignOutAlt aria-hidden="true" />
                         Sign Out
                     </button>
                 </div>
 
                 <AccountData />
-            </div>
+            </main>
         </div>
     );
 }
