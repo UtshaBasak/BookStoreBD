@@ -400,7 +400,7 @@ export default function ChatPage() {
                             </div>
 
                             <div className="chat-composer">
-                                <input
+                                <input name="image"
                                     type="file"
                                     accept="image/png,image/jpeg,image/webp,image/gif"
                                     onChange={handleImageSelect}
@@ -431,7 +431,7 @@ export default function ChatPage() {
                                     </div>
                                 )}
 
-                                <input
+                                <input name="message"
                                     type="text"
                                     className="field chat-input"
                                     value={newMessage}
