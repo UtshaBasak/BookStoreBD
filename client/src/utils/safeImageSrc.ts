@@ -35,13 +35,4 @@ export const safeImageSrc = (value: unknown, fallback = ''): string => {
   return fallback;
 };
 
-/**
- * Wraps `URL.createObjectURL` so the blob URL is validated the same way as any
- * other source before it reaches the DOM.
- */
-export const safeObjectUrl = (file: Blob | null | undefined): string => {
-  if (!file) return '';
-  return safeImageSrc(URL.createObjectURL(file));
-};
-
 export default safeImageSrc;

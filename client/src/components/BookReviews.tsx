@@ -24,7 +24,7 @@ const BLOCKED: Record<string, string> = {
 
 /** Reply, Report and the like: words rather than buttons, but a thumb's width. */
 const TEXT_BUTTON =
-  'inline-flex min-h-10 items-center rounded-full bg-transparent px-3 font-semibold underline hover:bg-[#f3efff] disabled:no-underline disabled:opacity-70';
+  'inline-flex min-h-10 items-center rounded-full bg-transparent px-3 font-semibold underline hover:bg-brand-tint disabled:no-underline disabled:opacity-70';
 
 const when = (value?: string): string =>
   value ? new Date(value).toLocaleDateString(undefined, { dateStyle: 'medium' }) : '';
@@ -157,7 +157,7 @@ export default function BookReviews({ bookId }: { bookId: Id | undefined }) {
 
           {/* The spread, because an average of 3.7 hides that a third of
               buyers hated it. */}
-          <div className="min-w-[180px] flex-1">
+          <div className="min-w-45 flex-1">
             {[5, 4, 3, 2, 1].map((star) => {
               const count = data.distribution[star - 1] ?? 0;
               const share = total === 0 ? 0 : Math.round((count / total) * 100);

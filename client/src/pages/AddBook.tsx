@@ -1,9 +1,10 @@
-import { useEffect, useRef, useState, type ChangeEvent, type HTMLInputTypeAttribute } from 'react';
+import { useRef, useState, type ChangeEvent, type HTMLInputTypeAttribute } from 'react';
 import axios from 'axios';
 import { Link, useNavigate } from 'react-router-dom';
 import { FaCamera, FaCheck, FaExclamationTriangle, FaInfoCircle, FaTimes } from 'react-icons/fa';
 
 import './Seller.css';
+import FilePreview from '../components/FilePreview.js';
 import Logo from '../components/Logo.js';
 import { API_BASE_URL } from '../config/api.js';
 import { site } from '../config/site.js';
@@ -321,7 +322,7 @@ const AddBooks = () => {
                   <ul className='sl-thumbs' style={{ listStyle: 'none', margin: 0, padding: 0 }}>
                     {images.map((img, index) => (
                       <li key={index} className='sl-thumb'>
-                        <Thumbnail file={img} />
+                        <FilePreview file={img} alt={`Preview of ${img.name}`} max={240} />
                         {index === 0 && <span className='badge sl-thumb-cover'>Cover</span>}
                         <span className='sl-thumb-name'>{img.name}</span>
                         <button
@@ -482,24 +483,6 @@ const AddBooks = () => {
       </div>
     </div>
   );
-};
-
-/**
- * A preview of a chosen photograph. The object URL is set on the element
- * directly and revoked when the file goes, so ten large photos are not kept
- * in memory after they are removed. Browsers without object URLs (and the
- * test environment) simply show the tinted tile.
- */
-const Thumbnail = ({ file }: { file: File }) => {
-  const imgRef = useRef<HTMLImageElement | null>(null);
-  useEffect(() => {
-    const img = imgRef.current;
-    if (!img || typeof URL.createObjectURL !== 'function') return;
-    const url = URL.createObjectURL(file);
-    img.src = url;
-    return () => URL.revokeObjectURL(url);
-  }, [file]);
-  return <img ref={imgRef} alt={`Preview of ${file.name}`} />;
 };
 
 interface InputFieldProps {

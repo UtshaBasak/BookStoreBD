@@ -26,7 +26,7 @@ export default function NotFound() {
           '#f8f7fc',
       }}
     >
-      <Link to="/" className="mb-8 inline-flex min-h-[44px] items-center no-underline" aria-label={`${site.name} home`}>
+      <Link to="/" className="mb-8 inline-flex min-h-11 items-center no-underline" aria-label={`${site.name} home`}>
         <Logo size={34} />
       </Link>
 

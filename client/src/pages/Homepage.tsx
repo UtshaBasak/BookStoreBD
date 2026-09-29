@@ -409,14 +409,13 @@ export default function Homepage() {
           {showDropdown === 'category' && (
             <div
               className="dropdown-content categories-menu"
-              style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.25rem 1rem' }}
+              style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: '0.25rem 1rem' }}
             >
               {genres.map((genre, index) => (
                 <span
                   key={index}
                   style={{
                     padding: '0.5rem 0.75rem',
-                    whiteSpace: 'nowrap',
                     display: 'block',
                     cursor: 'pointer',
                   }}

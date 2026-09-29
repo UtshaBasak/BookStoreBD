@@ -8,9 +8,9 @@ import type { ChatMessage, ChatMessagesResponse, ChatSummary } from '@shared/api
 import { API_BASE_URL, apiFetch } from '../config/api.js';
 import { useToast } from '../hooks/useToast.js';
 import { getUserEmail } from '../utils/auth.js';
-import { safeObjectUrl } from '../utils/safeImageSrc.js';
 import { reportError } from '../utils/report.js';
 import AuthImage from '../components/AuthImage.js';
+import FilePreview from '../components/FilePreview.js';
 import Logo from '../components/Logo.js';
 import './Homepage.css';
 import '../components/Chat.css';
@@ -242,7 +242,7 @@ export default function ChatPage() {
             {/* The homepage's frosted bar, with the page's name beside the logo. */}
             <header className="header">
                 <div className="chat-header-title">
-                    <Link to="/" className="logo-link inline-flex min-h-[44px] items-center no-underline">
+                    <Link to="/" className="logo-link inline-flex min-h-11 items-center no-underline">
                         <Logo size={34} />
                     </Link>
                     <span className="chat-divider" aria-hidden="true" />
@@ -424,10 +424,7 @@ export default function ChatPage() {
 
                                 {selectedImage && (
                                     <div className="chat-preview">
-                                        <img
-                                            src={safeObjectUrl(selectedImage)}
-                                            alt="Selected"
-                                        />
+                                        <FilePreview file={selectedImage} alt="Selected" max={120} />
                                         <button
                                             type="button"
                                             className="chat-preview-remove"

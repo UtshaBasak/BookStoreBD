@@ -644,7 +644,7 @@ export default function Payment() {
               <h2 className="m-0 text-lg">Your Order</h2>
               {orderConfirmed && <div className="font-bold text-brand">#{orderNumber}</div>}
             </div>
-            <div className="lg:max-h-[340px] lg:overflow-y-auto">
+            <div className="lg:max-h-85 lg:overflow-y-auto">
               {cartBooks.length === 0 ? (
                 <div className="p-6 text-center text-ink-muted">No books in cart.</div>
               ) : (
