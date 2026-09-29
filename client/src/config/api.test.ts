@@ -102,6 +102,24 @@ describe('apiFetch', () => {
     expect(assign).toHaveBeenCalledWith('/sign-in');
   });
 
+  it('asks a page that works signed out again as a visitor, rather than sending them to sign in', async () => {
+    // A stale session on a book's reviews: the API answers the bad token with
+    // 401 so a live session refreshes, but this one cannot.
+    setSession({ token: 'long-gone', user: { email: 'a@test.com', role: 'user' } });
+    const fetchMock = vi
+      .spyOn(globalThis, 'fetch')
+      .mockResolvedValueOnce(respond(401)) // the reviews, with the stale token
+      .mockResolvedValueOnce(respond(401)) // the refresh: the cookie has lapsed too
+      .mockResolvedValueOnce(respond(200, { items: [] })); // the reviews, anonymously
+
+    const res = await apiFetch(`${API_BASE_URL}/review/book-1`);
+
+    expect(res.status).toBe(200);
+    expect(headersOf(fetchMock.mock.calls[2][1]).has('Authorization')).toBe(false);
+    expect(getToken()).toBeNull();
+    expect(assign).not.toHaveBeenCalled();
+  });
+
   it('refreshes once on a 401 and retries the original request', async () => {
     setSession({ token: 'expired', user: { email: 'a@test.com', role: 'user' } });
 

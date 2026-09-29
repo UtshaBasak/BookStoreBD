@@ -102,6 +102,16 @@ export const apiFetch = async (input: RequestInfo | URL, init: RequestInit = {})
     const refreshed = await refreshSession();
     if (refreshed) {
       response = await send();
+    } else if (getToken()) {
+      /*
+       * The session is gone for good. A page that works signed out - a book's
+       * reviews, a seller's name - answers a stale token with 401 so that a
+       * live session refreshes; here there is nothing to refresh, so it is
+       * asked again as the visitor they now are, instead of throwing them onto
+       * the sign-in page for looking at a book.
+       */
+      clearSession();
+      response = await send();
     }
     if (response.status === 401) handleUnauthorized();
   }

@@ -1,6 +1,6 @@
 import express, { type Request, type Response } from 'express';
 
-import { optionalAuth } from '../middleware/auth.js';
+import { bestEffortAuth } from '../middleware/auth.js';
 import { clientErrorLimiter } from '../middleware/rateLimit.js';
 import { validate } from '../middleware/validate.js';
 import { captureException } from '../config/sentry.js';
@@ -34,7 +34,7 @@ const router = express.Router();
 router.post(
   '/',
   clientErrorLimiter,
-  optionalAuth,
+  bestEffortAuth,
   validate(clientErrorSchemas.report),
   (req: Request<unknown, unknown, ClientErrorBody>, res: Response) => {
     const { context, message, stack, url, userAgent } = req.body;

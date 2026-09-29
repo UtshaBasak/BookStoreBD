@@ -42,8 +42,36 @@ export const requireAuth: RequestHandler = async (req, res, next) => {
   }
 };
 
-/** Populates `req.user` when a token is present, but allows anonymous access. */
+/**
+ * Anonymous access allowed, but a token that is sent must be good.
+ *
+ * An expired token was quietly treated as no token, so the answer was the
+ * anonymous one - the owner of a profile, back after fifteen minutes, was
+ * shown the public version of their own page, without their address, phone
+ * or bKash number, and nothing prompted the browser to refresh the session.
+ * A 401 is what makes it refresh and ask again.
+ */
 export const optionalAuth: RequestHandler = async (req, res, next) => {
+  try {
+    const user = await resolveUser(req);
+    if (!user && extractBearerToken(req.headers.authorization)) {
+      res.status(401).json({ message: 'Session expired' });
+      return;
+    }
+    req.user = user;
+    next();
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * Identifies the caller when it can, and never refuses.
+ *
+ * For browser error reports, which are sent once and not retried: a 401 would
+ * lose the report of whatever broke for somebody whose session had expired.
+ */
+export const bestEffortAuth: RequestHandler = async (req, res, next) => {
   try {
     req.user = await resolveUser(req);
     next();
