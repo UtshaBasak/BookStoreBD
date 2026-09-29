@@ -61,5 +61,7 @@ describe('the origins allowed to call the API', () => {
     const res = await agent.get('/health').set('Origin', 'https://evil.example');
 
     expect(res.headers['access-control-allow-origin']).toBeUndefined();
+    // Refused, not a server fault: a 500 here would be logged and reported as one.
+    expect(res.status).toBe(403);
   });
 });
