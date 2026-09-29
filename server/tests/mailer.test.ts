@@ -25,6 +25,11 @@ const json = (status: number, body: unknown) =>
 
 let calls: { url: string; init?: RequestInit }[];
 
+/** Which Google service a request went to, by its host - not by a substring anywhere in the URL. */
+const to = (host: string) => (call: { url: string }) => new URL(call.url).hostname === host;
+const GMAIL_API = 'gmail.googleapis.com';
+const TOKENS = 'oauth2.googleapis.com';
+
 beforeEach(() => {
   calls = [];
 });
@@ -41,7 +46,7 @@ const stubGoogle = (token: Response = json(200, { access_token: 'access-1', expi
     vi.fn((input: Parameters<typeof fetch>[0], init?: RequestInit) => {
       const url = String(input);
       calls.push({ url, init });
-      if (url.includes('oauth2.googleapis.com/token')) return Promise.resolve(token.clone());
+      if (new URL(url).hostname === TOKENS) return Promise.resolve(token.clone());
       return Promise.resolve(json(200, { id: 'msg-1' }));
     })
   );
@@ -56,7 +61,7 @@ describe('with a Gmail API token', () => {
     await sendMail(MAIL);
 
     expect(mailTransport()).toBe('gmail-api');
-    const send = calls.find((c) => c.url.includes('gmail.googleapis.com'));
+    const send = calls.find(to(GMAIL_API));
     expect(new Headers(send?.init?.headers).get('Authorization')).toBe('Bearer access-1');
 
     const raw = Buffer.from(JSON.parse(String(send?.init?.body)).raw, 'base64url').toString('utf8');
@@ -73,8 +78,8 @@ describe('with a Gmail API token', () => {
     await sendMail(MAIL);
     await sendMail(MAIL);
 
-    expect(calls.filter((c) => c.url.includes('oauth2')).length).toBe(1);
-    expect(calls.filter((c) => c.url.includes('gmail.googleapis.com')).length).toBe(2);
+    expect(calls.filter(to(TOKENS)).length).toBe(1);
+    expect(calls.filter(to(GMAIL_API)).length).toBe(2);
   });
 
   it('says plainly when the token has been revoked, so the fix is obvious', async () => {

@@ -88,8 +88,11 @@ const server = createServer((req, res) => {
   const error = url.searchParams.get('error');
   const code = url.searchParams.get('code');
   if (error || !code) {
+    // Google's reason goes to the terminal only. The page says nothing taken
+    // from the address bar: whatever is in the query would otherwise be
+    // written into HTML as it arrived.
     say(`Google said: ${error ?? 'no code'}. Nothing was saved.`);
-    finish(400, `Google said: ${error ?? 'no code'}. Nothing was saved.`, 1);
+    finish(400, 'Google did not allow it, so nothing was saved. The terminal says why.', 1);
     return;
   }
 
@@ -121,7 +124,8 @@ const server = createServer((req, res) => {
       finish(500, 'Could not get a token - see the terminal.', 1);
       return;
     }
-    if (!body.scope?.includes(SCOPE)) {
+    // Exactly that permission among those granted, not a substring of them.
+    if (!body.scope?.split(' ').includes(SCOPE)) {
       say('Sending was not allowed on the consent screen, so the token cannot send mail. Run it again and tick it.');
       finish(400, 'Sending was not allowed. Run it again and allow it.', 1);
       return;

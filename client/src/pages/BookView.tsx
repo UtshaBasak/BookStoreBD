@@ -21,6 +21,7 @@ import { useSeo } from '../hooks/useSeo.js';
 import BookReviews from '../components/BookReviews.js';
 import { Stars } from '../components/Stars.js';
 import { messageOf } from '../utils/apiError.js';
+import { site } from '../config/site.js';
 import { getUserEmail } from '../utils/auth.js';
 import { flagsFor } from '../utils/bookFlags.js';
 import { PLACEHOLDER_IMAGE } from '../utils/safeImageSrc.js';
@@ -243,7 +244,7 @@ export default function BookView() {
                         aria-label="Go to homepage"
                         role="button"
                     >
-                        BookStore
+                        {site.name}
                     </span>
                 </div>
 
