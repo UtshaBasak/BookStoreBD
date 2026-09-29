@@ -1,5 +1,5 @@
 import { createLogger, defineConfig, type ProxyOptions } from 'vite';
-import react from '@vitejs/plugin-react-swc';
+import react from '@vitejs/plugin-react';
 import tailwindcss from '@tailwindcss/vite';
 
 // Keep the vendor libraries in their own chunks so app code can be re-deployed
