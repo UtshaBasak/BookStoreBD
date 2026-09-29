@@ -15,7 +15,7 @@ import './BookView.css';
 
 import type { ChatMessage } from '@shared/api.js';
 
-import socket from '../utils/socket';  // Add this import
+import { openSocket } from '../utils/socket.js';
 import ChatWindow from '../components/ChatWindow';
 import { API_BASE_URL, signOut } from '../config/api.js';
 import {
@@ -92,11 +92,10 @@ export default function BookView() {
             }
         };
 
+        const { socket, close } = openSocket();
         socket.on('receive_message', handleNewMessage);
 
-        return () => {
-            socket.off('receive_message', handleNewMessage);
-        };
+        return close;
     }, [userEmail]);
 
     const toggleCart = async (bookId: string) => {

@@ -10,6 +10,7 @@ import { errorMessage } from '../utils/error.js';
 import { validate, validatedQuery } from '../middleware/validate.js';
 import { serveStoredImage } from '../utils/serveImage.js';
 import { API_PREFIX } from '../config/apiPaths.js';
+import { deliverChatMessage } from '../sockets/chatSocket.js';
 import {
   chatSchemas,
   type ChatMessagesQuery,
@@ -231,6 +232,18 @@ router.post(
 
         await newMessage.save();
         res.status(201).json(newMessage);
+
+        // Live to the receiver, as the thread's own endpoint describes it: the
+        // picture as an address to fetch, not the base64 on the record.
+        deliverChatMessage({
+            _id: String(newMessage._id),
+            sender,
+            receiver,
+            message: newMessage.message,
+            image: imageData ? `${API_PREFIX}/chat/messages/${String(newMessage._id)}/image` : null,
+            timestamp: newMessage.timestamp.toISOString(),
+            read: false,
+        });
     } catch (error) {
         log.error({ err: error }, 'Chat message error');
         res.status(500).json({ message: errorMessage(error) });
