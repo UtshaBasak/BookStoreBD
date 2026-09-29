@@ -30,9 +30,22 @@ export const config = {
   env: process.env.NODE_ENV ?? 'development',
   port: Number(process.env.PORT) || 4000,
   mongoUri: process.env.MONGO,
-  corsOrigins: parseOrigins(process.env.CORS_ORIGINS).length
-    ? parseOrigins(process.env.CORS_ORIGINS)
-    : DEFAULT_ORIGINS,
+  /*
+   * The site's own address is always allowed. Browsers send an Origin header
+   * on a same-origin POST too, so with CORS_ORIGINS unset a deployment
+   * allowed only localhost:5173 - and refused every sign-in, order and form on
+   * its own pages. Render supplies RENDER_EXTERNAL_URL; PUBLIC_SITE_URL covers
+   * a custom domain.
+   */
+  corsOrigins: [
+    ...new Set([
+      ...(parseOrigins(process.env.CORS_ORIGINS).length
+        ? parseOrigins(process.env.CORS_ORIGINS)
+        : DEFAULT_ORIGINS),
+      ...parseOrigins(process.env.PUBLIC_SITE_URL),
+      ...parseOrigins(process.env.RENDER_EXTERNAL_URL),
+    ]),
+  ],
   // Serve the built client from this process, making the app same-origin.
   // On in production; in development the Vite dev server proxies instead, and
   // under test it stays off so route behaviour does not depend on whether a
