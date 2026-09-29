@@ -68,12 +68,15 @@ describe('policy and information pages', () => {
     expect(body.getByText(/delivery charge you paid on the original order is not refunded/i)).toBeInTheDocument();
   });
 
-  it('the terms quote the delivery charges and the seller fee', () => {
+  it('the terms quote the delivery charges, the codes and the seller fee', () => {
     renderPage(<Terms />);
     const body = within(screen.getByRole('main'));
 
     expect(body.getByText(/70 Tk/)).toBeInTheDocument();
     expect(body.getByText(/120 Tk/)).toBeInTheDocument();
+    // Free delivery is a code now, and the terms must not promise it without one.
+    expect(body.getByText(/delivered free with the promo code/)).toBeInTheDocument();
+    expect(body.getByRole('heading', { name: 'Promo codes' })).toBeInTheDocument();
     expect(body.getByText(/5%/)).toBeInTheDocument();
     expect(body.getByText(/must be 18 or older/i)).toBeInTheDocument();
   });
@@ -133,20 +136,29 @@ describe('footer', () => {
  * quoted at checkout and in the policies are pinned to its rules here.
  */
 describe('the figures quoted match what the API enforces', () => {
-  it('delivery charges and the free-delivery threshold', () => {
+  it('delivery charges', () => {
     expect(site.delivery.insideDhaka).toBe(DELIVERY.insideDhaka);
     expect(site.delivery.outsideDhaka).toBe(DELIVERY.outsideDhaka);
-    expect(site.delivery.freeFrom).toBe(DELIVERY.freeFrom);
 
-    for (const [district, total] of [
-      ['Dhaka', 300],
-      ['Tangail', 300],
-      ['Sylhet', 999],
-      ['Sylhet', 1000],
-      ['', 300],
-    ] as const) {
-      expect(deliveryChargeFor(district, total)).toBe(serverDeliveryCharge(district, total));
+    for (const district of ['Dhaka', 'dhaka ', 'Tangail', 'Sylhet', '']) {
+      expect(deliveryChargeFor(district)).toBe(serverDeliveryCharge(district));
     }
+  });
+
+  it('the promo codes, as the policies and checkout describe them', () => {
+    const { firstOrder, freeDelivery } = site.promotions;
+    const running = Object.fromEntries(PROMOTIONS.map((promo) => [promo.code, promo]));
+
+    expect(Object.keys(running).sort()).toEqual([firstOrder.code, freeDelivery.code].sort());
+    expect(running[firstOrder.code]).toMatchObject({
+      description: firstOrder.description,
+      firstOrderOnly: true,
+    });
+    expect(running[freeDelivery.code]).toMatchObject({
+      description: freeDelivery.description,
+      minBooksTotal: freeDelivery.minBooksTotal,
+      discount: { kind: 'free-delivery' },
+    });
   });
 
   it('the return window', () => {

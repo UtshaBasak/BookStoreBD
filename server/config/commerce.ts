@@ -16,9 +16,9 @@ export const DELIVERY = {
   insideDhaka: 70,
   /** Taka, for everywhere else. */
   outsideDhaka: 120,
-  /** An order whose books come to this many taka or more is delivered free. */
-  freeFrom: 1000,
 } as const;
+// Free delivery on a large order is the "FreeDelivery" promo code now, in
+// promotions.ts, rather than automatic.
 
 /** Days a buyer has to ask for a return, counted from delivery. */
 export const RETURN_WINDOW_DAYS = 7;
@@ -78,10 +78,8 @@ export const returnWindowClosedBefore = (now: number = Date.now()): Date =>
 export const isInsideDhaka = (district: string | undefined): boolean =>
   (district ?? '').trim().toLowerCase() === 'dhaka';
 
-export const deliveryChargeFor = (district: string | undefined, booksTotal: number): number => {
-  if (booksTotal >= DELIVERY.freeFrom) return 0;
-  return isInsideDhaka(district) ? DELIVERY.insideDhaka : DELIVERY.outsideDhaka;
-};
+export const deliveryChargeFor = (district: string | undefined): number =>
+  isInsideDhaka(district) ? DELIVERY.insideDhaka : DELIVERY.outsideDhaka;
 
 /**
  * When an order line stops being returnable, or null if it cannot be returned

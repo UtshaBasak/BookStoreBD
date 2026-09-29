@@ -150,18 +150,36 @@ export const decreaseStock = async (
     }
     const isFirstOrder = !(await Order.exists({ buyerEmail: String(email) }));
 
+    const wanted: { book: BookDocument; quantity: number }[] = [];
+    for (const item of items) {
+      const quantity = Number(item?.quantity);
+      if (!item.bookId || !Number.isInteger(quantity) || quantity < 1) continue;
+      const book = await AddBook.findById(String(item.bookId));
+      if (book) wanted.push({ book, quantity });
+    }
+
+    // A code whose conditions the basket does not meet - under its minimum
+    // spend, or not a first order - is refused with the reason, before stock
+    // is taken, rather than the order going through at the full price.
+    if (promotion) {
+      const asked = applyPromotion(promotion, {
+        booksTotal: wanted.reduce((sum, { book, quantity }) => sum + Number(book.price) * quantity, 0),
+        isFirstOrder,
+      });
+      if (!asked.ok) {
+        res.status(400).json({ message: asked.message });
+        return;
+      }
+    }
+
     // Generate unique order number
     const orderNumber = await generateUniqueOrderNumber();
 
     const unavailable: UnavailableItem[] = [];
     const reserved: { book: BookDocument; quantity: number }[] = [];
 
-    for (const item of items) {
-      const bookId = item.bookId;
-      const quantity = Number(item?.quantity);
-      if (!bookId || !Number.isInteger(quantity) || quantity < 1) continue;
-      const book = await AddBook.findById(String(bookId));
-      if (!book) continue;
+    for (const { book, quantity } of wanted) {
+      const bookId = String(book._id);
 
       // Reserve stock first: the conditional update is atomic, so two buyers
       // racing for the last copy cannot both succeed.
@@ -185,13 +203,14 @@ export const decreaseStock = async (
       (sum, { book, quantity }) => sum + Number(book.price) * quantity,
       0
     );
-    const shippingCharge = deliveryChargeFor(req.body.deliveryDistrict, booksTotal);
-
-    // Priced on what was actually reserved: if a book sold out meanwhile, a
-    // code with a minimum spend may no longer apply, and the order still goes
-    // ahead without it rather than failing after stock was taken.
+    // Priced again on what was actually reserved: if a book sold out in the
+    // meantime, a code with a minimum spend may no longer apply, and the order
+    // goes ahead without it (and says so) rather than failing after stock was
+    // taken.
     const applied = promotion ? applyPromotion(promotion, { booksTotal, isFirstOrder }) : null;
     const discount = applied?.ok ? applied.discount : 0;
+    const shippingCharge =
+      applied?.ok && applied.freeDelivery ? 0 : deliveryChargeFor(req.body.deliveryDistrict);
 
     for (const { book, quantity } of reserved) {
       await Order.create({
@@ -328,7 +347,12 @@ export const checkPromo = async (
       res.status(400).json({ message: result.message });
       return;
     }
-    res.json({ code: result.code, description: result.description, discount: result.discount });
+    res.json({
+      code: result.code,
+      description: result.description,
+      discount: result.discount,
+      freeDelivery: result.freeDelivery,
+    });
   } catch (err) {
     res.status(500).json({ message: errorMessage(err) });
   }

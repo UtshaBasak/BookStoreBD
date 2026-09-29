@@ -28,6 +28,8 @@ interface ConfirmedOrder {
   district: string;
   address: string;
   discount: number;
+  /** What the server charged for delivery. Absent on confirmations stored before it was kept. */
+  shippingCharge?: number;
   promo: string;
   promoApplied: boolean;
   quantities: Quantities;
@@ -73,6 +75,14 @@ export default function Payment() {
   const [promoMsg, setPromoMsg] = useState('');
   const [promoApplied, setPromoApplied] = useState(restored?.promoApplied ?? false);
   const [discount, setDiscount] = useState(restored?.discount ?? 0);
+  const [freeDelivery, setFreeDelivery] = useState(false);
+  // The books total the code was checked against.
+  const [appliedFor, setAppliedFor] = useState<number | null>(null);
+  // What the server charged once the order is placed - kept with the stored
+  // confirmation, so a reload shows the real figures, not a recalculation.
+  const [confirmedCharges, setConfirmedCharges] = useState<{ shipping: number; discount: number } | null>(
+    restored ? { shipping: restored.shippingCharge ?? 0, discount: restored.discount ?? 0 } : null
+  );
   const [orderNumber, setOrderNumber] = useState(restored?.orderNumber ?? '');
   const [confirmedBooks, setConfirmedBooks] = useState<Book[] | null>(restored?.cartBooks ?? null);
   const [confirmedQuantities, setConfirmedQuantities] = useState<Quantities | null>(
@@ -186,17 +196,27 @@ export default function Payment() {
   }, [cartBooks, quantities]);
 
   /*
+   * A code's preview belongs to the basket it was checked against. Change a
+   * quantity and it is no longer the price the server will charge - a
+   * FreeDelivery basket taken under 1000 Tk would be refused - so it stops
+   * counting until it is applied again, rather than showing a total that is
+   * not true.
+   */
+  const promoCurrent = promoApplied && appliedFor === subtotal;
+  const previewFree = promoCurrent && freeDelivery;
+
+  /*
    * A preview of what the API will charge, by the same rule. It used to price
    * the whole Dhaka division as inside Dhaka - Tangail and Faridpur included -
-   * and to send its figure to the server, which stored it as given.
+   * and to send its figure to the server, which stored it as given. Once the
+   * order is placed, what the server actually charged is shown instead.
    */
-  const shipping = useMemo(
-    () => (district ? deliveryChargeFor(district, subtotal) : 0),
-    [subtotal, district]
-  );
+  const shipping =
+    confirmedCharges?.shipping ?? (district ? (previewFree ? 0 : deliveryChargeFor(district)) : 0);
+  const shownDiscount = confirmedCharges?.discount ?? (promoCurrent ? discount : 0);
   // Until a district is chosen the charge is not known, and a 0 would read as
-  // free delivery. Books over the threshold are free wherever they go.
-  const shippingKnown = Boolean(district) || subtotal >= site.delivery.freeFrom;
+  // free delivery.
+  const shippingKnown = Boolean(district) || previewFree || confirmedCharges !== null;
   const shippingLabel = !shippingKnown
     ? 'Choose your district'
     : shipping === 0
@@ -210,7 +230,7 @@ export default function Payment() {
    * is only a preview.
    */
   const handleApplyPromo = async () => {
-    if (promoApplied || !promo.trim()) return;
+    if (promoCurrent || !promo.trim()) return;
     try {
       const res = await apiFetch(`${API_BASE_URL}/order/promo`, {
         method: 'POST',
@@ -219,13 +239,22 @@ export default function Payment() {
       });
       const data = (await res.json()) as CheckPromoResponse & ApiError;
       if (!res.ok) {
+        setPromoApplied(false);
         setDiscount(0);
+        setFreeDelivery(false);
         setPromoMsg(data.message || 'That code is not valid.');
         return;
       }
+      setPromo(data.code);
       setDiscount(data.discount);
+      setFreeDelivery(data.freeDelivery);
+      setAppliedFor(subtotal);
       setPromoApplied(true);
-      setPromoMsg(`${data.description}: ${data.discount.toFixed(2)} Tk off.`);
+      setPromoMsg(
+        data.freeDelivery
+          ? `${data.description}: delivery is free.`
+          : `${data.description}: ${data.discount.toFixed(2)} Tk off.`
+      );
     } catch {
       setPromoMsg('Could not check that code. Please try again.');
     }
@@ -236,11 +265,15 @@ export default function Payment() {
     setPromoMsg('');
     setPromoApplied(false);
     setDiscount(0);
+    setFreeDelivery(false);
   };
 
-  const total = useMemo(() => {
-    return Math.max(0, subtotal + shipping - discount);
-  }, [subtotal, shipping, discount]);
+  const total = Math.max(0, subtotal + shipping - shownDiscount);
+
+  // Books worth enough for free delivery, and the code not in use: say so.
+  const { firstOrder, freeDelivery: freeDeliveryPromo } = site.promotions;
+  const couldHaveFreeDelivery =
+    !confirmedCharges && !previewFree && subtotal >= freeDeliveryPromo.minBooksTotal;
 
   const handleUserChange = (field: keyof Buyer, value: string) => {
     setUser(u => ({ ...u, [field]: value }));
@@ -263,6 +296,11 @@ export default function Payment() {
     }
     if (cartBooks.length === 0) {
       setConfirmError('You must add at least one book to confirm your order.');
+      return;
+    }
+    // Not silently dropped: the shopper saw a price with the code in it.
+    if (promoApplied && !promoCurrent) {
+      setConfirmError('Your basket changed since you applied the code. Apply it again, or remove it.');
       return;
     }
 
@@ -288,7 +326,7 @@ export default function Payment() {
           quantity: latestQuantities[book._id] || 1
         })),
         // The code only: what it is worth is the server's to work out.
-        ...(promoApplied ? { promo } : {}),
+        ...(promoCurrent ? { promo } : {}),
         paymentMethod: 'Cash on Delivery', // or get from state if you support more methods
         contactName: user.name,
         contactPhone: user.phone,
@@ -301,8 +339,10 @@ export default function Payment() {
     .then(({ ok, data }) => {
       if (ok && data.orderNumber) {
         setOrderNumber(data.orderNumber);
-        // What the server actually took off, which is what was charged.
-        setDiscount(data.discount ?? 0);
+        // What the server actually charged, which may differ from the preview
+        // if a book sold out in the meantime.
+        setConfirmedCharges({ shipping: data.shippingCharge ?? 0, discount: data.discount ?? 0 });
+        if (data.promoMessage) setPromoMsg(data.promoMessage);
         // Only now: the cart used to be cleared whether or not the order went
         // through, so a failed checkout threw the basket away. Through the
         // mutation rather than a bare fetch, so every header's cart badge
@@ -318,6 +358,7 @@ export default function Payment() {
             district,
             address,
             discount: data.discount ?? 0,
+            shippingCharge: data.shippingCharge ?? 0,
             promo,
             promoApplied,
             quantities: latestQuantities,
@@ -546,10 +587,10 @@ export default function Payment() {
                 <span style={{ color: '#888' }}>Shipping</span>
                 <span style={{ color: '#888' }}>{shippingLabel}</span>
               </div>
-              {discount > 0 && (
+              {shownDiscount > 0 && (
                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
                   <span style={{ color: '#888' }}>Discount{promo ? ` (${promo})` : ''}</span>
-                  <span style={{ color: '#888' }}>-{discount.toFixed(2)} Tk.</span>
+                  <span style={{ color: '#888' }}>-{shownDiscount.toFixed(2)} Tk.</span>
                 </div>
               )}
             </div>
@@ -885,13 +926,14 @@ export default function Payment() {
             </div>
             <p style={{ margin: '0 0 8px', fontSize: 12, color: '#888', lineHeight: 1.4 }}>
               {site.delivery.insideDhaka} Tk inside Dhaka, {site.delivery.outsideDhaka} Tk elsewhere,
-              free from {site.delivery.freeFrom} Tk. By courier in {site.delivery.daysInsideDhaka} working
-              days in Dhaka, {site.delivery.daysOutsideDhaka} elsewhere. {site.payment}.
+              free with {freeDeliveryPromo.code} on {freeDeliveryPromo.minBooksTotal} Tk or more. By courier
+              in {site.delivery.daysInsideDhaka} working days in Dhaka, {site.delivery.daysOutsideDhaka} elsewhere.
+              {' '}{site.payment}.
             </p>
-            {discount > 0 && (
+            {shownDiscount > 0 && (
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
                 <span style={{ color: '#888' }}>Discount</span>
-                <span style={{ color: '#888' }}>-{discount.toFixed(2)} TK.</span>
+                <span style={{ color: '#888' }}>-{shownDiscount.toFixed(2)} TK.</span>
               </div>
             )}
             {/*
@@ -901,13 +943,32 @@ export default function Payment() {
             */}
             {site.promoCodes && (
             <div>
+              {/*
+                The moment it applies, not buried in the terms: a code nobody
+                hears about gives nobody free delivery.
+              */}
+              {couldHaveFreeDelivery && (
+                <p role="note" style={{
+                  margin: '8px 0 0',
+                  padding: '8px 10px',
+                  background: '#fff8e1',
+                  border: '1px solid #ffe082',
+                  borderRadius: 4,
+                  fontSize: 13,
+                  color: '#5d4037',
+                }}>
+                  Your books come to {freeDeliveryPromo.minBooksTotal} Tk or more: use the code{' '}
+                  <strong>{freeDeliveryPromo.code}</strong> for free delivery
+                  {promoCurrent ? ' instead - one code per order.' : '.'}
+                </p>
+              )}
               <label htmlFor="promo-code" style={{ display: 'block', marginTop: 8, fontSize: 13, color: '#888' }}>
                 Promo code or voucher
               </label>
               <input
                 id="promo-code"
                 value={promo}
-                onChange={e => { setPromo(e.target.value); setPromoMsg(''); setPromoApplied(false); setDiscount(0); }}
+                onChange={e => { setPromo(e.target.value); setPromoMsg(''); setPromoApplied(false); setDiscount(0); setFreeDelivery(false); }}
                 style={{
                   width: '100%',
                   marginTop: 4,
@@ -916,7 +977,7 @@ export default function Payment() {
                   borderRadius: 4
                 }}
                 onKeyDown={e => { if (e.key === 'Enter') void handleApplyPromo(); }}
-                disabled={promoApplied}
+                disabled={promoCurrent}
               />
               <button
                 style={{
@@ -931,7 +992,7 @@ export default function Payment() {
                   marginLeft: 4
                 }}
                 onClick={() => void handleApplyPromo()}
-                disabled={promoApplied}
+                disabled={promoCurrent}
               >Apply</button>
               {promoApplied && (
                 <button
@@ -949,13 +1010,20 @@ export default function Payment() {
                   onClick={handleRemovePromo}
                 >Remove</button>
               )}
-              {promoMsg && (
+              {promoApplied && !promoCurrent ? (
+                <div role="status" style={{ marginTop: 6, color: '#e65100', fontSize: 13 }}>
+                  Your basket changed. Apply the code again to use it.
+                </div>
+              ) : promoMsg && (
                 <div role="status" style={{
                   marginTop: 6,
-                  color: promoApplied ? 'green' : '#e74c3c',
+                  color: promoCurrent ? 'green' : '#e74c3c',
                   fontSize: 13
                 }}>{promoMsg}</div>
               )}
+              <p style={{ margin: '6px 0 0', fontSize: 12, color: '#888' }}>
+                First order? <strong>{firstOrder.code}</strong>: {firstOrder.description}.
+              </p>
             </div>
             )}
           </div>

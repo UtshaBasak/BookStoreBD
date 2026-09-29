@@ -73,8 +73,8 @@ both new and used books. It ships three distinct experiences from one codebase:
 
 - Wishlist and cart, both scoped per user
 - Checkout capturing delivery division, district, address, contact and payment method
-- Delivery charges worked out by the server from the district: 70 Tk in Dhaka, 120 Tk elsewhere, free from 1000 Tk
-- Promo codes and vouchers priced by the server from one list, `server/config/promotions.ts` - none running at present
+- Delivery charges worked out by the server from the district: 70 Tk in Dhaka, 120 Tk elsewhere
+- Promo codes priced by the server from one list, `server/config/promotions.ts`: `BookStoreBD` (50 Tk off a first order) and `FreeDelivery` (free delivery on 1000 Tk of books), one per order
 - A 16-character order number shared by every line item in a single order
 - Order tracking for buyers, sellers and admins, each with its own view
 - Returns within 7 days of delivery, with a defect description, photos and a bKash number for the refund

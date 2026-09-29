@@ -422,7 +422,10 @@ export interface CheckPromoRequest {
 export interface CheckPromoResponse {
   code: string;
   description: string;
+  /** Taka off the books. */
   discount: number;
+  /** Whether the code waives the delivery charge. */
+  freeDelivery: boolean;
 }
 
 /**

@@ -38,8 +38,6 @@ export const site = {
     /** Taka. "Inside Dhaka" is Dhaka district, not the whole division. */
     insideDhaka: 70,
     outsideDhaka: 120,
-    /** Books totalling this many taka or more are delivered free. */
-    freeFrom: 1000,
     /** Working days from the order. */
     daysInsideDhaka: 3,
     daysOutsideDhaka: 5,
@@ -60,22 +58,35 @@ export const site = {
   sellerFeePercent: 5,
 
   /**
-   * Whether checkout shows a promo code box. Off while no promotion runs - a
-   * box that can only say "not valid" sends shoppers hunting for a code. Turn
-   * it on together with an entry in `server/config/promotions.ts`.
+   * Whether checkout shows a promo code box. Keep it off whenever
+   * `server/config/promotions.ts` is empty: a box that can only say "not
+   * valid" sends shoppers hunting for a code that does not exist.
    */
-  promoCodes: false,
+  promoCodes: true,
+
+  /**
+   * The codes running, as shoppers are told about them. The server holds the
+   * rules and prices every code; a test pins these to its list.
+   */
+  promotions: {
+    firstOrder: { code: 'BookStoreBD', description: '50 Tk off your first order' },
+    freeDelivery: {
+      code: 'FreeDelivery',
+      description: 'Free delivery on orders of 1000 Tk or more',
+      /** Taka of books the code needs. */
+      minBooksTotal: 1000,
+    },
+  },
 
   /** The date the policy pages were last reviewed. */
   policiesUpdated: '29 September 2026',
 } as const;
 
-/** The delivery charge for a district, as the API will work it out. */
-export const deliveryChargeFor = (district: string, booksTotal: number): number => {
-  if (booksTotal >= site.delivery.freeFrom) return 0;
-  return district.trim().toLowerCase() === 'dhaka'
-    ? site.delivery.insideDhaka
-    : site.delivery.outsideDhaka;
-};
+/**
+ * The delivery charge for a district, as the API will work it out. Free
+ * delivery is the FreeDelivery code, applied on top of this.
+ */
+export const deliveryChargeFor = (district: string): number =>
+  district.trim().toLowerCase() === 'dhaka' ? site.delivery.insideDhaka : site.delivery.outsideDhaka;
 
 export default site;
