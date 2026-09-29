@@ -73,10 +73,12 @@ both new and used books. It ships three distinct experiences from one codebase:
 
 - Wishlist and cart, both scoped per user
 - Checkout capturing delivery division, district, address, contact and payment method
-- Promo codes, shipping charges and discounts applied at the order level
+- Delivery charges worked out by the server from the district: 70 Tk in Dhaka, 120 Tk elsewhere, free from 1000 Tk
+- Promo codes and vouchers priced by the server from one list, `server/config/promotions.ts` - none running at present
 - A 16-character order number shared by every line item in a single order
 - Order tracking for buyers, sellers and admins, each with its own view
-- Return requests with a defect description and supporting photos
+- Returns within 7 days of delivery, with a defect description, photos and a bKash number for the refund
+- Seller payouts by bKash to the seller's merchant number once an order's return window closes, less a 5% fee, recorded with the bKash transaction ID
 
 ### Real-time chat
 

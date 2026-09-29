@@ -102,6 +102,24 @@ router.post(
   validate(userSchemas.addBook),
   async (req: Request<unknown, unknown, AddBookBody>, res: Response) => {
     try {
+      /*
+       * A seller has to be payable before anything of theirs can sell. Sales
+       * are paid by bKash, so a listing without a merchant number would take
+       * a buyer's money with nowhere to send the seller's share.
+       */
+      const seller = await User.findOne(
+        { email: String(actingUser(req).email) },
+        { bkashMerchant: 1 }
+      ).lean();
+      if (!seller?.bkashMerchant) {
+        res.status(409).json({
+          code: 'payout-number-required',
+          message:
+            'Add your bKash merchant number to your profile first, so we can pay you when your books sell.',
+        });
+        return;
+      }
+
       // Two ways in. When image hosting is configured the browser has already
       // uploaded to Cloudinary and sends back the URLs; otherwise the files
       // arrive here and are stored inline as before.

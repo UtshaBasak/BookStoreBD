@@ -27,6 +27,8 @@ interface SeedAccount {
   role: UserRole;
   address?: string;
   phone?: string;
+  /** A seller cannot list without one. */
+  bkashMerchant?: string;
 }
 
 interface SeedBook {
@@ -52,6 +54,7 @@ const ACCOUNTS: SeedAccount[] = [
     role: 'user',
     address: '14 New Market, Dhaka',
     phone: '01710000001',
+    bkashMerchant: '01710000001',
   },
   {
     username: 'buyer',

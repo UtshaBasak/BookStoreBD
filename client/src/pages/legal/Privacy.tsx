@@ -34,7 +34,8 @@ export default function Privacy() {
         <li>Return requests: what was wrong, any photographs you add, and the
           bKash number you give for the refund.</li>
         <li>Listings you create as a seller, including the photographs you
-          upload.</li>
+          upload, and the bKash merchant number your sales are paid to. Only you
+          and we can see that number.</li>
         <li>Messages and images you exchange with other users through the chat.</li>
         <li>Reviews you write, which are public and carry the name on your
           account beside them.</li>
@@ -67,8 +68,8 @@ export default function Privacy() {
         <li><strong>Our courier</strong> receives the delivery name, address and
           phone number for an order, and nothing else, so they can deliver it
           and collect the payment.</li>
-        <li><strong>bKash</strong> receives the number a refund is paid to, when
-          we pay it.</li>
+        <li><strong>bKash</strong> receives the number a refund or a seller's
+          payment is sent to, when we send it.</li>
         <li><strong>Cloudinary</strong> hosts the photographs of listings and of
           return requests, when image hosting is enabled.</li>
         <li><strong>Google (Gmail)</strong> delivers our e-mail, including the

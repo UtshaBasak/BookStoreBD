@@ -7,7 +7,9 @@ import {
   getAllOrders,
   getOrderByOrderNumber,
   updateOrderStatusByOrderNumber,
+  checkPromo,
 } from '../controllers/order.controller.js';
+import { getPayouts, markPayoutPaid } from '../controllers/payout.controller.js';
 import { requireAuth, requireAdmin } from '../middleware/auth.js';
 import { validate } from '../middleware/validate.js';
 import { orderSchemas } from '../schemas/index.js';
@@ -18,8 +20,12 @@ router.use(requireAuth);
 
 // Admin routes are declared before '/:orderNumber' so they are not shadowed.
 router.get('/admin/all', requireAdmin, validate(orderSchemas.list), getAllOrders);
+// What sellers are owed, and recording that they have been paid.
+router.get('/admin/payouts', requireAdmin, validate(orderSchemas.payouts), getPayouts);
+router.post('/admin/payouts/paid', requireAdmin, validate(orderSchemas.markPaid), markPayoutPaid);
 router.delete('/:id', requireAdmin, validate(orderSchemas.byId), deleteOrder);
 
+router.post('/promo', validate(orderSchemas.checkPromo), checkPromo);
 router.post('/decrease-stock', validate(orderSchemas.create), decreaseStock);
 router.get('/buyer', validate(orderSchemas.list), getOrdersByBuyer);
 router.get('/seller', validate(orderSchemas.list), getOrdersBySeller);

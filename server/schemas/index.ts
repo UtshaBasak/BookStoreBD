@@ -156,9 +156,8 @@ export const orderSchemas = {
         .array(z.object({ bookId: objectId, quantity: positiveInt }))
         .min(1, 'At least one item is required')
         .max(100),
-      discount: nonNegativeInt.optional(),
-      promo: shortText.optional(),
-      promoApplied: z.boolean().optional(),
+      // A code, not a discount: what it is worth is the server's to work out.
+      promo: shortText.max(40).optional(),
       paymentMethod: shortText.optional(),
       contactName: shortText.optional(),
       contactPhone: shortText.optional(),
@@ -173,6 +172,34 @@ export const orderSchemas = {
     body: z.object({ status: shortText.min(1, 'Status is required') }),
   },
   byId: { params: objectIdParam },
+  /** What a promo code is worth on a basket, before the order is placed. */
+  checkPromo: {
+    body: z.object({
+      code: shortText.min(1, 'Enter a code').max(40),
+      booksTotal: nonNegativeAmount,
+    }),
+  },
+  /** The administrator's payouts table: what is owed, or what has been paid. */
+  payouts: {
+    query: z.object({
+      state: z.enum(['due', 'paid']).default('due'),
+      page: positiveInt.default(1),
+      pageSize: boundedInt(1, 100).default(25),
+    }),
+  },
+  /** Recording that a seller has been paid for their books in one order. */
+  markPaid: {
+    body: z.object({
+      orderNumber,
+      sellerEmail: email,
+      // The bKash transaction ID, so a payment can be traced if it is queried.
+      reference: z
+        .string()
+        .trim()
+        .regex(/^[A-Za-z0-9]{6,20}$/, 'Enter the bKash transaction ID, e.g. 8N7A2B3C4D')
+        .transform((value) => value.toUpperCase()),
+    }),
+  },
 };
 
 // -------------------------------------------------------------- return
@@ -264,8 +291,13 @@ export const userSchemas = {
       password: password.optional(),
       address: shortText.optional(),
       phone: shortText.optional(),
+      // Empty clears it; anything else must be a real number.
+      bkashMerchant: z.union([z.literal(''), bdMobile]).optional(),
       dateOfBirth: z.string().trim().max(40).optional(),
-      gender: z.enum(['male', 'female']).optional(),
+      // Empty clears it, as for every optional field. It was refused instead,
+      // and the form sends every field - so anyone who had never set a gender
+      // could not save their profile at all.
+      gender: z.union([z.literal(''), z.enum(['male', 'female'])]).optional(),
       profilePicture: z.string().optional(),
     }),
   },
@@ -395,6 +427,9 @@ export type FeaturedQuery = z.infer<typeof filterSchemas.featured.query>;
 export type CreateOrderBody = z.infer<typeof orderSchemas.create.body>;
 export type OrderNumberParams = z.infer<typeof orderSchemas.byOrderNumber.params>;
 export type UpdateOrderStatusBody = z.infer<typeof orderSchemas.updateStatus.body>;
+export type CheckPromoBody = z.infer<typeof orderSchemas.checkPromo.body>;
+export type PayoutsQuery = z.infer<typeof orderSchemas.payouts.query>;
+export type MarkPaidBody = z.infer<typeof orderSchemas.markPaid.body>;
 
 export type CreateReturnBody = z.infer<typeof returnSchemas.create.body>;
 export type UpdateReturnStatusBody = z.infer<typeof returnSchemas.updateStatus.body>;

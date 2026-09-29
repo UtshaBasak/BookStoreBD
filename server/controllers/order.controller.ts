@@ -12,12 +12,14 @@ import type {
   OrderListQuery,
   OrderNumberParams,
   UpdateOrderStatusBody,
+  CheckPromoBody,
 } from '../schemas/index.js';
 import { validatedQuery } from '../middleware/validate.js';
 import { contains } from '../utils/regex.js';
 import { createLogger } from '../config/logger.js';
 import { errorMessage } from '../utils/error.js';
-import { deliveryChargeFor, returnDeadline } from '../config/commerce.js';
+import { deliveryChargeFor, payoutStateFor, returnDeadline } from '../config/commerce.js';
+import { applyPromotion, findPromotion } from '../config/promotions.js';
 
 const log = createLogger('order');
 
@@ -132,9 +134,21 @@ export const decreaseStock = async (
   res: Response
 ): Promise<void> => {
   try {
-    const { items, discount, promoApplied } = req.body;
+    const { items } = req.body;
     const { email } = actingUser(req);
-    const promo = req.body.promo;
+
+    /*
+     * A promo code is checked here, and priced here. The browser used to send
+     * the discount itself, which was stored as given. An unknown code is
+     * refused before any stock is reserved, so the buyer can correct it.
+     */
+    const promoCode = req.body.promo?.trim() || '';
+    const promotion = promoCode ? findPromotion(promoCode) : undefined;
+    if (promoCode && !promotion) {
+      res.status(400).json({ message: 'That promo code is not valid.' });
+      return;
+    }
+    const isFirstOrder = !(await Order.exists({ buyerEmail: String(email) }));
 
     // Generate unique order number
     const orderNumber = await generateUniqueOrderNumber();
@@ -173,6 +187,12 @@ export const decreaseStock = async (
     );
     const shippingCharge = deliveryChargeFor(req.body.deliveryDistrict, booksTotal);
 
+    // Priced on what was actually reserved: if a book sold out meanwhile, a
+    // code with a minimum spend may no longer apply, and the order still goes
+    // ahead without it rather than failing after stock was taken.
+    const applied = promotion ? applyPromotion(promotion, { booksTotal, isFirstOrder }) : null;
+    const discount = applied?.ok ? applied.discount : 0;
+
     for (const { book, quantity } of reserved) {
       await Order.create({
         orderNumber, // save the same orderNumber for all books in this order
@@ -196,9 +216,9 @@ export const decreaseStock = async (
         deliveryAddress: req.body.deliveryAddress || '',
         // ---
         shippingCharge,
-        discount: typeof discount === 'number' ? discount : 0,
-        promo: promo || '',
-        promoApplied: !!promoApplied,
+        discount,
+        promo: applied?.ok ? applied.code : '',
+        promoApplied: Boolean(applied?.ok),
         status: 'Order Confirmed',
         createdAt: new Date(),
       });
@@ -213,6 +233,8 @@ export const decreaseStock = async (
       message: 'Stock updated & order saved',
       orderNumber,
       shippingCharge,
+      discount,
+      ...(applied && !applied.ok ? { promoMessage: applied.message } : {}),
       unavailable,
     });
   } catch (err) {
@@ -286,6 +308,32 @@ export const getOrdersByBuyer: RequestHandler = async (req, res) => {
 };
 
 
+/**
+ * What a promo code is worth on a basket, so checkout can show it before the
+ * order is placed. The order itself prices the code again.
+ */
+export const checkPromo = async (
+  req: Request<unknown, unknown, CheckPromoBody>,
+  res: Response
+): Promise<void> => {
+  try {
+    const { email } = actingUser(req);
+    const isFirstOrder = !(await Order.exists({ buyerEmail: String(email) }));
+    const result = applyPromotion(findPromotion(req.body.code), {
+      booksTotal: Number(req.body.booksTotal),
+      isFirstOrder,
+    });
+
+    if (!result.ok) {
+      res.status(400).json({ message: result.message });
+      return;
+    }
+    res.json({ code: result.code, description: result.description, discount: result.discount });
+  } catch (err) {
+    res.status(500).json({ message: errorMessage(err) });
+  }
+};
+
 // Get all orders for a seller
 export const getOrdersBySeller: RequestHandler = async (req, res) => {
   try {
@@ -294,7 +342,27 @@ export const getOrdersBySeller: RequestHandler = async (req, res) => {
       { sellerEmail: email },
       validatedQuery<OrderListQuery>(req)
     );
-    res.status(200).json({ items: lines, ...page });
+
+    /*
+     * Where the seller's money for each line has got to: waiting on delivery,
+     * inside the buyer's return window, due, or paid - worked out here by the
+     * same rule the payouts page uses.
+     */
+    const returns = await ReturnRequest.find(
+      { orderId: { $in: lines.map((line) => line._id) } },
+      { orderId: 1, status: 1 }
+    ).lean();
+    const returnStatus = new Map(returns.map((request) => [String(request.orderId), request.status]));
+
+    const items = lines.map((line) => {
+      const deadline = returnDeadline(line);
+      return {
+        ...line,
+        payoutState: payoutStateFor(line, returnStatus.get(String(line._id))),
+        payableFrom: deadline?.toISOString() ?? null,
+      };
+    });
+    res.status(200).json({ items, ...page });
   } catch (err) {
     res.status(500).json({ message: errorMessage(err) });
   }

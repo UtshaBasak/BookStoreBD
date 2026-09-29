@@ -51,6 +51,8 @@ export interface ApiError {
   statusCode?: number;
   /** Present only on a 400 from the validation middleware. */
   errors?: ValidationIssue[];
+  /** A machine-readable reason, where the page can offer a way out of it. */
+  code?: 'payout-number-required';
 }
 
 /** A plain acknowledgement, such as the answer to a delete. */
@@ -382,10 +384,9 @@ export interface OrderItemRequest {
 
 export interface CreateOrderRequest {
   items: OrderItemRequest[];
-  // No delivery charge: the server prices delivery from `deliveryDistrict`.
-  discount?: number;
+  // No delivery charge and no discount: the server prices delivery from
+  // `deliveryDistrict`, and a promo from its code.
   promo?: string;
-  promoApplied?: boolean;
   paymentMethod?: string;
   contactName?: string;
   contactPhone?: string;
@@ -406,7 +407,68 @@ export interface CreateOrderResponse {
   orderNumber: string;
   /** What the server charged for delivery, in taka. */
   shippingCharge: number;
+  /** What the promo code took off, in taka; 0 without one. */
+  discount: number;
+  /** Why a code given at checkout was not applied, when it was not. */
+  promoMessage?: string;
   unavailable: UnavailableItem[];
+}
+
+export interface CheckPromoRequest {
+  code: string;
+  booksTotal: number;
+}
+
+export interface CheckPromoResponse {
+  code: string;
+  description: string;
+  discount: number;
+}
+
+/**
+ * Where a seller's money for one order line has got to. A line is paid out
+ * once its return window has closed with no return pending or approved.
+ */
+export type PayoutState =
+  | 'awaiting-delivery'
+  | 'in-return-window'
+  | 'return-in-progress'
+  | 'returned'
+  | 'due'
+  | 'paid';
+
+/** GET /order/seller adds where the payout for each line stands. */
+export interface SellerOrderLine extends OrderLine {
+  payoutState: PayoutState;
+  /** When the return window closes and the line becomes payable, once delivered. */
+  payableFrom: IsoDate | null;
+  sellerPaidAt?: IsoDate | null;
+  sellerPayoutRef?: string;
+}
+
+/** One seller's books in one order, owed or paid. */
+export interface PayoutRow {
+  orderNumber: string;
+  sellerEmail: string;
+  sellerName: string | null;
+  /** Null when the seller has not given one - they cannot be paid until they do. */
+  bkashMerchant: string | null;
+  titles: string[];
+  booksTotal: number;
+  fee: number;
+  payout: number;
+  deliveredAt: IsoDate | null;
+  paidAt: IsoDate | null;
+  /** The bKash transaction ID recorded with the payment. */
+  reference: string | null;
+}
+
+export type PayoutPage = Page<PayoutRow>;
+
+export interface MarkPayoutPaidRequest {
+  orderNumber: string;
+  sellerEmail: string;
+  reference: string;
 }
 
 export interface UpdateOrderStatusRequest {
@@ -492,6 +554,8 @@ export interface OwnProfile extends PublicProfile {
   // null, and that is what comes back over the wire.
   address?: string | null;
   phone?: string | null;
+  /** Where a seller's sales are paid, as 01XXXXXXXXX. Needed before listing. */
+  bkashMerchant?: string | null;
   dateOfBirth?: IsoDate | null;
   gender?: 'male' | 'female' | null;
   role: UserRole;
@@ -504,6 +568,8 @@ export interface UpdateProfileRequest {
   password?: string;
   address?: string;
   phone?: string;
+  /** Empty clears it. */
+  bkashMerchant?: string;
   dateOfBirth?: string;
   gender?: 'male' | 'female';
   profilePicture?: string;

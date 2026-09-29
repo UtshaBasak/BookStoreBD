@@ -58,7 +58,7 @@ export default function ReviewModeration() {
   if (query.error) return <div className="p-4">Error: {query.error.message}</div>;
 
   return (
-    <div className="admin-panel p-4">
+    <div className="p-4">
       <h2 className="mb-4 text-2xl font-bold">Reported Reviews</h2>
 
       {reviews.length === 0 ? (

@@ -1,11 +1,13 @@
 import { useRef, useState, type ChangeEvent, type HTMLInputTypeAttribute } from 'react';
 import axios from 'axios';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 
 import { API_BASE_URL } from '../config/api.js';
 import { site } from '../config/site.js';
+import { useProfile } from '../hooks/queries.js';
 import { apiErrorMessage } from '../utils/apiError.js';
-import { authHeaders } from '../utils/auth.js';
+import { authHeaders, getUserEmail } from '../utils/auth.js';
+import { isOwnProfile } from '../utils/profile.js';
 import { uploadImages, type UploadResult } from '../utils/uploadImages.js';
 
 /**
@@ -79,6 +81,12 @@ const AddBooks = () => {
    */
   const headers = authHeaders();
 
+  // Known only once the profile has loaded; until then, and if it cannot be
+  // read, the API is left to say so rather than blocking a seller who has one.
+  const email = getUserEmail();
+  const { data: profile } = useProfile(email, { enabled: Boolean(email) });
+  const needsPayoutNumber = isOwnProfile(profile) && !profile.bkashMerchant;
+
   const change = (e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
     setData({ ...Data, [name]: value });
@@ -123,6 +131,7 @@ const AddBooks = () => {
   };
 
   const submit = async () => {
+    if (needsPayoutNumber) return;
     setLoading(true);
     setFeedbackMessage('');
     setIsError(false);
@@ -250,6 +259,21 @@ const AddBooks = () => {
           <div className='w-[76px]'></div> {/* Empty div for balanced layout */}
         </div>
 
+        {/*
+          Said before the form is filled in, not after: the API refuses a
+          listing from a seller it has no way to pay, and finding that out on
+          Submit would waste the whole form and the photographs.
+        */}
+        {needsPayoutNumber && (
+          <div role="alert" className='mb-6 rounded-xl border border-amber-400 bg-amber-100 p-4 text-amber-900'>
+            <strong>Before you list:</strong> add your bKash merchant number, so we can pay you
+            when your book sells.{' '}
+            <Link to='/update-profile#bkash' className='font-semibold text-amber-900 underline'>
+              Add it now
+            </Link>
+          </div>
+        )}
+
         <div className='grid grid-cols-1 md:grid-cols-3 gap-6'>
           <div className='bg-zinc-800 p-6 rounded-xl shadow-xl space-y-6'>
             <RadioGroup label="Book Type" name="bookType" value={Data.bookType} onChange={change} options={["new", "old"]} />
@@ -302,8 +326,8 @@ const AddBooks = () => {
             </div>
 
             <button
-              onClick={submit} disabled={loading}
-              className='w-full py-3 mt-4 bg-blue-600 hover:bg-blue-700 rounded text-white font-semibold transition-all duration-300'>
+              onClick={submit} disabled={loading || needsPayoutNumber}
+              className='w-full py-3 mt-4 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed rounded text-white font-semibold transition-all duration-300'>
               {loading ? "Submitting..." : "Submit"}
             </button>
 

@@ -23,7 +23,50 @@ export const DELIVERY = {
 /** Days a buyer has to ask for a return, counted from delivery. */
 export const RETURN_WINDOW_DAYS = 7;
 
+/** The shop's share of a sale's book total. Listing is free; delivery is not included. */
+export const SELLER_FEE_PERCENT = 5;
+
 const DAY_MS = 24 * 60 * 60 * 1000;
+
+/** The fee on a book total, in taka, rounded to the paisa. */
+export const sellerFeeFor = (booksTotal: number): number =>
+  Math.round(booksTotal * SELLER_FEE_PERCENT) / 100;
+
+/** What the seller is paid for a book total. */
+export const sellerPayoutFor = (booksTotal: number): number =>
+  Math.round((booksTotal - sellerFeeFor(booksTotal)) * 100) / 100;
+
+/**
+ * Where a seller's money for one order line has got to.
+ *
+ * A sale is paid out once the buyer can no longer return it: delivered, the
+ * return window closed, and no return pending or approved. Paying before then
+ * would mean clawing money back from a seller whenever a book came back.
+ */
+export type PayoutState =
+  | 'awaiting-delivery'
+  | 'in-return-window'
+  | 'return-in-progress'
+  | 'returned'
+  | 'due'
+  | 'paid';
+
+export const payoutStateFor = (
+  line: { status?: string | null; deliveredAt?: Date | null; sellerPaidAt?: Date | null },
+  returnStatus: string | null | undefined,
+  now: number = Date.now()
+): PayoutState => {
+  if (line.sellerPaidAt) return 'paid';
+  if (returnStatus === 'approved') return 'returned';
+  if (returnStatus === 'pending') return 'return-in-progress';
+  const deadline = returnDeadline(line);
+  if (!deadline) return 'awaiting-delivery';
+  return deadline.getTime() > now ? 'in-return-window' : 'due';
+};
+
+/** Delivered at or before this moment means the return window has closed. */
+export const returnWindowClosedBefore = (now: number = Date.now()): Date =>
+  new Date(now - RETURN_WINDOW_DAYS * DAY_MS);
 
 /**
  * "Inside Dhaka" is the district, not the division.
