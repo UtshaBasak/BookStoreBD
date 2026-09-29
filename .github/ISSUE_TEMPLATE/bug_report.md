@@ -5,22 +5,25 @@ title: '[Bug] '
 labels: bug
 ---
 
-**What happened**
+## What happened
 
-**What you expected to happen**
+## What you expected to happen
 
-**Steps to reproduce**
+## Steps to reproduce
+
 1.
 2.
 3.
 
-**Area**
+## Area
+
 - [ ] Client (React)
 - [ ] Server (Express/MongoDB)
 - [ ] Real-time chat
 
-**Environment**
+## Environment
+
 - Browser / OS:
 - Node version:
 
-**Screenshots or console output**
+## Screenshots or console output

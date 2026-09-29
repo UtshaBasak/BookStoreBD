@@ -23,7 +23,7 @@ landed; the rest stand.
 Yes. Nothing is broken.
 
 | Check | Result |
-| ----- | ------ |
+| --- | --- |
 | Lint, both packages | clean |
 | Type-check under TypeScript 6.0.3 | clean |
 | Tests | 571 passing (397 server, 174 client) |
@@ -42,7 +42,7 @@ token revokes the family. That part is genuinely solid.
 ### Findings
 
 | # | Finding | Severity |
-| - | ------- | -------- |
+| --- | --- | --- |
 | S1 | ~~No security response headers at all~~ **done** | **High** |
 | S2 | ~~Account enumeration on sign-in and password reset~~ **done** | **Medium** |
 | S3 | Access token kept in `localStorage` | **Medium** |
@@ -66,7 +66,7 @@ which matters more than usual here, because the access token sits in
 Now sent on every response:
 
 | Header | Value |
-| ------ | ----- |
+| --- | --- |
 | `Content-Security-Policy` | `script-src 'self'`, `object-src 'none'`, `frame-ancestors 'none'`, and an enumerated `img-src` |
 | `X-Frame-Options` | `DENY` |
 | `X-Content-Type-Options` | `nosniff` |
@@ -112,7 +112,7 @@ being sent looks exactly like one that is working.
 Sign-in used to distinguish the two failure modes, and reset and sign-up leaked
 the same fact from the other side:
 
-```
+```text
 unknown email        -> 404 {"message":"User not found!"}
 real email, bad pw   -> 401 {"message":"Wrong credentials!"}
 reset, no account    -> 404 {"message":"No account found with this email."}
@@ -188,7 +188,7 @@ removes most of the ways an injection lands in the first place.
 `multer` limited size and count and set no `fileFilter`, so posting a text file
 as a book cover succeeded:
 
-```
+```text
 before:  status=201  images: ["data:text/plain;base64,R0lGODlhLW5vdC1yZWFsbHkt…"]
 after:   status=415  {"message":"cover.png is not a PNG, JPEG, WebP or GIF image"}
 ```
@@ -316,7 +316,7 @@ the address becomes a tombstone in the `.invalid` domain reserved for exactly
 this, and the contact name, phone and delivery address are emptied. What was
 sold and for how much survives. Run against the live stack:
 
-```
+```text
 {"message":"Your account has been deleted.","ordersAnonymised":1,…}
 
 orderNumber:     'A4AKZKZDG89XEICL'          // the sale is still there
@@ -367,7 +367,7 @@ silent.
 
 Eight tests, and the trail was read back from the running stack:
 
-```
+```text
 order.status | admin@bookstorebd.local | A4AKZKZDG89XEICL | {from: 'Order Confirmed', to: 'Shipped', lines: 1}
 ```
 
@@ -384,7 +384,7 @@ does not only sit in the database: it travelled inside every JSON response that
 mentioned the book. Measured against a catalogue of 66 listings with
 photographed covers:
 
-```
+```text
 GET /api/filter/booklist    7,406,560 bytes    5,734,034 gzipped
 ```
 
@@ -396,7 +396,7 @@ every visit paid for all of them again.
 `/api/book/<id>/cover/<n>`, and that endpoint serves the bytes with a
 `Cache-Control` and an `ETag`. The same catalogue:
 
-```
+```text
 GET /api/filter/booklist        3,098 bytes gzipped     (was 5,734,034)
 GET /api/book/<id>/cover/0     92,171 bytes, ETag, 304 on a repeat visit
 ```
@@ -483,7 +483,7 @@ Nineteen server tests and ten in the browser.
 ### Interface
 
 | Observation | Measured |
-| ----------- | -------- |
+| --- | --- |
 | Inline `style={{…}}` vs `className` | 648 vs 124 → **639 vs 153** |
 | Responsive breakpoints in the whole app | 2 Tailwind utilities → **19**, 3 media queries |
 | ~~`100vw` usages (cause horizontal scroll)~~ | ~~15~~ **0** |
@@ -506,7 +506,7 @@ page. Reading the CSS cannot answer any of those: a fixed width only overflows
 once it meets a viewport, and `100vw` only overflows once there is a scrollbar.
 
 | page | 360px | 768px | 1280px |
-| ---- | ----- | ----- | ------ |
+| --- | --- | --- | --- |
 | `/` | none | ~~+15px~~ none | ~~+15px~~ none |
 | `/filter` | ~~**+682px**~~ none | ~~+289px~~ none | ~~+15px~~ none |
 | `/book/:id` | ~~+4px~~ none | ~~+15px~~ none | ~~+15px~~ none |
@@ -837,7 +837,7 @@ build next.
 Cheap and high-value first, so each step is shippable on its own.
 
 | Order | Work | Why first |
-| ----: | ---- | --------- |
+| ---: | --- | --- |
 | ~~1~~ | ~~Security headers (S1, S6)~~ **done** | One dependency and a few nginx lines; closed the largest gap |
 | ~~2~~ | ~~Kill the dead placeholder, real footer pages (P1)~~ **done** | Visibly broken and visibly untrustworthy |
 | ~~3~~ | ~~Uniform auth responses (S2)~~ **done** | A few lines; removes a privacy leak |
@@ -860,7 +860,7 @@ What is left is in the sections above, and none of it blocks a launch:
   sliced them in the browser. Measured against 307 listings, the page it needed
   to draw twelve books:
 
-  ```
+  ```text
   every listing (as it was)   140,180 bytes   23 ms
   one page (as it is)           5,519 bytes    7 ms
   ```
@@ -891,7 +891,7 @@ What is left is in the sections above, and none of it blocks a launch:
   except the password — and `profilePicture` is stored as a base64 data URI.
   Measured against 303 accounts, two thirds of them with a photograph:
 
-  ```
+  ```text
   every account, every field but the password   10,890,235 bytes
   one page of the three columns it draws             3,661 bytes
   ```
@@ -914,7 +914,7 @@ What is left is in the sections above, and none of it blocks a launch:
   Images" button that had no `onClick` and opened nothing. Measured against 120
   requests and 400 orders:
 
-  ```
+  ```text
   every return request   9,760,991 bytes  →   9,717
   every order line         495,514 bytes  →  30,450   (25 orders, 49 lines)
   ```
@@ -937,7 +937,7 @@ What is left is in the sections above, and none of it blocks a launch:
   line each, then ran two more queries per conversation. Measured against 60
   messages, a third of them with a photograph:
 
-  ```
+  ```text
   conversation list   1,097,096 bytes loaded  ->    214 bytes sent
   one page of a thread  381,729 bytes         ->  4,113 bytes
   ```

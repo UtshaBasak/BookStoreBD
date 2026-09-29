@@ -1,0 +1,15 @@
+// Rules for the project's Markdown, read by the markdownlint editor extension
+// and by `npx markdownlint-cli2`.
+{
+  "default": true,
+  // Prose is wrapped by hand where it reads well, and table rows and URLs
+  // cannot be wrapped at all.
+  "MD013": false,
+  // The README's title block is centred, which Markdown cannot do on its own.
+  "MD033": { "allowed_elements": ["div"] },
+  // ...so its first line is that block rather than a heading, and the pull
+  // request template starts at "## Summary" by design.
+  "MD041": false,
+  // The roadmap has a "Scope" under each of its upgrades.
+  "MD024": { "siblings_only": true }
+}

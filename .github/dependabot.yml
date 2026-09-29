@@ -60,15 +60,13 @@ updates:
           - react-router-dom
           - "@types/react"
           - "@types/react-dom"
-      # Vite, the SWC plugin and Tailwind are tightly coupled to each other.
+      # Vite, its React plugin and Tailwind are tightly coupled to each other.
       build-tooling:
         patterns:
           - vite
           - "@vitejs/*"
           - tailwindcss
           - "@tailwindcss/*"
-          - postcss
-          - autoprefixer
       linting:
         patterns:
           - eslint

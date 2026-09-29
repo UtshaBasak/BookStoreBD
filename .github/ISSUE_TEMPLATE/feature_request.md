@@ -5,13 +5,14 @@ title: '[Feature] '
 labels: enhancement
 ---
 
-**Problem this solves**
+## Problem this solves
 
-**Proposed solution**
+## Proposed solution
 
-**Who it affects**
+## Who it affects
+
 - [ ] Buyer
 - [ ] Seller
 - [ ] Admin
 
-**Alternatives considered**
+## Alternatives considered

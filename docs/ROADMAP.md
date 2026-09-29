@@ -15,7 +15,7 @@ Measured locally on 22 September 2026 with CodeQL CLI 2.27.0, running the same
 workflow uses, against a copy of the working tree with no `node_modules` in it.
 
 | Rule | Count | Why it is not a defect |
-| ---- | ----: | ---------------------- |
+| --- | ---: | --- |
 | `js/xss-through-dom` | 3 | `URL.createObjectURL` can only produce a `blob:` URL; CodeQL models it as taint-propagating regardless. The only barriers the query accepts would corrupt a `blob:` or `data:` URL. The three sites are the file pickers in `ChatWindow`, `ChatPage` and `UpdateProfile`. |
 | `js/missing-token-validation` | 1 | The refresh cookie is `SameSite=Lax` and both endpoints that read it are POST, so a browser will not attach it cross-site. Every other endpoint authenticates from the `Authorization` header, which a third-party page cannot set. Pinned by tests asserting the cookie alone authenticates nothing. |
 
@@ -43,7 +43,7 @@ address, so no request value reaches the query at all - and the collection stops
 being a record of which addresses asked for a code and when, which is worth not
 keeping on its own.
 
-```
+```text
                               before   after
 js/sql-injection                  25       0
 js/xss-through-dom                 3       3
@@ -123,15 +123,15 @@ Ordered for a local-first goal: the project should run smoothly on a laptop
 before any deployment work resumes.
 
 | Order | Task | Phase | Depends on | Risk |
-| ----: | ---- | ----- | ---------- | ---- |
-| ~~1~~ | ~~[Automated tests](#1--automated-tests)~~ **done** | Foundation | — | Low |
-| ~~2~~ | ~~[Docker Compose](#7--docker-compose)~~ (task 7) **done** | Foundation | — | Low |
-| ~~3~~ | ~~[Structured logging](#5--structured-logging-and-error-tracking)~~ (task 5) **done** | Foundation | — | Low |
-| ~~4~~ | ~~[Zod validation](#3--request-validation-with-zod)~~ (task 3) **done** | Hardening | 1 | Medium |
-| ~~5~~ | ~~[Refresh tokens](#2--refresh-tokens-and-logout)~~ (task 2) **done** | Hardening | 1 | High |
-| ~~6~~ | ~~[Cloudinary image storage](#4--move-images-out-of-mongodb-cloudinary)~~ (task 4) **done** | Larger | 1 | Medium |
-| ~~7~~ | ~~[TanStack Query](#6--tanstack-query-and-the-17-lint-warnings)~~ (task 6) **done** | Larger | 1 | Medium-high |
-| ~~8~~ | ~~[TypeScript](#8--typescript)~~ **done** | Larger | 1, 4 | High volume |
+| ---: | --- | --- | --- | --- |
+| ~~1~~ | ~~[Automated tests](#1--automated-tests--done)~~ **done** | Foundation | — | Low |
+| ~~2~~ | ~~[Docker Compose](#7--docker-compose--done)~~ (task 7) **done** | Foundation | — | Low |
+| ~~3~~ | ~~[Structured logging](#5--structured-logging-and-error-tracking--done)~~ (task 5) **done** | Foundation | — | Low |
+| ~~4~~ | ~~[Zod validation](#3--request-validation-with-zod--done)~~ (task 3) **done** | Hardening | 1 | Medium |
+| ~~5~~ | ~~[Refresh tokens](#2--refresh-tokens-and-logout--done)~~ (task 2) **done** | Hardening | 1 | High |
+| ~~6~~ | ~~[Cloudinary image storage](#4--move-images-out-of-mongodb-cloudinary--done)~~ (task 4) **done** | Larger | 1 | Medium |
+| ~~7~~ | ~~[TanStack Query](#6--tanstack-query-and-the-17-lint-warnings--done)~~ (task 6) **done** | Larger | 1 | Medium-high |
+| ~~8~~ | ~~[TypeScript](#8--typescript--done)~~ **done** | Larger | 1, 4 | High volume |
 
 Task numbers are stable throughout this document — only the running order
 differs from the numbering.
@@ -147,16 +147,16 @@ The single biggest gap. Every bug found during the recent audit — a 404 on
 anyone — would have been caught by a test, and none were caught by lint,
 build or CodeQL.
 
-**Stack**
+### Stack
 
 | Tool | Version | Role |
-| ---- | ------- | ---- |
+| --- | --- | --- |
 | Vitest | 5.x | Runner for both packages (supports Vite 8) |
 | Supertest | 7.x | HTTP assertions against `createApp()` |
 | mongodb-memory-server | 11.x | Real MongoDB per test run, no external service |
 | @testing-library/react + jsdom | 16.x | Component tests |
 
-**Server coverage, in priority order**
+### Server coverage, in priority order
 
 - Auth matrix — token issued on sign-in, `401` anonymous, `403` wrong role,
   `403` cross-user, forged token rejected
@@ -167,14 +167,14 @@ build or CodeQL.
 - NoSQL injection payloads rejected on body and query
 - Profile PII scoping: owner sees contact details, nobody else does
 
-**Client coverage**
+### Client coverage
 
 - `safeImageSrc` scheme validation
 - `auth.ts` session helpers
 - `apiFetch` attaches the bearer token and clears the session on `401`
 - Smoke render of two or three pages
 
-**Notes**
+### Notes
 
 - `mongodb-memory-server` has been observed timing out at its default 10s
   launch on Windows. Use a `globalSetup` that starts **one** instance for the
@@ -205,7 +205,7 @@ stacks were built and exercised end to end.*
 `docker compose up` brings up MongoDB, the API and the client together, so
 setup stops depending on what happens to be installed on a given machine.
 
-**Scope**
+### Scope
 
 - `docker-compose.yml` — `mongo`, `server`, `client`, with a named volume for
   database persistence and a health check on `/health`
@@ -245,7 +245,7 @@ server.
 *Landed. One structured line per request with a correlation id, secrets
 redacted, and optional Sentry reporting.*
 
-**Scope**
+### Scope
 
 - `pino` + `pino-http`, with a per-request id and `Authorization` redacted
 - `pino-pretty` for development output only
@@ -285,7 +285,7 @@ consistent shape:
 { "message": "Validation failed", "errors": [{ "path": "email", "message": "Invalid email" }] }
 ```
 
-**Scope**
+### Scope
 
 - `zod` 4.x, `server/middleware/validate.ts`, `server/schemas/<domain>.ts`
 - Wire into every route that reads a body, query or param
@@ -336,7 +336,7 @@ cookie, replay detection, and a real logout — all same-origin.*
 Today a single access token lives for seven days and cannot be revoked. There
 is no real logout — the client just forgets the token.
 
-**Target**
+### Target
 
 - Access token, 15 minutes
 - Refresh token: opaque random value, stored hashed in a `RefreshToken`
@@ -353,7 +353,7 @@ comfortably when the browser sees the client and API as one origin.
 Two ways to get there on Render:
 
 | Approach | How | Trade-off |
-| -------- | --- | --------- |
+| --- | --- | --- |
 | **Express serves the client** *(recommended)* | The API also serves `client/dist` and falls through to `index.html`. One Render Web Service. | Simplest — one service, no CORS at all, cookies work with `SameSite=Lax`. Client and API deploy together. |
 | **Static Site with a rewrite** | Render Static Site rewrites `/api/*` to the API service. | Keeps the two services separate and the CDN in front of the client; one more piece of routing config. |
 
@@ -402,7 +402,7 @@ delete, and a re-runnable migration.*
 
 Book covers are currently base64 data URIs stored on the document.
 
-**Two separate problems**
+### Two separate problems
 
 1. ~~A performance bug that can be fixed immediately.~~ **Done ahead of this
    task.** `GET /book` returned every book with all of its base64 covers
@@ -456,7 +456,7 @@ Every page fetches with `useEffect` → `fetch` → `setState`. That pattern is
 what `eslint-plugin-react-hooks` v7 flags 17 times across 15 files, currently
 demoted to warnings so CI can pass.
 
-**Scope**
+### Scope
 
 - `@tanstack/react-query`, one provider at the root
 - Replace the effect-based fetching page by page, roughly 15 files
@@ -504,7 +504,7 @@ one shared declaration file is the contract between them.*
 Largest effort, largest payoff for how the project reads to an outside
 reviewer.
 
-**What it looks like now**
+### What it looks like now
 
 | | Server | Client |
 | --- | --- | --- |
@@ -517,7 +517,7 @@ Relative imports keep their `.js` extension — `./app.js` for `app.ts` — beca
 the specifier describes the emitted module. Nothing had to be rewritten to
 introduce the build, and nothing would have to be rewritten to remove it.
 
-**The contract**
+### The contract
 
 `server/shared/api.d.ts` declares every request and response the HTTP API uses.
 Both packages compile against that one file, so a shape cannot change on one
@@ -531,7 +531,7 @@ at compile time that everything the client may send is something the endpoint's
 schema accepts. Breaking one of those assertions deliberately was the first
 thing done after writing them — it fails the build, as it should.
 
-**Bugs the compiler found**
+### Bugs the compiler found
 
 None of these were caught by lint, tests or CodeQL, because none of them are
 syntactically wrong. They are all places where two parts of the code disagreed
