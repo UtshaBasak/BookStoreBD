@@ -122,7 +122,11 @@ export default function Homepage() {
    * de-duplicating and sorting here, to show ten of them. The API does it now
    * and sends ten.
    */
-  const { data: popularBooks = [] } = useFeatured(10);
+  const featuredQuery = useFeatured(10);
+  const popularBooks = featuredQuery.data ?? [];
+  // Loaded and nothing there: a new shop, or everything sold. Said in words,
+  // with somewhere to go - the strip on its own was two arrows and no books.
+  const shelfEmpty = featuredQuery.isSuccess && popularBooks.length === 0;
 
   // Only the ids are needed here, so the response is mapped into a lookup as
   // it arrives rather than searched on every render.
@@ -226,7 +230,7 @@ export default function Homepage() {
             onClick={() => navigate('/')}
             aria-label="Go to homepage"
           >
-            BookStore
+            {site.name}
           </button>
         </div>
         <div className="search-bar">
@@ -490,7 +494,7 @@ export default function Homepage() {
           above everything a shopper came for. banner.png was sitting unused in
           public/ the whole time. */}
       <div className="hero-banner" style={{ zIndex: 1, position: 'relative' }}>
-        <img src="/banner.png" alt="Books for sale at BookStore" />
+        <img src="/banner.png" alt={`Books for sale at ${site.name}`} />
       </div>
 
       <div style={{
@@ -522,6 +526,34 @@ export default function Homepage() {
 
       <section className="popular-section">
         <h2>Latest Books</h2>
+        {shelfEmpty ? (
+          <div
+            role="status"
+            style={{
+              margin: '8px auto 0',
+              maxWidth: 520,
+              padding: '28px 20px',
+              textAlign: 'center',
+              background: '#f5f0ee',
+              border: '1px dashed #c9b8b3',
+              borderRadius: 12,
+              color: '#4a3f3f',
+              lineHeight: 1.5,
+            }}
+          >
+            <p style={{ margin: '0 0 6px', fontSize: 18, fontWeight: 600 }}>No books on the shelf yet.</p>
+            <p style={{ margin: '0 0 16px' }}>
+              Have books you have finished with? Listing is free - be the first to sell one.
+            </p>
+            <Link
+              to="/add-book"
+              className="inline-flex min-h-11 items-center rounded-lg px-5 font-semibold text-white no-underline"
+              style={{ background: '#8B6F6F' }}
+            >
+              List a book
+            </Link>
+          </div>
+        ) : (
         <div style={{ position: 'relative', width: '100%', zIndex: 0 }}>
           <button
             onClick={handleScrollLeft}
@@ -721,6 +753,7 @@ export default function Homepage() {
             <FaChevronRight />
           </button>
         </div>
+        )}
       </section>
 
       {/* The footer carries the copyright line; a second, older one under it
