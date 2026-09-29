@@ -15,8 +15,11 @@ export default function About() {
         category, condition or price, and add what you want to your cart. At
         checkout you give a delivery address and a contact number, and see the
         delivery charge before you order: {site.delivery.insideDhaka} Tk inside
-        Dhaka, {site.delivery.outsideDhaka} Tk elsewhere, free on orders of
-        {' '}{site.delivery.freeFrom} Tk or more. It arrives by courier within
+        Dhaka, {site.delivery.outsideDhaka} Tk elsewhere, or free on orders of
+        {' '}{site.promotions.freeDelivery.minBooksTotal} Tk or more with the code
+        {' '}<strong>{site.promotions.freeDelivery.code}</strong>. The code
+        {' '}<strong>{site.promotions.firstOrder.code}</strong> gives {site.promotions.firstOrder.description}.
+        It arrives by courier within
         {' '}{site.delivery.daysInsideDhaka} working days in Dhaka and
         {' '}{site.delivery.daysOutsideDhaka} elsewhere, and you pay the courier
         cash on delivery. You can follow the order from your profile, and

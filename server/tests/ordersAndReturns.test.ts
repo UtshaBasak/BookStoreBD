@@ -677,9 +677,9 @@ describe('the delivery charge', () => {
     expect(line?.shippingCharge).toBe(120);
   });
 
-  it('is free on an order of 1000 taka or more', async () => {
+  it('is charged on a large order too: free delivery is the FreeDelivery code now', async () => {
     const { line } = await checkout({ deliveryDistrict: 'Sylhet' }, 1000);
-    expect(line?.shippingCharge).toBe(0);
+    expect(line?.shippingCharge).toBe(120);
   });
 
   it('ignores a figure the browser sends', async () => {

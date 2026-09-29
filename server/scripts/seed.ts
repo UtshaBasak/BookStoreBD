@@ -156,7 +156,16 @@ const seedAccounts = async () => {
 
   for (const account of ACCOUNTS) {
     const existing = await User.findOne({ email: account.email });
-    if (existing) continue;
+    if (existing) {
+      // A demo seller made before listing needed a bKash merchant number
+      // could not list anything; it gets the demo number, and nothing else
+      // about an existing account is touched.
+      if (account.bkashMerchant && !existing.bkashMerchant) {
+        await User.updateOne({ _id: existing._id }, { $set: { bkashMerchant: account.bkashMerchant } });
+        log(`${account.email}: demo bKash merchant number added`);
+      }
+      continue;
+    }
 
     await User.create({ ...account, password: hashed });
     created += 1;

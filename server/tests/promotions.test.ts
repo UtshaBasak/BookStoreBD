@@ -1,9 +1,11 @@
 /**
  * Promo codes are priced by the server.
  *
- * The one code there was lived in the checkout page, which worked out the
- * discount and sent it; the server stored whatever it was given. It has been
- * removed, and the rules kept for when a promotion runs again.
+ * The first code there was lived in the checkout page, which worked out the
+ * discount and sent it; the server stored whatever it was given. Codes live
+ * in server/config/promotions.ts now: "BookStoreBD", 50 Tk off a first order,
+ * and "FreeDelivery", which waives delivery on 1000 Tk of books - automatic
+ * before, a code now.
  */
 import { describe, it, expect, beforeAll, afterAll, beforeEach } from 'vitest';
 
@@ -25,48 +27,119 @@ beforeAll(async () => {
 afterAll(closeTestContext);
 beforeEach(clearDatabase);
 
-const checkout = async (body: Record<string, unknown>) => {
-  const { auth } = await createSignedInUser(request, { email: 'buyer@test.com' });
-  const book = await createBook({ price: 300, stock: 5 });
+const signedInBuyer = () => createSignedInUser(request, { email: 'buyer@test.com' });
+
+const checkout = async (
+  auth: string,
+  body: Record<string, unknown>,
+  { price = 300, district = 'Sylhet' } = {}
+) => {
+  const book = await createBook({ price, stock: 5 });
   const res = await request
     .post('/order/decrease-stock')
     .set('Authorization', auth)
-    .send({ items: [{ bookId: String(book._id), quantity: 1 }], deliveryDistrict: 'Dhaka', ...body });
+    .send({ items: [{ bookId: String(book._id), quantity: 1 }], deliveryDistrict: district, ...body });
   return { res, book, line: await Order.findOne({ orderNumber: res.body.orderNumber }).lean() };
 };
 
-describe('with no promotion running', () => {
-  it('there are none', () => {
-    // The old "BookStore" code is gone.
-    expect(PROMOTIONS).toHaveLength(0);
+const stockOf = async (id: unknown) => {
+  const AddBook = (await import('../models/AddBook.model.js')).default;
+  return (await AddBook.findById(id).lean())?.stock;
+};
+
+describe('the codes running', () => {
+  it('are BookStoreBD and FreeDelivery, and the old "BookStore" is gone', () => {
+    expect(PROMOTIONS.map((promo) => promo.code)).toEqual(['BookStoreBD', 'FreeDelivery']);
     expect(findPromotion('BookStore')).toBeUndefined();
   });
 
   it('a discount sent by the browser is ignored', async () => {
-    const { line } = await checkout({ discount: 250, promoApplied: true });
+    const { auth } = await signedInBuyer();
+    const { line } = await checkout(auth, { discount: 250, promoApplied: true });
 
     expect(line?.discount).toBe(0);
     expect(line?.promoApplied).toBe(false);
   });
 
-  it('a code is refused before any stock is taken', async () => {
-    const { res, book } = await checkout({ promo: 'BookStore' });
+  it('an unknown code is refused before any stock is taken', async () => {
+    const { auth } = await signedInBuyer();
+    const { res, book } = await checkout(auth, { promo: 'BookStore' });
 
     expect(res.status).toBe(400);
     expect(res.body.message).toMatch(/not valid/);
-    const AddBook = (await import('../models/AddBook.model.js')).default;
-    expect((await AddBook.findById(book._id).lean())?.stock).toBe(5);
+    expect(await stockOf(book._id)).toBe(5);
+  });
+});
+
+describe('BookStoreBD: 50 Tk off a first order', () => {
+  it('takes 50 Tk off the books on a first order', async () => {
+    const { auth } = await signedInBuyer();
+    const { res, line } = await checkout(auth, { promo: 'bookstorebd' });
+
+    expect(res.status).toBe(200);
+    expect(res.body.discount).toBe(50);
+    expect(line).toMatchObject({ discount: 50, promo: 'BookStoreBD', promoApplied: true, shippingCharge: 120 });
   });
 
-  it('checking a code says it is not valid', async () => {
-    const { auth } = await createSignedInUser(request, { email: 'buyer@test.com' });
+  it('is refused on a second order, with the reason, and nothing is taken', async () => {
+    const { auth } = await signedInBuyer();
+    await checkout(auth, {});
+
+    const { res, book } = await checkout(auth, { promo: 'BookStoreBD' });
+
+    expect(res.status).toBe(400);
+    expect(res.body.message).toMatch(/first order/);
+    expect(await stockOf(book._id)).toBe(5);
+  });
+
+  it('knows a first order from the server, not from the browser', async () => {
+    // It used to be a flag in localStorage, so clearing it made any order a first order.
+    const { auth } = await signedInBuyer();
+    await checkout(auth, {});
 
     const res = await request
       .post('/order/promo')
       .set('Authorization', auth)
-      .send({ code: 'BookStore', booksTotal: 300 });
+      .send({ code: 'BookStoreBD', booksTotal: 300 });
 
     expect(res.status).toBe(400);
+  });
+});
+
+describe('FreeDelivery: no delivery charge on 1000 Tk of books', () => {
+  it('waives the charge on an order of 1000 Tk or more', async () => {
+    const { auth } = await signedInBuyer();
+    const { res, line } = await checkout(auth, { promo: 'FreeDelivery' }, { price: 1000 });
+
+    expect(res.body.shippingCharge).toBe(0);
+    expect(line).toMatchObject({ shippingCharge: 0, discount: 0, promo: 'FreeDelivery', promoApplied: true });
+  });
+
+  it('is needed: 1000 Tk of books without it pays for delivery', async () => {
+    const { auth } = await signedInBuyer();
+    const { line } = await checkout(auth, {}, { price: 1000 });
+
+    expect(line?.shippingCharge).toBe(120);
+  });
+
+  it('is refused under 1000 Tk, with the reason, before stock is taken', async () => {
+    const { auth } = await signedInBuyer();
+    const { res, book } = await checkout(auth, { promo: 'FreeDelivery' }, { price: 999 });
+
+    expect(res.status).toBe(400);
+    expect(res.body.message).toMatch(/1000 Tk/);
+    expect(await stockOf(book._id)).toBe(5);
+  });
+
+  it('says what it does when checked at checkout', async () => {
+    const { auth } = await signedInBuyer();
+
+    const res = await request
+      .post('/order/promo')
+      .set('Authorization', auth)
+      .send({ code: 'freedelivery', booksTotal: 1200 });
+
+    expect(res.body).toMatchObject({ code: 'FreeDelivery', discount: 0, freeDelivery: true });
   });
 });
 

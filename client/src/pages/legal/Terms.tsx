@@ -4,6 +4,7 @@ import { site } from '../../config/site.js';
 import LegalPage from './LegalPage.js';
 
 const { delivery } = site;
+const { firstOrder, freeDelivery } = site.promotions;
 
 export default function Terms() {
   return (
@@ -45,12 +46,22 @@ export default function Terms() {
           delivered within {delivery.daysInsideDhaka} working days.</li>
         <li><strong>Outside Dhaka</strong>: {delivery.outsideDhaka} Tk, delivered
           within {delivery.daysOutsideDhaka} working days.</li>
-        <li>Orders whose books come to {delivery.freeFrom} Tk or more are
-          delivered free.</li>
+        <li>Orders whose books come to {freeDelivery.minBooksTotal} Tk or more are
+          delivered free with the promo code <strong>{freeDelivery.code}</strong>.</li>
       </ul>
       <p>The charge is worked out from the district in your delivery address and
         shown at checkout before you place the order. If an order has not
         arrived within those times, e-mail us with the order number.</p>
+
+      <h2 id="promo-codes">Promo codes</h2>
+      <p>A promo code is entered at checkout, one per order, and its discount is
+        shown before you confirm. A code whose conditions an order does not
+        meet is refused with the reason, so you are never charged a price you
+        did not see.</p>
+      <ul>
+        <li><strong>{firstOrder.code}</strong>: {firstOrder.description}.</li>
+        <li><strong>{freeDelivery.code}</strong>: {freeDelivery.description}.</li>
+      </ul>
 
       <h2>Selling</h2>
       <p>Listing a book is free. When a book sells, we keep a fee of
