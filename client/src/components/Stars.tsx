@@ -13,7 +13,7 @@ export function Stars({ value, size = 16, className = '' }: StarsProps) {
 
   return (
     <span
-      className={`inline-flex items-center gap-[2px] ${className}`}
+      className={`inline-flex items-center gap-0.5 ${className}`}
       style={{ color: '#ff8a3d', fontSize: size }}
       // One label for the group rather than five unlabelled icons, so a screen
       // reader says "rated 4.3 out of 5" instead of "star star star".

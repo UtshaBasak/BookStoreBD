@@ -43,7 +43,7 @@ export default function LegalPage({ title, intro, updated, children }: LegalPage
       {/* Frosted and sticky, like the homepage's bar. */}
       <header className="sticky top-0 z-50 border-b border-line bg-white/85 backdrop-blur-md">
         <div className="mx-auto flex max-w-5xl items-center justify-between gap-3 px-4 py-2.5 sm:px-6">
-          <Link to="/" className="inline-flex min-h-[44px] items-center no-underline [--logo-size:30px] sm:[--logo-size:34px]">
+          <Link to="/" className="inline-flex min-h-11 items-center no-underline [--logo-size:30px] sm:[--logo-size:34px]">
             <Logo />
           </Link>
           <Link to="/" className="btn btn-ghost">
@@ -64,9 +64,9 @@ export default function LegalPage({ title, intro, updated, children }: LegalPage
               'linear-gradient(180deg, #f3efff 0%, #fbfaff 100%)',
           }}
         >
-          <div className="mx-auto max-w-[760px]">
+          <div className="mx-auto max-w-190">
             <h1 className="mb-3">{title}</h1>
-            <p className="m-0 max-w-[40rem] text-lg text-ink-soft">{intro}</p>
+            <p className="m-0 max-w-160 text-lg text-ink-soft">{intro}</p>
             {updated && (
               <p className="mt-4 mb-0 inline-flex items-center rounded-full border border-brand-line bg-white/80 px-3 py-1 text-sm font-semibold text-brand-dark">
                 Last updated {updated}
@@ -82,7 +82,7 @@ export default function LegalPage({ title, intro, updated, children }: LegalPage
           its #hash clear of the sticky header.
         */}
         <article
-          className="card relative mx-3 -mt-14 max-w-[760px] space-y-5 px-5 py-7 leading-relaxed sm:mx-auto sm:-mt-16 sm:px-10 sm:py-10
+          className="card relative mx-3 -mt-14 max-w-190 space-y-5 px-5 py-7 leading-relaxed sm:mx-auto sm:-mt-16 sm:px-10 sm:py-10
                      [&_a]:font-semibold [&_a]:text-brand [&_a]:underline [&_a]:decoration-brand-line [&_a]:decoration-2 [&_a]:underline-offset-4
                      [&_a:hover]:text-brand-dark [&_a:hover]:decoration-brand-light
                      [&_code]:rounded-md [&_code]:bg-brand-tint [&_code]:px-1.5 [&_code]:py-0.5 [&_code]:text-[0.9em] [&_code]:text-brand-dark

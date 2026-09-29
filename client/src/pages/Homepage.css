@@ -101,14 +101,18 @@
 }
 
 /* ------------------------------------------------------------------- nav
-   Chips, scrolling sideways on a phone rather than wrapping into a block. */
+   Chips, scrolling sideways on a phone rather than wrapping into a block.
+   Only on a phone: a scrolling row clips whatever hangs out of it, and on a
+   wider screen the categories menu hangs below it, over the hero. (On a phone
+   the menu is pinned to the screen, which no scrolling row can clip.) */
 .nav-bar {
+  position: relative;
+  z-index: 30;
   display: flex;
   justify-content: center;
   gap: 0.6rem;
   padding: 0.75rem 1rem;
   background: transparent;
-  overflow-x: auto;
   scrollbar-width: none;
 }
 .nav-bar::-webkit-scrollbar {
@@ -473,6 +477,7 @@
 
   .nav-bar {
     justify-content: flex-start;
+    overflow-x: auto;
   }
 
   .dropdown-content {
@@ -487,11 +492,12 @@
 /* The categories: two columns beside the chip on a wide screen, and pinned
    across the width of a phone rather than hanging off its right-hand edge. */
 .categories-menu {
-  min-width: 400px;
-  max-width: 500px;
+  width: 520px;
+  max-width: calc(100vw - 2rem);
 }
 @media (max-width: 768px) {
   .categories-menu {
+    width: auto;
     min-width: 0;
     max-width: none;
     top: 170px;

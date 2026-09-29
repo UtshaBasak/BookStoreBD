@@ -48,7 +48,7 @@ export default function Pager({
             <FaChevronLeft aria-hidden="true" size={11} />
             Previous
           </button>
-          <span className="inline-flex min-h-[36px] items-center rounded-full bg-brand px-3.5 text-sm font-bold whitespace-nowrap text-white shadow-[0_6px_16px_rgba(109,40,217,0.25)]">
+          <span className="inline-flex min-h-9 items-center rounded-full bg-brand px-3.5 text-sm font-bold whitespace-nowrap text-white shadow-[0_6px_16px_rgba(109,40,217,0.25)]">
             Page {page} of {pageCount}
           </span>
           <button

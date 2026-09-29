@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 
-import { safeImageSrc, safeObjectUrl, PLACEHOLDER_IMAGE } from './safeImageSrc.js';
+import { safeImageSrc, PLACEHOLDER_IMAGE } from './safeImageSrc.js';
 
 describe('safeImageSrc', () => {
   it.each([
@@ -44,14 +44,3 @@ describe('safeImageSrc', () => {
   });
 });
 
-describe('safeObjectUrl', () => {
-  it('returns an empty string when there is no file', () => {
-    expect(safeObjectUrl(null)).toBe('');
-    expect(safeObjectUrl(undefined)).toBe('');
-  });
-
-  it('passes a blob URL through', () => {
-    const file = new File(['x'], 'cover.png', { type: 'image/png' });
-    expect(safeObjectUrl(file)).toMatch(/^blob:/);
-  });
-});

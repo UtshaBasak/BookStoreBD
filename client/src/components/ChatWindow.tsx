@@ -7,9 +7,9 @@ import type { ChatMessage, ChatMessagesResponse } from '@shared/api.js';
 import { API_BASE_URL, apiFetch } from '../config/api.js';
 import { useToast } from '../hooks/useToast.js';
 import { getUserEmail } from '../utils/auth.js';
-import { safeObjectUrl } from '../utils/safeImageSrc.js';
 import { reportError } from '../utils/report.js';
 import AuthImage from './AuthImage.js';
+import FilePreview from './FilePreview.js';
 import './Chat.css';
 
 interface ChatWindowProps {
@@ -193,10 +193,7 @@ export default function ChatWindow({ receiver, receiverName, onClose }: ChatWind
 
         {selectedImage && (
           <div className="chat-preview">
-            <img
-              src={safeObjectUrl(selectedImage)}
-              alt="Selected"
-            />
+            <FilePreview file={selectedImage} alt="Selected" max={120} />
             <button
               type="button"
               className="chat-preview-remove"

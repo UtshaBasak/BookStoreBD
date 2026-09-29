@@ -388,7 +388,8 @@
   width: 44px;
   height: 44px;
 }
-.chat-preview img {
+.chat-preview img,
+.chat-preview canvas {
   width: 100%;
   height: 100%;
   object-fit: cover;

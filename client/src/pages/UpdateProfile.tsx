@@ -7,7 +7,8 @@ import { useProfile } from '../hooks/queries.js';
 import { useToast } from '../hooks/useToast.js';
 import { getUserEmail } from '../utils/auth.js';
 import { isOwnProfile } from '../utils/profile.js';
-import { safeImageSrc, safeObjectUrl } from '../utils/safeImageSrc.js';
+import { safeImageSrc } from '../utils/safeImageSrc.js';
+import FilePreview from '../components/FilePreview.js';
 import { reportError } from '../utils/report.js';
 import type { ApiError } from '@shared/api.js';
 
@@ -60,9 +61,8 @@ export default function UpdateProfile() {
 
     // A freshly picked file wins; otherwise the stored avatar, unless it has
     // been removed in this session.
-    const pickedPreview = profilePicture ? safeObjectUrl(profilePicture) : null;
-    const profilePicturePreview =
-        pickedPreview ?? (removeProfilePicture ? null : profile?.profilePicture ?? null);
+    const storedPicture = removeProfilePicture ? null : profile?.profilePicture ?? null;
+    const profilePicturePreview = Boolean(profilePicture || storedPicture);
 
     const handleChange = (e: ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
         const { name, value } = e.target;
@@ -159,9 +159,11 @@ export default function UpdateProfile() {
                     <section className="pf-form-section">
                         <h2>Photo</h2>
                         <div className="pf-photo">
-                            {profilePicturePreview ? (
+                            {profilePicture ? (
+                                <FilePreview file={profilePicture} alt="Profile Preview" className="pf-avatar" max={240} />
+                            ) : storedPicture ? (
                                 <img
-                                    src={safeImageSrc(profilePicturePreview)}
+                                    src={safeImageSrc(storedPicture)}
                                     alt="Profile Preview"
                                     className="pf-avatar"
                                 />
