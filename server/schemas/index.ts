@@ -16,6 +16,7 @@ import {
   mediumText,
   repeatable,
   urlText,
+  bdMobile,
 } from './common.js';
 
 /**
@@ -155,7 +156,6 @@ export const orderSchemas = {
         .array(z.object({ bookId: objectId, quantity: positiveInt }))
         .min(1, 'At least one item is required')
         .max(100),
-      shippingCharge: nonNegativeInt.optional(),
       discount: nonNegativeInt.optional(),
       promo: shortText.optional(),
       promoApplied: z.boolean().optional(),
@@ -181,8 +181,10 @@ export const returnSchemas = {
   image: { params: z.object({ id: objectId, index: nonNegativeInt.optional() }) },
   create: {
     body: z.object({
-      bookId: objectId,
+      // The order line, not the book: the same title can be bought twice.
+      orderId: objectId,
       defectDescription: mediumText.min(1, 'A description is required'),
+      refundBkash: bdMobile,
       // Present only when image hosting is configured; the browser uploads to
       // Cloudinary itself and reports back what it got. Otherwise the files
       // arrive as multipart and never touch the body.

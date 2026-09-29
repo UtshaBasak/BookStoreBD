@@ -1,6 +1,6 @@
 import { useState } from 'react';
 
-import type { BuyerOrderLine, Id } from '@shared/api.js';
+import type { BuyerOrderLine } from '@shared/api.js';
 import { useNavigate } from 'react-router-dom';
 
 import { useBuyerOrders } from '../hooks/queries.js';
@@ -38,25 +38,27 @@ export default function BuyerBookList() {
   const refreshing = ordersQuery.isFetching;
   const handleRefresh = () => ordersQuery.refetch();
 
-  const handleReturn = (bookId: Id, order: BuyerOrderLine) => {
+  const handleReturn = (order: BuyerOrderLine) => {
     // The optimistic local edit is gone: the return is actually submitted on
     // the next page, and the orders query is the single source for this list.
-    navigate(`/description-form/${bookId}`, {
+    // Addressed by order line, so the form still knows what it is returning
+    // after a reload has thrown the navigation state away.
+    navigate(`/description-form/${order._id}`, {
       state: {
-        orderId: order._id,
         bookTitle: order.title,
-        orderDate: order.createdAt,
-        sellerEmail: order.sellerEmail
+        returnableUntil: order.returnableUntil,
       }
     });
   };
 
-  const isWithinReturnPeriod = (orderDate: string | undefined) => {
-    const orderDateTime = new Date(orderDate ?? 0).getTime();
-    const currentDateTime = new Date().getTime();
-    const threeDaysInMs = 3 * 24 * 60 * 60 * 1000;
-    return currentDateTime - orderDateTime <= threeDaysInMs;
-  };
+  /*
+   * Whether a line can be returned is the server's answer, sent with it. This
+   * page used to work it out from the order date - three days from ordering,
+   * so a book still in transit could run out of time before it arrived - and
+   * the server checked nothing at all.
+   */
+  const returnLabel = (order: BuyerOrderLine) =>
+    order.status === 'Delivered' ? 'Return period over' : 'Returns open on delivery';
 
 
   // The page used to carry `overflow-x: hidden`, which cut the toolbar off
@@ -112,6 +114,12 @@ export default function BuyerBookList() {
           <thead>
             <tr>
               <th>Title</th>
+              {/*
+                Next to the title: on a phone this table scrolls sideways, and
+                last in the row the button was off the screen for the person
+                most likely to be looking for it.
+              */}
+              <th>Return</th>
               <th>Author</th>
               <th>Category</th>
               <th>Book Type</th>
@@ -121,7 +129,6 @@ export default function BuyerBookList() {
               <th>Quantity</th>
               <th>Seller</th>
               <th>Created at</th>
-              <th>Action</th>
             </tr>
           </thead>
           <tbody>
@@ -133,15 +140,6 @@ export default function BuyerBookList() {
               orders.map((order, idx) => (
                 <tr key={order._id || idx}>
                   <td>{order.title}</td>
-                  <td>{order.author}</td>
-                  <td>{Array.isArray(order.category) ? order.category.join(', ') : order.category}</td>
-                  <td>{order.bookType}</td>
-                  <td>{order.condition}</td>
-                  <td>{order.pages}</td>
-                  <td>{order.price}</td>
-                  <td>{order.quantity}</td>
-                  <td>{order.sellerEmail}</td>
-                  <td>{order.createdAt ? new Date(order.createdAt).toLocaleDateString() : ''}</td>
                   <td>
                     {order.returnStatus ? (
                       <span className={`px-2 py-1 rounded ${
@@ -151,17 +149,37 @@ export default function BuyerBookList() {
                       }`}>
                         Return {order.returnStatus}
                       </span>
-                    ) : isWithinReturnPeriod(order.createdAt) ? (
-                      <button
-                        onClick={() => handleReturn(order.bookId, order)}
-                        className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
-                      >
-                        Return
-                      </button>
+                    ) : order.returnableUntil ? (
+                      <div className="flex flex-col items-start gap-1">
+                        <button
+                          onClick={() => handleReturn(order)}
+                          className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
+                          style={{ minHeight: 44 }}
+                        >
+                          Return
+                        </button>
+                        <span className="text-xs text-gray-600">
+                          Until {new Date(order.returnableUntil).toLocaleDateString()}
+                        </span>
+                      </div>
                     ) : (
-                      <span className="text-red-500">Return period expired</span>
+                      <span className="text-gray-600">{returnLabel(order)}</span>
+                    )}
+                    {order.returnStatus === 'approved' && (
+                      <p className="mt-1 text-xs text-gray-600">
+                        We have e-mailed you where to send it.
+                      </p>
                     )}
                   </td>
+                  <td>{order.author}</td>
+                  <td>{Array.isArray(order.category) ? order.category.join(', ') : order.category}</td>
+                  <td>{order.bookType}</td>
+                  <td>{order.condition}</td>
+                  <td>{order.pages}</td>
+                  <td>{order.price}</td>
+                  <td>{order.quantity}</td>
+                  <td>{order.sellerEmail}</td>
+                  <td>{order.createdAt ? new Date(order.createdAt).toLocaleDateString() : ''}</td>
                 </tr>
               ))
             )}

@@ -105,6 +105,19 @@ export const orderNumber = z
   .trim()
   .regex(/^[A-Z0-9]{16}$/, 'Must be a valid order number');
 
+/**
+ * A Bangladeshi mobile number, stored as the eleven digits bKash uses.
+ *
+ * People write these every way - "+880 1712-345678", "8801712345678",
+ * "01712 345 678" - and all of them are the same account, so the spacing and
+ * the country code are forgiven and the number is kept in one form.
+ */
+export const bdMobile = z
+  .string()
+  .trim()
+  .transform((value) => value.replace(/[\s-]/g, '').replace(/^\+?880/, '0'))
+  .pipe(z.string().regex(/^01[3-9]\d{8}$/, 'Enter an 11-digit mobile number, like 01712345678'));
+
 export const objectIdParam = z.object({ id: objectId });
 export const emailParam = z.object({ email });
 

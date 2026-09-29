@@ -17,7 +17,7 @@ import {
   closeTestContext,
   type PrefixedRequest,
 } from './helpers/testApp.js';
-import { createSignedInUser, PNG_PIXEL } from './helpers/factories.js';
+import { createBook, createSignedInUser, PNG_PIXEL } from './helpers/factories.js';
 import Order from '../models/Order.model.js';
 import ReturnRequest from '../models/ReturnRequest.model.js';
 
@@ -354,22 +354,13 @@ describe('one photograph from a return request', () => {
  * even have a submit button.
  */
 describe('submitting a return with its photographs', () => {
-  const book = async (sellerEmail = SELLER) => {
-    const AddBook = (await import('../models/AddBook.model.js')).default;
-    return AddBook.create({
-      title: 'A Damaged Book',
-      author: 'An Author',
-      publisher: 'P',
-      country: 'BD',
-      language: 'en',
-      isbn: 'RET-1',
-      price: 100,
-      desc: 'd',
-      category: ['fiction'],
-      bookType: 'new',
-      stock: 1,
-      sellerEmail,
+  /** A line the buyer has had delivered today, so it is inside the window. */
+  const book = async () => {
+    const [line] = await placeOrder(orderNumber(90), [{ title: 'A Damaged Book' }], {
+      status: 'Delivered',
+      deliveredAt: new Date(),
     });
+    return line;
   };
 
   it('keeps them, so the administrator can see the damage', async () => {
@@ -379,7 +370,8 @@ describe('submitting a return with its photographs', () => {
     const res = await request
       .post('/return')
       .set('Authorization', auth)
-      .field('bookId', String(damaged._id))
+      .field('orderId', String(damaged._id))
+      .field('refundBkash', '01712345678')
       .field('defectDescription', 'Pages loose at the spine')
       .attach('images', PNG_PIXEL, 'damage.png');
 
@@ -398,7 +390,8 @@ describe('submitting a return with its photographs', () => {
     await request
       .post('/return')
       .set('Authorization', buyer.auth)
-      .field('bookId', String(damaged._id))
+      .field('orderId', String(damaged._id))
+      .field('refundBkash', '01712345678')
       .field('defectDescription', 'Cover torn')
       .attach('images', PNG_PIXEL, 'damage.png');
 
@@ -418,7 +411,8 @@ describe('submitting a return with its photographs', () => {
     const res = await request
       .post('/return')
       .set('Authorization', auth)
-      .field('bookId', String(damaged._id))
+      .field('orderId', String(damaged._id))
+      .field('refundBkash', '01712345678')
       .field('defectDescription', 'Two chapters are missing');
 
     expect(res.status).toBe(200);
@@ -433,7 +427,8 @@ describe('submitting a return with its photographs', () => {
     const res = await request
       .post('/return')
       .set('Authorization', auth)
-      .field('bookId', String(damaged._id))
+      .field('orderId', String(damaged._id))
+      .field('refundBkash', '01712345678')
       .field('defectDescription', 'Pages loose')
       .attach('images', Buffer.from('<script>alert(1)</script>'), 'damage.png');
 
@@ -448,7 +443,8 @@ describe('submitting a return with its photographs', () => {
     const res = await request
       .post('/return')
       .set('Authorization', auth)
-      .field('bookId', String(damaged._id))
+      .field('orderId', String(damaged._id))
+      .field('refundBkash', '01712345678')
       .field('defectDescription', 'Pages loose')
       .field('images', 'https://example.invalid/whatever.png');
 
@@ -465,9 +461,229 @@ describe('submitting a return with its photographs', () => {
     const res = await request
       .post('/return')
       .set('Authorization', auth)
-      .field('bookId', String(damaged._id))
+      .field('orderId', String(damaged._id))
+      .field('refundBkash', '01712345678')
       .attach('images', PNG_PIXEL, 'damage.png');
 
     expect(res.status).toBe(400);
+  });
+});
+
+/**
+ * Who may return what, and when.
+ *
+ * The request used to carry a book id and nothing else. The server did not
+ * check that the person asking had bought the book, and the three-day limit
+ * was worked out only in the browser, from the order date - so a book that
+ * took four days to arrive had lost its return before it came, while a
+ * hand-made request could return anything at any time.
+ */
+describe('the return window', () => {
+  const DAY = 24 * 60 * 60 * 1000;
+
+  const ask = (auth: string, orderId: unknown, refundBkash = '01712345678') =>
+    request
+      .post('/return')
+      .set('Authorization', auth)
+      .field('orderId', String(orderId))
+      .field('refundBkash', refundBkash)
+      .field('defectDescription', 'Pages missing');
+
+  it('opens on delivery, not on the order date', async () => {
+    const { auth } = await createSignedInUser(request, { email: BUYER });
+    // Ordered ten days ago, delivered yesterday: well inside seven days.
+    const [line] = await placeOrder(orderNumber(1), [{ title: 'Slow Post' }], {
+      createdAt: new Date(Date.now() - 10 * DAY),
+      status: 'Delivered',
+      deliveredAt: new Date(Date.now() - DAY),
+    });
+
+    expect((await ask(auth, line._id)).status).toBe(200);
+  });
+
+  it('is not open before the book has arrived', async () => {
+    const { auth } = await createSignedInUser(request, { email: BUYER });
+    const [line] = await placeOrder(orderNumber(1), [{ title: 'On Its Way' }], { status: 'Shipped' });
+
+    const res = await ask(auth, line._id);
+
+    expect(res.status).toBe(409);
+    expect(res.body.message).toMatch(/delivered/);
+  });
+
+  it('closes seven days after delivery', async () => {
+    const { auth } = await createSignedInUser(request, { email: BUYER });
+    const [line] = await placeOrder(orderNumber(1), [{ title: 'Too Late' }], {
+      status: 'Delivered',
+      deliveredAt: new Date(Date.now() - 8 * DAY),
+    });
+
+    const res = await ask(auth, line._id);
+
+    expect(res.status).toBe(409);
+    expect(res.body.message).toMatch(/7-day/);
+  });
+
+  it("will not return somebody else's order", async () => {
+    await createSignedInUser(request, { email: BUYER });
+    const stranger = await createSignedInUser(request, { email: 'stranger@test.com' });
+    const [line] = await placeOrder(orderNumber(1), [{ title: 'Not Yours' }], {
+      status: 'Delivered',
+      deliveredAt: new Date(),
+    });
+
+    expect((await ask(stranger.auth, line._id)).status).toBe(404);
+  });
+
+  it('takes one request per book bought', async () => {
+    const { auth } = await createSignedInUser(request, { email: BUYER });
+    const [line] = await placeOrder(orderNumber(1), [{ title: 'Once' }], {
+      status: 'Delivered',
+      deliveredAt: new Date(),
+    });
+
+    expect((await ask(auth, line._id)).status).toBe(200);
+    expect((await ask(auth, line._id)).status).toBe(409);
+  });
+
+  it('needs a bKash number to refund to, written however people write them', async () => {
+    const { auth } = await createSignedInUser(request, { email: BUYER });
+    const [first, second] = await placeOrder(
+      orderNumber(1),
+      [{ title: 'One' }, { title: 'Two' }],
+      { status: 'Delivered', deliveredAt: new Date() }
+    );
+
+    expect((await ask(auth, first._id, '12345')).status).toBe(400);
+
+    const res = await ask(auth, second._id, '+880 1712-345678');
+    expect(res.status).toBe(200);
+    const stored = await ReturnRequest.findById(res.body.returnId).lean();
+    expect(stored?.refundBkash).toBe('01712345678');
+    expect(stored?.orderNumber).toBe(orderNumber(1));
+  });
+
+  it('is told to the buyer with each line, so the page shows what the server will allow', async () => {
+    const { auth } = await createSignedInUser(request, { email: BUYER });
+    const deliveredAt = new Date(Date.now() - DAY);
+    await placeOrder(orderNumber(1), [{ title: 'Open' }], { status: 'Delivered', deliveredAt });
+    await placeOrder(orderNumber(2), [{ title: 'Pending' }], { status: 'Processing' });
+
+    const res = await request.get('/order/buyer').set('Authorization', auth);
+    const byTitle = Object.fromEntries(
+      (res.body.items as { title: string; returnableUntil: string | null }[]).map((line) => [
+        line.title,
+        line.returnableUntil,
+      ])
+    );
+
+    expect(byTitle.Open).toBe(new Date(deliveredAt.getTime() + 7 * DAY).toISOString());
+    expect(byTitle.Pending).toBeNull();
+  });
+
+  it('tells two purchases of the same title apart', async () => {
+    const { auth } = await createSignedInUser(request, { email: BUYER });
+    const bookId = new mongoose.Types.ObjectId();
+    const [returned] = await placeOrder(orderNumber(1), [{ title: 'Twice' }], {
+      bookId,
+      status: 'Delivered',
+      deliveredAt: new Date(),
+    });
+    await placeOrder(orderNumber(2), [{ title: 'Twice' }], {
+      bookId,
+      status: 'Delivered',
+      deliveredAt: new Date(),
+    });
+
+    await ask(auth, returned._id);
+    const res = await request.get('/order/buyer').set('Authorization', auth);
+    const statuses = (res.body.items as { orderNumber: string; returnStatus: string | null }[]).map(
+      (line) => [line.orderNumber, line.returnStatus]
+    );
+
+    expect(Object.fromEntries(statuses)).toEqual({
+      [orderNumber(1)]: 'pending',
+      [orderNumber(2)]: null,
+    });
+  });
+});
+
+describe('marking an order delivered', () => {
+  const place = async () => {
+    const buyer = await createSignedInUser(request, { email: BUYER });
+    const seller = await createSignedInUser(request, { email: SELLER });
+    await placeOrder(orderNumber(1), [{ title: 'Parcel' }]);
+    const move = (auth: string, status: string) =>
+      request.patch(`/order/status/${orderNumber(1)}`).set('Authorization', auth).send({ status });
+    const line = () => Order.findOne({ orderNumber: orderNumber(1) }).lean();
+    return { buyer, seller, move, line };
+  };
+
+  it('stamps the date the return window counts from', async () => {
+    const { seller, move, line } = await place();
+
+    await move(seller.auth, 'Delivered');
+
+    expect((await line())?.deliveredAt).toBeInstanceOf(Date);
+  });
+
+  it('does not move that date when it is marked delivered again', async () => {
+    const { seller, move, line } = await place();
+    await move(seller.auth, 'Delivered');
+    const first = (await line())?.deliveredAt;
+
+    await move(seller.auth, 'Delivered');
+
+    expect((await line())?.deliveredAt).toEqual(first);
+  });
+
+  it('is for the seller or an administrator, not the buyer', async () => {
+    const { buyer, move, line } = await place();
+
+    // Otherwise a buyer could step their own order out of 'Delivered' and back
+    // to restart the window.
+    expect((await move(buyer.auth, 'Delivered')).status).toBe(403);
+    expect((await line())?.deliveredAt).toBeNull();
+  });
+});
+
+/**
+ * Delivery is priced by the server.
+ *
+ * The browser sent the charge and it was stored as given - and the browser
+ * priced the whole Dhaka division as inside Dhaka, Tangail and Faridpur
+ * included.
+ */
+describe('the delivery charge', () => {
+  const checkout = async (body: Record<string, unknown>, price = 300) => {
+    const { auth } = await createSignedInUser(request, { email: BUYER });
+    const book = await createBook({ price, stock: 5 });
+    const res = await request
+      .post('/order/decrease-stock')
+      .set('Authorization', auth)
+      .send({ items: [{ bookId: String(book._id), quantity: 1 }], ...body });
+    const line = await Order.findOne({ orderNumber: res.body.orderNumber }).lean();
+    return { res, line };
+  };
+
+  it('is 70 taka inside Dhaka', async () => {
+    const { res, line } = await checkout({ deliveryDivision: 'Dhaka', deliveryDistrict: 'Dhaka' });
+    expect(res.body.shippingCharge).toBe(70);
+    expect(line?.shippingCharge).toBe(70);
+  });
+
+  it('is 120 taka outside it, including the rest of Dhaka division', async () => {
+    const { line } = await checkout({ deliveryDivision: 'Dhaka', deliveryDistrict: 'Tangail' });
+    expect(line?.shippingCharge).toBe(120);
+  });
+
+  it('is free on an order of 1000 taka or more', async () => {
+    const { line } = await checkout({ deliveryDistrict: 'Sylhet' }, 1000);
+    expect(line?.shippingCharge).toBe(0);
+  });
+
+  it('ignores a figure the browser sends', async () => {
+    const { line } = await checkout({ deliveryDistrict: 'Sylhet', shippingCharge: 0 });
+    expect(line?.shippingCharge).toBe(120);
   });
 });

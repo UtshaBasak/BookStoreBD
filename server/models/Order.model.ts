@@ -9,6 +9,9 @@ const OrderSchema = new Schema({
   // with the first, failing checkout after the first book's stock was taken.
   orderNumber: { type: String, required: true, index: true },
   status: { type: String, default: 'Order Confirmed' },
+  // When the status last became 'Delivered'. The return window counts from
+  // here, so it is set by the server on that change and never sent by anyone.
+  deliveredAt: { type: Date, default: null },
   buyerEmail: { type: String, required: true },
   sellerEmail: { type: String, required: true },
   bookId: { type: Schema.Types.ObjectId, ref: 'AddBook', required: true },

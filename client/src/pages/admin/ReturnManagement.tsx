@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Link } from 'react-router-dom';
 
 import type { Id, ReturnStatus } from '@shared/api.js';
 
@@ -110,7 +111,9 @@ export default function ReturnManagement() {
             <thead>
               <tr>
                 <th className="p-2">Book Title</th>
+                <th className="p-2">Order</th>
                 <th className="p-2">Buyer</th>
+                <th className="p-2">Refund to (bKash)</th>
                 <th className="p-2">Seller</th>
                 <th className="p-2">Description</th>
                 <th className="p-2">Images</th>
@@ -122,7 +125,16 @@ export default function ReturnManagement() {
               {returnRequests.map((request) => (
                 <tr key={request._id} className="border-b hover:bg-gray-50">
                   <td className="p-2">{request.bookTitle || 'N/A'}</td>
+                  <td className="p-2">
+                    {request.orderNumber ? (
+                      <Link to={`/admin/order-tracking/${request.orderNumber}`}>{request.orderNumber}</Link>
+                    ) : (
+                      'N/A'
+                    )}
+                  </td>
                   <td className="p-2">{request.userEmail || 'N/A'}</td>
+                  {/* Refunds are paid by bKash; without this an approval could not be paid. */}
+                  <td className="p-2">{request.refundBkash || 'Not given'}</td>
                   <td className="p-2">{request.sellerEmail || 'N/A'}</td>
                   <td className="p-2">{request.defectDescription || 'N/A'}</td>
                   <td className="p-2">

@@ -3,6 +3,7 @@ import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 
 import { API_BASE_URL } from '../config/api.js';
+import { site } from '../config/site.js';
 import { apiErrorMessage } from '../utils/apiError.js';
 import { authHeaders } from '../utils/auth.js';
 import { uploadImages, type UploadResult } from '../utils/uploadImages.js';
@@ -244,7 +245,7 @@ const AddBooks = () => {
     <div className='min-h-screen bg-gradient-to-br from-zinc-900 via-zinc-800 to-zinc-900 text-white p-4 md:p-8'>
       <div className='w-full'>
         <div className='flex justify-between items-center mb-10'>
-          <button onClick={() => navigate('/profile')} className='px-4 py-2 bg-zinc-700 hover:bg-zinc-600 rounded text-sm font-medium transition'>← Back</button>
+          <button onClick={() => navigate('/profile')} className='px-4 py-2 bg-zinc-700 hover:bg-zinc-600 rounded text-sm font-medium text-white transition'>← Back</button>
           <h1 className='text-4xl font-bold text-blue-400'>📚Book Information📚</h1>
           <div className='w-[76px]'></div> {/* Empty div for balanced layout */}
         </div>
@@ -347,6 +348,17 @@ const AddBooks = () => {
               min="0.01"
               step="0.01"
             />
+            {/*
+              Before they commit to a price, not after the first sale: what a
+              seller keeps is part of choosing it.
+            */}
+            <p className='-mt-2 text-sm text-zinc-400'>
+              Listing is free. When it sells, {site.name} keeps {site.sellerFeePercent}%
+              {Number(Data.price) > 0 && (
+                <> - you receive {(Number(Data.price) * (100 - site.sellerFeePercent) / 100).toFixed(2)} Tk per copy</>
+              )}
+              .
+            </p>
             <div>
               <label htmlFor='book-desc' className='block text-sm text-zinc-400 mb-1'>Book Summary</label>
               <textarea

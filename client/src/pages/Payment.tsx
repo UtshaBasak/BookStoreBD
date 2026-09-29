@@ -8,6 +8,7 @@ import { useCart, useClearCart, useProfile } from '../hooks/queries.js';
 import { isOwnProfile } from '../utils/profile.js';
 import { safeImageSrc, PLACEHOLDER_IMAGE } from '../utils/safeImageSrc.js';
 import { sized, IMAGE_WIDTHS } from '../utils/imageUrl.js';
+import { deliveryChargeFor, site } from '../config/site.js';
 
 const PROMO_CODE = 'BookStore';
 const PROMO_DISCOUNT = 50.00;
@@ -193,11 +194,23 @@ export default function Payment() {
     }, 0);
   }, [cartBooks, quantities]);
 
-  const shipping = useMemo(() => {
-    if (subtotal >= 1000) return 0.00;
-    if (division === 'Dhaka') return 70.00;
-    return 100.00;
-  }, [subtotal, division]);
+  /*
+   * A preview of what the API will charge, by the same rule. It used to price
+   * the whole Dhaka division as inside Dhaka - Tangail and Faridpur included -
+   * and to send its figure to the server, which stored it as given.
+   */
+  const shipping = useMemo(
+    () => (district ? deliveryChargeFor(district, subtotal) : 0),
+    [subtotal, district]
+  );
+  // Until a district is chosen the charge is not known, and a 0 would read as
+  // free delivery. Books over the threshold are free wherever they go.
+  const shippingKnown = Boolean(district) || subtotal >= site.delivery.freeFrom;
+  const shippingLabel = !shippingKnown
+    ? 'Choose your district'
+    : shipping === 0
+      ? 'Free'
+      : `${shipping.toFixed(2)} Tk.`;
 
   const handleApplyPromo = () => {
     if (promoApplied) return;
@@ -266,7 +279,6 @@ export default function Payment() {
           quantity: latestQuantities[book._id] || 1
         })),
         email: user.email,
-        shippingCharge: shipping,
         discount: discount,
         promo: promo,
         promoApplied: promoApplied,
@@ -521,7 +533,7 @@ export default function Payment() {
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
                 <span style={{ color: '#888' }}>Shipping</span>
-                <span style={{ color: '#888' }}>{shipping.toFixed(2)} Tk.</span>
+                <span style={{ color: '#888' }}>{shippingLabel}</span>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
                 <span style={{ color: '#888' }}>Discount</span>
@@ -856,8 +868,13 @@ export default function Payment() {
             </div>
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
               <span style={{ color: '#888' }}>Shipping</span>
-              <span style={{ color: '#888' }}>{shipping.toFixed(2)} TK.</span>
+              <span style={{ color: '#888' }}>{shippingLabel}</span>
             </div>
+            <p style={{ margin: '0 0 8px', fontSize: 12, color: '#888', lineHeight: 1.4 }}>
+              {site.delivery.insideDhaka} Tk inside Dhaka, {site.delivery.outsideDhaka} Tk elsewhere,
+              free from {site.delivery.freeFrom} Tk. By courier in {site.delivery.daysInsideDhaka} working
+              days in Dhaka, {site.delivery.daysOutsideDhaka} elsewhere. {site.payment}.
+            </p>
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
               <span style={{ color: '#888' }}>Discount</span>
               <span style={{ color: '#888' }}>-{discount.toFixed(2)} TK.</span>

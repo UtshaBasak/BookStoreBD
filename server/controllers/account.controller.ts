@@ -121,7 +121,11 @@ export const deleteMyAccount: RequestHandler = async (req, res, next) => {
       Order.updateMany({ buyerEmail: email }, { $set: { buyerEmail: tombstone, ...anonymise } }),
       Order.updateMany({ sellerEmail: email }, { $set: { sellerEmail: tombstone } }),
       Purchase.updateMany({ userEmail: email }, { $set: { userEmail: tombstone } }),
-      ReturnRequest.updateMany({ userEmail: email }, { $set: { userEmail: tombstone } }),
+      // The bKash number goes with the name: it identifies a person as surely.
+      ReturnRequest.updateMany(
+        { userEmail: email },
+        { $set: { userEmail: tombstone, refundBkash: '' } }
+      ),
       // A listing with no seller behind it cannot be bought, so it goes. The
       // orders above keep their own copy of the title and price, so the history
       // of what was sold survives the listing being removed.

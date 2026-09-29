@@ -723,18 +723,9 @@ export default function Homepage() {
         </div>
       </section>
 
+      {/* The footer carries the copyright line; a second, older one under it
+          said 2025 and "BookStore", and contradicted it. */}
       <Footer />
-      <div
-        style={{
-          width: '100%',
-          textAlign: 'center',
-          margin: '1.5rem 0 0 0',
-          color: '#888',
-          fontSize: 14
-        }}
-      >
-        © 2025 BookStore. All rights reserved.
-      </div>
     </div>
   );
 }

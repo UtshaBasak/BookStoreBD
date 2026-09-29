@@ -18,6 +18,8 @@ export default function Privacy() {
         about it. It reflects how the service actually works rather than a
         generic template.
       </p>
+      <p>{site.name} is run by {site.owner}, {site.location}, who is
+        responsible for the personal information described here.</p>
 
       <h2>What we collect</h2>
       <p>When you create an account we store your username, e-mail address and a
@@ -29,14 +31,21 @@ export default function Privacy() {
           address, date of birth, gender and a profile picture.</li>
         <li>Orders you place, including the delivery address, contact name and
           phone number for that order.</li>
+        <li>Return requests: what was wrong, any photographs you add, and the
+          bKash number you give for the refund.</li>
         <li>Listings you create as a seller, including the photographs you
           upload.</li>
         <li>Messages and images you exchange with other users through the chat.</li>
         <li>Reviews you write, which are public and carry the name on your
           account beside them.</li>
+        <li>One-time codes sent for sign-up and password resets. They are stored
+          only in a hashed form and are deleted once they expire.</li>
         <li>Standard technical data in our server logs: the request path, status,
           timestamp and IP address. Authorisation headers, cookies, passwords and
           one-time codes are removed before anything is written to a log.</li>
+        <li>If a page breaks in your browser, a short error report: what failed,
+          the page address and your browser's name. It does not include what you
+          typed or anything you were shown.</li>
       </ul>
 
       <h2>Cookies</h2>
@@ -52,22 +61,27 @@ export default function Privacy() {
       <ul>
         <li><strong>Other users.</strong> A seller sees the delivery name,
           address and phone number for an order you place with them, because
-          they have to post the book. Your handle and profile picture are visible
-          on listings you create. Your address, phone number and date of birth
-          are never shown to other buyers.</li>
-        <li><strong>Cloudinary</strong> hosts uploaded book covers when image
-          hosting is enabled.</li>
-        <li><strong>Our e-mail provider</strong> delivers the one-time codes used
-          for sign-up verification and password resets.</li>
+          they have to get the book to you. Your handle and profile picture are
+          visible on listings you create. Your address, phone number and date of
+          birth are never shown to other buyers.</li>
+        <li><strong>Our courier</strong> receives the delivery name, address and
+          phone number for an order, and nothing else, so they can deliver it
+          and collect the payment.</li>
+        <li><strong>bKash</strong> receives the number a refund is paid to, when
+          we pay it.</li>
+        <li><strong>Cloudinary</strong> hosts the photographs of listings and of
+          return requests, when image hosting is enabled.</li>
+        <li><strong>Google (Gmail)</strong> delivers our e-mail, including the
+          one-time codes used for sign-up verification and password resets.</li>
         <li><strong>Sentry</strong>, if error reporting is enabled, receives
-          technical details of server errors with credentials stripped out.</li>
+          technical details of errors, with credentials stripped out.</li>
       </ul>
       <p>We do not sell personal data, and we do not share it for advertising.</p>
 
       <h2>How long we keep it</h2>
-      <p>Account and profile data is kept until you ask us to delete it. Orders
-        are kept as business records. Chat messages are kept until either
-        participant deletes the conversation.</p>
+      <p>Account and profile data is kept until you delete your account or ask
+        us to. Orders and return requests are kept as business records. Chat
+        messages are kept until either participant deletes the conversation.</p>
 
       <h2>Your rights</h2>
       <p>You do not have to ask us for any of this. On your profile page,
@@ -75,17 +89,16 @@ export default function Privacy() {
         account holds as a single file, and you can delete the account outright.
         Both are immediate. You can also edit most of your profile there.</p>
       <p>If you would rather we did it, or you cannot sign in, e-mail us at{' '}
-        <a href={`mailto:${site.email}`}>{site.email}</a> and we will respond
-        within {site.responseTime}.</p>
+        <a href={`mailto:${site.email}`}>{site.email}</a>.</p>
       <p>Deleting an account removes your profile, your cart, your wishlist and
         any listings you posted, and signs out every session.</p>
-      <p>Two things are kept rather than deleted, because they are not only
-        yours. Orders stay as accounting records, with your name, phone number,
-        address and e-mail removed from them. Messages stay in the other
-        person's conversation and reviews stay on the books they are about, both
-        shown as coming from a deleted user - what was agreed is often the reason
-        the other person still has the thread, and the next buyer's decision
-        rests on the reviews.</p>
+      <p>Some things are kept rather than deleted, because they are not only
+        yours. Orders and return requests stay as accounting records, with your
+        name, phone number, address, e-mail and bKash number removed from them.
+        Messages stay in the other person's conversation and reviews stay on the
+        books they are about, both shown as coming from a deleted user - what
+        was agreed is often the reason the other person still has the thread,
+        and the next buyer's decision rests on the reviews.</p>
 
       <h2>Security</h2>
       <p>Passwords are hashed with bcrypt. Sessions use short-lived tokens that
@@ -93,17 +106,16 @@ export default function Privacy() {
         Traffic is encrypted in transit. No system is perfectly secure, but if a
         breach ever affects your data we will tell you.</p>
 
-      <h2>Children</h2>
-      <p>This service is not intended for children under 13, and we do not
-        knowingly collect their data.</p>
+      <h2>Age</h2>
+      <p>You must be {site.minimumAge} or older to use {site.name}, and we do not
+        knowingly collect information about anyone younger.</p>
 
       <h2>Changes</h2>
       <p>If this policy changes materially we will say so on this page and update
         the date above.</p>
 
       <h2>Contact</h2>
-      <p>Questions about this policy: <a href={`mailto:${site.email}`}>{site.email}</a>,
-        or {site.address.line1}, {site.address.city}, {site.address.country}.</p>
+      <p>Questions about this policy: <a href={`mailto:${site.email}`}>{site.email}</a>.</p>
     </LegalPage>
   );
 }
