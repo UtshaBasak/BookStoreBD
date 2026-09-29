@@ -46,6 +46,23 @@ describe('a visitor behind several proxies', () => {
     expect(other.status).toBe(200);
   });
 
+  it('is found behind Cloudflare too, as Render delivers every request', async () => {
+    // What the live log showed: a Cloudflare edge, then Render's proxies.
+    const agent = await freshApp();
+    await exhaust(agent, via('198.51.100.1', '172.71.124.150', '10.30.119.5'));
+
+    const same = await agent
+      .get('/robots.txt')
+      .set('X-Forwarded-For', via('198.51.100.1', '162.158.88.65', '10.25.98.2'));
+    // Somebody else, through the very same Cloudflare edge.
+    const other = await agent
+      .get('/robots.txt')
+      .set('X-Forwarded-For', via('198.51.100.2', '172.71.124.150', '10.30.119.5'));
+
+    expect(same.status).toBe(429);
+    expect(other.status).toBe(200);
+  });
+
   it('cannot escape it by writing another address into the header', async () => {
     const agent = await freshApp();
     await exhaust(agent, via('198.51.100.1', '10.30.119.5'));

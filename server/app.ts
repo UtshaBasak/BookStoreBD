@@ -15,6 +15,7 @@ import { robots, sitemap } from './controllers/seo.controller.js';
 import auditRouter from './routes/audit.route.js';
 import reviewRouter from './routes/review.route.js';
 import { CLIENT_DIST, UPLOADS_DIR } from './config/paths.js';
+import { TRUSTED_PROXIES } from './config/trustedProxies.js';
 import { securityHeaders } from './config/securityHeaders.js';
 import { errorHandler, notFoundHandler } from './middleware/errorHandler.js';
 import { sanitizeRequest } from './middleware/sanitizeRequest.js';
@@ -60,16 +61,14 @@ export const createApp = ({
   /*
    * Who the visitor is, for the rate limits and the log.
    *
-   * Every private address in X-Forwarded-For is a proxy of ours to skip, and
-   * the visitor is the first public one reading from the right. It trusted
-   * "one hop" before, but a request crosses more than one of Render's proxies,
-   * so req.ip came out as one of them - 10.30.119.5, 10.25.98.2 - and the
-   * limits counted the whole site as three visitors: one person hammering the
-   * sign-in form would have locked everyone out. An address a client writes
-   * into the header itself sits to the left of the real one and is never
-   * reached, so it cannot be used to dodge a limit.
+   * Cloudflare's and Render's proxies are skipped in X-Forwarded-For, and the
+   * visitor is the first address reading from the right that is neither. It
+   * trusted "one hop" before, and a request crosses several, so req.ip came
+   * out as one of Render's proxies and the limits counted the whole site as
+   * three visitors: one person hammering the sign-in form would have locked
+   * everyone out. See config/trustedProxies.ts.
    */
-  app.set('trust proxy', 'loopback, linklocal, uniquelocal');
+  app.set('trust proxy', TRUSTED_PROXIES);
 
   // Nothing to gain from telling the world which framework this is.
   app.disable('x-powered-by');
