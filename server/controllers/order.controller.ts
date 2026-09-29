@@ -2,7 +2,7 @@ import type { Request, RequestHandler, Response } from 'express';
 
 import type { UnavailableItem } from '@shared/api.js';
 
-import AddBook from '../models/AddBook.model.js';
+import AddBook, { type BookDocument } from '../models/AddBook.model.js';
 import Order, { type LeanOrder } from '../models/Order.model.js';
 import { actingUser } from '../middleware/auth.js';
 import { recordAudit } from '../utils/audit.js';
@@ -17,6 +17,7 @@ import { validatedQuery } from '../middleware/validate.js';
 import { contains } from '../utils/regex.js';
 import { createLogger } from '../config/logger.js';
 import { errorMessage } from '../utils/error.js';
+import { deliveryChargeFor, returnDeadline } from '../config/commerce.js';
 
 const log = createLogger('order');
 
@@ -131,7 +132,7 @@ export const decreaseStock = async (
   res: Response
 ): Promise<void> => {
   try {
-    const { items, shippingCharge, discount, promoApplied } = req.body;
+    const { items, discount, promoApplied } = req.body;
     const { email } = actingUser(req);
     const promo = req.body.promo;
 
@@ -139,8 +140,8 @@ export const decreaseStock = async (
     const orderNumber = await generateUniqueOrderNumber();
 
     const unavailable: UnavailableItem[] = [];
+    const reserved: { book: BookDocument; quantity: number }[] = [];
 
-    // Save order(s)
     for (const item of items) {
       const bookId = item.bookId;
       const quantity = Number(item?.quantity);
@@ -150,15 +151,29 @@ export const decreaseStock = async (
 
       // Reserve stock first: the conditional update is atomic, so two buyers
       // racing for the last copy cannot both succeed.
-      const reserved = await AddBook.updateOne(
+      const taken = await AddBook.updateOne(
         { _id: String(bookId), stock: { $gte: quantity } },
         { $inc: { stock: -quantity } }
       );
-      if (reserved.modifiedCount === 0) {
+      if (taken.modifiedCount === 0) {
         unavailable.push({ bookId, title: book.title, available: book.stock });
         continue;
       }
+      reserved.push({ book, quantity });
+    }
 
+    /*
+     * Delivery is priced from what was actually reserved, and by the server.
+     * The browser used to send the figure and it was stored as given, so a
+     * checkout request could name its own delivery charge.
+     */
+    const booksTotal = reserved.reduce(
+      (sum, { book, quantity }) => sum + Number(book.price) * quantity,
+      0
+    );
+    const shippingCharge = deliveryChargeFor(req.body.deliveryDistrict, booksTotal);
+
+    for (const { book, quantity } of reserved) {
       await Order.create({
         orderNumber, // save the same orderNumber for all books in this order
         buyerEmail: email,
@@ -180,7 +195,7 @@ export const decreaseStock = async (
         deliveryDistrict: req.body.deliveryDistrict || '',
         deliveryAddress: req.body.deliveryAddress || '',
         // ---
-        shippingCharge: typeof shippingCharge === 'number' ? shippingCharge : 0,
+        shippingCharge,
         discount: typeof discount === 'number' ? discount : 0,
         promo: promo || '',
         promoApplied: !!promoApplied,
@@ -194,7 +209,12 @@ export const decreaseStock = async (
       return;
     }
 
-    res.status(200).json({ message: 'Stock updated & order saved', orderNumber, unavailable });
+    res.status(200).json({
+      message: 'Stock updated & order saved',
+      orderNumber,
+      shippingCharge,
+      unavailable,
+    });
   } catch (err) {
     res.status(500).json({ message: errorMessage(err) });
   }
@@ -225,21 +245,36 @@ export const getOrdersByBuyer: RequestHandler = async (req, res) => {
      * document. Asking for the books on the page instead makes it one small
      * query, and one request fewer.
      */
+    const lineIds = lines.map((line) => line._id);
     const bookIds = [...new Set(lines.map((line) => String(line.bookId)))];
     const returns = await ReturnRequest.find(
-      { userEmail: email, bookId: { $in: bookIds } },
-      { bookId: 1, status: 1 }
+      {
+        userEmail: email,
+        // By order line; by book for requests made before they named one.
+        $or: [{ orderId: { $in: lineIds } }, { orderId: null, bookId: { $in: bookIds } }],
+      },
+      { orderId: 1, bookId: 1, status: 1 }
     ).lean();
-    const returnStatus = new Map(returns.map((request) => [String(request.bookId), request.status]));
+    const byLine = new Map<string, string>();
+    const byBook = new Map<string, string>();
+    for (const request of returns) {
+      if (request.orderId) byLine.set(String(request.orderId), request.status);
+      else byBook.set(String(request.bookId), request.status);
+    }
 
+    const now = Date.now();
     const items = [];
     for (const orderBooks of grouped.values()) {
       const totals = totalsFor(orderBooks);
       for (const book of orderBooks) {
+        const deadline = returnDeadline(book);
         items.push({
           ...book,
           ...totals,
-          returnStatus: returnStatus.get(String(book.bookId)) ?? null,
+          returnStatus: byLine.get(String(book._id)) ?? byBook.get(String(book.bookId)) ?? null,
+          // Decided here, where it is enforced, rather than worked out again
+          // in the browser from the order date.
+          returnableUntil: deadline && deadline.getTime() > now ? deadline.toISOString() : null,
         });
       }
     }
@@ -329,16 +364,30 @@ export const updateOrderStatusByOrderNumber = async (
       return;
     }
 
+    /*
+     * The seller who is sending the book, or an administrator. The buyer could
+     * change it too, though no page offered them the control - and now that
+     * the return window opens on delivery, a buyer moving their own order out
+     * of 'Delivered' and back would have restarted it.
+     */
     const { email: actor, role } = actingUser(req);
-    const involved = existing.some((o) => o.buyerEmail === actor || o.sellerEmail === actor);
-    if (role !== 'admin' && !involved) {
-      res.status(403).json({ message: 'You do not have access to this order' });
+    const sends = existing.some((o) => o.sellerEmail === actor);
+    if (role !== 'admin' && !sends) {
+      res.status(403).json({ message: 'Only the seller or an administrator can change this' });
       return;
     }
 
+    // Delivery is stamped when it happens, and only then: marking an order
+    // delivered twice does not move the date the return window counts from.
+    const wasDelivered = existing.every((o) => o.status === 'Delivered');
+    const becomesDelivered = String(status) === 'Delivered';
     const orders = await Order.updateMany(
       { orderNumber: String(orderNumber) },
-      { status: String(status) }
+      {
+        status: String(status),
+        ...(becomesDelivered && !wasDelivered ? { deliveredAt: new Date() } : {}),
+        ...(!becomesDelivered ? { deliveredAt: null } : {}),
+      }
     );
     if (orders.matchedCount === 0) {
       res.status(404).json({ message: 'Order not found' });

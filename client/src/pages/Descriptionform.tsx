@@ -1,21 +1,38 @@
 import { useState, type ChangeEvent, type FormEvent } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
 
 import type { MessageResponse } from '@shared/api.js';
 
 import { API_BASE_URL, apiFetch } from '../config/api.js';
+import { site } from '../config/site.js';
 import { useToast } from '../hooks/useToast.js';
 import { reportError } from '../utils/report.js';
 import { uploadImages } from '../utils/uploadImages.js';
 
 const MAX_IMAGES = 10;
 
+/**
+ * The form of a bKash number the API accepts, after the same forgiveness:
+ * spaces, dashes and the country code are allowed and dropped.
+ */
+const normaliseMobile = (value: string) => value.replace(/[\s-]/g, '').replace(/^\+?880/, '0');
+const BD_MOBILE = /^01[3-9]\d{8}$/;
+
+/** What the orders page passes along, when the form is reached from it. */
+interface ReturnState {
+  bookTitle?: string;
+  returnableUntil?: string | null;
+}
+
 export default function DescriptionForm() {
   const [description, setDescription] = useState('');
   const [images, setImages] = useState<File[]>([]);
   const [submitting, setSubmitting] = useState(false);
   const [progress, setProgress] = useState('');
-  const { bookId } = useParams();
+  const [bkash, setBkash] = useState('');
+  // The order line, not the book: the same title can be bought twice.
+  const { orderId } = useParams();
+  const { bookTitle, returnableUntil } = (useLocation().state ?? {}) as ReturnState;
   const navigate = useNavigate();
   const toast = useToast();
 
@@ -40,6 +57,13 @@ export default function DescriptionForm() {
       return;
     }
 
+    // Checked before anything is uploaded, so a typo does not cost the buyer
+    // the photographs they have just sent.
+    if (!BD_MOBILE.test(normaliseMobile(bkash))) {
+      toast.warning('Please enter the 11-digit bKash number for your refund, like 01712345678.');
+      return;
+    }
+
     if (images.length > MAX_IMAGES) {
       toast.warning(`${MAX_IMAGES} images at most, please.`);
       return;
@@ -56,8 +80,9 @@ export default function DescriptionForm() {
       });
 
       const form = new FormData();
-      form.append('bookId', bookId ?? '');
+      form.append('orderId', orderId ?? '');
       form.append('defectDescription', description);
+      form.append('refundBkash', normaliseMobile(bkash));
 
       if (uploaded.hosted) {
         uploaded.images.forEach((url) => form.append('images', url));
@@ -116,7 +141,36 @@ export default function DescriptionForm() {
           maxWidth: '600px',
         }}
       >
-        <h1 style={{ textAlign: 'center', color: 'white' }}>Report Defective Book</h1>
+        <h1 style={{ textAlign: 'center', color: 'white' }}>Return a book</h1>
+        {bookTitle && (
+          <p style={{ textAlign: 'center', marginTop: 0, fontSize: 18 }}>{bookTitle}</p>
+        )}
+
+        {/*
+          What happens next, before they fill anything in: a buyer deciding
+          whether to bother should know it costs them nothing to send back.
+        */}
+        {/* The app's base styles strip list markers, so they are asked for back. */}
+        <ul
+          style={{
+            margin: '0 0 1.5rem',
+            paddingLeft: '1.25rem',
+            lineHeight: 1.5,
+            fontSize: 15,
+            listStyle: 'disc',
+            display: 'grid',
+            gap: '0.5rem',
+          }}
+        >
+          {returnableUntil && (
+            <li>You can ask until {new Date(returnableUntil).toLocaleDateString()}.</li>
+          )}
+          <li>If we approve it, we e-mail you our office address. Send the book by courier - we pay for that.</li>
+          <li>
+            We refund the book's price to your bKash within {site.returns.refundWorkingDays} working days of it
+            reaching us. The original delivery charge is not refunded.
+          </li>
+        </ul>
 
         <form onSubmit={handleSubmit}>
           <h2 style={{ color: 'white' }}>What is wrong with it?</h2>
@@ -135,7 +189,34 @@ export default function DescriptionForm() {
               borderRadius: '4px',
               border: '1px solid #ccc',
               marginBottom: '1rem',
-              color: 'black', // Ensures text inside the textarea is readable
+              // Black text needs a light box behind it: the field was
+              // transparent, so what the buyer typed sat on the dark photograph.
+              color: 'black',
+              backgroundColor: 'white',
+              fontSize: 16,
+            }}
+          />
+
+          <label htmlFor="refund-bkash" style={{ display: 'block', marginBottom: '0.5rem' }}>
+            bKash number for your refund
+          </label>
+          <input
+            id="refund-bkash"
+            type="tel"
+            inputMode="numeric"
+            autoComplete="tel-national"
+            value={bkash}
+            onChange={(e) => setBkash(e.target.value)}
+            placeholder="01712345678"
+            style={{
+              width: '100%',
+              padding: '0.75rem 1rem',
+              borderRadius: '4px',
+              border: '1px solid #ccc',
+              marginBottom: '1rem',
+              color: 'black',
+              backgroundColor: 'white',
+              fontSize: 16,
             }}
           />
 
@@ -172,6 +253,9 @@ export default function DescriptionForm() {
           >
             {submitting ? progress || 'Sending...' : 'Confirm Return'}
           </button>
+          <p style={{ marginBottom: 0, fontSize: 14, textAlign: 'center' }}>
+            <Link to="/returns" style={{ color: 'white' }}>Returns and refunds policy</Link>
+          </p>
         </form>
       </div>
     </div>

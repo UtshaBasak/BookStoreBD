@@ -13,6 +13,7 @@ import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { SnackbarProvider } from 'notistack';
+import { MemoryRouter } from 'react-router-dom';
 
 import type { Page, ReturnRequest } from '@shared/api.js';
 
@@ -22,6 +23,8 @@ const IMAGE_URL = '/api/return/requests/req-1/image/0';
 
 const REQUEST = {
   _id: 'req-1',
+  orderNumber: 'ORDER00000000001',
+  refundBkash: '01712345678',
   bookId: 'book-1',
   bookTitle: 'Pather Panchali',
   userEmail: 'buyer@test.com',
@@ -69,7 +72,9 @@ const renderPage = () => {
   return render(
     <QueryClientProvider client={client}>
       <SnackbarProvider>
-        <ReturnManagement />
+        <MemoryRouter>
+          <ReturnManagement />
+        </MemoryRouter>
       </SnackbarProvider>
     </QueryClientProvider>
   );
@@ -104,6 +109,17 @@ describe('what it asks for', () => {
     await userEvent.type(screen.getByPlaceholderText(/search by book/i), 'panchali');
 
     await waitFor(() => expect(asked.some((url) => url.includes('search=panchali'))).toBe(true));
+  });
+
+  it('what is needed to pay the refund: the order and the bKash number', async () => {
+    stubFetch();
+    renderPage();
+
+    expect(await screen.findByText('01712345678')).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'ORDER00000000001' })).toHaveAttribute(
+      'href',
+      '/admin/order-tracking/ORDER00000000001'
+    );
   });
 
   it('no photographs with the table', async () => {

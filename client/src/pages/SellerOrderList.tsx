@@ -6,9 +6,14 @@ import type { OrderLine } from '@shared/api.js';
 import { useSellerOrders } from '../hooks/queries.js';
 import { useDebounced } from '../hooks/useDebounced.js';
 import Pager from '../components/Pager.js';
+import { site } from '../config/site.js';
 
 /** Orders per page. Each one may be several rows. */
 const PAGE_SIZE = 25;
+
+/** The shop's share of a sale, in taka, rounded to the paisa. */
+const sellerFee = (booksTotal: number) =>
+  Math.round(booksTotal * site.sellerFeePercent) / 100;
 
 export default function SellerOrderList() {
   const [search, setSearch] = useState('');
@@ -191,6 +196,32 @@ export default function SellerOrderList() {
                     </tfoot>
                   </table>
                   </div>
+                  {/*
+                    The terms say the seller can see this here. Outside the
+                    table, which scrolls sideways on a phone and would have put
+                    it off the screen. Delivery is not part of the book total,
+                    so it is not in the fee.
+                  */}
+                  <dl
+                    style={{
+                      display: 'grid',
+                      gridTemplateColumns: 'auto auto',
+                      justifyContent: 'end',
+                      columnGap: 24,
+                      rowGap: 4,
+                      margin: '12px 0 0',
+                      fontSize: 15,
+                    }}
+                  >
+                    <dt>Books</dt>
+                    <dd style={{ margin: 0, textAlign: 'right' }}>{totalCost.toFixed(2)} Tk</dd>
+                    <dt>{site.name} fee ({site.sellerFeePercent}%)</dt>
+                    <dd style={{ margin: 0, textAlign: 'right' }}>-{sellerFee(totalCost).toFixed(2)} Tk</dd>
+                    <dt style={{ fontWeight: 700 }}>You receive</dt>
+                    <dd style={{ margin: 0, textAlign: 'right', fontWeight: 700 }}>
+                      {(totalCost - sellerFee(totalCost)).toFixed(2)} Tk
+                    </dd>
+                  </dl>
                 </div>
               );
             })

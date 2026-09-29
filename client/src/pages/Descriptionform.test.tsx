@@ -52,9 +52,9 @@ const stubFetch = (ok = true) => {
 const renderForm = () =>
   render(
     <SnackbarProvider>
-      <MemoryRouter initialEntries={['/description-form/book-1']}>
+      <MemoryRouter initialEntries={['/description-form/line-1']}>
         <Routes>
-          <Route path="/description-form/:bookId" element={<DescriptionForm />} />
+          <Route path="/description-form/:orderId" element={<DescriptionForm />} />
         </Routes>
       </MemoryRouter>
     </SnackbarProvider>
@@ -80,6 +80,7 @@ describe('submitting a return', () => {
     stubFetch();
     renderForm();
 
+    await userEvent.type(screen.getByLabelText(/bkash number/i), '01712345678');
     await userEvent.type(screen.getByLabelText(/describe the problem/i), 'Pages loose');
     await userEvent.upload(screen.getByLabelText(/photographs/i), fileFor());
     await userEvent.click(screen.getByRole('button', { name: /confirm return/i }));
@@ -102,6 +103,7 @@ describe('submitting a return', () => {
     stubFetch();
     renderForm();
 
+    await userEvent.type(screen.getByLabelText(/bkash number/i), '01712345678');
     await userEvent.type(screen.getByLabelText(/describe the problem/i), 'Torn cover');
     await userEvent.upload(screen.getByLabelText(/photographs/i), fileFor());
     await userEvent.click(screen.getByRole('button', { name: /confirm return/i }));
@@ -118,6 +120,7 @@ describe('submitting a return', () => {
     stubFetch();
     renderForm();
 
+    await userEvent.type(screen.getByLabelText(/bkash number/i), '01712345678');
     await userEvent.type(screen.getByLabelText(/describe the problem/i), 'Two chapters missing');
     await userEvent.click(screen.getByRole('button', { name: /confirm return/i }));
 
@@ -139,6 +142,7 @@ describe('submitting a return', () => {
     stubFetch();
     renderForm();
 
+    await userEvent.type(screen.getByLabelText(/bkash number/i), '01712345678');
     await userEvent.type(screen.getByLabelText(/describe the problem/i), 'Pages loose');
     await userEvent.click(screen.getByRole('button', { name: /confirm return/i }));
 
@@ -149,10 +153,39 @@ describe('submitting a return', () => {
     stubFetch(false);
     renderForm();
 
+    await userEvent.type(screen.getByLabelText(/bkash number/i), '01712345678');
     await userEvent.type(screen.getByLabelText(/describe the problem/i), 'Pages loose');
     await userEvent.click(screen.getByRole('button', { name: /confirm return/i }));
 
     await waitFor(() => expect(sent).toHaveLength(1));
     expect(navigate).not.toHaveBeenCalled();
+  });
+
+  it('names the order line and the refund number, written however it was typed', async () => {
+    stubFetch();
+    renderForm();
+
+    await userEvent.type(screen.getByLabelText(/bkash number/i), '+880 1712-345678');
+    await userEvent.type(screen.getByLabelText(/describe the problem/i), 'Wrong edition');
+    await userEvent.click(screen.getByRole('button', { name: /confirm return/i }));
+
+    await waitFor(() => expect(sent).toHaveLength(1));
+    // The order line, not the book: the same title can be bought twice.
+    expect(sent[0].body?.get('orderId')).toBe('line-1');
+    expect(sent[0].body?.get('refundBkash')).toBe('01712345678');
+  });
+
+  it('catches a mistyped bKash number before uploading anything', async () => {
+    stubFetch();
+    renderForm();
+
+    await userEvent.type(screen.getByLabelText(/bkash number/i), '0171234');
+    await userEvent.type(screen.getByLabelText(/describe the problem/i), 'Pages loose');
+    await userEvent.upload(screen.getByLabelText(/photographs/i), fileFor());
+    await userEvent.click(screen.getByRole('button', { name: /confirm return/i }));
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(/11-digit bkash number/i);
+    expect(uploadMock).not.toHaveBeenCalled();
+    expect(sent).toHaveLength(0);
   });
 });

@@ -317,6 +317,8 @@ export interface OrderLine {
   _id: Id;
   orderNumber: string;
   status: string;
+  /** Set by the server when the status becomes 'Delivered'. */
+  deliveredAt?: IsoDate | null;
   buyerEmail: string;
   sellerEmail: string;
   bookId: Id;
@@ -357,6 +359,12 @@ export interface BuyerOrderLine extends OrderLine {
    * and all, to work this out in the browser.
    */
   returnStatus: ReturnStatus | null;
+  /**
+   * The last moment a return can be requested, or null when it cannot be:
+   * not delivered yet, or the window has closed. Decided by the server, which
+   * is also where it is enforced.
+   */
+  returnableUntil: IsoDate | null;
 }
 
 /** GET /order/:orderNumber - the whole order, summarised. */
@@ -374,7 +382,7 @@ export interface OrderItemRequest {
 
 export interface CreateOrderRequest {
   items: OrderItemRequest[];
-  shippingCharge?: number;
+  // No delivery charge: the server prices delivery from `deliveryDistrict`.
   discount?: number;
   promo?: string;
   promoApplied?: boolean;
@@ -396,6 +404,8 @@ export interface UnavailableItem {
 export interface CreateOrderResponse {
   message: string;
   orderNumber: string;
+  /** What the server charged for delivery, in taka. */
+  shippingCharge: number;
   unavailable: UnavailableItem[];
 }
 
@@ -423,11 +433,16 @@ export interface CreatePurchaseRequest {
 
 export interface ReturnRequest {
   _id: Id;
+  /** The order line returned. Null on requests made before they named one. */
+  orderId?: Id | null;
+  orderNumber?: string;
   bookId: Id;
   bookTitle: string;
   userEmail: string;
   sellerEmail: string;
   defectDescription: string;
+  /** The bKash number an approved refund is paid to, as 01XXXXXXXXX. */
+  refundBkash?: string;
   /**
    * One address per photograph: `/api/return/requests/:id/image/:n`.
    *
@@ -440,8 +455,10 @@ export interface ReturnRequest {
 }
 
 export interface CreateReturnRequest {
-  bookId: Id;
+  /** The order line, not the book: the same title can be bought twice. */
+  orderId: Id;
   defectDescription: string;
+  refundBkash: string;
 }
 
 export interface UpdateReturnStatusRequest {

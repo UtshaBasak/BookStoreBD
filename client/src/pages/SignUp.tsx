@@ -4,6 +4,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import type { ApiError, SessionResponse } from '@shared/api.js';
 
 import { API_BASE_URL, apiFetch } from '../config/api.js';
+import { site } from '../config/site.js';
 import { useToast } from '../hooks/useToast.js';
 import { isAdmin, isAuthenticated, setSession } from '../utils/auth.js';
 import { reportError } from '../utils/report.js';
@@ -230,6 +231,15 @@ export default function SignUp() {
                         >
                             Send OTP
                         </button>
+                        {/*
+                          A sentence rather than a tick-box: it says the same
+                          thing and costs nobody a click on the way in.
+                        */}
+                        <p style={{ fontSize: 13, color: '#555', marginTop: 10, lineHeight: 1.4 }}>
+                            By creating an account you confirm you are {site.minimumAge} or older and agree
+                            to the <Link to="/terms">terms of service</Link> and{' '}
+                            <Link to="/privacy">privacy policy</Link>.
+                        </p>
                         {/* Show error or info message below the button */}
                         {otpMsg && (
                             <div style={{ color: otpMsg.startsWith('OTP sent') ? 'green' : 'red', marginTop: 8 }}>

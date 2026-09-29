@@ -52,16 +52,14 @@ export default function Footer() {
             <a href={`mailto:${site.email}`}>{site.email}</a>
           </li>
           <li>
-            <a href={`tel:${site.phone.replace(/\s/g, '')}`}>{site.phone}</a>
+            <Link to="/contact">Contact page</Link>
           </li>
-          <li>
-            {site.address.line1}, {site.address.city}, {site.address.country}
-          </li>
+          <li>{site.location}</li>
         </ul>
       </div>
 
       <p className="footer-legal">
-        © {new Date().getFullYear()} {site.name}. Prices include VAT where applicable.
+        © {new Date().getFullYear()} {site.name}, run by {site.owner}.
       </p>
     </footer>
   );

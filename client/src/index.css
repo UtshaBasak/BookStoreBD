@@ -71,13 +71,20 @@ body {
   min-height: 100%;
 }
 
-a {
-  font-weight: 500;
-  color: var(--color-brand);
-  text-decoration: inherit;
-}
-a:hover {
-  color: var(--color-brand-dark);
+/* In the base layer, so a link that asks for a colour gets it. Tailwind 4's
+   utilities live in a cascade layer, and a rule outside any layer beats every
+   layered one whatever its specificity - so `text-white` on a link lost to
+   this, and the 404 page's main button was brand-brown text on a brand-brown
+   background: a blank box. Plain links look exactly as they did. */
+@layer base {
+  a {
+    font-weight: 500;
+    color: var(--color-brand);
+    text-decoration: inherit;
+  }
+  a:hover {
+    color: var(--color-brand-dark);
+  }
 }
 
 h1 {
@@ -94,6 +101,11 @@ video {
   height: auto;
 }
 
+/* Base layer, for the same reason as links: outside it, this beat every class
+   on every button - `text-white`, `bg-*`, `rounded-*`, `border` - so "Download
+   my data" was dark text on a brown button, and eleven others ignored what
+   they asked for. Buttons with no classes of their own are unchanged. */
+@layer base {
 button {
   border-radius: 8px;
   border: 1px solid transparent;
@@ -120,13 +132,16 @@ button:focus-visible {
   outline: 2px solid var(--color-brand);
   outline-offset: 2px;
 }
+}
 
 /* On a touch screen a control has to be big enough to hit. Applied only where
    the pointer is coarse, so a mouse-driven layout is left as it is. */
-@media (pointer: coarse) {
-  button,
-  [role='button'] {
-    min-height: 40px;
+@layer base {
+  @media (pointer: coarse) {
+    button,
+    [role='button'] {
+      min-height: 40px;
+    }
   }
 }
 

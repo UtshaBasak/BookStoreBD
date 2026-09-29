@@ -9,7 +9,12 @@ import { render, screen, within } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 
 import Footer from '../../components/Footer.js';
-import { site } from '../../config/site.js';
+import { deliveryChargeFor, site } from '../../config/site.js';
+import {
+  DELIVERY,
+  RETURN_WINDOW_DAYS,
+  deliveryChargeFor as serverDeliveryCharge,
+} from '../../../../server/config/commerce.js';
 import About from './About.js';
 import Contact from './Contact.js';
 import Privacy from './Privacy.js';
@@ -50,12 +55,33 @@ describe('policy and information pages', () => {
     expect(screen.getByText(/no advertising or analytics cookies/i)).toBeInTheDocument();
   });
 
-  it('the returns policy states the window the code enforces', () => {
+  it('the returns policy states the window the API enforces', () => {
     renderPage(<Returns />);
+    const body = within(screen.getByRole('main'));
 
-    // BuyerBookList allows a return within three days of the order date. If one
-    // changes without the other, this fails.
-    expect(screen.getByText(/three days/i)).toBeInTheDocument();
+    // Counted from delivery: it used to be three days from the order date,
+    // which a slow parcel could use up before it arrived.
+    expect(body.getByText(/7 days of\s+delivery/i)).toBeInTheDocument();
+    expect(body.getByText(/15 working days of the book\s+reaching us/i)).toBeInTheDocument();
+    expect(body.getByText(/delivery charge you paid on the original order is not refunded/i)).toBeInTheDocument();
+  });
+
+  it('the terms quote the delivery charges and the seller fee', () => {
+    renderPage(<Terms />);
+    const body = within(screen.getByRole('main'));
+
+    expect(body.getByText(/70 Tk/)).toBeInTheDocument();
+    expect(body.getByText(/120 Tk/)).toBeInTheDocument();
+    expect(body.getByText(/5%/)).toBeInTheDocument();
+    expect(body.getByText(/must be 18 or older/i)).toBeInTheDocument();
+  });
+
+  it('no page still carries the placeholder details from the old footer', () => {
+    for (const Page of [Privacy, Terms, Returns, About, Contact]) {
+      const { container, unmount } = renderPage(<Page />);
+      expect(container.textContent).not.toMatch(/bookstore@gmail\.com|1711 112333|Pragati Sarani/);
+      unmount();
+    }
   });
 
   it('every page offers a way to reach a human', () => {
@@ -95,6 +121,33 @@ describe('footer', () => {
     );
 
     expect(screen.getByRole('link', { name: site.email })).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: site.phone })).toBeInTheDocument();
+    expect(screen.getByText(site.location)).toBeInTheDocument();
+  });
+});
+
+/*
+ * What people are told has to be what the API charges. The API decides - it
+ * used to take the browser's word for the delivery charge - so the figures
+ * quoted at checkout and in the policies are pinned to its rules here.
+ */
+describe('the figures quoted match what the API enforces', () => {
+  it('delivery charges and the free-delivery threshold', () => {
+    expect(site.delivery.insideDhaka).toBe(DELIVERY.insideDhaka);
+    expect(site.delivery.outsideDhaka).toBe(DELIVERY.outsideDhaka);
+    expect(site.delivery.freeFrom).toBe(DELIVERY.freeFrom);
+
+    for (const [district, total] of [
+      ['Dhaka', 300],
+      ['Tangail', 300],
+      ['Sylhet', 999],
+      ['Sylhet', 1000],
+      ['', 300],
+    ] as const) {
+      expect(deliveryChargeFor(district, total)).toBe(serverDeliveryCharge(district, total));
+    }
+  });
+
+  it('the return window', () => {
+    expect(site.returns.windowDays).toBe(RETURN_WINDOW_DAYS);
   });
 });

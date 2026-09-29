@@ -2,7 +2,6 @@ import type { Request, RequestHandler, Response } from 'express';
 
 import Order from '../models/Order.model.js';
 import ReturnRequest from '../models/ReturnRequest.model.js';
-import AddBook from '../models/AddBook.model.js';
 import { actingUser } from '../middleware/auth.js';
 import type {
   CreateReturnBody,
@@ -16,6 +15,7 @@ import { serveStoredImage } from '../utils/serveImage.js';
 import { API_PREFIX } from '../config/apiPaths.js';
 import { createLogger } from '../config/logger.js';
 import { recordAudit } from '../utils/audit.js';
+import { RETURN_WINDOW_DAYS, returnDeadline } from '../config/commerce.js';
 
 const log = createLogger('return');
 
@@ -24,14 +24,39 @@ export const returnBook = async (
   res: Response
 ): Promise<void> => {
   try {
-    const bookId = req.body.bookId;
     const userEmail = actingUser(req).email;
-    const defectDescription = req.body.defectDescription;
+    const { defectDescription, refundBkash } = req.body;
 
-    // Get the book details
-    const book = await AddBook.findById(String(bookId));
-    if (!book) {
-      res.status(404).json({ message: 'Book not found' });
+    /*
+     * The buyer's own order line, delivered, and inside the window.
+     *
+     * This took a book id and nothing else: it did not check that the person
+     * asking had bought the book, and the three-day limit lived only in the
+     * browser, so a request for any book at any time was accepted.
+     */
+    const line = await Order.findOne({
+      _id: String(req.body.orderId),
+      buyerEmail: String(userEmail),
+    }).lean();
+    if (!line) {
+      res.status(404).json({ message: 'Order not found' });
+      return;
+    }
+
+    const deadline = returnDeadline(line);
+    if (!deadline) {
+      res.status(409).json({ message: 'A return can be requested once the order has been delivered.' });
+      return;
+    }
+    if (deadline.getTime() < Date.now()) {
+      res.status(409).json({
+        message: `The ${String(RETURN_WINDOW_DAYS)}-day return window for this order has closed.`,
+      });
+      return;
+    }
+
+    if (await ReturnRequest.exists({ orderId: line._id })) {
+      res.status(409).json({ message: 'A return has already been requested for this book.' });
       return;
     }
 
@@ -46,12 +71,17 @@ export const returnBook = async (
      */
     const uploaded = collectImages(req);
 
+    // Copied from the order rather than the listing, which may since have
+    // been edited or taken down.
     const returnRequest = new ReturnRequest({
-      bookId,
-      bookTitle: book.title,
+      orderId: line._id,
+      orderNumber: line.orderNumber,
+      bookId: line.bookId,
+      bookTitle: line.title || 'Untitled',
       userEmail,
-      sellerEmail: book.sellerEmail,
+      sellerEmail: line.sellerEmail,
       defectDescription,
+      refundBkash,
       images: uploaded.images,
       imagePublicIds: uploaded.publicIds,
       status: 'pending'
@@ -60,10 +90,7 @@ export const returnBook = async (
     await returnRequest.save();
     
     // Update the order status
-    await Order.findOneAndUpdate(
-      { bookId: String(bookId), buyerEmail: String(userEmail) },
-      { isReturned: 1 }
-    );
+    await Order.updateOne({ _id: line._id }, { isReturned: 1 });
 
     res.status(200).json({ 
       message: 'Return request submitted successfully',

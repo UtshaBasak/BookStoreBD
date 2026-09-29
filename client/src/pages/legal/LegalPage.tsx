@@ -1,5 +1,5 @@
-import type { ReactNode } from 'react';
-import { Link } from 'react-router-dom';
+import { useEffect, type ReactNode } from 'react';
+import { Link, useLocation } from 'react-router-dom';
 
 import Footer from '../../components/Footer.js';
 import { site } from '../../config/site.js';
@@ -25,6 +25,17 @@ export default function LegalPage({ title, intro, updated, children }: LegalPage
   // One call covers all five pages: each already passes the title and the line
   // that describes it, which is exactly what a search result needs.
   useSeo({ title, description: intro });
+
+  /*
+   * Links such as /about#how-it-works name a section. A full page load scrolls
+   * to it, but moving between routes in the app does not, so the footer's link
+   * landed at the top of the page and left the reader to find it.
+   */
+  const { hash } = useLocation();
+  useEffect(() => {
+    if (!hash) return;
+    document.getElementById(decodeURIComponent(hash.slice(1)))?.scrollIntoView();
+  }, [hash]);
 
   return (
     <div className="min-h-screen bg-[#faf8f7] text-[#3b2f2f]">
