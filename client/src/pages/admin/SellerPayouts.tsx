@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
+import { FaCheck, FaMoneyBillWave } from 'react-icons/fa';
 
 import type { PayoutRow } from '@shared/api.js';
 
@@ -8,6 +9,7 @@ import { useToast } from '../../hooks/useToast.js';
 import { messageOf } from '../../utils/apiError.js';
 import { site } from '../../config/site.js';
 import Pager from '../../components/Pager.js';
+import '../AdminPanel.css';
 
 const PAGE_SIZE = 25;
 
@@ -30,65 +32,80 @@ export default function SellerPayouts() {
   const toast = useToast();
 
   return (
-    <div className="p-4">
-      <h2 className="text-2xl font-bold mb-2">Seller Payouts</h2>
-      <p className="mb-4 text-sm text-gray-600">
-        Pay each seller by bKash, then record the transaction ID here. An order is due once
-        its {site.returns.windowDays}-day return window has closed; {site.name} keeps{' '}
-        {site.sellerFeePercent}% of the books.
-      </p>
+    <div className="admin-page">
+      <header className="admin-page-head">
+        <div>
+          <h2 className="admin-page-title">
+            <span className="admin-page-icon" aria-hidden="true">
+              <FaMoneyBillWave />
+            </span>
+            Seller Payouts
+          </h2>
+          <p className="admin-lede">
+            Pay each seller by bKash, then record the transaction ID here. An order is due once
+            its {site.returns.windowDays}-day return window has closed; {site.name} keeps{' '}
+            {site.sellerFeePercent}% of the books.
+          </p>
+        </div>
+      </header>
 
-      <div role="tablist" className="mb-4 flex gap-2">
-        {(['due', 'paid'] as const).map((tab) => (
-          <button
-            key={tab}
-            role="tab"
-            aria-selected={state === tab}
-            onClick={() => {
-              setState(tab);
-              setPage(1);
-            }}
-            className={`rounded px-4 py-2 font-semibold ${
-              state === tab ? 'bg-gray-800 text-white' : 'bg-gray-200 text-gray-800'
-            }`}
-          >
-            {tab === 'due' ? 'To pay' : 'Paid'}
-          </button>
-        ))}
+      <div className="admin-toolbar">
+        <div role="tablist" className="admin-tabs">
+          {(['due', 'paid'] as const).map((tab) => (
+            <button
+              key={tab}
+              role="tab"
+              aria-selected={state === tab}
+              onClick={() => {
+                setState(tab);
+                setPage(1);
+              }}
+              className="admin-tab"
+            >
+              {tab === 'due' ? 'To pay' : 'Paid'}
+            </button>
+          ))}
+        </div>
       </div>
 
       {payoutsQuery.isPending ? (
-        <p>Loading...</p>
+        <p className="admin-loading">Loading...</p>
       ) : rows.length === 0 ? (
-        <p>{state === 'due' ? 'Nothing is due to any seller right now.' : 'No payouts recorded yet.'}</p>
+        <div className="admin-card admin-empty">
+          <span className="admin-empty-mark" aria-hidden="true">
+            {state === 'due' ? '🎉' : '🗂️'}
+          </span>
+          <p>{state === 'due' ? 'Nothing is due to any seller right now.' : 'No payouts recorded yet.'}</p>
+        </div>
       ) : (
-        <div className="overflow-x-auto">
-          <table className="min-w-full bg-white border border-gray-300">
+        <div className="admin-card">
+        <div className="table-scroll">
+          <table className="styled-table">
             <thead>
               <tr>
-                <th className="p-2 text-left">Seller</th>
-                <th className="p-2 text-left">bKash merchant</th>
-                <th className="p-2 text-right">Pay</th>
-                <th className="p-2 text-left">{state === 'due' ? 'Record payment' : 'Paid'}</th>
-                <th className="p-2 text-left">Order</th>
-                <th className="p-2 text-left">Books</th>
-                <th className="p-2 text-right">Books total</th>
-                <th className="p-2 text-right">Fee</th>
-                <th className="p-2 text-left">Delivered</th>
+                <th>Seller</th>
+                <th>bKash merchant</th>
+                <th className="admin-num">Pay</th>
+                <th>{state === 'due' ? 'Record payment' : 'Paid'}</th>
+                <th>Order</th>
+                <th>Books</th>
+                <th className="admin-num">Books total</th>
+                <th className="admin-num">Fee</th>
+                <th>Delivered</th>
               </tr>
             </thead>
             <tbody>
               {rows.map((row) => (
-                <tr key={`${row.orderNumber}:${row.sellerEmail}`} className="border-b align-top">
-                  <td className="p-2">
-                    {row.sellerName ?? row.sellerEmail}
-                    <div className="text-xs text-gray-500">{row.sellerEmail}</div>
+                <tr key={`${row.orderNumber}:${row.sellerEmail}`}>
+                  <td>
+                    <span className="admin-cell-strong">{row.sellerName ?? row.sellerEmail}</span>
+                    <div className="admin-cell-muted">{row.sellerEmail}</div>
                   </td>
-                  <td className="p-2 font-mono">
-                    {row.bkashMerchant ?? <span className="text-red-600">Not given</span>}
+                  <td className="admin-mono admin-nowrap">
+                    {row.bkashMerchant ?? <span className="badge admin-status is-bad">Not given</span>}
                   </td>
-                  <td className="p-2 text-right font-semibold">{taka(row.payout)}</td>
-                  <td className="p-2">
+                  <td className="admin-price" style={{ textAlign: 'right' }}>{taka(row.payout)}</td>
+                  <td>
                     {state === 'due' ? (
                       <RecordPayment
                         row={row}
@@ -97,33 +114,36 @@ export default function SellerPayouts() {
                       />
                     ) : (
                       <>
-                        {date(row.paidAt)}
-                        <div className="font-mono text-xs text-gray-600">{row.reference}</div>
+                        <span className="badge admin-status is-good">{date(row.paidAt)}</span>
+                        <div className="admin-mono admin-cell-muted">{row.reference}</div>
                       </>
                     )}
                   </td>
-                  <td className="p-2">
-                    <Link to={`/admin/order-tracking/${row.orderNumber}`}>{row.orderNumber}</Link>
+                  <td>
+                    <Link className="admin-mono" to={`/admin/order-tracking/${row.orderNumber}`}>{row.orderNumber}</Link>
                   </td>
-                  <td className="p-2">{row.titles.join(', ')}</td>
-                  <td className="p-2 text-right">{taka(row.booksTotal)}</td>
-                  <td className="p-2 text-right">-{taka(row.fee)}</td>
-                  <td className="p-2">{date(row.deliveredAt)}</td>
+                  <td style={{ minWidth: 140 }}>{row.titles.join(', ')}</td>
+                  <td className="admin-num">{taka(row.booksTotal)}</td>
+                  <td className="admin-num admin-cell-muted">-{taka(row.fee)}</td>
+                  <td className="admin-nowrap">{date(row.deliveredAt)}</td>
                 </tr>
               ))}
             </tbody>
           </table>
         </div>
+        </div>
       )}
 
-      <Pager
-        page={payoutsQuery.data?.page ?? page}
-        pageCount={payoutsQuery.data?.pageCount ?? 1}
-        pageSize={PAGE_SIZE}
-        total={payoutsQuery.data?.total ?? 0}
-        onPage={setPage}
-        noun="payouts"
-      />
+      <div className="admin-pager">
+        <Pager
+          page={payoutsQuery.data?.page ?? page}
+          pageCount={payoutsQuery.data?.pageCount ?? 1}
+          pageSize={PAGE_SIZE}
+          total={payoutsQuery.data?.total ?? 0}
+          onPage={setPage}
+          noun="payouts"
+        />
+      </div>
     </div>
   );
 }
@@ -160,7 +180,8 @@ function RecordPayment({
 
   return (
     <form
-      className="flex flex-wrap items-center gap-2"
+      className="admin-row-actions"
+      style={{ alignItems: 'center', flexWrap: 'nowrap' }}
       onSubmit={(e) => {
         e.preventDefault();
         void record();
@@ -175,13 +196,14 @@ function RecordPayment({
         onChange={(e) => setReference(e.target.value)}
         placeholder="bKash TrxID"
         autoComplete="off"
-        className="w-32 rounded border border-gray-300 p-2 font-mono text-sm"
+        className="field admin-mono admin-input-sm"
       />
       <button
         type="submit"
         disabled={isPending || reference.trim().length < 6 || !row.bkashMerchant}
-        className="rounded bg-green-600 px-3 py-2 text-sm font-semibold text-white disabled:opacity-50"
+        className="btn btn-primary admin-btn-sm"
       >
+        <FaCheck aria-hidden="true" />
         {isPending ? 'Saving...' : 'Mark paid'}
       </button>
     </form>

@@ -1,0 +1,1144 @@
+/*
+ * The seller's pages: listing a book, their books, their orders and the order
+ * tracking page. One file for the four because they share a top bar, a banner,
+ * cards and pills, and four copies would drift.
+ *
+ * Every rule is under an `sl-` class. These rules sit outside any cascade
+ * layer, so they beat the shared `btn-*` / `field` classes whatever their
+ * specificity - which is why none of them targets a bare `a`, `button` or
+ * `input`.
+ */
+
+.sl-page {
+  min-height: 100vh;
+  width: 100%;
+  box-sizing: border-box;
+  background: var(--color-page);
+  padding-bottom: 3rem;
+  color: var(--color-ink);
+}
+
+/* ------------------------------------------------------------ top bar */
+.sl-topbar {
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.6rem clamp(1rem, 3vw, 2.5rem);
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: saturate(160%) blur(14px);
+  -webkit-backdrop-filter: saturate(160%) blur(14px);
+  border-bottom: 1px solid var(--color-line);
+}
+.sl-topbar-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.5rem;
+}
+.sl-logo-link {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+}
+@media (max-width: 480px) {
+  .sl-logo-link {
+    --logo-size: 30px;
+  }
+  .sl-topbar .btn {
+    padding: 0 0.9rem;
+    font-size: 0.88rem;
+  }
+}
+
+.sl-wrap {
+  width: 100%;
+  max-width: 1180px;
+  margin: 0 auto;
+  padding: 0 16px;
+  box-sizing: border-box;
+}
+
+/* --------------------------------------------------------------- banner
+   A smaller cousin of the homepage hero. */
+.sl-hero {
+  position: relative;
+  margin: 1.25rem 0 1.5rem;
+  padding: clamp(1.4rem, 4vw, 2.4rem) clamp(1.25rem, 4vw, 2.5rem);
+  border-radius: 24px;
+  overflow: hidden;
+  color: #fff;
+  background:
+    radial-gradient(600px 320px at 0% 0%, rgba(139, 92, 246, 0.85), transparent 60%),
+    radial-gradient(520px 340px at 100% 100%, rgba(255, 92, 53, 0.7), transparent 60%),
+    linear-gradient(135deg, #3b0764 0%, #1e1b4b 100%);
+  box-shadow: var(--shadow-lift);
+}
+.sl-hero-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 1rem;
+}
+.sl-kicker {
+  display: inline-block;
+  margin: 0 0 0.75rem;
+  padding: 5px 12px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.14);
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+.sl-hero h1,
+.sl-hero h2 {
+  margin: 0 0 0.4rem;
+  color: #fff;
+  font-size: clamp(1.6rem, 1.2rem + 2vw, 2.4rem);
+  line-height: 1.1;
+  letter-spacing: -0.03em;
+}
+.sl-hero-sub {
+  margin: 0;
+  max-width: 36rem;
+  color: rgba(255, 255, 255, 0.82);
+  font-size: clamp(0.95rem, 0.9rem + 0.3vw, 1.05rem);
+}
+.sl-hero-highlight {
+  background: linear-gradient(90deg, #facc15, #ff8a3d);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+.sl-hero-stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+}
+.sl-stat {
+  min-width: 92px;
+  padding: 0.6rem 0.9rem;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+.sl-stat b {
+  display: block;
+  font-size: 1.35rem;
+  font-weight: 800;
+  line-height: 1.1;
+}
+.sl-stat span {
+  font-size: 0.78rem;
+  color: rgba(255, 255, 255, 0.78);
+  font-weight: 600;
+}
+
+/* ---------------------------------------------------------------- cards */
+.sl-card {
+  padding: clamp(1.1rem, 3vw, 1.5rem);
+  box-sizing: border-box;
+  min-width: 0;
+}
+.sl-card + .sl-card {
+  margin-top: 1.25rem;
+}
+.sl-card-title {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  margin: 0 0 1.1rem;
+  font-size: 1.1rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: var(--color-ink);
+}
+.sl-step {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: var(--color-brand-tint);
+  color: var(--color-brand);
+  font-size: 0.85rem;
+  font-weight: 800;
+}
+.sl-card-hint {
+  margin: -0.6rem 0 1rem;
+  color: var(--color-ink-muted);
+  font-size: 0.9rem;
+}
+
+.sl-label {
+  display: block;
+  margin-bottom: 6px;
+  color: var(--color-ink-soft);
+  font-size: 0.88rem;
+  font-weight: 700;
+}
+.sl-required {
+  color: var(--color-accent);
+}
+.sl-fields {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+}
+.sl-fields > .sl-span {
+  grid-column: 1 / -1;
+}
+@media (max-width: 560px) {
+  .sl-fields {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+.sl-muted {
+  color: var(--color-ink-muted);
+}
+
+/* --------------------------------------------------- choice pills
+   A radio or checkbox inside a pill-shaped label. The input stays in the
+   page (visually hidden, still focusable and still what the label names), so
+   keyboards, screen readers and tests reach it exactly as before. */
+.sl-choices {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+.sl-choice {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  min-height: 44px;
+  padding: 0 1rem;
+  border-radius: 999px;
+  background: #fff;
+  border: 1.5px solid var(--color-line);
+  color: var(--color-ink-soft);
+  font-weight: 600;
+  font-size: 0.92rem;
+  cursor: pointer;
+  user-select: none;
+  transition: background 0.2s, border-color 0.2s, color 0.2s;
+}
+.sl-choice:hover {
+  background: var(--color-brand-tint);
+  border-color: var(--color-brand-line);
+  color: var(--color-brand-dark);
+}
+.sl-choice input {
+  position: absolute;
+  opacity: 0;
+  width: 1px;
+  height: 1px;
+  margin: 0;
+  pointer-events: none;
+}
+.sl-choice:has(input:focus-visible) {
+  outline: 2px solid var(--color-brand);
+  outline-offset: 2px;
+}
+.sl-choice.is-on {
+  background: var(--color-brand);
+  border-color: var(--color-brand);
+  color: #fff;
+  box-shadow: 0 4px 14px rgba(109, 40, 217, 0.25);
+}
+.sl-choice-icon {
+  font-size: 0.75rem;
+}
+/* New / old: two big halves rather than two small pills. */
+.sl-choices-split {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+}
+.sl-choices-split .sl-choice {
+  justify-content: center;
+}
+
+/* ----------------------------------------------------------- drop zone
+   The real file input lies over the whole zone, transparent, so a tap
+   anywhere opens the picker and files dropped on it land in it natively. */
+.sl-drop {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  min-height: 170px;
+  padding: 1.5rem 1rem;
+  border: 2px dashed var(--color-brand-line);
+  border-radius: var(--radius-card);
+  background:
+    radial-gradient(400px 160px at 50% 0%, rgba(139, 92, 246, 0.1), transparent 70%),
+    #fcfbff;
+  text-align: center;
+  transition: border-color 0.2s, background-color 0.2s;
+}
+.sl-drop:hover,
+.sl-drop:focus-within {
+  border-color: var(--color-brand-light);
+  background-color: var(--color-brand-tint);
+}
+.sl-drop:focus-within {
+  box-shadow: 0 0 0 4px rgba(139, 92, 246, 0.18);
+}
+.sl-drop input[type='file'] {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  cursor: pointer;
+}
+.sl-drop-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 56px;
+  height: 56px;
+  margin-bottom: 0.3rem;
+  border-radius: 18px;
+  background: linear-gradient(135deg, var(--color-brand), var(--color-brand-light));
+  color: #fff;
+  font-size: 1.4rem;
+  box-shadow: 0 8px 20px rgba(109, 40, 217, 0.3);
+}
+.sl-drop-title {
+  font-weight: 800;
+  color: var(--color-ink);
+}
+.sl-drop-sub {
+  font-size: 0.85rem;
+  color: var(--color-ink-muted);
+}
+
+.sl-thumbs-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin: 1rem 0 0.6rem;
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: var(--color-ink-soft);
+}
+.sl-thumbs {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(88px, 1fr));
+  gap: 0.6rem;
+}
+.sl-thumb {
+  position: relative;
+  aspect-ratio: 3 / 4;
+  border-radius: 14px;
+  overflow: hidden;
+  background: var(--color-brand-tint);
+  border: 1px solid var(--color-line);
+}
+.sl-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+.sl-thumb-name {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  padding: 14px 6px 5px;
+  background: linear-gradient(transparent, rgba(30, 27, 75, 0.75));
+  color: #fff;
+  font-size: 0.68rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.sl-thumb-cover {
+  position: absolute;
+  top: 8px;
+  left: 6px;
+  padding: 2px 7px;
+  font-size: 0.62rem;
+  background: var(--color-sun);
+  color: var(--color-brand-deep);
+}
+button.sl-thumb-remove {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  min-height: 28px;
+  padding: 0;
+  border-radius: 50%;
+  border: none;
+  background: rgba(255, 255, 255, 0.92);
+  color: var(--color-danger-dark);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  font-size: 0.8rem;
+}
+button.sl-thumb-remove:hover {
+  background: #fef2f2;
+}
+button.sl-link-danger {
+  min-height: 36px;
+  padding: 0 0.75rem;
+  border: none;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--color-danger-dark);
+  font-weight: 700;
+  font-size: 0.85rem;
+}
+button.sl-link-danger:hover {
+  background: #fef2f2;
+}
+
+/* ---------------------------------------------------------------- price */
+.sl-money {
+  position: relative;
+}
+.sl-money-sign {
+  position: absolute;
+  left: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--color-accent);
+  font-weight: 800;
+  font-size: 1.1rem;
+  pointer-events: none;
+}
+.sl-money .field {
+  padding-left: 34px;
+  font-weight: 700;
+  font-size: 1.1rem;
+}
+.sl-fee-note {
+  display: flex;
+  gap: 0.6rem;
+  align-items: flex-start;
+  margin: 0.75rem 0 0;
+  padding: 0.75rem 0.9rem;
+  border-radius: 14px;
+  background: var(--color-accent-tint);
+  color: var(--color-ink-soft);
+  font-size: 0.9rem;
+}
+.sl-fee-note svg {
+  flex: none;
+  margin-top: 3px;
+  color: var(--color-accent);
+}
+.sl-fee-note b {
+  color: var(--color-accent-dark);
+}
+
+/* ---------------------------------------------------------------- alerts */
+.sl-alert {
+  display: flex;
+  gap: 0.9rem;
+  align-items: flex-start;
+  margin: 0 0 1.5rem;
+  padding: 1rem 1.1rem;
+  border-radius: var(--radius-card);
+  background: #fff7ed;
+  border: 1.5px solid #fdba74;
+  color: #7c2d12;
+  box-shadow: var(--shadow-card);
+}
+.sl-alert-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  background: #ffedd5;
+  color: #c2410c;
+  font-size: 1.1rem;
+}
+.sl-alert-body {
+  flex: 1;
+  min-width: 0;
+}
+.sl-alert-body p {
+  margin: 0 0 0.6rem;
+}
+.sl-alert-body strong {
+  color: #9a3412;
+}
+
+.sl-feedback {
+  margin-top: 0.9rem;
+  padding: 0.75rem 0.9rem;
+  border-radius: 12px;
+  text-align: center;
+  font-size: 0.92rem;
+  font-weight: 600;
+}
+.sl-feedback.is-good {
+  background: #ecfdf5;
+  color: #047857;
+}
+.sl-feedback.is-bad {
+  background: #fef2f2;
+  color: #b91c1c;
+}
+
+/* The submit button is disabled while a seller cannot list. */
+.sl-page .btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+/* ------------------------------------------------------ form layout */
+.sl-form-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 1.25rem;
+  align-items: start;
+}
+.sl-form-grid > div {
+  min-width: 0;
+}
+@media (min-width: 960px) {
+  .sl-form-grid {
+    grid-template-columns: minmax(0, 1.45fr) minmax(0, 1fr);
+  }
+}
+.sl-submit-card {
+  background:
+    radial-gradient(300px 140px at 100% 0%, rgba(255, 92, 53, 0.12), transparent 70%),
+    #fff;
+}
+.sl-submit-card .btn {
+  width: 100%;
+  min-height: 52px;
+  font-size: 1.05rem;
+}
+
+/* -------------------------------------------------- list toolbar */
+.sl-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 1.25rem;
+}
+.sl-search {
+  position: relative;
+  flex: 1 1 260px;
+  max-width: 460px;
+}
+.sl-search svg {
+  position: absolute;
+  left: 15px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--color-ink-muted);
+  pointer-events: none;
+}
+.sl-search .field {
+  padding-left: 40px;
+  border-radius: 999px;
+}
+.sl-toolbar-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-left: auto;
+}
+@media (max-width: 560px) {
+  .sl-search {
+    flex-basis: 100%;
+    max-width: none;
+  }
+  .sl-toolbar-actions {
+    margin-left: 0;
+    width: 100%;
+  }
+  .sl-toolbar-actions .btn {
+    flex: 1;
+  }
+}
+
+.sl-empty {
+  padding: 2.5rem 1.25rem;
+  text-align: center;
+  color: var(--color-ink-muted);
+}
+.sl-empty-emoji {
+  font-size: 2.2rem;
+  display: block;
+  margin-bottom: 0.4rem;
+}
+.sl-empty h3 {
+  margin: 0 0 0.35rem;
+  font-size: 1.15rem;
+}
+.sl-empty p {
+  margin: 0 0 1.1rem;
+}
+
+/* --------------------------------------------------------------- tables */
+.sl-table.styled-table {
+  margin-top: 0;
+}
+.sl-table td {
+  vertical-align: middle;
+}
+.sl-table .sl-title-cell {
+  font-weight: 700;
+  color: var(--color-ink);
+  min-width: 140px;
+}
+.sl-table .sl-price {
+  font-weight: 800;
+  color: #ff5c35;
+  white-space: nowrap;
+}
+.sl-table .sl-num {
+  white-space: nowrap;
+}
+.sl-table tfoot td {
+  background: var(--color-brand-tint);
+  border-bottom: none;
+}
+/* The table's own `.styled-table button` would otherwise paint this violet. */
+.sl-table button.sl-row-delete {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 38px;
+  padding: 0 14px;
+  background: #fff;
+  color: var(--color-danger-dark);
+  border: 1px solid #fecaca;
+  border-radius: 999px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+.sl-table button.sl-row-delete:hover {
+  background: #fef2f2;
+  border-color: var(--color-danger);
+}
+.sl-table button.sl-row-delete:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+.sl-edit {
+  min-height: 40px;
+  padding: 0 10px;
+  border: 1.5px dashed var(--color-brand-line);
+  border-radius: 10px;
+  background: #fcfbff;
+  color: var(--color-brand-dark);
+  font: inherit;
+  font-weight: 700;
+  transition: border-color 0.2s, box-shadow 0.2s, background 0.2s;
+}
+.sl-edit:focus {
+  outline: none;
+  border-style: solid;
+  border-color: var(--color-brand-light);
+  background: #fff;
+  box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.18);
+}
+.sl-edit.is-dirty {
+  border-style: solid;
+  border-color: var(--color-success);
+  background: #ecfdf5;
+  color: #047857;
+}
+
+/* ---------------------------------------------------------------- pills */
+.sl-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 12px;
+  border-radius: 999px;
+  font-size: 0.8rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+.sl-pill::before {
+  content: '';
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: currentColor;
+}
+.sl-pill.is-pending {
+  background: #fff7ed;
+  color: #c2410c;
+}
+.sl-pill.is-progress {
+  background: #f3efff;
+  color: #5b21b6;
+}
+.sl-pill.is-done {
+  background: #ecfdf5;
+  color: #047857;
+}
+.sl-pill.is-bad {
+  background: #fef2f2;
+  color: #b91c1c;
+}
+.sl-pill.is-neutral {
+  background: #f3f4f6;
+  color: #4b5563;
+}
+
+/* --------------------------------------------------------------- orders */
+.sl-order + .sl-order {
+  margin-top: 1.25rem;
+}
+.sl-order-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem 1rem;
+  margin-bottom: 1rem;
+}
+.sl-order-no {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 0.75rem;
+  margin: 0 0 0.35rem;
+}
+.sl-order-no-value {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 1.05rem;
+  font-weight: 800;
+  color: var(--color-ink);
+  letter-spacing: 0.02em;
+  word-break: break-all;
+}
+.sl-order-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem 1.25rem;
+  margin: 0;
+  color: var(--color-ink-muted);
+  font-size: 0.9rem;
+}
+.sl-order-meta b {
+  color: var(--color-ink-soft);
+  font-weight: 700;
+}
+.sl-order-meta span {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.sl-order-foot {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-top: 1rem;
+}
+.sl-summary {
+  display: grid;
+  grid-template-columns: auto auto;
+  justify-content: space-between;
+  column-gap: 2rem;
+  row-gap: 4px;
+  width: min(100%, 340px);
+  margin: 0 0 0 auto;
+  padding: 0.9rem 1.1rem;
+  border-radius: 14px;
+  background: #faf9fe;
+  border: 1px solid var(--color-line);
+  font-size: 0.95rem;
+  box-sizing: border-box;
+}
+.sl-summary dt {
+  color: var(--color-ink-soft);
+}
+.sl-summary dd {
+  margin: 0;
+  text-align: right;
+  white-space: nowrap;
+}
+.sl-summary .sl-receive {
+  margin-top: 6px;
+  padding-top: 8px;
+  border-top: 1px dashed var(--color-brand-line);
+  font-weight: 800;
+  color: var(--color-ink);
+}
+.sl-summary dd.sl-receive {
+  color: #ff5c35;
+  font-size: 1.1rem;
+}
+.sl-payout {
+  display: inline-flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin: 0.75rem 0 0 auto;
+  padding: 8px 14px;
+  border-radius: 14px;
+  font-size: 0.88rem;
+  font-weight: 600;
+  line-height: 1.4;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+.sl-payout svg {
+  flex: none;
+  margin-top: 3px;
+}
+.sl-payout.is-good {
+  background: #ecfdf5;
+  color: #047857;
+}
+.sl-payout.is-due {
+  background: #f3efff;
+  color: #5b21b6;
+}
+.sl-payout.is-plain {
+  background: #f3f4f6;
+  color: #4b5563;
+}
+.sl-payout-row {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.sl-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.6rem;
+  padding: 3rem 1rem;
+  color: var(--color-ink-muted);
+  font-weight: 600;
+}
+.sl-spinner {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: 3px solid var(--color-brand-line);
+  border-top-color: var(--color-brand);
+  animation: sl-spin 0.8s linear infinite;
+}
+@keyframes sl-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* -------------------------------------------------------------- stepper */
+.sl-steps {
+  display: flex;
+  margin: 0.5rem 0 0;
+  padding: 0;
+  list-style: none;
+}
+.sl-steps li {
+  position: relative;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  min-width: 0;
+}
+/* The line to the next step, drawn from this dot's centre to the next one. */
+.sl-steps li:not(:last-child)::after {
+  content: '';
+  position: absolute;
+  top: 19px;
+  left: calc(50% + 22px);
+  right: calc(-50% + 22px);
+  height: 4px;
+  border-radius: 999px;
+  background: var(--color-line);
+}
+.sl-steps li.is-done:not(:last-child)::after {
+  background: linear-gradient(90deg, var(--color-brand), var(--color-brand-light));
+}
+.sl-step-dot {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: #fff;
+  border: 2px solid var(--color-line);
+  color: var(--color-ink-muted);
+  font-weight: 800;
+  font-size: 0.95rem;
+  position: relative;
+  z-index: 1;
+  box-sizing: border-box;
+}
+.sl-steps li.is-done .sl-step-dot {
+  background: linear-gradient(135deg, var(--color-brand), var(--color-brand-light));
+  border-color: transparent;
+  color: #fff;
+}
+.sl-steps li.is-current .sl-step-dot {
+  background: linear-gradient(135deg, var(--color-accent), #ff8a3d);
+  border-color: transparent;
+  color: #fff;
+  box-shadow: 0 0 0 6px var(--color-accent-tint);
+}
+.sl-step-label {
+  margin-top: 10px;
+  padding: 0 2px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  line-height: 1.25;
+  color: var(--color-ink-muted);
+}
+.sl-steps li.is-done .sl-step-label {
+  color: var(--color-ink-soft);
+}
+.sl-steps li.is-current .sl-step-label {
+  color: var(--color-ink);
+  font-weight: 800;
+}
+@media (max-width: 560px) {
+  .sl-step-dot {
+    width: 32px;
+    height: 32px;
+    font-size: 0.8rem;
+  }
+  .sl-steps li:not(:last-child)::after {
+    top: 14px;
+    left: calc(50% + 18px);
+    right: calc(-50% + 18px);
+    height: 3px;
+  }
+  .sl-steps li.is-current .sl-step-dot {
+    box-shadow: 0 0 0 4px var(--color-accent-tint);
+  }
+  .sl-step-label {
+    font-size: 0.68rem;
+  }
+}
+
+.sl-track-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 1.25rem;
+}
+@media (min-width: 900px) {
+  .sl-track-grid {
+    grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr);
+    align-items: start;
+  }
+}
+.sl-info {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+  margin: 0;
+}
+.sl-info > div {
+  min-width: 0;
+}
+.sl-info dt {
+  margin-bottom: 2px;
+  color: var(--color-ink-muted);
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+.sl-info dd {
+  margin: 0;
+  font-weight: 700;
+  color: var(--color-ink);
+  overflow-wrap: anywhere;
+}
+@media (max-width: 420px) {
+  .sl-info {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+.sl-status-box {
+  margin-top: 1.5rem;
+  padding: 1rem;
+  border-radius: 14px;
+  background: var(--color-brand-tint);
+  border: 1px solid var(--color-brand-line);
+}
+.sl-status-box .field {
+  margin-top: 6px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.sl-status-box .field:disabled {
+  opacity: 0.6;
+  cursor: progress;
+}
+.sl-status-help {
+  margin: 8px 0 0;
+  font-size: 0.85rem;
+  color: var(--color-ink-muted);
+}
+.sl-error {
+  display: block;
+  margin-top: 8px;
+  color: #b91c1c;
+  font-weight: 700;
+  font-size: 0.9rem;
+}
+
+/* The shared pager, under the order cards. */
+.sl-pager {
+  margin-top: 0.5rem;
+  color: var(--color-ink-muted);
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.sl-wrap-wide {
+  max-width: 1400px;
+}
+.sl-table-card {
+  padding: 0;
+}
+.sl-table-card .styled-table {
+  border: none;
+}
+/* Twelve columns: tighter cells so they fit a laptop screen without scrolling. */
+.sl-compact th,
+.sl-compact td {
+  padding: 12px 10px;
+}
+.sl-compact th {
+  font-size: 0.72rem;
+}
+
+/* ------------------------------------------------ stacked tables
+   On a phone each row becomes a small card of label / value pairs, so a
+   seller can read and edit a row without scrolling a wide table sideways.
+   The labels come from each cell's data-label. */
+@media (max-width: 700px) {
+  .sl-stack thead {
+    display: none;
+  }
+  .sl-stack.styled-table,
+  .sl-stack tbody,
+  .sl-stack tfoot,
+  .sl-stack tr,
+  .sl-stack td {
+    display: block;
+    width: 100%;
+    box-sizing: border-box;
+  }
+  .sl-stack.styled-table {
+    margin: 0;
+    border: none;
+    border-radius: 0;
+    background: transparent;
+    overflow: visible;
+  }
+  .sl-stack.styled-table tbody tr:nth-child(n) {
+    margin-bottom: 10px;
+    padding: 4px 14px;
+    background: #fff;
+    border: 1px solid var(--color-line);
+    border-radius: 14px;
+    box-shadow: 0 1px 2px rgba(30, 27, 75, 0.05);
+  }
+  .sl-stack.styled-table td {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    min-height: 40px;
+    padding: 6px 0;
+    text-align: right;
+    border-bottom: 1px dashed var(--color-line);
+  }
+  .sl-stack.styled-table tbody tr td:last-child {
+    border-bottom: none;
+  }
+  .sl-stack td::before {
+    content: attr(data-label);
+    flex: none;
+    max-width: 45%;
+    color: var(--color-ink-muted);
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    text-align: left;
+  }
+  .sl-stack td:empty {
+    display: none;
+  }
+  .sl-stack.styled-table td.sl-title-cell {
+    justify-content: flex-start;
+    padding: 10px 0 8px;
+    font-size: 1.05rem;
+    text-align: left;
+  }
+  .sl-stack td.sl-title-cell::before {
+    display: none;
+  }
+  .sl-stack.styled-table tfoot tr {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 14px;
+    border-radius: 14px;
+    background: var(--color-brand-tint);
+  }
+  .sl-stack.styled-table tfoot td {
+    width: auto;
+    min-height: 0;
+    padding: 0;
+    border: none;
+    background: transparent;
+  }
+  .sl-stack tfoot td::before {
+    display: none;
+  }
+  .sl-table-card {
+    background: transparent;
+    border: none;
+    box-shadow: none;
+    overflow: visible;
+  }
+}
+
+/* The side-by-side cards of the tracking page are grid cells, not a stack. */
+.sl-track-grid > .sl-card + .sl-card {
+  margin-top: 0;
+}
+/* Two buttons beside the logo do not fit a phone: the mark alone does. */
+@media (max-width: 480px) {
+  .sl-topbar:has(.sl-topbar-actions) .logo > span {
+    display: none;
+  }
+  .sl-topbar-actions {
+    flex-wrap: nowrap;
+  }
+}

@@ -1,116 +1,1027 @@
 /*
- * Scoped to `.admin-panel`. This file used to restyle `body` for the whole
- * application, because a page's stylesheet is global once it is in the bundle.
+ * The admin area: the panel's layout, and the pieces every admin page shares
+ * (page heading, toolbar, search box, table card, status pills). Every rule is
+ * scoped to an `admin-` class, because a page's stylesheet is global once it is
+ * in the bundle - this file used to restyle `body` for the whole application.
+ *
+ * These rules sit outside any cascade layer, so they beat the shared `.btn-*`
+ * and `.field` classes in index.css whatever the specificity. None of them sets
+ * a colour on a button or a field except where it means to.
  */
-  
-  /* Admin Panel Layout.
 
-     A row with a fixed 250px sidebar at every width: on a 360px phone that
-     leaves 110px for the table it exists to show. The sidebar becomes a strip
-     across the top below 900px, and the content gets the screen. */
+/* ---------------------------------------------------------------- layout
+   A row with the sidebar at the left on a wide screen. Below 900px the sidebar
+   becomes a bar across the top with the sections as pills that scroll sideways,
+   and the content gets the whole width of the phone. */
+.admin-panel {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  width: 100%;
+  background: var(--color-page);
+}
+
+.admin-sidebar {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 14px 16px 12px;
+  color: #fff;
+  box-sizing: border-box;
+}
+
+.admin-sidebar-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.admin-brand {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+/* The old "Admin Panel" heading, now a small caption under the logo. */
+.admin-brand h2 {
+  margin: 0;
+  color: rgba(255, 255, 255, 0.62);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.admin-sidebar-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* Glass buttons on the dark sidebar. */
+.admin-side-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 44px;
+  min-width: 44px;
+  padding: 0 14px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.08);
+  color: rgba(255, 255, 255, 0.9);
+  font-weight: 600;
+  font-size: 0.92rem;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.admin-side-button:hover {
+  background: rgba(255, 255, 255, 0.16);
+  border-color: rgba(255, 255, 255, 0.32);
+  color: #fff;
+}
+.admin-side-button:focus-visible {
+  outline: 2px solid #fff;
+  outline-offset: 2px;
+}
+
+/* Sign out: a quiet danger, red only on hover. */
+.admin-side-button.is-danger:hover {
+  background: rgba(239, 68, 68, 0.22);
+  border-color: rgba(248, 113, 113, 0.7);
+  color: #fff;
+}
+
+/* On a phone the home button is an icon; its words stay for screen readers. */
+.admin-side-button .admin-side-text {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+.admin-side-button.keep-text .admin-side-text {
+  position: static;
+  width: auto;
+  height: auto;
+  overflow: visible;
+  clip: auto;
+}
+.admin-side-button.icon-only {
+  padding: 0;
+}
+
+.admin-nav {
+  margin: 0 -16px;
+  padding: 0 16px 2px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+}
+.admin-nav::-webkit-scrollbar {
+  display: none;
+}
+
+.admin-nav ul {
+  display: flex;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.admin-nav-link {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 44px;
+  padding: 0 16px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(255, 255, 255, 0.06);
+  font-size: 0.92rem;
+  font-weight: 600;
+  white-space: nowrap;
+  transition: background 0.2s, border-color 0.2s, color 0.2s;
+}
+/* `:not(.active)` and the explicit colours: the base-layer link colour is
+   violet, which would vanish on the indigo. */
+.admin-nav-link,
+.admin-nav-link:hover {
+  color: rgba(255, 255, 255, 0.78);
+}
+.admin-nav-link:hover {
+  background: rgba(255, 255, 255, 0.12);
+  color: #fff;
+}
+.admin-nav-link:focus-visible {
+  outline: 2px solid #fff;
+  outline-offset: 2px;
+}
+.admin-nav-link.active,
+.admin-nav-link.active:hover {
+  background: linear-gradient(135deg, var(--color-brand) 0%, var(--color-brand-light) 100%);
+  border-color: rgba(255, 255, 255, 0.22);
+  color: #fff;
+  box-shadow: 0 8px 22px rgba(109, 40, 217, 0.45);
+}
+.admin-nav-icon {
+  flex: none;
+  font-size: 0.95rem;
+  opacity: 0.9;
+}
+
+/* Desktop: only the phone bar carries the sign-out button at the top. */
+.admin-sidebar-foot {
+  display: none;
+}
+
+.admin-main {
+  flex: 1;
+  min-width: 0;
+  width: 100%;
+  box-sizing: border-box;
+  padding: 20px 16px 40px;
+}
+
+@media (min-width: 900px) {
   .admin-panel {
+    flex-direction: row;
+  }
+
+  .admin-sidebar {
+    position: sticky;
+    top: 0;
+    width: 264px;
+    height: 100vh;
+    flex-shrink: 0;
+    gap: 28px;
+    padding: 26px 18px 20px;
+    overflow-y: auto;
+    box-shadow: 4px 0 24px rgba(30, 27, 75, 0.18);
+  }
+
+  .admin-sidebar-top .admin-sidebar-actions {
+    display: none;
+  }
+
+  .admin-nav {
+    margin: 0;
+    padding: 0;
+    overflow: visible;
+  }
+
+  .admin-nav ul {
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .admin-nav-link {
+    border-color: transparent;
+    background: transparent;
+    border-radius: 14px;
+  }
+
+  .admin-sidebar-foot {
     display: flex;
     flex-direction: column;
-    min-height: 100vh;
-    width: 100%;
+    gap: 8px;
+    margin-top: auto;
+    padding-top: 18px;
+    border-top: 1px solid rgba(255, 255, 255, 0.12);
   }
-
-  /* Sidebar Styles */
-  .sidebar {
+  .admin-sidebar-foot .admin-side-button {
+    justify-content: flex-start;
     width: 100%;
-    background-color: #2c3e50;
-    color: #ecf0f1;
-    padding: 16px;
     box-sizing: border-box;
-    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+    border-radius: 14px;
+    padding: 0 16px;
+  }
+  .admin-sidebar-foot .admin-side-button .admin-side-text {
+    position: static;
+    width: auto;
+    height: auto;
+    overflow: visible;
+    clip: auto;
   }
 
-  @media (min-width: 900px) {
-    .admin-panel {
-      flex-direction: row;
-      height: 100vh;
-    }
+  .admin-main {
+    padding: 32px clamp(24px, 3vw, 44px) 56px;
+  }
+}
 
-    .sidebar {
-      width: 250px;
-      flex-shrink: 0;
-      padding: 20px;
-      box-shadow: 2px 0 5px rgba(0, 0, 0, 0.1);
-    }
-  }
+/* ------------------------------------------------------------ admin page
+   What every section shares: a heading with a line saying what the page is
+   for, a toolbar, and the data in a white card. */
+.admin-page {
+  width: 100%;
+  max-width: 1280px;
+  margin: 0 auto;
+  box-sizing: border-box;
+}
 
-  /* Across the top, the navigation reads as a row rather than a list. */
-  @media (max-width: 899px) {
-    .sidebar nav ul {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 4px;
-      justify-content: center;
-    }
+.admin-page-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 12px 16px;
+  margin-bottom: 18px;
+}
 
-    .sidebar nav ul li {
-      margin: 0;
-    }
+.admin-page-head > div {
+  min-width: 0;
+}
 
-    .sidebar h2 {
-      margin-bottom: 12px;
-    }
-  }
-  
-  .sidebar h2 {
-    font-size: 1.5rem;
-    margin-bottom: 20px;
-    text-align: center;
-  }
-  
-  .sidebar nav ul {
-    list-style: none;
-    padding: 0;
-  }
-  
-  .sidebar nav ul li {
-    margin: 15px 0;
-  }
-  
-  .sidebar nav ul li a {
-    color: #ecf0f1;
-    text-decoration: none;
-    font-size: 1rem;
-    display: block;
-    padding: 10px 15px;
-    border-radius: 5px;
-    transition: background-color 0.3s ease;
-  }
-  
-  .sidebar nav ul li a:hover {
-    background-color: #34495e;
-  }
-  
-  /* Main Content Styles */
-  .main-content {
-    flex: 1;
-    min-width: 0;
-    padding: 12px;
-    background-color: #ffffff;
-    overflow-y: auto;
-    width: 100%;
-  }
+.admin-page-title {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 0;
+  color: var(--color-ink);
+  font-size: clamp(1.45rem, 1.15rem + 1.2vw, 2rem);
+  font-weight: 800;
+  line-height: 1.15;
+  letter-spacing: -0.025em;
+}
 
-  @media (min-width: 900px) {
-    .main-content {
-      padding: 20px;
-      min-height: 100vh;
-    }
+/* A soft violet tile holding the section's icon, like the homepage's. */
+.admin-page-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  background: var(--color-brand-tint);
+  color: var(--color-brand);
+  font-size: 1.05rem;
+}
+
+.admin-lede {
+  max-width: 44rem;
+  margin: 8px 0 0;
+  color: var(--color-ink-muted);
+  font-size: 0.95rem;
+  line-height: 1.55;
+}
+
+.admin-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px 12px;
+  margin-bottom: 16px;
+}
+
+.admin-search {
+  position: relative;
+  flex: 1 1 280px;
+  max-width: 520px;
+  min-width: 0;
+}
+.admin-search .field {
+  padding-left: 42px;
+  border-radius: 999px;
+}
+.admin-search-icon {
+  position: absolute;
+  top: 50%;
+  left: 16px;
+  transform: translateY(-50%);
+  color: var(--color-ink-muted);
+  pointer-events: none;
+}
+
+/* The white surface a table or list sits on. */
+.admin-card {
+  background: #fff;
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-card);
+  padding: 6px;
+  box-sizing: border-box;
+}
+
+/* The card already has the border and the corners, so the table inside it
+   drops its own. */
+.admin-card .styled-table {
+  margin-top: 0;
+  border: none;
+  border-radius: 13px;
+}
+/* Positioned, so a visually hidden label inside a row (absolutely placed at
+   its spot in the table) is clipped here instead of widening the page. */
+.admin-card .table-scroll {
+  position: relative;
+  border-radius: 13px;
+}
+.admin-page .styled-table td {
+  vertical-align: middle;
+  color: var(--color-ink-soft);
+}
+.admin-page .styled-table th {
+  white-space: nowrap;
+}
+.admin-cell-strong,
+.admin-page .styled-table .admin-cell-strong {
+  color: var(--color-ink);
+  font-weight: 700;
+}
+.admin-cell-muted,
+.admin-page .styled-table .admin-cell-muted {
+  color: var(--color-ink-muted);
+  font-size: 0.85rem;
+}
+.admin-nowrap {
+  white-space: nowrap;
+}
+.admin-num,
+.admin-page .styled-table .admin-num {
+  text-align: right;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+.admin-price,
+.admin-page .styled-table .admin-price {
+  color: #ff5c35;
+  font-weight: 800;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+/* Numbers that are read digit by digit: order numbers, phone numbers, IDs. */
+.admin-mono {
+  font-variant-numeric: tabular-nums slashed-zero;
+  letter-spacing: 0.02em;
+  font-weight: 600;
+}
+
+/* `.styled-table button` in index.css is outside any layer and paints every
+   button in a table violet, so a `btn-danger` or `btn-ghost` there came out
+   white-on-violet. `revert-layer` hands these back to the shared classes. */
+.admin-page .styled-table .btn,
+.admin-page .styled-table .btn:hover {
+  background: revert-layer;
+  color: revert-layer;
+  border: revert-layer;
+  border-radius: 999px;
+}
+
+/* A smaller button for rows and toolbars. On a touch screen it stays 44px. */
+.admin-page .admin-btn-sm {
+  min-height: 38px;
+  padding: 0 14px;
+  font-size: 0.85rem;
+  gap: 6px;
+}
+@media (pointer: coarse) {
+  .admin-page .admin-btn-sm {
+    min-height: 44px;
   }
-  
-  .main-content h1 {
-    font-size: 2rem;
-    margin-bottom: 20px;
+}
+
+.admin-page .btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  box-shadow: none;
+  transform: none;
+}
+
+.admin-row-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+/* A turning arrow while a refresh is in flight. */
+.admin-spin {
+  animation: admin-spin 0.9s linear infinite;
+}
+@keyframes admin-spin {
+  to {
+    transform: rotate(360deg);
   }
-  
-  .main-content section {
-    background-color: #f9f9f9;
-    padding: 20px;
-    border-radius: 8px;
-    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+}
+@media (prefers-reduced-motion: reduce) {
+  .admin-spin {
+    animation: none;
   }
+}
+
+/* A person's initial in a violet circle, beside their name. */
+.admin-avatar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--color-brand) 0%, #c026d3 100%);
+  color: #fff;
+  font-size: 0.85rem;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+.admin-person {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+/* --------------------------------------------------------------- statuses
+   The colours in the design spec: pending orange, done green, refused red,
+   under way violet. */
+.admin-status {
+  white-space: nowrap;
+}
+.admin-status.is-pending {
+  background: #fff7ed;
+  color: #c2410c;
+}
+.admin-status.is-good {
+  background: #ecfdf5;
+  color: #047857;
+}
+.admin-status.is-bad {
+  background: #fef2f2;
+  color: #b91c1c;
+}
+.admin-status.is-progress {
+  background: #f3efff;
+  color: #5b21b6;
+}
+
+.admin-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 40px 20px;
+  color: var(--color-ink-muted);
+  text-align: center;
+}
+.admin-empty-mark {
+  font-size: 2rem;
+  line-height: 1;
+}
+.admin-empty p {
+  margin: 0;
+}
+.admin-empty strong {
+  color: var(--color-ink);
+  font-size: 1.02rem;
+}
+
+.admin-alert {
+  margin: 0 0 14px;
+  padding: 12px 16px;
+  border: 1px solid #fecaca;
+  border-radius: 12px;
+  background: #fef2f2;
+  color: #b91c1c;
+  font-weight: 600;
+}
+
+.admin-loading {
+  padding: 32px 4px;
+  color: var(--color-ink-muted);
+  font-weight: 600;
+}
+
+/* The pager lives in a shared component, drawn under the card. */
+.admin-pager {
+  padding: 4px 4px 0;
+  color: var(--color-ink-muted);
+  font-size: 0.92rem;
+}
+
+/* ----------------------------------------------------------- tabs (payouts) */
+.admin-tabs {
+  display: inline-flex;
+  gap: 4px;
+  padding: 4px;
+  border: 1px solid var(--color-line);
+  border-radius: 999px;
+  background: #fff;
+  box-shadow: var(--shadow-card);
+}
+.admin-tab {
+  min-height: 40px;
+  padding: 0 20px;
+  border: none;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--color-ink-soft);
+  font-weight: 700;
+  font-size: 0.92rem;
+  cursor: pointer;
+}
+.admin-tab:hover {
+  background: var(--color-brand-tint);
+  color: var(--color-brand-dark);
+}
+.admin-tab[aria-selected='true'] {
+  background: var(--color-brand-deep);
+  color: #fff;
+}
+@media (pointer: coarse) {
+  .admin-tab {
+    min-height: 44px;
+  }
+}
+
+/* ------------------------------------------------------- orders (history) */
+.admin-orders {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.admin-order {
+  padding: 18px;
+}
+@media (min-width: 900px) {
+  .admin-order {
+    padding: 22px 24px;
+  }
+}
+
+.admin-order-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 14px;
+  margin-bottom: 16px;
+}
+
+.admin-order-number {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 10px;
+  margin: 0 0 8px;
+  color: var(--color-ink);
+  font-size: 1.05rem;
+  font-weight: 800;
+}
+.admin-order-number .admin-mono {
+  color: #ff5c35;
+  font-size: 1rem;
+}
+
+.admin-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 18px;
+  margin: 0;
+  color: var(--color-ink-muted);
+  font-size: 0.9rem;
+}
+.admin-meta b {
+  color: var(--color-ink-soft);
+  font-weight: 600;
+}
+.admin-meta > span {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.admin-order .table-scroll {
+  border-radius: 14px;
+}
+.admin-order .styled-table {
+  margin-top: 0;
+}
+
+/* Totals under the lines, right-aligned like a receipt. */
+.admin-totals {
+  display: grid;
+  gap: 6px;
+  width: 100%;
+  max-width: 320px;
+  margin: 14px 0 0 auto;
+  padding: 0 6px;
+  box-sizing: border-box;
+  font-size: 0.93rem;
+}
+.admin-totals > div {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+}
+.admin-totals dt {
+  color: var(--color-ink-muted);
+  font-weight: 600;
+}
+.admin-totals dd {
+  margin: 0;
+  color: var(--color-ink);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+.admin-totals .admin-grand {
+  align-items: baseline;
+  margin-top: 4px;
+  padding-top: 10px;
+  border-top: 1px dashed var(--color-brand-line);
+}
+.admin-totals .admin-grand dt {
+  color: var(--color-ink);
+  font-weight: 800;
+}
+.admin-totals .admin-grand dd.admin-price {
+  color: #ff5c35;
+  font-size: 1.15rem;
+  font-weight: 800;
+}
+
+/* --------------------------------------------------------- reported reviews */
+.admin-reviews {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.admin-review {
+  padding: 18px;
+}
+@media (min-width: 900px) {
+  .admin-review {
+    padding: 22px 24px;
+  }
+}
+
+.admin-review-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+}
+
+.admin-review-quote {
+  margin: 12px 0 0;
+  padding: 12px 16px;
+  border-left: 4px solid var(--color-brand-light);
+  border-radius: 0 12px 12px 0;
+  background: var(--color-brand-tint);
+}
+
+.admin-reasons {
+  margin-top: 14px;
+  padding: 12px 16px;
+  border: 1px solid #fed7aa;
+  border-radius: 12px;
+  background: #fff7ed;
+  color: #7c2d12;
+  font-size: 0.9rem;
+}
+.admin-reasons ul {
+  list-style: disc;
+  margin: 6px 0 0;
+  padding-left: 20px;
+}
+
+.admin-review-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 16px;
+}
+
+/* ------------------------------------------------------------ admin index
+   /admin on its own: the sections as cards rather than an empty page. */
+.admin-welcome-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 14px;
+}
+.admin-welcome-card {
+  display: flex;
+  gap: 14px;
+  padding: 18px;
+  color: var(--color-ink);
+  transition: transform 0.15s, box-shadow 0.2s, border-color 0.2s;
+}
+.admin-welcome-card:hover {
+  transform: translateY(-2px);
+  border-color: var(--color-brand-line);
+  box-shadow: var(--shadow-lift);
+  color: var(--color-ink);
+}
+.admin-welcome-card strong {
+  display: block;
+  margin-bottom: 4px;
+  font-size: 1rem;
+  font-weight: 800;
+}
+.admin-welcome-card span.admin-cell-muted {
+  display: block;
+  line-height: 1.45;
+}
+
+/* ------------------------------------------------------ order tracking page
+   /admin/order-tracking/:orderNumber, which sits outside the panel. */
+.admin-order-page {
+  min-height: 100vh;
+  background: var(--color-page);
+}
+
+.admin-order-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 16px;
+}
+.admin-order-bar-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+@media (min-width: 900px) {
+  .admin-order-bar {
+    padding: 16px clamp(24px, 3vw, 44px);
+  }
+}
+
+.admin-order-body {
+  max-width: 1080px;
+  margin: 0 auto;
+  padding: 24px 16px 56px;
+  box-sizing: border-box;
+}
+@media (min-width: 900px) {
+  .admin-order-body {
+    padding: 32px 24px 64px;
+  }
+}
+
+.admin-order-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+@media (min-width: 760px) {
+  .admin-order-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+.admin-panel-card {
+  padding: 18px 20px;
+}
+.admin-panel-card h3 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 12px;
+  color: var(--color-ink);
+  font-size: 0.8rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.admin-panel-card h3 svg {
+  color: var(--color-brand);
+}
+
+.admin-facts {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  font-size: 0.93rem;
+}
+.admin-facts > div {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 2px 12px;
+  min-width: 0;
+}
+.admin-facts dt {
+  color: var(--color-ink-muted);
+}
+.admin-facts dd {
+  margin: 0;
+  color: var(--color-ink);
+  font-weight: 700;
+  text-align: right;
+  overflow-wrap: anywhere;
+  min-width: 0;
+}
+
+/* The five stages as a stepper. */
+.admin-steps {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  margin: 8px 0 4px;
+  padding: 0;
+  list-style: none;
+}
+.admin-step {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  text-align: center;
+  color: var(--color-ink-muted);
+  font-size: 0.78rem;
+  font-weight: 600;
+  line-height: 1.25;
+}
+/* The line to the next stage, drawn from this dot's centre. */
+.admin-step:not(:last-child)::after {
+  content: '';
+  position: absolute;
+  top: 17px;
+  left: 50%;
+  width: 100%;
+  height: 4px;
+  border-radius: 4px;
+  background: var(--color-line);
+}
+.admin-step.is-done:not(:last-child)::after {
+  background: linear-gradient(90deg, var(--color-brand), var(--color-brand-light));
+}
+.admin-step-dot {
+  position: relative;
+  z-index: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  border: 2px solid var(--color-line);
+  background: #fff;
+  color: var(--color-ink-muted);
+  font-size: 0.9rem;
+  font-weight: 800;
+}
+.admin-step.is-done .admin-step-dot {
+  border-color: transparent;
+  background: linear-gradient(135deg, var(--color-brand), var(--color-brand-light));
+  color: #fff;
+}
+.admin-step.is-done {
+  color: var(--color-brand-dark);
+}
+.admin-step.is-current .admin-step-dot {
+  border-color: transparent;
+  background: linear-gradient(135deg, #ff5c35, #ff8a3d);
+  color: #fff;
+  box-shadow: 0 0 0 5px rgba(255, 92, 53, 0.18);
+}
+.admin-step.is-current {
+  color: var(--color-ink);
+  font-weight: 800;
+}
+@media (min-width: 600px) {
+  .admin-step {
+    font-size: 0.88rem;
+  }
+}
+
+.admin-status-form {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px 14px;
+  margin-top: 20px;
+  padding-top: 18px;
+  border-top: 1px solid var(--color-line);
+}
+.admin-status-form label {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+  color: var(--color-ink);
+}
+.admin-status-form .field {
+  width: auto;
+  min-width: 220px;
+  max-width: 100%;
+}
+
+
+/* A field the height of a small button, for a form inside a table row. */
+.admin-page .admin-input-sm {
+  width: 150px;
+  min-height: 38px;
+  font-size: 0.88rem;
+}
+@media (pointer: coarse) {
+  .admin-page .admin-input-sm {
+    min-height: 44px;
+  }
+}
+
+.admin-page .admin-status-lg {
+  padding: 6px 14px;
+  font-size: 0.8rem;
+}
+.admin-table-round {
+  border-radius: 14px;
+}
+.admin-table-round .styled-table {
+  margin-top: 0;
+}
+
+/* The last column stays in view while the rest of a wide table scrolls under
+   it - the returns table's Approve and Reject were off the side of the card. */
+.admin-page .styled-table .admin-sticky-end {
+  position: sticky;
+  right: 0;
+  z-index: 1;
+  box-shadow: -10px 0 14px -12px rgba(30, 27, 75, 0.35);
+}
+.admin-page .styled-table td.admin-sticky-end {
+  background: inherit;
+}
+
+@media (max-width: 599px) {
+  .admin-step {
+    padding: 0 2px;
+    font-size: 0.72rem;
+  }
+  .admin-step-dot {
+    width: 34px;
+    height: 34px;
+  }
+  .admin-step:not(:last-child)::after {
+    top: 15px;
+  }
+}
+
+/* `overflow: hidden` on the table (for its corners) would make it the box the
+   sticky column sticks to, so it would never stick. The scroller clips the
+   corners instead. */
+.admin-page .table-scroll {
+  border-radius: 13px;
+}
+.admin-page .table-scroll > .styled-table {
+  overflow: visible;
+}
+
+/* On a phone the pinned column's buttons stack, so it takes less of the row. */
+@media (max-width: 599px) {
+  .admin-page .styled-table .admin-sticky-end .admin-row-actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+}

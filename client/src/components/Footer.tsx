@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom';
 
 import { site } from '../config/site.js';
+import Logo from './Logo.js';
 import './Footer.css';
 
 /**
@@ -15,6 +16,11 @@ import './Footer.css';
 export default function Footer() {
   return (
     <footer className="footer">
+      <div className="footer-brand">
+        <Logo size={34} inverted />
+        <p>{site.tagline}</p>
+      </div>
+
       <div className="footer-section">
         <h4>About us</h4>
         <ul>

@@ -1,14 +1,24 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { FaSearch, FaTruck } from 'react-icons/fa';
 
 import type { OrderLine } from '@shared/api.js';
 
 import { useBuyerOrders } from '../../hooks/queries.js';
 import { useDebounced } from '../../hooks/useDebounced.js';
 import Pager from '../../components/Pager.js';
+import '../../styles/orderTracking.css';
 
 /** Orders per page. Each one may be several rows. */
 const PAGE_SIZE = 25;
+
+/** A status's pill: delivered green, on its way violet, anything else amber. */
+const statusColours = (status: string) =>
+  status === 'Delivered'
+    ? { background: '#ecfdf5', color: '#047857' }
+    : ['Order Confirmed', 'Processing', 'Shipped', 'Out for Delivery'].includes(status)
+      ? { background: '#f3efff', color: '#5b21b6' }
+      : { background: '#fff7ed', color: '#c2410c' };
 
 export default function BuyerOrderList() {
   const [search, setSearch] = useState('');
@@ -48,65 +58,52 @@ export default function BuyerOrderList() {
 
   const grouped = groupOrdersByOrderNumber(orders);
 
+  // Was a `position: fixed` layer over the whole window with its own scroll,
+  // which a phone's browser bar and pull-to-refresh do not expect. A page.
   return (
-    <div style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100vh', background: '#fff', overflowY: 'auto' }}>
-      <div style={{ width: '100%', minHeight: '100vh', boxSizing: 'border-box', padding: '2rem', maxWidth: 1400, margin: '0 auto' }}>
-        <div style={{ marginBottom: '1rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <button
-            onClick={() => navigate('/profile')}
-            style={{
-              backgroundColor: '#2196F3',
-              color: 'white',
-              padding: '0.5rem 1rem',
-              border: 'none',
-              borderRadius: '4px',
-              cursor: 'pointer',
-              marginBottom: '1rem'
-            }}
-          >
+    <div className="ot-page">
+      <div className="ot-wrap" style={{ maxWidth: 1200 }}>
+        <div className="ot-toolbar">
+          <button type="button" className="btn btn-ghost" onClick={() => navigate('/profile')}>
             ← Return to Profile
           </button>
           <button
+            type="button"
+            className="btn btn-ghost"
             onClick={fetchOrders}
             disabled={refreshing}
-            style={{
-              backgroundColor: '#43a047',
-              color: 'white',
-              padding: '0.5rem 1.5rem',
-              border: 'none',
-              borderRadius: '4px',
-              cursor: refreshing ? 'not-allowed' : 'pointer',
-              fontWeight: 'bold',
-              marginLeft: 16,
-              marginBottom: '1rem'
-            }}
+            style={{ cursor: refreshing ? 'not-allowed' : 'pointer' }}
           >
             {refreshing ? 'Refreshing...' : 'Refresh'}
           </button>
         </div>
-        <h2>Your Orders (as Buyer)</h2>
-        <input
-          type="text"
-          placeholder="Search by order number, title, author or seller..."
-          value={search}
-          onChange={(e) => {
-            setSearch(e.target.value);
-            setPage(1);
-          }}
-          style={{
-            padding: '0.5rem',
-            marginBottom: '1rem',
-            width: '100%',
-            maxWidth: '400px',
-            borderRadius: '4px',
-            border: '1px solid #ccc'
-          }}
-        />
-        <div style={{ overflowX: 'auto' }}>
+
+        <p className="ot-kicker">🛍️ Orders</p>
+        <h1 className="m-0" style={{ fontSize: 'clamp(1.6rem, 1.2rem + 1.6vw, 2.2rem)' }}>Your Orders (as Buyer)</h1>
+
+        <div className="relative mt-4 mb-5" style={{ maxWidth: 440 }}>
+          <FaSearch
+            aria-hidden="true"
+            className="pointer-events-none absolute top-1/2 left-4 -translate-y-1/2 text-ink-muted"
+          />
+          <input
+            type="text"
+            className="field"
+            style={{ paddingLeft: 42, borderRadius: 999 }}
+            placeholder="Search by order number, title, author or seller..."
+            value={search}
+            onChange={(e) => {
+              setSearch(e.target.value);
+              setPage(1);
+            }}
+          />
+        </div>
+
+        <div>
           {loading ? (
-            <div>Loading...</div>
+            <div className="py-10 text-center font-semibold text-ink-muted">Loading...</div>
           ) : Object.keys(grouped).length === 0 ? (
-            <div>No orders found.</div>
+            <div className="card p-8 text-center text-ink-muted">No orders found.</div>
           ) : (
             Object.entries(grouped).map(([orderNumber, orderBooks]) => {
               const order = orderBooks[0];
@@ -117,62 +114,51 @@ export default function BuyerOrderList() {
               const displayOrderNumber = order.orderNumber && !/@|T\d{2}:\d{2}/.test(order.orderNumber)
                 ? order.orderNumber
                 : orderNumber;
+              const status = order.status || 'Order Confirmed';
               return (
-                <div key={orderNumber} style={{
-                  marginBottom: 32,
-                  background: '#fff',
-                  borderRadius: 8,
-                  boxShadow: '0 2px 8px rgba(0,0,0,0.06)',
-                  padding: 24,
-                  position: 'relative'
-                }}>
-                  {/* Track Your Order button */}
-                  <button
-                    onClick={() => navigate(`/order-tracking/${order.orderNumber ? order.orderNumber : order._id}`)}
-                    style={{
-                      position: 'absolute',
-                      top: 24,
-                      right: 24,
-                      backgroundColor: '#2196F3',
-                      color: 'white',
-                      border: 'none',
-                      borderRadius: 4,
-                      padding: '0.5rem 1.5rem',
-                      fontWeight: 'bold',
-                      cursor: 'pointer',
-                      zIndex: 2
-                    }}
-                  >
-                    Track Your Order
-                  </button>
-                  <div style={{ marginBottom: 8, fontWeight: 600, fontSize: 18 }}>
-                    Order Placed On: {order.createdAt ? new Date(order.createdAt).toLocaleDateString() : ''} <br />
-                    Order Number: <span style={{ color: '#e65100' }}>{displayOrderNumber}</span>
-                    <span style={{ marginLeft: 24, color: '#2196F3', fontWeight: 500 }}>
-                      Status: {order.status || 'Order Confirmed'}
-                    </span>
+                <section key={orderNumber} className="card mb-5 min-w-0 p-4 sm:p-6">
+                  <div className="flex flex-wrap items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <div className="text-sm text-ink-muted">
+                        Order Placed On: {order.createdAt ? new Date(order.createdAt).toLocaleDateString() : ''}
+                      </div>
+                      <div className="mt-1 text-lg font-bold text-ink">
+                        Order Number: <span className="ot-mono">{displayOrderNumber}</span>
+                      </div>
+                      <span className="ot-pill mt-2" style={statusColours(status)}>
+                        Status: {status}
+                      </span>
+                    </div>
+                    {/* Track Your Order button */}
+                    <button
+                      type="button"
+                      className="btn btn-primary"
+                      onClick={() => navigate(`/order-tracking/${order.orderNumber ? order.orderNumber : order._id}`)}
+                    >
+                      <FaTruck aria-hidden="true" /> Track Your Order
+                    </button>
                   </div>
                   <div className="table-scroll">
-                  <table className="styled-table">
-  <thead>
-    <tr>
-      <th>Title</th>
-      <th>Author</th>
-      <th>Category</th>
-      <th>Book Type</th>
-      <th>Condition</th>
-      <th>No. of Pages</th>
-      <th>Price (Tk.)</th>
-      <th>Quantity</th>
-      <th>Seller</th>
-      <th>Total Cost</th>
-    </tr>
-  </thead>
+                  <table className="styled-table ot-table">
+                    <thead>
+                      <tr>
+                        <th>Title</th>
+                        <th>Author</th>
+                        <th>Category</th>
+                        <th>Book Type</th>
+                        <th>Condition</th>
+                        <th>No. of Pages</th>
+                        <th>Price (Tk.)</th>
+                        <th>Quantity</th>
+                        <th>Seller</th>
+                        <th>Total Cost</th>
+                      </tr>
+                    </thead>
 
                     <tbody>
                       {orderBooks.map((ob, idx) => (
                         <tr key={ob._id || idx}>
-                          <td>{ob.title}</td>
+                          <td className="font-semibold text-ink">{ob.title}</td>
                           <td>{ob.author}</td>
                           <td>{Array.isArray(ob.category) ? ob.category.join(', ') : ob.category}</td>
                           <td>{ob.bookType}</td>
@@ -181,31 +167,23 @@ export default function BuyerOrderList() {
                           <td>{ob.price}</td>
                           <td>{ob.quantity}</td>
                           <td>{ob.sellerEmail}</td>
-                          <td>{(Number(ob.price) * Number(ob.quantity)).toFixed(2)}</td>
+                          <td className="font-bold" style={{ color: '#ff5c35' }}>
+                            {(Number(ob.price) * Number(ob.quantity)).toFixed(2)}
+                          </td>
                         </tr>
                       ))}
                     </tbody>
-                    <tfoot>
-                      <tr>
-                        <td colSpan={9} style={{ textAlign: 'right', fontWeight: 600 }}>Subtotal:</td>
-                        <td style={{ fontWeight: 700 }}>{booksTotal.toFixed(2)}</td>
-                      </tr>
-                      <tr>
-                        <td colSpan={9} style={{ textAlign: 'right', fontWeight: 600 }}>Shipping Cost:</td>
-                        <td style={{ fontWeight: 700 }}>{Number(shippingCost).toFixed(2)}</td>
-                      </tr>
-                      <tr>
-                        <td colSpan={9} style={{ textAlign: 'right', fontWeight: 600 }}>Discount:</td>
-                        <td style={{ fontWeight: 700 }}>-{Number(discount).toFixed(2)}</td>
-                      </tr>
-                      <tr>
-                        <td colSpan={9} style={{ textAlign: 'right', fontWeight: 600 }}>Order Total:</td>
-                        <td style={{ fontWeight: 700 }}>{totalCost.toFixed(2)}</td>
-                      </tr>
-                    </tfoot>
                   </table>
                   </div>
-                </div>
+                  {/* Under the table rather than in its footer, which sat off
+                      the right-hand edge of a phone. */}
+                  <div className="ot-totals">
+                    <div><span>Subtotal:</span><span>৳{booksTotal.toFixed(2)}</span></div>
+                    <div><span>Shipping Cost:</span><span>৳{Number(shippingCost).toFixed(2)}</span></div>
+                    <div><span>Discount:</span><span>-৳{Number(discount).toFixed(2)}</span></div>
+                    <div className="ot-grand"><span>Order Total:</span><span>৳{totalCost.toFixed(2)}</span></div>
+                  </div>
+                </section>
               );
             })
           )}

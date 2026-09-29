@@ -17,11 +17,14 @@ const SHOP = 'BookStoreBD';
 const SUPPORT = 'support.utsha@gmail.com';
 const PLACE = 'Dhaka, Bangladesh';
 
-const BRAND = '#8b6f6f';
-const BRAND_DARK = '#6d5454';
-const TINT = '#f5f0ee';
-const INK = '#2b2323';
-const MUTED = '#6b6060';
+const BRAND = '#6d28d9';
+const BRAND_DARK = '#5b21b6';
+const TINT = '#f3efff';
+const INK = '#111827';
+const MUTED = '#6b7280';
+const ACCENT = '#ff5c35';
+const DEEP = '#1e1b4b';
+const SANS = "'Plus Jakarta Sans','Segoe UI',Roboto,Helvetica,Arial,sans-serif";
 
 export interface Email {
   subject: string;
@@ -59,15 +62,15 @@ const layout = ({ heading, preheader, body }: { heading: string; preheader: stri
 <div style="display:none;max-height:0;overflow:hidden;opacity:0;color:${TINT};">${escape(preheader)}</div>
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:${TINT};">
 <tr><td align="center" style="padding:32px 12px;">
-<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width:520px;background:#ffffff;border-radius:14px;overflow:hidden;border:1px solid #e7ded9;">
-<tr><td align="center" bgcolor="${BRAND}" style="background:${BRAND};background-image:linear-gradient(135deg,${BRAND} 0%,${BRAND_DARK} 100%);padding:30px 24px;">
-<div style="font-family:Georgia,'Times New Roman',serif;font-size:28px;font-weight:bold;color:#ffffff;letter-spacing:0.5px;">${SHOP}</div>
-<div style="font-family:Arial,Helvetica,sans-serif;font-size:14px;color:#f3e9e6;margin-top:6px;">${escape(heading)}</div>
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width:520px;background:#ffffff;border-radius:20px;overflow:hidden;border:1px solid #ece8f7;">
+<tr><td align="center" bgcolor="${BRAND}" style="background:${BRAND};background-image:linear-gradient(135deg,${DEEP} 0%,${BRAND} 55%,${ACCENT} 100%);padding:32px 24px;">
+<div style="font-family:${SANS};font-size:28px;font-weight:800;color:#ffffff;letter-spacing:-0.5px;">BookStore<span style="color:#facc15;">BD</span></div>
+<div style="font-family:${SANS};font-size:14px;color:#ede9fe;margin-top:6px;">${escape(heading)}</div>
 </td></tr>
-<tr><td style="padding:32px 32px 8px;font-family:Arial,Helvetica,sans-serif;font-size:15px;line-height:1.6;color:${INK};">
+<tr><td style="padding:32px 32px 8px;font-family:${SANS};font-size:15px;line-height:1.6;color:${INK};">
 ${body}
 </td></tr>
-<tr><td style="padding:20px 32px 28px;border-top:1px solid #efe7e4;font-family:Arial,Helvetica,sans-serif;font-size:12px;line-height:1.6;color:${MUTED};" align="center">
+<tr><td style="padding:20px 32px 28px;border-top:1px solid #ece8f7;font-family:${SANS};font-size:12px;line-height:1.6;color:${MUTED};" align="center">
 Questions? Write to <a href="mailto:${SUPPORT}" style="color:${BRAND_DARK};">${SUPPORT}</a>${url ? ` &middot; <a href="${escape(url)}" style="color:${BRAND_DARK};">${escape(url.replace(/^https?:\/\//, ''))}</a>` : ''}<br>
 &copy; ${year} ${SHOP}, ${PLACE}
 </td></tr>
@@ -112,7 +115,7 @@ export const codeEmail = (purpose: CodePurpose, code: string): Email => {
     body: [
       paragraph(escape(copy.lead)),
       `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:8px 0 20px;">
-<tr><td align="center" style="background:${TINT};border:2px dashed ${BRAND};border-radius:12px;padding:20px 12px;">
+<tr><td align="center" style="background:${TINT};border:2px dashed #c4b5fd;border-radius:16px;padding:22px 12px;">
 <div style="font-family:'Courier New',Courier,monospace;font-size:34px;font-weight:bold;letter-spacing:10px;color:${BRAND_DARK};padding-left:10px;">${safeCode}</div>
 </td></tr>
 </table>`,
@@ -163,8 +166,8 @@ export const alreadyRegisteredEmail = (): Email => {
         'This address already has an account, so <strong>nothing was created</strong> and no verification code was issued.'
       ),
       signIn
-        ? `<table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:4px 0 20px;"><tr><td bgcolor="${BRAND}" style="background:${BRAND};border-radius:8px;">
-<a href="${escape(signIn)}" style="display:inline-block;padding:12px 22px;font-family:Arial,Helvetica,sans-serif;font-size:15px;font-weight:bold;color:#ffffff;text-decoration:none;">Sign in to ${SHOP}</a>
+        ? `<table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:4px 0 20px;"><tr><td bgcolor="${BRAND}" style="background:${BRAND};border-radius:999px;">
+<a href="${escape(signIn)}" style="display:inline-block;padding:13px 24px;font-family:${SANS};font-size:15px;font-weight:bold;color:#ffffff;text-decoration:none;">Sign in to ${SHOP}</a>
 </td></tr></table>`
         : '',
       paragraph(

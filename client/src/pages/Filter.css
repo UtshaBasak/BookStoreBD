@@ -1,0 +1,356 @@
+/*
+ * The browse page. The header, search bar and book card come from
+ * Homepage.css (`header`, `search-bar`, `book-card`, `chip`), so this file is
+ * only the layout around them and the pieces that are the page's own.
+ *
+ * Every rule here is unlayered and so beats the shared `.btn-*` classes in
+ * index.css; none of them select a bare `button` or `a` for that reason.
+ */
+.browse {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: var(--color-page);
+  color: var(--color-ink);
+}
+
+.browse-main {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  width: 100%;
+  max-width: 1320px;
+  margin: 0 auto;
+  padding: 1.25rem clamp(1rem, 3vw, 2.5rem) 2.5rem;
+  box-sizing: border-box;
+}
+
+@media (min-width: 1024px) {
+  .browse-main {
+    flex-direction: row;
+    align-items: flex-start;
+    gap: 2rem;
+  }
+}
+
+/* ------------------------------------------------------------ the panel */
+.filter-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  width: 100%;
+  min-height: 48px;
+  padding: 0 1rem;
+  background: #fff;
+  border: 1px solid var(--color-line);
+  border-radius: 14px;
+  box-shadow: var(--shadow-card);
+  color: var(--color-ink);
+  font-weight: 700;
+  text-align: left;
+}
+@media (min-width: 1024px) {
+  .filter-toggle {
+    display: none;
+  }
+}
+
+.filter-panel {
+  flex-direction: column;
+  gap: 1.25rem;
+  width: 100%;
+  padding: 1.25rem;
+  box-sizing: border-box;
+}
+/* Beside the results on a desktop. Not sticky: with fourteen categories it is
+   taller than a laptop screen, and a sticky panel that scrolls inside itself
+   hid the price and rating filters below the fold. */
+@media (min-width: 1024px) {
+  .filter-panel {
+    width: 280px;
+    flex-shrink: 0;
+  }
+}
+
+.filter-group h2 {
+  margin: 0 0 0.6rem;
+  font-size: 0.78rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--color-ink-muted);
+}
+
+.filter-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+/* `chip` is sized for a mouse on the homepage; a filter is tapped on a
+   phone, so it gets the full 44px. */
+.filter-chips .chip {
+  min-height: 44px;
+  gap: 0.4rem;
+  font-size: 0.9rem;
+  font-family: inherit;
+  white-space: normal;
+  text-align: left;
+}
+
+/* A mouse does not need the 44px, and the panel is shorter without it. */
+@media (min-width: 1024px) and (pointer: fine) {
+  .filter-chips .chip {
+    min-height: 36px;
+    padding: 0 0.8rem;
+    font-size: 0.86rem;
+  }
+}
+
+.chip.is-on,
+.chip.is-on:hover,
+.chip.is-on:focus-visible {
+  background: linear-gradient(135deg, var(--color-brand), var(--color-brand-light));
+  border-color: var(--color-brand);
+  color: #fff;
+  box-shadow: 0 4px 12px rgba(109, 40, 217, 0.25);
+}
+
+.price-fields {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+.price-fields .field {
+  flex: 1;
+  min-width: 0;
+}
+.price-fields span {
+  color: var(--color-ink-muted);
+}
+
+/* ----------------------------------------------------------- the results */
+.results {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  flex: 1;
+  min-width: 0;
+}
+
+.results-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.results-bar h1 {
+  margin: 0;
+  font-size: clamp(1.35rem, 1.1rem + 1vw, 1.8rem);
+  overflow-wrap: anywhere;
+}
+.results-bar .results-count {
+  margin: 2px 0 0;
+  color: var(--color-ink-muted);
+  font-size: 0.9rem;
+}
+
+.sort-field {
+  width: auto;
+  min-height: 44px;
+  padding-right: 2rem;
+  font-weight: 600;
+  font-size: 0.92rem;
+  cursor: pointer;
+}
+
+.results-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
+  gap: 1.25rem;
+  transition: opacity 150ms ease;
+}
+/* Two to a row on a phone, the way every shop app a young shopper uses
+   lays them out; one card of this width would be a screen per book. */
+@media (max-width: 520px) {
+  .results-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.75rem;
+  }
+}
+
+/* Selectors one class heavier than the rules further down, which they
+   override on half a phone. */
+@media (max-width: 520px) {
+  .results-grid .card-actions .btn {
+    font-size: 0.8rem;
+  }
+  /* The icon is what makes "Remove from Cart" wrap at this width. */
+  .results-grid .card-actions .btn svg {
+    display: none;
+  }
+  .results-grid .card-heart {
+    width: 36px;
+    height: 36px;
+    font-size: 16px;
+  }
+}
+
+.results-grid .book-card {
+  min-width: 0;
+  cursor: pointer;
+  padding: 10px;
+}
+.results-grid .book-image {
+  position: relative;
+  height: auto;
+  aspect-ratio: 3 / 4;
+  margin-bottom: 0.65rem;
+}
+.results-grid .book-info {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  flex: 1;
+  padding: 0 2px 2px;
+}
+.results-grid .book-info h3 {
+  font-size: 0.98rem;
+}
+
+.card-author {
+  color: var(--color-ink-muted);
+  font-size: 0.82rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.card-meta {
+  color: var(--color-brand-dark);
+  font-size: 0.75rem;
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.card-price {
+  color: var(--color-accent);
+  font-weight: 800;
+  font-size: 1.15rem;
+  letter-spacing: -0.01em;
+}
+.card-rating {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-height: 18px;
+  color: var(--color-ink-muted);
+  font-size: 0.78rem;
+}
+.card-actions {
+  margin-top: auto;
+  padding-top: 8px;
+}
+.card-actions .btn {
+  width: 100%;
+  min-height: 42px;
+  padding: 0 0.6rem;
+  font-size: 0.88rem;
+  /* "Remove from Cart" does not fit half a phone on one line. */
+  white-space: normal;
+  line-height: 1.15;
+}
+.card-sold-out {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 42px;
+  border-radius: 999px;
+  background: #f3f4f6;
+  color: var(--color-ink-muted);
+  font-weight: 700;
+  font-size: 0.85rem;
+}
+
+/* The heart on the cover. A real button, 40px square. */
+.card-heart {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  z-index: 2;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.92);
+  box-shadow: 0 2px 8px rgba(30, 27, 75, 0.18);
+  color: var(--color-accent);
+  font-size: 18px;
+}
+.card-heart:hover {
+  background: #fff;
+  transform: scale(1.06);
+}
+
+/* The stickers, stacked top left: New or Used, and a used book's condition
+   under it, clear of the heart on the right even on half a phone. */
+.card-badges {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  max-width: calc(100% - 64px);
+}
+.card-badges .badge {
+  box-shadow: 0 2px 8px rgba(30, 27, 75, 0.18);
+}
+
+.empty-results {
+  grid-column: 1 / -1;
+  padding: 2.5rem 1.25rem;
+  text-align: center;
+  background: var(--color-brand-tint);
+  border: 1px dashed #d6ccf7;
+  border-radius: var(--radius-card);
+  color: var(--color-ink-soft);
+}
+.empty-results p {
+  margin: 0;
+}
+
+.pager {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.5rem 0 1rem;
+}
+.pager .btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+/* The header on a phone: the logo and icons on one row, the search on the
+   next - Homepage.css does the wrapping. */
+@media (max-width: 768px) {
+  .browse .header {
+    padding: 0.6rem 0.75rem;
+  }
+  /* The logo beside it goes to the same place, and without it the logo, the
+     icons and "Sign in" fit on one row of a phone. */
+  .browse-home {
+    display: none;
+  }
+}

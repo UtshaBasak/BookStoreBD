@@ -1,0 +1,140 @@
+/*
+ * The cart and the checkout share this: the slim bar across the top, the
+ * page frame, and the summary rows. Imported by Cart.tsx and Payment.tsx.
+ * Every rule is scoped to a class of its own - a plain rule here sits outside
+ * the cascade layers and would beat the shared `.btn-*` classes.
+ */
+.shop-page {
+  min-height: 100vh;
+  background: var(--color-page);
+}
+
+/* The homepage's frosted header, with only the logo and one or two icons. */
+.shop-topbar {
+  flex-wrap: nowrap;
+}
+.shop-topbar .user-options {
+  margin-left: auto;
+}
+
+.shop-main {
+  width: 100%;
+  max-width: 1120px;
+  margin: 0 auto;
+  padding: 1.25rem 16px 3rem;
+  box-sizing: border-box;
+}
+@media (min-width: 640px) {
+  .shop-main {
+    padding: 2rem 24px 4rem;
+  }
+}
+
+.shop-title {
+  margin: 0;
+  font-size: clamp(1.6rem, 1.2rem + 1.6vw, 2.2rem);
+}
+
+.shop-sub {
+  margin: 0.25rem 0 0;
+  color: var(--color-ink-muted);
+  font-size: 0.95rem;
+}
+
+/* A cart line or a checkout line: cover on the left, the rest beside it. */
+.cart-item {
+  display: flex;
+  gap: 14px;
+  padding: 14px;
+}
+@media (min-width: 640px) {
+  .cart-item {
+    gap: 18px;
+    padding: 18px;
+  }
+}
+
+.cart-cover {
+  flex: none;
+  width: 76px;
+  height: 108px;
+  object-fit: cover;
+  border-radius: 12px;
+  background: var(--color-brand-tint);
+  box-shadow: 0 4px 12px rgba(30, 27, 75, 0.12);
+}
+@media (min-width: 640px) {
+  .cart-cover {
+    width: 88px;
+    height: 124px;
+  }
+}
+
+.cart-item-title {
+  margin: 0;
+  color: var(--color-ink);
+  font-size: 1.02rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  line-height: 1.3;
+  overflow-wrap: anywhere;
+}
+
+.price {
+  color: var(--color-accent);
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+/* The summary rows: label on the left, figure on the right. */
+.sum-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 12px;
+  padding: 6px 0;
+  color: var(--color-ink-soft);
+  font-size: 0.95rem;
+}
+.sum-row > :last-child {
+  font-weight: 700;
+  text-align: right;
+  color: var(--color-ink);
+}
+.sum-total {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 12px;
+  margin-top: 10px;
+  padding-top: 14px;
+  border-top: 1px dashed var(--color-brand-line);
+  font-weight: 800;
+  font-size: 1.15rem;
+  color: var(--color-ink);
+}
+.sum-total > :last-child {
+  color: var(--color-accent);
+  font-size: 1.45rem;
+  letter-spacing: -0.02em;
+}
+
+/* The little list of reasons to trust the shop, under the summary. */
+.trust-list {
+  display: grid;
+  gap: 8px;
+  margin: 16px 0 0;
+  padding: 0;
+  list-style: none;
+  color: var(--color-ink-soft);
+  font-size: 0.88rem;
+}
+.trust-list li {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.trust-list svg {
+  flex: none;
+  color: var(--color-brand);
+}

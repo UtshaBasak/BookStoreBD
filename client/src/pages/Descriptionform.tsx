@@ -1,8 +1,10 @@
 import { useState, type ChangeEvent, type FormEvent } from 'react';
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
+import { FaCalendarCheck, FaMoneyBillWave, FaTruck, FaUndoAlt } from 'react-icons/fa';
 
 import type { MessageResponse } from '@shared/api.js';
 
+import Logo from '../components/Logo.js';
 import { API_BASE_URL, apiFetch } from '../config/api.js';
 import { site } from '../config/site.js';
 import { useToast } from '../hooks/useToast.js';
@@ -112,151 +114,135 @@ export default function DescriptionForm() {
     }
   };
 
+  // The deep violet backdrop in place of the stock photograph of a library,
+  // with the form on a white card so what the buyer types is plain to read.
   return (
-    <div
-      style={{
-        display: 'flex',
-        justifyContent: 'center',
-        alignItems: 'center',
-        padding: '2rem',
-        fontFamily: 'Arial, sans-serif',
-        backgroundImage: `url('https://images.unsplash.com/photo-1524995997946-a1c2e315a42f?auto=format&fit=crop&w=1400&q=80')`,
-        backgroundSize: 'cover',
-        backgroundPosition: 'center',
-        backgroundRepeat: 'no-repeat',
-        height: '100%',
-        width: '100%',
-        position: 'absolute',
-        top: 0,
-        left: 0,
-        color: 'white', // Ensures all text inherits white color
-      }}
-    >
-      <div
-        style={{
-          backgroundColor: 'rgba(0, 0, 0, 0.6)',
-          padding: '2rem',
-          borderRadius: '8px',
-          width: '100%',
-          maxWidth: '600px',
-        }}
-      >
-        <h1 style={{ textAlign: 'center', color: 'white' }}>Return a book</h1>
-        {bookTitle && (
-          <p style={{ textAlign: 'center', marginTop: 0, fontSize: 18 }}>{bookTitle}</p>
-        )}
-
-        {/*
-          What happens next, before they fill anything in: a buyer deciding
-          whether to bother should know it costs them nothing to send back.
-        */}
-        {/* The app's base styles strip list markers, so they are asked for back. */}
-        <ul
-          style={{
-            margin: '0 0 1.5rem',
-            paddingLeft: '1.25rem',
-            lineHeight: 1.5,
-            fontSize: 15,
-            listStyle: 'disc',
-            display: 'grid',
-            gap: '0.5rem',
-          }}
-        >
-          {returnableUntil && (
-            <li>You can ask until {new Date(returnableUntil).toLocaleDateString()}.</li>
-          )}
-          <li>If we approve it, we e-mail you our office address. Send the book by courier - we pay for that.</li>
-          <li>
-            We refund the book's price to your bKash within {site.returns.refundWorkingDays} working days of it
-            reaching us. The original delivery charge is not refunded.
-          </li>
-        </ul>
-
-        <form onSubmit={handleSubmit}>
-          <h2 style={{ color: 'white' }}>What is wrong with it?</h2>
-          <label htmlFor="defect" style={{ display: 'block', marginBottom: '0.5rem' }}>
-            Describe the problem
-          </label>
-          <textarea
-            id="defect"
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-            placeholder="Describe the issue with the book..."
-            rows={5}
-            style={{
-              width: '100%',
-              padding: '1rem',
-              borderRadius: '4px',
-              border: '1px solid #ccc',
-              marginBottom: '1rem',
-              // Black text needs a light box behind it: the field was
-              // transparent, so what the buyer typed sat on the dark photograph.
-              color: 'black',
-              backgroundColor: 'white',
-              fontSize: 16,
-            }}
-          />
-
-          <label htmlFor="refund-bkash" style={{ display: 'block', marginBottom: '0.5rem' }}>
-            bKash number for your refund
-          </label>
-          <input
-            id="refund-bkash"
-            type="tel"
-            inputMode="numeric"
-            autoComplete="tel-national"
-            value={bkash}
-            onChange={(e) => setBkash(e.target.value)}
-            placeholder="01712345678"
-            style={{
-              width: '100%',
-              padding: '0.75rem 1rem',
-              borderRadius: '4px',
-              border: '1px solid #ccc',
-              marginBottom: '1rem',
-              color: 'black',
-              backgroundColor: 'white',
-              fontSize: 16,
-            }}
-          />
-
-          <label htmlFor="defect-images" style={{ display: 'block', marginBottom: '0.5rem' }}>
-            Photographs of the damage (up to {MAX_IMAGES}, optional)
-          </label>
-          <input
-            id="defect-images"
-            type="file"
-            accept="image/png,image/jpeg,image/webp,image/gif"
-            multiple
-            onChange={handleImageUpload}
-            style={{ marginBottom: '1rem', width: '100%' }}
-          />
-          {images.length > 0 && (
-            <p style={{ marginTop: 0, marginBottom: '1rem', fontSize: 14 }}>
-              {images.length} image{images.length === 1 ? '' : 's'} will be sent with this request.
-            </p>
-          )}
-
-          <button
-            type="submit"
-            disabled={submitting}
-            style={{
-              backgroundColor: '#43a047',
-              color: 'white',
-              padding: '0.5rem 1rem',
-              border: 'none',
-              borderRadius: '4px',
-              cursor: submitting ? 'not-allowed' : 'pointer',
-              width: '100%',
-              minHeight: 44,
-            }}
+    <div className="aurora min-h-screen w-full px-4 py-6 sm:py-10" style={{ boxSizing: 'border-box' }}>
+      <div className="mx-auto w-full" style={{ maxWidth: 620 }}>
+        <div className="mb-5 flex items-center justify-between gap-3">
+          <Link to="/" className="inline-flex items-center" aria-label="Go to Homepage" title="Go to Homepage">
+            <Logo size={32} inverted />
+          </Link>
+          <Link
+            to="/buyer-books"
+            className="btn btn-ghost"
+            style={{ background: 'rgba(255,255,255,0.12)', borderColor: 'rgba(255,255,255,0.35)', color: '#fff' }}
           >
-            {submitting ? progress || 'Sending...' : 'Confirm Return'}
-          </button>
-          <p style={{ marginBottom: 0, fontSize: 14, textAlign: 'center' }}>
-            <Link to="/returns" style={{ color: 'white' }}>Returns and refunds policy</Link>
-          </p>
-        </form>
+            ← Your books
+          </Link>
+        </div>
+
+        <div className="card p-5 sm:p-8">
+          <div className="text-center">
+            <div
+              aria-hidden="true"
+              className="mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-full text-xl"
+              style={{ background: '#f3efff', color: '#6d28d9' }}
+            >
+              <FaUndoAlt />
+            </div>
+            <h1 className="m-0" style={{ fontSize: 'clamp(1.6rem, 1.2rem + 1.6vw, 2.1rem)' }}>Return a book</h1>
+            {bookTitle && (
+              <p className="m-0 mt-2">
+                <span
+                  className="inline-block rounded-full px-4 py-1 font-bold"
+                  style={{ background: '#f3efff', color: '#5b21b6', overflowWrap: 'anywhere' }}
+                >
+                  {bookTitle}
+                </span>
+              </p>
+            )}
+          </div>
+
+          {/*
+            What happens next, before they fill anything in: a buyer deciding
+            whether to bother should know it costs them nothing to send back.
+          */}
+          {/* The app's base styles strip list markers; each line carries a tick
+              instead of the bullet it used to ask back for. */}
+          <ul
+            className="mt-6 mb-6 grid gap-3 rounded-2xl p-4 text-sm leading-relaxed text-ink-soft"
+            style={{ listStyle: 'none', background: '#faf9fe', border: '1px solid #ece8f7' }}
+          >
+            {returnableUntil && (
+              <li className="flex gap-3">
+                <FaCalendarCheck aria-hidden="true" className="mt-0.5 shrink-0 text-brand" />
+                <span>You can ask until {new Date(returnableUntil).toLocaleDateString()}.</span>
+              </li>
+            )}
+            <li className="flex gap-3">
+              <FaTruck aria-hidden="true" className="mt-0.5 shrink-0 text-brand" />
+              <span>If we approve it, we e-mail you our office address. Send the book by courier - we pay for that.</span>
+            </li>
+            <li className="flex gap-3">
+              <FaMoneyBillWave aria-hidden="true" className="mt-0.5 shrink-0 text-brand" />
+              <span>
+                We refund the book's price to your bKash within {site.returns.refundWorkingDays} working days of it
+                reaching us. The original delivery charge is not refunded.
+              </span>
+            </li>
+          </ul>
+
+          <form onSubmit={handleSubmit}>
+            <h2 className="m-0 mb-4 text-xl">What is wrong with it?</h2>
+            <label htmlFor="defect" className="mb-1.5 block text-sm font-semibold text-ink-soft">
+              Describe the problem
+            </label>
+            <textarea
+              id="defect"
+              className="field mb-4"
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              placeholder="Describe the issue with the book..."
+              rows={5}
+              style={{ minHeight: 130, padding: '12px 14px', resize: 'vertical' }}
+            />
+
+            <label htmlFor="refund-bkash" className="mb-1.5 block text-sm font-semibold text-ink-soft">
+              bKash number for your refund
+            </label>
+            <input
+              id="refund-bkash"
+              className="field mb-4"
+              type="tel"
+              inputMode="numeric"
+              autoComplete="tel-national"
+              value={bkash}
+              onChange={(e) => setBkash(e.target.value)}
+              placeholder="01712345678"
+            />
+
+            <label htmlFor="defect-images" className="mb-1.5 block text-sm font-semibold text-ink-soft">
+              Photographs of the damage (up to {MAX_IMAGES}, optional)
+            </label>
+            {/* The browser's own file control, with its button made to match. */}
+            <input
+              id="defect-images"
+              type="file"
+              accept="image/png,image/jpeg,image/webp,image/gif"
+              multiple
+              onChange={handleImageUpload}
+              className="mb-4 block w-full cursor-pointer rounded-xl border border-dashed border-brand-line bg-brand-tint p-3 text-sm text-ink-soft file:mr-3 file:min-h-10 file:cursor-pointer file:rounded-full file:border-0 file:bg-white file:px-4 file:font-bold file:text-brand"
+            />
+            {images.length > 0 && (
+              <p className="mt-0 mb-4 text-sm font-semibold" style={{ color: '#047857' }}>
+                {images.length} image{images.length === 1 ? '' : 's'} will be sent with this request.
+              </p>
+            )}
+
+            <button
+              type="submit"
+              className="btn btn-primary w-full"
+              disabled={submitting}
+              style={{ minHeight: 52, fontSize: 17, cursor: submitting ? 'not-allowed' : 'pointer' }}
+            >
+              {submitting ? progress || 'Sending...' : 'Confirm Return'}
+            </button>
+            <p className="mt-4 mb-0 text-center text-sm">
+              <Link to="/returns">Returns and refunds policy</Link>
+            </p>
+          </form>
+        </div>
       </div>
     </div>
   );

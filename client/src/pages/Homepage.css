@@ -3,164 +3,385 @@
  * setting height, colour and a grey background - applied to every page in the
  * application, because a stylesheet imported by a page is not scoped to it.
  * The layout rules that belong to everything now live in index.css.
+ *
+ * The header and nav rules are shared with the book page, which renders the
+ * same bar.
  */
-.homepage {
-  font-family: Arial, sans-serif;
-}
-
-/* Reset and base styles */
 .homepage {
   width: 100%;
   min-height: 100vh;
   display: flex;
   flex-direction: column;
-  background: #fff;
+  background: var(--color-page);
   box-sizing: border-box;
 }
 
-/* Header Styles */
+/* ---------------------------------------------------------------- header
+   Frosted, and stuck to the top while the page scrolls under it. */
 .header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 1rem 2rem;
-  background: #fff;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  gap: 1rem;
+  padding: 0.75rem clamp(1rem, 3vw, 2.5rem);
+  background: rgba(255, 255, 255, 0.82);
+  backdrop-filter: saturate(160%) blur(14px);
+  -webkit-backdrop-filter: saturate(160%) blur(14px);
+  border-bottom: 1px solid var(--color-line);
 }
 
-.logo h1 {
-  color: #8B6F6F;
-  font-size: 2rem;
-  margin: 0;
+.logo-button {
+  display: inline-flex;
+  align-items: center;
+  padding: 0;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+}
+.logo-button:hover {
+  border-color: transparent;
 }
 
 .search-bar {
+  position: relative;
   display: flex;
+  align-items: center;
   gap: 0.5rem;
+  flex: 1;
+  max-width: 520px;
+}
+
+.search-bar .search-icon {
+  position: absolute;
+  left: 16px;
+  color: var(--color-ink-muted);
+  pointer-events: none;
 }
 
 .search-bar input {
-  padding: 0.5rem 1rem;
-  width: 300px;
-  border: 1px solid #ddd;
-  border-radius: 4px;
+  flex: 1;
+  min-width: 0;
+  height: 44px;
+  padding: 0 1rem 0 2.6rem;
+  border: 1.5px solid var(--color-line);
+  border-radius: 999px;
+  background: #fff;
+  font: inherit;
+  font-size: 0.95rem;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+.search-bar input:focus {
+  outline: none;
+  border-color: var(--color-brand-light);
+  box-shadow: 0 0 0 4px rgba(139, 92, 246, 0.18);
 }
 
 .search-bar button {
-  padding: 0.5rem 1rem;
-  background: #8B6F6F;
-  color: white;
+  height: 44px;
+  padding: 0 1.2rem;
+  background: linear-gradient(135deg, var(--color-brand), var(--color-brand-light));
+  color: #fff;
   border: none;
-  border-radius: 4px;
+  border-radius: 999px;
+  font-weight: 700;
   cursor: pointer;
 }
 
 .user-options {
   display: flex;
-  gap: 1.5rem;
+  gap: 0.5rem;
   align-items: center;
 }
 
-.user-options a {
-  color: #8B6F6F;
+/* Not the buttons: this plain rule sits outside any cascade layer, so it
+   beat the white text of the "Sign in" button and left it violet on violet. */
+.user-options a:not(.btn) {
+  color: var(--color-brand);
   text-decoration: none;
 }
 
-/* Navigation Bar */
+/* ------------------------------------------------------------------- nav
+   Chips, scrolling sideways on a phone rather than wrapping into a block. */
 .nav-bar {
   display: flex;
   justify-content: center;
-  gap: 2rem;
-  padding: 1rem;
-  background: #f5f5f5;
+  gap: 0.6rem;
+  padding: 0.75rem 1rem;
+  background: transparent;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.nav-bar::-webkit-scrollbar {
+  display: none;
 }
 
-.nav-bar a {
-  color: #333;
-  text-decoration: none;
-  font-weight: 500;
+.chip {
+  display: inline-flex;
+  align-items: center;
+  min-height: 38px;
+  padding: 0 1rem;
+  border-radius: 999px;
+  background: #fff;
+  border: 1px solid var(--color-line);
+  color: var(--color-ink-soft);
+  font-weight: 600;
+  font-size: 0.92rem;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background 0.2s, border-color 0.2s, color 0.2s;
+}
+.chip:hover,
+.chip:focus-visible {
+  background: var(--color-brand-tint);
+  border-color: var(--color-brand-line);
+  color: var(--color-brand-dark);
+}
+.chip-strong {
+  background: var(--color-brand-deep);
+  border-color: var(--color-brand-deep);
+  color: #fff;
+}
+.chip-strong:hover,
+.chip-strong:focus-visible {
+  background: var(--color-brand);
+  border-color: var(--color-brand);
+  color: #fff;
 }
 
-/* Hero Banner */
-.hero-banner {
-  width: 100%;
-  /* Was a flat 400px. On a 360px screen that crops a wide banner down to a
-     sliver of itself and fills the first screen with it. */
-  height: clamp(140px, 32vw, 340px);
+/* ------------------------------------------------------------------ hero */
+.hero {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 1.15fr) minmax(0, 0.85fr);
+  align-items: center;
+  gap: 1.5rem;
+  margin: 0.5rem clamp(0.75rem, 3vw, 2.5rem) 1.5rem;
+  padding: clamp(1.75rem, 5vw, 3.5rem) clamp(1.25rem, 4vw, 3.5rem);
+  border-radius: 28px;
   overflow: hidden;
+  color: #fff;
+  background:
+    radial-gradient(700px 380px at 0% 0%, rgba(139, 92, 246, 0.85), transparent 60%),
+    radial-gradient(600px 400px at 100% 100%, rgba(255, 92, 53, 0.75), transparent 60%),
+    linear-gradient(135deg, #3b0764 0%, #1e1b4b 100%);
+  box-shadow: var(--shadow-lift);
 }
 
-.hero-banner img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
+.hero-inner {
+  position: relative;
+  z-index: 1;
 }
 
-/* Popular Section */
+.hero-kicker {
+  display: inline-block;
+  margin: 0 0 1rem;
+  padding: 6px 14px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.14);
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.hero-title {
+  margin: 0 0 0.75rem;
+  color: #fff;
+  font-size: clamp(1.9rem, 1.2rem + 3vw, 3.4rem);
+  line-height: 1.05;
+  letter-spacing: -0.035em;
+}
+
+.hero-highlight {
+  background: linear-gradient(90deg, #facc15, #ff8a3d);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.hero-sub {
+  margin: 0 0 1.5rem;
+  max-width: 34rem;
+  color: rgba(255, 255, 255, 0.82);
+  font-size: clamp(1rem, 0.9rem + 0.4vw, 1.15rem);
+}
+
+.hero-search {
+  position: relative;
+  display: flex;
+  gap: 0.5rem;
+  max-width: 34rem;
+  padding: 6px;
+  border-radius: 999px;
+  background: #fff;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+}
+.hero-search input {
+  flex: 1;
+  min-width: 0;
+  border: none;
+  outline: none;
+  padding: 0 0.75rem 0 2.4rem;
+  background: transparent;
+  color: var(--color-ink);
+  font: inherit;
+  font-size: 1rem;
+}
+.hero-search-icon {
+  position: absolute;
+  left: 20px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--color-ink-muted);
+}
+
+.hero-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-top: 1.25rem;
+}
+.hero-actions .btn-ghost {
+  background: rgba(255, 255, 255, 0.12);
+  border-color: rgba(255, 255, 255, 0.35);
+  color: #fff;
+}
+.hero-actions .btn-ghost:hover {
+  background: rgba(255, 255, 255, 0.22);
+  color: #fff;
+}
+
+.hero-perks {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 1.25rem;
+  margin: 1.5rem 0 0;
+  padding: 0;
+  list-style: none;
+  color: rgba(255, 255, 255, 0.88);
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+/* The drawing: five tilted book spines and a sun behind them. */
+.hero-art {
+  position: relative;
+  height: 260px;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  gap: 10px;
+}
+.spine {
+  display: block;
+  width: 46px;
+  border-radius: 10px 10px 6px 6px;
+  box-shadow: inset -6px 0 0 rgba(0, 0, 0, 0.12), 0 14px 30px rgba(0, 0, 0, 0.3);
+  position: relative;
+  z-index: 1;
+}
+.spine::after {
+  content: '';
+  position: absolute;
+  left: 10px;
+  right: 10px;
+  top: 22px;
+  height: 6px;
+  border-radius: 3px;
+  background: rgba(255, 255, 255, 0.55);
+}
+.s1 { height: 170px; background: linear-gradient(#a78bfa, #7c3aed); transform: rotate(-4deg); }
+.s2 { height: 220px; background: linear-gradient(#ffb199, #ff5c35); }
+.s3 { height: 190px; background: linear-gradient(#fde68a, #facc15); transform: rotate(3deg); }
+.s4 { height: 235px; background: linear-gradient(#6ee7b7, #10b981); }
+.s5 { height: 160px; background: linear-gradient(#f0abfc, #c026d3); transform: rotate(-12deg) translateY(-6px); transform-origin: bottom left; }
+.hero-sun {
+  position: absolute;
+  top: 6px;
+  right: 18%;
+  width: 90px;
+  height: 90px;
+  border-radius: 50%;
+  background: radial-gradient(circle, #fde047, rgba(250, 204, 21, 0) 70%);
+  filter: blur(2px);
+}
+
+/* ------------------------------------------------------- the book strip */
 .popular-section {
-  padding: 2rem;
-  background: #fff; /* Ensure background is white, not transparent */
+  padding: 1rem clamp(1rem, 3vw, 2.5rem) 2.5rem;
+  background: transparent;
   position: relative;
   z-index: 2;
 }
 
 .popular-section h2 {
-  color: #8B6F6F;
-  margin-bottom: 1.5rem;
+  color: var(--color-ink);
+  font-size: clamp(1.35rem, 1.1rem + 1vw, 1.8rem);
+  margin: 0 0 1rem;
 }
 
 .book-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-  gap: 2rem;
+  gap: 1.5rem;
   padding: 1rem;
 }
 
 .book-card {
   display: flex;
   flex-direction: column;
-  align-items: center;
-  padding: 1rem;
-  border: 1px solid #ddd;
-  border-radius: 8px;
-  transition: transform 0.2s;
+  align-items: stretch;
+  padding: 12px;
+  background: #fff;
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-card);
+  transition: transform 0.2s, box-shadow 0.2s;
 }
 
 .book-card:hover {
-  transform: translateY(-5px);
-  box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+  transform: translateY(-4px);
+  box-shadow: var(--shadow-lift);
 }
 
 .book-image {
-  width: 150px;
+  width: 100%;
   height: 200px;
-  margin-bottom: 1rem;
+  margin-bottom: 0.75rem;
 }
 
 .book-image img {
   width: 100%;
   height: 100%;
   object-fit: cover;
-  border-radius: 4px;
+  border-radius: 14px;
+  background: var(--color-brand-tint);
 }
 
 .book-info {
-  text-align: center;
+  text-align: left;
+  padding: 0 4px 4px;
 }
 
 .book-info h3 {
   margin: 0;
-  color: #333;
+  color: var(--color-ink);
   font-size: 1rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  line-height: 1.3;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 
 .book-info p {
-  color: #666;
+  color: var(--color-ink-muted);
   font-size: 0.9rem;
   margin: 0.5rem 0;
 }
 
-/* Dropdown Menu Styles */
+/* ------------------------------------------------------------- dropdown */
 .dropdown {
   position: relative;
   display: inline-block;
@@ -174,112 +395,105 @@
   left: 0;
   background-color: #fff;
   min-width: 200px;
-  box-shadow: 0 8px 16px rgba(0,0,0,0.1);
+  box-shadow: var(--shadow-lift);
+  border: 1px solid var(--color-line);
   z-index: 30; /* Higher than banners and other content */
-  border-radius: 4px;
-  padding: 0.5rem 0;
+  border-radius: 16px;
+  padding: 0.5rem;
 }
 
 .dropdown:hover .dropdown-content {
   display: block;
 }
 
+.dropdown-content span,
 .dropdown-content a {
-  color: #333;
-  padding: 0.75rem 1rem;
+  color: var(--color-ink-soft);
+  border-radius: 10px;
   text-decoration: none;
   display: block;
-  transition: background-color 0.2s;
+  font-weight: 500;
+  transition: background-color 0.2s, color 0.2s;
 }
 
+.dropdown-content span:hover,
 .dropdown-content a:hover {
-  background-color: #f5f5f5;
-  color: #8B6F6F;
-}
-
-/* Writers Section Styles */
-.writers-section {
-  background-color: #f9f9f9;
-  padding: 3rem 2rem;
-}
-
-.writers-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-  gap: 2rem;
-  padding: 1rem;
-}
-
-.writer-card {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  padding: 1.5rem;
-  background: white;
-  border-radius: 8px;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.05);
-  transition: transform 0.2s;
-}
-
-.writer-card:hover {
-  transform: translateY(-5px);
-  box-shadow: 0 4px 8px rgba(0,0,0,0.1);
-}
-
-.writer-image {
-  width: 120px;
-  height: 120px;
-  border-radius: 50%;
-  overflow: hidden;
-  margin-bottom: 1rem;
-}
-
-.writer-image img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
-
-.writer-info {
-  text-align: center;
-}
-
-.writer-info h3 {
-  margin: 0;
-  color: #333;
-  font-size: 1.1rem;
-}
-
-.writer-info p {
-  color: #666;
-  font-size: 0.9rem;
-  margin: 0.5rem 0;
+  background-color: var(--color-brand-tint);
+  color: var(--color-brand-dark);
 }
 
 /* Footer styles live with the Footer component. */
 
-/* Responsive Design */
+/* ------------------------------------------------------------ responsive */
+@media (max-width: 860px) {
+  .hero {
+    grid-template-columns: 1fr;
+  }
+  .hero-art {
+    display: none;
+  }
+}
+
 @media (max-width: 768px) {
+  /* The logo and the icons on one row, the search across the next. */
   .header {
-    flex-direction: column;
-    gap: 1rem;
-  }
-  
-  .search-bar input {
-    width: 200px;
-  }
-  
-  .nav-bar {
     flex-wrap: wrap;
+    row-gap: 0.6rem;
   }
-  
+  .header {
+    padding: 0.6rem 0.75rem;
+  }
+  .logo-button {
+    --logo-size: 30px;
+  }
+  .user-options {
+    gap: 0;
+    margin-left: auto;
+  }
+  .user-options .icon-button,
+  .user-options .icon-link {
+    min-width: 40px;
+  }
+  .user-options .btn {
+    min-height: 38px;
+    padding: 0 0.9rem;
+    font-size: 0.9rem;
+  }
+  /* A placeholder that only ever says "No new notifications": not worth a
+     place in a phone's header. */
+  .notification-icon {
+    display: none;
+  }
+
+  .search-bar {
+    order: 3;
+    max-width: none;
+    flex-basis: 100%;
+  }
+
+  .nav-bar {
+    justify-content: flex-start;
+  }
+
   .dropdown-content {
-    position: static;
-    box-shadow: none;
-    border-radius: 0;
+    position: fixed;
+    left: 12px;
+    right: 12px;
+    min-width: 0;
+    grid-template-columns: 1fr 1fr;
   }
-  
-  .writers-grid {
-    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+}
+
+/* The categories: two columns beside the chip on a wide screen, and pinned
+   across the width of a phone rather than hanging off its right-hand edge. */
+.categories-menu {
+  min-width: 400px;
+  max-width: 500px;
+}
+@media (max-width: 768px) {
+  .categories-menu {
+    min-width: 0;
+    max-width: none;
+    top: 170px;
   }
 }

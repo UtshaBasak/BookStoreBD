@@ -1,0 +1,219 @@
+/*
+ * The wishlist. The header and the book card are the homepage's
+ * (Homepage.css); this is the page around them. Unlayered, so nothing here
+ * selects a bare `button` or `a` - that would beat the shared `.btn-*`.
+ */
+.wishlist-page {
+  min-height: 100vh;
+  background: var(--color-page);
+  color: var(--color-ink);
+}
+
+.wishlist-main {
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 1.5rem clamp(1rem, 3vw, 2.5rem) 3rem;
+  box-sizing: border-box;
+}
+
+.wishlist-heading {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.25rem 1rem;
+  margin-bottom: 1.25rem;
+}
+/* Over the empty-state card, which is centred. */
+.wishlist-heading.is-empty {
+  justify-content: center;
+}
+.wishlist-heading h1 {
+  margin: 0;
+  font-size: clamp(1.75rem, 1.3rem + 2vw, 2.5rem);
+}
+.wishlist-heading p {
+  margin: 0;
+  color: var(--color-ink-muted);
+  font-weight: 600;
+}
+
+.wishlist-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
+  gap: 1.25rem;
+}
+@media (max-width: 520px) {
+  .wishlist-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.75rem;
+  }
+}
+
+.wishlist-grid .book-card {
+  min-width: 0;
+  padding: 10px;
+}
+.wishlist-grid .book-image {
+  position: relative;
+  height: auto;
+  aspect-ratio: 3 / 4;
+  margin-bottom: 0.65rem;
+}
+.wishlist-grid .book-image > a {
+  display: block;
+  height: 100%;
+}
+.wishlist-grid .book-info {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  flex: 1;
+  padding: 0 2px 2px;
+}
+.wishlist-grid .book-info h3 {
+  font-size: 0.98rem;
+}
+
+.wishlist-title {
+  color: inherit;
+  font-weight: inherit;
+}
+.wishlist-title:hover {
+  color: var(--color-brand);
+}
+
+.wishlist-author {
+  color: var(--color-ink-muted);
+  font-size: 0.82rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.wishlist-meta {
+  color: var(--color-brand-dark);
+  font-size: 0.75rem;
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.wishlist-price {
+  color: var(--color-accent);
+  font-weight: 800;
+  font-size: 1.15rem;
+}
+
+.wishlist-actions {
+  margin-top: auto;
+  padding-top: 8px;
+}
+.wishlist-actions .btn {
+  width: 100%;
+  min-height: 42px;
+  padding: 0 0.6rem;
+  font-size: 0.88rem;
+  white-space: normal;
+  line-height: 1.15;
+}
+.wishlist-sold-out {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 42px;
+  border-radius: 999px;
+  background: #f3f4f6;
+  color: var(--color-ink-muted);
+  font-weight: 700;
+  font-size: 0.85rem;
+}
+
+.wishlist-badges {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  max-width: calc(100% - 64px);
+}
+.wishlist-badges .badge {
+  box-shadow: 0 2px 8px rgba(30, 27, 75, 0.18);
+}
+
+/* A filled heart: tapping it takes the book off the list. */
+.wishlist-remove {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  z-index: 2;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.94);
+  box-shadow: 0 2px 8px rgba(30, 27, 75, 0.18);
+  color: var(--color-accent);
+  font-size: 18px;
+}
+.wishlist-remove:hover {
+  background: #fff;
+  transform: scale(1.06);
+}
+
+@media (max-width: 520px) {
+  .wishlist-grid .wishlist-actions .btn {
+    font-size: 0.8rem;
+  }
+  /* Half a phone has no room for it beside the heart, and the card says
+     "Out of Stock" where the cart button would be anyway. */
+  .wishlist-stock-badge {
+    display: none !important;
+  }
+  /* The icon is what makes "Remove from Cart" wrap at this width. */
+  .wishlist-grid .wishlist-actions .btn svg {
+    display: none;
+  }
+}
+
+/* Empty, signed out, or failed. */
+.wishlist-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  max-width: 520px;
+  margin: 2rem auto;
+  padding: 2.5rem 1.5rem;
+  text-align: center;
+}
+.wishlist-empty p {
+  margin: 0;
+}
+.wishlist-empty-icon {
+  font-size: 3rem;
+  line-height: 1;
+}
+.wishlist-empty-title {
+  color: var(--color-ink);
+  font-size: 1.2rem;
+  font-weight: 800;
+}
+.wishlist-empty-sub {
+  color: var(--color-ink-soft);
+  margin-bottom: 0.75rem !important;
+}
+.wishlist-empty .btn {
+  margin-top: 0.5rem;
+}
+
+.wishlist-loading {
+  color: var(--color-ink-muted);
+  font-weight: 600;
+}

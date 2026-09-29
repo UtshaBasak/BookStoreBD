@@ -3,7 +3,7 @@ import { useEffect } from 'react';
 import { site } from '../config/site.js';
 
 /** The picture a shared link previews with, when a page has nothing better. */
-const DEFAULT_IMAGE = '/banner.png';
+const DEFAULT_IMAGE = '/og-image.jpg';
 
 export interface SeoOptions {
   /** The page's own title. The site name is appended. */

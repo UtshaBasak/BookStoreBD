@@ -1,7 +1,10 @@
-import { useRef, useState, type ChangeEvent, type HTMLInputTypeAttribute } from 'react';
+import { useEffect, useRef, useState, type ChangeEvent, type HTMLInputTypeAttribute } from 'react';
 import axios from 'axios';
 import { Link, useNavigate } from 'react-router-dom';
+import { FaCamera, FaCheck, FaExclamationTriangle, FaInfoCircle, FaTimes } from 'react-icons/fa';
 
+import './Seller.css';
+import Logo from '../components/Logo.js';
 import { API_BASE_URL } from '../config/api.js';
 import { site } from '../config/site.js';
 import { useProfile } from '../hooks/queries.js';
@@ -251,13 +254,23 @@ const AddBooks = () => {
   };
 
   return (
-    <div className='min-h-screen bg-gradient-to-br from-zinc-900 via-zinc-800 to-zinc-900 text-white p-4 md:p-8'>
-      <div className='w-full'>
-        <div className='flex justify-between items-center mb-10'>
-          <button onClick={() => navigate('/profile')} className='px-4 py-2 bg-zinc-700 hover:bg-zinc-600 rounded text-sm font-medium text-white transition'>← Back</button>
-          <h1 className='text-4xl font-bold text-blue-400'>📚Book Information📚</h1>
-          <div className='w-[76px]'></div> {/* Empty div for balanced layout */}
-        </div>
+    <div className='sl-page'>
+      <header className='sl-topbar'>
+        <Link to='/' className='sl-logo-link' aria-label={`${site.name} home`}>
+          <Logo size={34} />
+        </Link>
+        <button type='button' onClick={() => navigate('/profile')} className='btn btn-ghost'>← Back</button>
+      </header>
+
+      <div className='sl-wrap'>
+        <section className='sl-hero'>
+          <span className='sl-kicker'>📚 Sell a book</span>
+          <h1>Book Information</h1>
+          <p className='sl-hero-sub'>
+            Give the books you have finished a <span className='sl-hero-highlight'>second life</span>.
+            Clear photos and a fair price sell fastest.
+          </p>
+        </section>
 
         {/*
           Said before the form is filled in, not after: the API refuses a
@@ -265,161 +278,228 @@ const AddBooks = () => {
           Submit would waste the whole form and the photographs.
         */}
         {needsPayoutNumber && (
-          <div role="alert" className='mb-6 rounded-xl border border-amber-400 bg-amber-100 p-4 text-amber-900'>
-            <strong>Before you list:</strong> add your bKash merchant number, so we can pay you
-            when your book sells.{' '}
-            <Link to='/update-profile#bkash' className='font-semibold text-amber-900 underline'>
-              Add it now
-            </Link>
+          <div role="alert" className='sl-alert'>
+            <span className='sl-alert-icon' aria-hidden='true'><FaExclamationTriangle /></span>
+            <div className='sl-alert-body'>
+              <p>
+                <strong>Before you list:</strong> add your bKash merchant number, so we can pay you
+                when your book sells.
+              </p>
+              <Link to='/update-profile#bkash' className='btn btn-primary'>
+                Add it now
+              </Link>
+            </div>
           </div>
         )}
 
-        <div className='grid grid-cols-1 md:grid-cols-3 gap-6'>
-          <div className='bg-zinc-800 p-6 rounded-xl shadow-xl space-y-6'>
-            <RadioGroup label="Book Type" name="bookType" value={Data.bookType} onChange={change} options={["new", "old"]} />
-
-            {Data.bookType === 'old' && (
-              <RadioGroup
-                label="Condition"
-                name="condition"
-                value={Data.condition}
-                onChange={change}
-                options={["mint", "very good", "good", "fair", "poor"]}
-              />
-            )}
-
-            <div>
-              <label htmlFor='imageInput' className='block text-sm text-zinc-400 mb-1'>Book Images (Max 10) *</label>
-              <input
-                type='file' id='imageInput' multiple onChange={handleImageChange}
-                className='block w-full text-sm text-zinc-300 file:bg-blue-600 file:text-white file:px-4 file:py-3 file:rounded file:border-0 hover:file:bg-blue-700 transition cursor-pointer'
-                accept="image/png,image/jpeg,image/webp,image/gif"
-              />
+        <div className='sl-form-grid'>
+          <div>
+            <section className='card sl-card'>
+              <h2 className='sl-card-title'><span className='sl-step'>1</span>Photos</h2>
+              <label htmlFor='imageInput' className='sl-label'>Book Images (Max 10) <span className='sl-required'>*</span></label>
+              <div className='sl-drop'>
+                <span className='sl-drop-icon' aria-hidden='true'><FaCamera /></span>
+                <span className='sl-drop-title' aria-hidden='true'>Tap to add photos</span>
+                <span className='sl-drop-sub' aria-hidden='true'>or drop them here · JPG, PNG, WebP or GIF · up to 10</span>
+                <input
+                  type='file' id='imageInput' multiple onChange={handleImageChange}
+                  accept="image/png,image/jpeg,image/webp,image/gif"
+                />
+              </div>
               {images.length > 0 && (
-                <div className='mt-2 text-xs text-zinc-500'>
-                  <div className="flex justify-between items-center">
+                <>
+                  <div className='sl-thumbs-head'>
                     <span>{images.length} image(s) selected</span>
                     <button
                       type="button"
                       onClick={() => setImages([])}
-                      className="text-red-400 hover:text-red-500"
+                      className="sl-link-danger"
                     >
                       Clear All
                     </button>
                   </div>
-                  <div className='max-h-24 overflow-y-auto'>
+                  <ul className='sl-thumbs' style={{ listStyle: 'none', margin: 0, padding: 0 }}>
                     {images.map((img, index) => (
-                      <div key={index} className="flex justify-between items-center text-xs py-1 border-b border-zinc-700">
-                        <span className="truncate">{img.name}</span>
+                      <li key={index} className='sl-thumb'>
+                        <Thumbnail file={img} />
+                        {index === 0 && <span className='badge sl-thumb-cover'>Cover</span>}
+                        <span className='sl-thumb-name'>{img.name}</span>
                         <button
                           type="button"
                           onClick={() => setImages(prev => prev.filter((_, i) => i !== index))}
-                          className="text-red-400 hover:text-red-500 ml-2"
+                          className="sl-thumb-remove"
+                          aria-label={`Remove ${img.name}`}
+                          title='Remove'
                         >
-                          Remove
+                          <FaTimes aria-hidden='true' />
                         </button>
-                      </div>
+                      </li>
                     ))}
+                  </ul>
+                </>
+              )}
+            </section>
+
+            <section className='card sl-card'>
+              <h2 className='sl-card-title'><span className='sl-step'>2</span>About the book</h2>
+              <div className='sl-fields'>
+                <div className='sl-span'>
+                  <InputField label="Title *" name="title" value={Data.title} onChange={change} placeholder='e.g. Pather Panchali' />
+                </div>
+                <div className='sl-span'>
+                  <InputField label="Author *" name="author" value={Data.author} onChange={change} />
+                </div>
+                <InputField label="Publisher" name="publisher" value={Data.publisher} onChange={change} />
+                <InputField label="Country" name="country" value={Data.country} onChange={change} />
+                <InputField label="Language" name="language" value={Data.language} onChange={change} />
+                <InputField label="ISBN" name="isbn" value={Data.isbn} onChange={change} />
+                <InputField
+                  label="No. of Pages"
+                  name="pages"
+                  value={Data.pages}
+                  onChange={e => {
+                    const val = e.target.value.replace(/[^\d]/g, '');
+                    setData({ ...Data, pages: val });
+                    setFeedbackMessage('');
+                  }}
+                  type="number"
+                  min="1"
+                  step="1"
+                />
+              </div>
+
+              <div style={{ marginTop: '1rem' }}>
+                <label htmlFor='book-desc' className='sl-label'>Book Summary</label>
+                <textarea
+                  id='book-desc'
+                  name="desc" value={Data.desc} onChange={change} rows={5}
+                  placeholder="Short summary"
+                  className='field'
+                  style={{ minHeight: 120, padding: '12px 14px', resize: 'vertical' }}
+                ></textarea>
+              </div>
+            </section>
+          </div>
+
+          <div>
+            <section className='card sl-card'>
+              <h2 className='sl-card-title'><span className='sl-step'>3</span>Type &amp; condition</h2>
+              <RadioGroup label="Book Type" name="bookType" value={Data.bookType} onChange={change} options={["new", "old"]} split />
+
+              {Data.bookType === 'old' && (
+                <div style={{ marginTop: '1rem' }}>
+                  <RadioGroup
+                    label="Condition"
+                    name="condition"
+                    value={Data.condition}
+                    onChange={change}
+                    options={["mint", "very good", "good", "fair", "poor"]}
+                  />
+                  <div style={{ marginTop: '1rem' }}>
+                    <label htmlFor='book-conditionDetails' className='sl-label'>Details About Book Condition</label>
+                    <textarea
+                      id='book-conditionDetails'
+                      name="conditionDetails" value={Data.conditionDetails} onChange={change} rows={4}
+                      placeholder="Describe the book condition in detail"
+                      className='field'
+                      style={{ minHeight: 100, padding: '12px 14px', resize: 'vertical' }}
+                    ></textarea>
                   </div>
                 </div>
               )}
-            </div>
+            </section>
 
-            <button
-              onClick={submit} disabled={loading || needsPayoutNumber}
-              className='w-full py-3 mt-4 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed rounded text-white font-semibold transition-all duration-300'>
-              {loading ? "Submitting..." : "Submit"}
-            </button>
+            <section className='card sl-card'>
+              <h2 className='sl-card-title'><span className='sl-step'>4</span>Price</h2>
+              <InputField
+                label="Price (Taka) *"
+                name="price"
+                value={Data.price}
+                onChange={e => {
+                  const val = e.target.value.replace(/[^\d.]/g, '').replace(/(\..*)\./g, '$1');
+                  setData({ ...Data, price: val });
+                  setFeedbackMessage('');
+                }}
+                type="number"
+                min="0.01"
+                step="0.01"
+                money
+              />
+              {/*
+                Before they commit to a price, not after the first sale: what a
+                seller keeps is part of choosing it.
+              */}
+              <p className='sl-fee-note'>
+                <FaInfoCircle aria-hidden='true' />
+                <span>
+                  Listing is free. When it sells, {site.name} keeps {site.sellerFeePercent}%
+                  {Number(Data.price) > 0 && (
+                    <> - you receive <b>{(Number(Data.price) * (100 - site.sellerFeePercent) / 100).toFixed(2)} Tk</b> per copy</>
+                  )}
+                  .
+                </span>
+              </p>
+            </section>
 
-            {feedbackMessage && (
-              <div className={`p-3 mt-3 rounded text-center text-sm ${isError ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'}`}>{feedbackMessage}</div>
-            )}
-          </div>
+            <section className='card sl-card'>
+              <fieldset style={{ border: 0, margin: 0, padding: 0, minWidth: 0 }}>
+                <legend className='sl-card-title' style={{ padding: 0 }}>
+                  <span className='sl-step'>5</span><span>Category <span className='sl-required'>*</span></span>
+                </legend>
+                <p className='sl-card-hint'>Pick all that fit - it helps buyers find it.</p>
+                <div className='sl-choices'>
+                  {categoriesList.map(cat => {
+                    const on = Data.category.includes(cat);
+                    return (
+                      <label key={cat} className={`sl-choice${on ? ' is-on' : ''}`}>
+                        <input type='checkbox' value={cat} checked={on} onChange={handleCategoryChange} />
+                        {on && <FaCheck className='sl-choice-icon' aria-hidden='true' />}
+                        {cat}
+                      </label>
+                    );
+                  })}
+                </div>
+              </fieldset>
+            </section>
 
-          <div className='bg-zinc-800 p-6 rounded-xl shadow-xl space-y-4'>
-            <InputField label="Title *" name="title" value={Data.title} onChange={change} />
-            <InputField label="Author *" name="author" value={Data.author} onChange={change} />
-            <InputField label="Publisher" name="publisher" value={Data.publisher} onChange={change} />
-            <InputField label="Country" name="country" value={Data.country} onChange={change} />
-            <InputField label="Language" name="language" value={Data.language} onChange={change} />
-            <InputField label="ISBN" name="isbn" value={Data.isbn} onChange={change} />
-            <InputField
-              label="No. of Pages"
-              name="pages"
-              value={Data.pages}
-              onChange={e => {
-                const val = e.target.value.replace(/[^\d]/g, '');
-                setData({ ...Data, pages: val });
-                setFeedbackMessage('');
-              }}
-              type="number"
-              min="1"
-              step="1"
-            />
-          </div>
+            <section className='card sl-card sl-submit-card'>
+              <button
+                type='button'
+                onClick={submit} disabled={loading || needsPayoutNumber}
+                className='btn btn-accent'>
+                {loading ? "Submitting..." : "Submit"}
+              </button>
+              <p className='sl-muted' style={{ margin: '0.75rem 0 0', fontSize: '0.85rem', textAlign: 'center' }}>
+                You can change the price and stock later, from your books.
+              </p>
 
-          <div className='bg-zinc-800 p-6 rounded-xl shadow-xl space-y-4'>
-            <InputField
-              label="Price (Taka) *"
-              name="price"
-              value={Data.price}
-              onChange={e => {
-                const val = e.target.value.replace(/[^\d.]/g, '').replace(/(\..*)\./g, '$1');
-                setData({ ...Data, price: val });
-                setFeedbackMessage('');
-              }}
-              type="number"
-              min="0.01"
-              step="0.01"
-            />
-            {/*
-              Before they commit to a price, not after the first sale: what a
-              seller keeps is part of choosing it.
-            */}
-            <p className='-mt-2 text-sm text-zinc-400'>
-              Listing is free. When it sells, {site.name} keeps {site.sellerFeePercent}%
-              {Number(Data.price) > 0 && (
-                <> - you receive {(Number(Data.price) * (100 - site.sellerFeePercent) / 100).toFixed(2)} Tk per copy</>
+              {feedbackMessage && (
+                <div aria-live='polite' className={`sl-feedback ${isError ? 'is-bad' : 'is-good'}`}>{feedbackMessage}</div>
               )}
-              .
-            </p>
-            <div>
-              <label htmlFor='book-desc' className='block text-sm text-zinc-400 mb-1'>Book Summary</label>
-              <textarea
-                id='book-desc'
-                name="desc" value={Data.desc} onChange={change} rows={5}
-                placeholder="Short summary"
-                className='w-full p-3 rounded bg-zinc-700 text-white outline-none focus:ring-2 focus:ring-blue-500 resize-none'
-              ></textarea>
-            </div>
-
-            {Data.bookType === 'old' && (
-              <div>
-                <label className='block text-sm text-zinc-400 mb-1'>Details About Book Condition</label>
-                <textarea
-                  name="conditionDetails" value={Data.conditionDetails} onChange={change} rows={4}
-                  placeholder="Describe the book condition in detail"
-                  className='w-full p-3 rounded bg-zinc-700 text-white outline-none focus:ring-2 focus:ring-blue-500 resize-none'
-                ></textarea>
-              </div>
-            )}
-
-            <div>
-              <label className='block text-sm text-zinc-400 mb-1'>Category <span style={{color:'red'}}>*</span></label>
-              <div className='grid grid-cols-2 gap-2 max-h-52 overflow-y-auto p-2 border border-zinc-700 rounded'>
-                {categoriesList.map(cat => (
-                  <label key={cat} className='flex min-h-[40px] items-center gap-2 rounded p-2 text-sm hover:bg-zinc-700'>
-                    <input type='checkbox' value={cat} checked={Data.category.includes(cat)} onChange={handleCategoryChange} className='h-4 w-4 accent-blue-600'/>
-                    {cat}
-                  </label>
-                ))}
-              </div>
-            </div>
+            </section>
           </div>
         </div>
       </div>
     </div>
   );
+};
+
+/**
+ * A preview of a chosen photograph. The object URL is set on the element
+ * directly and revoked when the file goes, so ten large photos are not kept
+ * in memory after they are removed. Browsers without object URLs (and the
+ * test environment) simply show the tinted tile.
+ */
+const Thumbnail = ({ file }: { file: File }) => {
+  const imgRef = useRef<HTMLImageElement | null>(null);
+  useEffect(() => {
+    const img = imgRef.current;
+    if (!img || typeof URL.createObjectURL !== 'function') return;
+    const url = URL.createObjectURL(file);
+    img.src = url;
+    return () => URL.revokeObjectURL(url);
+  }, [file]);
+  return <img ref={imgRef} alt={`Preview of ${file.name}`} />;
 };
 
 interface InputFieldProps {
@@ -431,23 +511,35 @@ interface InputFieldProps {
   type?: HTMLInputTypeAttribute;
   min?: string;
   step?: string;
+  /** Shows a taka sign inside the field. */
+  money?: boolean;
 }
 
 // min and step were passed by the two numeric fields and silently dropped,
 // because this component never forwarded them. They reach the input now.
-const InputField = ({ label, name, value, onChange, placeholder = '', type = 'text', min, step }: InputFieldProps) => (
-  <div>
-    {/* Tied to the input by id: a floating label is not read out by a screen
-        reader, and tapping it does not focus the field it sits above. */}
-    <label htmlFor={`book-${name}`} className='block text-sm text-zinc-400 mb-1'>{label}</label>
+const InputField = ({ label, name, value, onChange, placeholder = '', type = 'text', min, step, money = false }: InputFieldProps) => {
+  const input = (
     <input
       id={`book-${name}`}
       type={type} name={name} value={value} onChange={onChange} placeholder={placeholder}
       min={min} step={step}
-      className='w-full p-3 rounded bg-zinc-700 text-white outline-none focus:ring-2 focus:ring-blue-500'
+      className='field'
     />
-  </div>
-);
+  );
+  return (
+    <div>
+      {/* Tied to the input by id: a floating label is not read out by a screen
+          reader, and tapping it does not focus the field it sits above. */}
+      <label htmlFor={`book-${name}`} className='sl-label'>{label}</label>
+      {money ? (
+        <div className='sl-money'>
+          <span className='sl-money-sign' aria-hidden='true'>৳</span>
+          {input}
+        </div>
+      ) : input}
+    </div>
+  );
+};
 
 interface RadioGroupProps {
   label: string;
@@ -455,20 +547,22 @@ interface RadioGroupProps {
   value: string;
   onChange: (event: ChangeEvent<HTMLInputElement>) => void;
   options: string[];
+  /** Equal halves across the card, for a choice of two. */
+  split?: boolean;
 }
 
-const RadioGroup = ({ label, name, value, onChange, options }: RadioGroupProps) => (
-  <div>
-    <label className='block text-sm text-zinc-400 mb-1'>{label}</label>
-    <div className='flex flex-wrap gap-4'>
+const RadioGroup = ({ label, name, value, onChange, options, split = false }: RadioGroupProps) => (
+  <fieldset style={{ border: 0, margin: 0, padding: 0, minWidth: 0 }}>
+    <legend className='sl-label' style={{ padding: 0 }}>{label}</legend>
+    <div className={`sl-choices${split ? ' sl-choices-split' : ''}`}>
       {options.map(opt => (
-        <label key={opt} className='flex min-h-[40px] cursor-pointer items-center gap-2'>
-          <input type="radio" name={name} value={opt} checked={value === opt} onChange={onChange} className='h-4 w-4 accent-blue-600'/>
+        <label key={opt} className={`sl-choice${value === opt ? ' is-on' : ''}`}>
+          <input type="radio" name={name} value={opt} checked={value === opt} onChange={onChange} />
           {opt.charAt(0).toUpperCase() + opt.slice(1)}
         </label>
       ))}
     </div>
-  </div>
+  </fieldset>
 );
 
 export default AddBooks;

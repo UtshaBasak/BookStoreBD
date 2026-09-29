@@ -1,13 +1,17 @@
 import { useState, useEffect, type ChangeEvent, type FormEvent } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { FaBookOpen, FaHeart, FaStore } from 'react-icons/fa';
 
 import type { ApiError, SessionResponse } from '@shared/api.js';
 
+import Logo from '../components/Logo.js';
 import { API_BASE_URL, apiFetch } from '../config/api.js';
 import { site } from '../config/site.js';
 import { useToast } from '../hooks/useToast.js';
 import { isAdmin, isAuthenticated, setSession } from '../utils/auth.js';
 import { reportError } from '../utils/report.js';
+
+import './Auth.css';
 
 /** The sign-up form, filled in one field at a time. */
 interface SignUpForm {
@@ -106,52 +110,38 @@ export default function SignUp() {
         }
     };
 
+    // Where the visitor is in the three steps, for the progress bar.
+    const stepIndex = step === 'form' ? 0 : step === 'otp' ? 1 : 2;
+    const otpOk = otpMsg.startsWith('OTP verified') || otpMsg.startsWith('OTP sent');
+
     return (
-        <div
-            style={{
-                backgroundImage: `url(https://images.unsplash.com/photo-1481627834876-b7833e8f5570?fm=jpg&q=60&w=3000&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxzZWFyY2h8M3x8bGlicmFyeXxlbnwwfHwwfHx8MA%3D%3D)`,
-                backgroundSize: 'cover',
-                backgroundPosition: 'center',
-                height: '100vh',
-                width: '100%',
-                margin: 0,
-                padding: 0,
-                display: 'flex',
-                justifyContent: 'center',
-                alignItems: 'center',
-                flexDirection: 'column',
-                color: 'white',
-                fontFamily: 'Arial, sans-serif',
-                boxSizing: 'border-box',
-            }}
-        >
-            {/* Header */}
-            <h1
-                style={{
-                    fontSize: '2.5rem',
-                    fontWeight: 'bold',
-                    textAlign: 'center',
-                    marginBottom: '1rem',
-                    textShadow: '2px 2px 4px rgba(0, 0, 0, 0.5)',
-                }}
-            >
-                WELCOME TO OUR BOOKSTORE
-            </h1>
+        <div className="auth-page aurora">
+            <AuthPitch />
 
             {/* Sign-Up Form */}
-            <div
-                style={{
-                    backgroundColor: 'rgba(0, 0, 0, 0.7)',
-                    padding: '2rem',
-                    borderRadius: '8px',
-                    width: '300px',
-                    textAlign: 'center',
-                }}
-            >
-                <h2 style={{ fontSize: '1.5rem', marginBottom: '1.5rem' }}>Sign Up</h2>
+            <main className="card auth-card">
+                <Link to="/" className="auth-logo" aria-label={`${site.name} home`}>
+                    <Logo size={40} />
+                </Link>
+                <h1 className="auth-title">Sign Up</h1>
+                <p className="auth-sub">Create your free account to buy, sell and save books you love.</p>
+
+                <ol className="auth-steps" aria-label="Sign-up steps">
+                    {['Your details', 'Verify email', 'All set'].map((label, i) => (
+                        <li
+                            key={label}
+                            className={`auth-step ${i < stepIndex ? 'auth-step-done' : i === stepIndex ? 'auth-step-current' : ''}`}
+                            aria-current={i === stepIndex ? 'step' : undefined}
+                        >
+                            {label}
+                        </li>
+                    ))}
+                </ol>
+
                 {step === 'form' && (
-                    <form onSubmit={handleSubmit}>
-                        <div style={{ marginBottom: '1rem' }}>
+                    <form onSubmit={handleSubmit} className="auth-form">
+                        <div>
+                            <label htmlFor="username" className="auth-label">Username</label>
                             <input
                                 type="text"
                                 placeholder="Username"
@@ -159,19 +149,11 @@ export default function SignUp() {
                                 name="username"
                                 autoComplete="username"
                                 onChange={handleChange}
-                                style={{
-                                    width: '100%',
-                                    padding: '0.5rem',
-                                    border: 'none',
-                                    borderBottom: '1px solid white',
-                                    background: 'transparent',
-                                    color: 'white',
-                                    fontSize: '1rem',
-                                    outline: 'none',
-                                }}
+                                className="field"
                             />
                         </div>
-                        <div style={{ marginBottom: '1rem' }}>
+                        <div>
+                            <label htmlFor="email" className="auth-label">Email</label>
                             <input
                                 type="email"
                                 placeholder="Email"
@@ -179,19 +161,11 @@ export default function SignUp() {
                                 name="email"
                                 autoComplete="email"
                                 onChange={handleChange}
-                                style={{
-                                    width: '100%',
-                                    padding: '0.5rem',
-                                    border: 'none',
-                                    borderBottom: '1px solid white',
-                                    background: 'transparent',
-                                    color: 'white',
-                                    fontSize: '1rem',
-                                    outline: 'none',
-                                }}
+                                className="field"
                             />
                         </div>
-                        <div style={{ marginBottom: '1.5rem' }}>
+                        <div>
+                            <label htmlFor="password" className="auth-label">Password</label>
                             <input
                                 type="password"
                                 placeholder="Password"
@@ -201,109 +175,99 @@ export default function SignUp() {
                                 // offer to generate one rather than fill it.
                                 autoComplete="new-password"
                                 onChange={handleChange}
-                                style={{
-                                    width: '100%',
-                                    padding: '0.5rem',
-                                    border: 'none',
-                                    borderBottom: '1px solid white',
-                                    background: 'transparent',
-                                    color: 'white',
-                                    fontSize: '1rem',
-                                    outline: 'none',
-                                }}
+                                className="field"
                             />
                         </div>
-                        <button
-                            type="submit"
-                            style={{
-                                width: '100%',
-                                padding: '0.75rem',
-                                backgroundColor: '#333',
-                                color: 'white',
-                                border: 'none',
-                                borderRadius: '4px',
-                                fontSize: '1rem',
-                                cursor: 'pointer',
-                                transition: 'background-color 0.3s',
-                            }}
-                            onMouseOver={(e) => (e.currentTarget.style.backgroundColor = '#555')}
-                            onMouseOut={(e) => (e.currentTarget.style.backgroundColor = '#333')}
-                        >
+                        <button type="submit" className="btn btn-primary auth-wide">
                             Send OTP
                         </button>
                         {/*
                           A sentence rather than a tick-box: it says the same
                           thing and costs nobody a click on the way in.
                         */}
-                        <p style={{ fontSize: 13, color: '#555', marginTop: 10, lineHeight: 1.4 }}>
+                        <p className="auth-fine-print">
                             By creating an account you confirm you are {site.minimumAge} or older and agree
                             to the <Link to="/terms">terms of service</Link> and{' '}
                             <Link to="/privacy">privacy policy</Link>.
                         </p>
                         {/* Show error or info message below the button */}
                         {otpMsg && (
-                            <div style={{ color: otpMsg.startsWith('OTP sent') ? 'green' : 'red', marginTop: 8 }}>
+                            <p role="status" className={`auth-message ${otpMsg.startsWith('OTP sent') ? 'auth-message-ok' : 'auth-message-error'}`}>
                                 {otpMsg}
-                            </div>
+                            </p>
                         )}
                     </form>
                 )}
                 {step === 'otp' && (
-                    <div>
-                        <input
-                            type="text"
-                            name="otp"
-                            inputMode="numeric"
-                            autoComplete="one-time-code"
-                            placeholder="Enter OTP"
-                            value={otp}
-                            onChange={e => setOtp(e.target.value)}
-                            style={{ width: '100%', padding: '0.5rem', marginBottom: '1rem' }}
-                        />
-                        <button onClick={handleVerifyOtp} style={{ width: '100%', padding: '0.75rem', backgroundColor: '#333', color: 'white', border: 'none', borderRadius: '4px' }}>
+                    <div className="auth-form">
+                        <p className="auth-note">
+                            We sent a code to <b>{emailForOtp}</b>. It can take a minute to arrive - check your spam folder too.
+                        </p>
+                        <div>
+                            <label htmlFor="signup-otp" className="auth-label">Code from your email</label>
+                            <input
+                                id="signup-otp"
+                                type="text"
+                                name="otp"
+                                inputMode="numeric"
+                                autoComplete="one-time-code"
+                                placeholder="Enter OTP"
+                                value={otp}
+                                onChange={e => setOtp(e.target.value)}
+                                className="field"
+                            />
+                        </div>
+                        <button onClick={handleVerifyOtp} className="btn btn-primary auth-wide">
                             Verify OTP & Register
                         </button>
-                        <button type="button" onClick={() => handleSendOtp(emailForOtp)} style={{ marginTop: 8, background: 'none', color: '#00f', border: 'none', cursor: 'pointer' }}>
+                        <button type="button" onClick={() => handleSendOtp(emailForOtp)} className="auth-text-button" style={{ justifySelf: 'center' }}>
                             Resend OTP
                         </button>
-                        <div style={{ color: otpMsg.startsWith('OTP verified') || otpMsg.startsWith('OTP sent') ? 'green' : 'red', marginTop: 8 }}>{otpMsg}</div>
+                        {otpMsg && (
+                            <p role="status" className={`auth-message ${otpOk ? 'auth-message-ok' : 'auth-message-error'}`}>{otpMsg}</p>
+                        )}
                     </div>
                 )}
                 {step === 'done' && (
-                    <div style={{ color: 'green', marginTop: 16 }}>Registration successful! Redirecting...</div>
+                    <div className="auth-done" role="status">
+                        <span className="auth-done-emoji" aria-hidden="true">🎉</span>
+                        <p className="auth-message auth-message-ok">Registration successful! Redirecting...</p>
+                    </div>
                 )}
-                <p style={{ marginTop: '1rem', fontSize: '0.9rem' }}>
+
+                <p className="auth-divider">Have an account?</p>
+                <p className="auth-switch">
                     Already registered?{' '}
-                    <Link
-                        to="/sign-in"
-                        className="inline-flex min-h-[40px] items-center rounded px-3"
-                        style={{ color: 'white', textDecoration: 'none', backgroundColor: '#8B6F6F' }}
-                    >
+                    <Link to="/sign-in" className="auth-switch-link">
                         <b>SIGN IN</b>
                     </Link>
                 </p>
-            {/* Go To Home Button */}
-            <button
-                type="button"
-                style={{
-                    width: '100%',
-                    padding: '0.75rem',
-                    backgroundColor: '#8B6F6F',
-                    color: 'white',
-                    border: 'none',
-                    borderRadius: '4px',
-                    fontSize: '1rem',
-                    cursor: 'pointer',
-                    marginTop: '1rem',
-                    transition: 'background-color 0.3s',
-                }}
-                onClick={() => navigate('/')}
-                onMouseOver={e => (e.currentTarget.style.backgroundColor = '#6d5454')}
-                onMouseOut={e => (e.currentTarget.style.backgroundColor = '#8B6F6F')}
-            >
-                Go To Home
-            </button>
+                {/* Go To Home Button */}
+                <button type="button" className="btn btn-ghost auth-wide" onClick={() => navigate('/')}>
+                    Go To Home
+                </button>
+            </main>
         </div>
-        </div>
+    );
+}
+
+/**
+ * What the shop is, beside the form on a wide screen. Hidden from screen
+ * readers: it is decoration, and the form is what they came for.
+ */
+function AuthPitch() {
+    return (
+        <section className="auth-pitch" aria-hidden="true">
+            <p className="auth-kicker">📚 Welcome to our bookstore</p>
+            <p className="auth-pitch-title">
+                Join the readers who <span className="auth-highlight">buy and sell</span> here.
+            </p>
+            <p className="auth-pitch-sub">One free account to shop, save favourites and sell the books you have finished.</p>
+            <ul className="auth-perks">
+                <li><span className="auth-perk-icon"><FaBookOpen /></span>New and second-hand, fairly priced</li>
+                <li><span className="auth-perk-icon"><FaStore /></span>Sell your books and get paid by bKash</li>
+                <li><span className="auth-perk-icon"><FaHeart /></span>Save favourites to your wishlist</li>
+            </ul>
+        </section>
     );
 }

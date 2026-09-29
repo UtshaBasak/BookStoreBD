@@ -1,0 +1,264 @@
+/*
+ * Checkout's own pieces. The page frame and the summary rows come from
+ * Cart.css, which the cart shares. Scoped by class throughout: a plain rule
+ * here is outside the cascade layers and would beat the shared `.btn-*`.
+ */
+
+/* Cart - Details - Done, in the top bar. */
+.checkout-steps {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0 0 0 auto;
+  padding: 0;
+  list-style: none;
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--color-ink-muted);
+  white-space: nowrap;
+}
+.checkout-steps li {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.checkout-steps li + li::before {
+  content: '';
+  width: 14px;
+  height: 2px;
+  border-radius: 2px;
+  background: var(--color-brand-line);
+}
+.checkout-steps .step-dot {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: 2px solid var(--color-brand-line);
+  background: #fff;
+  font-size: 0.7rem;
+}
+.checkout-steps .is-done .step-dot {
+  border-color: var(--color-brand);
+  background: var(--color-brand);
+  color: #fff;
+}
+.checkout-steps .is-current {
+  color: var(--color-brand-dark);
+}
+.checkout-steps .is-current .step-dot {
+  border-color: var(--color-brand);
+  color: var(--color-brand);
+}
+@media (max-width: 420px) {
+  /* Only the dots on a narrow phone; the current step keeps its word. */
+  .checkout-steps li:not(.is-current) .step-word {
+    display: none;
+  }
+}
+
+.pay-section-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  /* Set here rather than by utility: a plain rule outranks Tailwind's layer. */
+  margin: 28px 0 12px;
+  font-size: 1.05rem;
+}
+.pay-section-title:first-child {
+  margin-top: 0;
+}
+.pay-section-title .num {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: var(--color-brand-tint);
+  color: var(--color-brand);
+  font-size: 0.8rem;
+  font-weight: 800;
+}
+
+.pay-label {
+  display: block;
+  margin: 0 0 6px;
+  color: var(--color-ink-soft);
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+/* The one way to pay, shown as the chosen option. */
+.pay-method {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px;
+  border: 2px solid var(--color-brand);
+  border-radius: 16px;
+  background: var(--color-brand-tint);
+}
+.pay-radio {
+  flex: none;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  border: 2px solid var(--color-brand);
+  background: #fff;
+  box-shadow: inset 0 0 0 4px #fff, inset 0 0 0 10px var(--color-brand);
+}
+
+.field:disabled {
+  background: #faf9fe;
+  color: var(--color-ink-muted);
+}
+
+/* Minus, the number, plus: one pill. */
+.qty {
+  display: inline-flex;
+  align-items: center;
+  border: 1.5px solid var(--color-line);
+  border-radius: 999px;
+  background: #fff;
+}
+.qty-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--color-brand);
+  font-size: 0.8rem;
+}
+.qty-btn:hover:not(:disabled) {
+  background: var(--color-brand-tint);
+  border-color: transparent;
+}
+.qty-btn:disabled {
+  color: #c4bde0;
+  cursor: not-allowed;
+}
+.qty-num {
+  min-width: 26px;
+  text-align: center;
+  font-weight: 800;
+}
+
+.pay-cover {
+  display: block;
+  width: 56px;
+  height: 78px;
+  object-fit: cover;
+  border-radius: 10px;
+  background: var(--color-brand-tint);
+  box-shadow: 0 3px 10px rgba(30, 27, 75, 0.12);
+}
+.pay-cover-badge {
+  position: absolute;
+  top: -6px;
+  left: -6px;
+  padding: 2px 7px;
+  font-size: 0.6rem;
+  box-shadow: 0 2px 6px rgba(30, 27, 75, 0.18);
+}
+
+.promo-box {
+  margin-top: 14px;
+  padding: 14px;
+  border: 1px dashed var(--color-brand-line);
+  border-radius: 16px;
+  background: #fcfbff;
+}
+.promo-hint {
+  display: flex;
+  gap: 8px;
+  margin: 0 0 12px;
+  padding: 10px 12px;
+  border: 1px solid #fde68a;
+  border-radius: 12px;
+  background: #fefce8;
+  color: #713f12;
+  font-size: 0.85rem;
+  line-height: 1.45;
+}
+
+/* ------------------------------------------------------- order placed */
+.confirm-card {
+  position: relative;
+  overflow: hidden;
+}
+.confirm-card::before {
+  /* A soft violet-to-sunset wash behind the tick. */
+  content: '';
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 190px;
+  background:
+    radial-gradient(420px 180px at 50% 0%, rgba(139, 92, 246, 0.18), transparent 70%),
+    radial-gradient(300px 160px at 90% 10%, rgba(255, 92, 53, 0.14), transparent 70%);
+  pointer-events: none;
+}
+.confirm-check {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 92px;
+  height: 92px;
+  margin: 0 auto 18px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #10b981, #34d399);
+  color: #fff;
+  font-size: 40px;
+  box-shadow: 0 0 0 10px rgba(16, 185, 129, 0.14), 0 14px 30px rgba(16, 185, 129, 0.35);
+  animation: confirm-pop 0.5s cubic-bezier(0.2, 1.4, 0.4, 1) both;
+}
+.confetti {
+  position: absolute;
+  width: 10px;
+  height: 10px;
+  border-radius: 3px;
+  animation: confirm-float 2.4s ease-in-out infinite alternate;
+}
+.confetti.c1 { top: -8px; left: -26px; background: #8b5cf6; transform: rotate(20deg); }
+.confetti.c2 { top: 8px; right: -32px; background: #ff5c35; border-radius: 50%; animation-delay: 0.3s; }
+.confetti.c3 { bottom: -4px; left: -34px; background: #facc15; border-radius: 50%; animation-delay: 0.6s; }
+.confetti.c4 { bottom: 4px; right: -24px; background: #c026d3; transform: rotate(-25deg); animation-delay: 0.9s; }
+.confetti.c5 { top: -22px; right: 6px; width: 7px; height: 7px; background: #10b981; animation-delay: 1.2s; }
+
+@keyframes confirm-pop {
+  from { transform: scale(0.4); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
+}
+@keyframes confirm-float {
+  from { translate: 0 0; }
+  to { translate: 0 -8px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .confirm-check,
+  .confetti {
+    animation: none;
+  }
+}
+
+.order-no {
+  display: inline-block;
+  margin-top: 6px;
+  padding: 8px 16px;
+  border-radius: 999px;
+  background: var(--color-brand-tint);
+  border: 1px solid var(--color-brand-line);
+  color: var(--color-brand-dark);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-weight: 700;
+  font-size: 1rem;
+  letter-spacing: 0.04em;
+  overflow-wrap: anywhere;
+}

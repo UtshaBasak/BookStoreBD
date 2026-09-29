@@ -1,5 +1,6 @@
 import { useState, type ChangeEvent } from 'react';
 import { useParams } from 'react-router-dom';
+import { FaCheck, FaMapMarkerAlt, FaMoneyBillWave, FaTruck, FaUser } from 'react-icons/fa';
 
 import '../styles/orderTracking.css';
 import { useOrder, useUpdateOrderStatus } from '../hooks/queries.js';
@@ -12,6 +13,14 @@ const ORDER_STAGES = [
   'Out for Delivery',
   'Delivered'
 ];
+
+/** The pill colours for a status: delivered green, on its way violet. */
+const statusColours = (status: string) =>
+  status === 'Delivered'
+    ? { background: '#ecfdf5', color: '#047857' }
+    : ORDER_STAGES.includes(status)
+      ? { background: '#f3efff', color: '#5b21b6' }
+      : { background: '#fff7ed', color: '#c2410c' };
 
 export default function OrderTrackingPage() {
   const { orderNumber } = useParams();
@@ -37,195 +46,170 @@ export default function OrderTrackingPage() {
     }
   };
 
+  const toolbar = (
+    <div className="ot-toolbar">
+      <button type="button" className="btn btn-ghost" onClick={() => window.location.href='/profile'}>
+        ← Back to Profile
+      </button>
+      <button type="button" className="btn btn-primary" onClick={() => window.location.reload()}>
+        ⟳ Refresh
+      </button>
+    </div>
+  );
 
-  if (!order) return <div>Loading...</div>;
+  if (!order) {
+    return (
+      <div className="ot-page">
+        <div className="ot-wrap">
+          {toolbar}
+          {/* A failed lookup used to leave "Loading..." on the screen for good. */}
+          {orderQuery.isError ? (
+            <div role="alert" className="card mx-auto max-w-md p-8 text-center">
+              <p className="m-0 text-lg font-bold text-ink">We could not find that order.</p>
+              <p className="m-0 mt-1 text-ink-muted">Check the order number, or find it under your orders.</p>
+            </div>
+          ) : (
+            <p role="status" className="py-16 text-center font-semibold text-ink-muted">Loading...</p>
+          )}
+        </div>
+      </div>
+    );
+  }
 
   // Only admin or the seller of this order can update status
   const canUpdateStatus =
     userRole === 'admin' ||
     (userRole === 'seller' && userEmail && userEmail === order.sellerEmail);
 
+  const status = order.status || 'Order Confirmed';
+  const currentIndex = ORDER_STAGES.indexOf(status);
+
   return (
-    <div className="order-tracking-outer">
-      {/* Button group: upper right, box type, stylish */}
-      <div style={{ position: 'absolute', top: 24, right: 32, display: 'flex', gap: 16, zIndex: 10 }}>
-        <button
-          onClick={() => window.location.href='/profile'}
-          style={{
-            background: '#fff',
-            border: '2px solid #2196F3',
-            color: '#2196F3',
-            fontWeight: 700,
-            fontSize: 16,
-            borderRadius: 8,
-            padding: '8px 20px',
-            cursor: 'pointer',
-            boxShadow: '0 2px 8px rgba(33,150,243,0.08)',
-            transition: 'all 0.18s',
-            outline: 'none',
-            marginRight: 0
-          }}
-          onMouseOver={e => { e.currentTarget.style.background = '#2196F3'; e.currentTarget.style.color = '#fff'; }}
-          onMouseOut={e => { e.currentTarget.style.background = '#fff'; e.currentTarget.style.color = '#2196F3'; }}
-        >
-          ← Back to Profile
-        </button>
-        <button
-          onClick={() => window.location.reload()}
-          style={{
-            background: '#2196F3',
-            border: '2px solid #2196F3',
-            color: '#fff',
-            fontWeight: 700,
-            fontSize: 16,
-            borderRadius: 8,
-            padding: '8px 20px',
-            cursor: 'pointer',
-            boxShadow: '0 2px 8px rgba(33,150,243,0.08)',
-            transition: 'all 0.18s',
-            outline: 'none'
-          }}
-          onMouseOver={e => { e.currentTarget.style.background = '#1769aa'; }}
-          onMouseOut={e => { e.currentTarget.style.background = '#2196F3'; }}
-        >
-          ⟳ Refresh
-        </button>
-      </div>
-      <div className="order-tracking-card">
-        <h2 style={{ textAlign: 'center', marginBottom: 24, color: '#e65100', letterSpacing: 1 }}>Track Your Order</h2>
-        <div className="order-info" style={{ fontSize: 17, marginBottom: 24, textAlign: 'left', paddingLeft: 8 }}>
-          <p><b>Order Number:</b> <span style={{ color: '#e65100', fontFamily: 'monospace', fontSize: 18 }}>{order.orderNumber}</span></p>
-          <p><b>Placed On:</b> {order.createdAt ? new Date(order.createdAt).toLocaleString() : ''}</p>
-          <p><b>Status:</b> <span style={{ color: '#e65100', fontWeight: 600 }}>{order.status || 'Order Confirmed'}</span></p>
-          <div style={{ margin: '20px 0 10px 0', fontWeight: 600, color: '#444' }}>Payment Method</div>
-          <div style={{ color: '#e65100', fontWeight: 500, marginBottom: 12 }}>{order.paymentMethod || 'Cash on Delivery'}</div>
-          <div style={{ fontWeight: 600, color: '#444', marginBottom: 2 }}>Contact Information</div>
-          <div style={{ marginBottom: 2 }}>Name: <b>{order.contactName}</b></div>
-          <div style={{ marginBottom: 2 }}>Email: <b>{order.buyerEmail}</b></div>
-          <div style={{ marginBottom: 10 }}>Phone: <b>{order.contactPhone}</b></div>
-          <div style={{ fontWeight: 600, color: '#444', marginBottom: 2 }}>Delivery Information</div>
-          <div style={{ marginBottom: 2 }}>Division: <b>{order.deliveryDivision}</b></div>
-          <div style={{ marginBottom: 2 }}>District: <b>{order.deliveryDistrict}</b></div>
-          <div>Address: <b>{order.deliveryAddress}</b></div>
-        </div>
-        <div className="order-progress-bar" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', margin: '32px 0 24px 0', padding: '0 12px' }}>
-          {ORDER_STAGES.map((stage, idx) => {
-            const isActive = idx <= (ORDER_STAGES.indexOf(order.status || 'Order Confirmed'));
-            const isCurrent = idx === (ORDER_STAGES.indexOf(order.status || 'Order Confirmed'));
-            return (
-              <div key={stage} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', position: 'relative' }}>
-                <div
-                  style={{
-                    width: 36,
-                    height: 36,
-                    borderRadius: '50%',
-                    background: isActive ? (isCurrent ? '#fff3e0' : '#e65100') : '#eee',
-                    border: isCurrent ? '3px solid #e65100' : '2px solid #bbb',
-                    color: isActive ? '#e65100' : '#bbb',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    fontWeight: 700,
-                    fontSize: 18,
-                    boxShadow: isCurrent ? '0 0 8px #ffcc80' : '',
-                    zIndex: 2,
-                    transition: 'all 0.2s',
-                  }}
+    <div className="ot-page">
+      <div className="ot-wrap">
+        {toolbar}
+
+        <section className="card p-5 sm:p-8">
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div className="min-w-0">
+              <p className="ot-kicker">📦 Order tracking</p>
+              <h1 className="m-0" style={{ fontSize: 'clamp(1.6rem, 1.2rem + 1.6vw, 2.2rem)' }}>Track Your Order</h1>
+            </div>
+            <span className="ot-pill" style={statusColours(status)}>
+              {status === 'Delivered' ? <FaCheck aria-hidden="true" /> : <FaTruck aria-hidden="true" />}
+              <span><span className="sr-only">Status: </span>{status}</span>
+            </span>
+          </div>
+          <ul className="ot-meta">
+            <li><b>Order Number:</b> <span className="ot-mono">{order.orderNumber}</span></li>
+            <li><b>Placed On:</b> {order.createdAt ? new Date(order.createdAt).toLocaleString() : ''}</li>
+          </ul>
+
+          <ol className="ot-stepper" aria-label="Order progress">
+            {ORDER_STAGES.map((stage, idx) => {
+              const isActive = idx <= currentIndex;
+              const isCurrent = idx === currentIndex;
+              return (
+                <li
+                  key={stage}
+                  className={`ot-step${isActive && !isCurrent ? ' is-done' : ''}${isCurrent ? ' is-current' : ''}`}
+                  aria-current={isCurrent ? 'step' : undefined}
                 >
-                  {isCurrent ? <span style={{fontSize:22}}>★</span> : idx + 1}
-                </div>
-                {idx < ORDER_STAGES.length - 1 && (
-                  <div style={{
-                    position: 'absolute',
-                    top: 18,
-                    left: '100%',
-                    width: '100%',
-                    height: 4,
-                    background: isActive ? '#e65100' : '#eee',
-                    zIndex: 1,
-                    transition: 'background 0.2s',
-                  }} />
-                )}
-                <span style={{ marginTop: 10, color: isActive ? '#e65100' : '#bbb', fontWeight: isCurrent ? 700 : 500, fontSize: 15 }}>{stage}</span>
-              </div>
-            );
-          })}
+                  <span className="ot-dot" aria-hidden="true">
+                    {isActive && !isCurrent ? <FaCheck /> : isCurrent ? (idx === ORDER_STAGES.length - 1 ? <FaCheck /> : <FaTruck />) : idx + 1}
+                  </span>
+                  <span className="ot-label">{stage}</span>
+                </li>
+              );
+            })}
+          </ol>
+
+          {canUpdateStatus && (
+            <div className="mt-7 flex flex-wrap items-center justify-center gap-3 border-t border-line pt-5">
+              <label className="flex flex-wrap items-center gap-2">
+                <b>Update Status: </b>
+                <select
+                  value={order.status}
+                  onChange={handleStatusChange}
+                  disabled={updating}
+                  className="field"
+                  style={{ width: 'auto' }}
+                >
+                  {ORDER_STAGES.map(stage => (
+                    <option key={stage} value={stage}>{stage}</option>
+                  ))}
+                </select>
+              </label>
+              {error && <span style={{ color: '#b91c1c', fontWeight: 600 }}>{error}</span>}
+            </div>
+          )}
+        </section>
+
+        <div className="mt-4 grid gap-4 sm:grid-cols-3">
+          <section className="card p-5">
+            <h2 className="ot-info-title"><FaMoneyBillWave aria-hidden="true" /> Payment Method</h2>
+            <p className="m-0 font-bold" style={{ color: '#ff5c35' }}>{order.paymentMethod || 'Cash on Delivery'}</p>
+          </section>
+          <section className="card p-5">
+            <h2 className="ot-info-title"><FaUser aria-hidden="true" /> Contact Information</h2>
+            <p className="ot-row">Name: <b>{order.contactName}</b></p>
+            <p className="ot-row">Email: <b>{order.buyerEmail}</b></p>
+            <p className="ot-row">Phone: <b>{order.contactPhone}</b></p>
+          </section>
+          <section className="card p-5">
+            <h2 className="ot-info-title"><FaMapMarkerAlt aria-hidden="true" /> Delivery Information</h2>
+            <p className="ot-row">Division: <b>{order.deliveryDivision}</b></p>
+            <p className="ot-row">District: <b>{order.deliveryDistrict}</b></p>
+            <p className="ot-row">Address: <b>{order.deliveryAddress}</b></p>
+          </section>
         </div>
-        {canUpdateStatus && (
-          <div style={{ marginTop: 28, textAlign: 'center' }}>
-            <label>
-              <b>Update Status: </b>
-              <select
-                value={order.status}
-                onChange={handleStatusChange}
-                disabled={updating}
-                className="min-h-[40px]"
-               style={{ marginLeft: 8, padding: '6px 8px', borderRadius: 4 }}
-              >
-                {ORDER_STAGES.map(stage => (
-                  <option key={stage} value={stage}>{stage}</option>
-                ))}
-              </select>
-            </label>
-            {error && <span style={{ color: 'red', marginLeft: 12 }}>{error}</span>}
-          </div>
-        )}
-      </div>
-      {/* Order Details Table OUTSIDE the card, after progress bar */}
-      <div className="w-full min-w-0 p-3 sm:p-6" style={{ maxWidth: 900, margin: '32px auto 0 auto', background: '#fff', borderRadius: 12, boxShadow: '0 2px 12px rgba(0, 0, 0, 0.06)' }}>
-        <div style={{ marginBottom: 12, fontWeight: 600, color: '#444', fontSize: 20 }}>Order Details</div>
+
+        {/* Order Details Table OUTSIDE the card, after progress bar */}
+        <section className="card mt-4 min-w-0 p-4 sm:p-6">
+          <h2 className="m-0 text-xl">Order Details</h2>
           <div className="table-scroll">
-          <table className="styled-table" style={{ width: '100%', borderCollapse: 'collapse', fontSize: 15, background: '#fff' }}>
-            <thead style={{ background: '#2196F3' }}>
-              <tr>
-                <th style={{ color: '#fff' }}>Title</th>
-                <th style={{ color: '#fff' }}>Author</th>
-                <th style={{ color: '#fff' }}>Category</th>
-                <th style={{ color: '#fff' }}>Book Type</th>
-                <th style={{ color: '#fff' }}>Condition</th>
-                <th style={{ color: '#fff' }}>No. of Pages</th>
-                <th style={{ color: '#fff' }}>Price (Tk.)</th>
-                <th style={{ color: '#fff' }}>Quantity</th>
-                <th style={{ color: '#fff' }}>Seller</th>
-                <th style={{ color: '#fff' }}>Total Cost</th>
-              </tr>
-            </thead>
-            <tbody>
-              {(order.books || [order]).map((ob, idx) => (
-                <tr key={ob._id || idx}>
-                  <td>{ob.title}</td>
-                  <td>{ob.author}</td>
-                  <td>{Array.isArray(ob.category) ? ob.category.join(', ') : ob.category}</td>
-                  <td>{ob.bookType}</td>
-                  <td>{ob.condition}</td>
-                  <td>{ob.pages}</td>
-                  <td>{ob.price}</td>
-                  <td>{ob.quantity}</td>
-                  <td>{ob.sellerEmail}</td>
-                  <td>{(Number(ob.price) * Number(ob.quantity)).toFixed(2)}</td>
+            <table className="styled-table ot-table">
+              <thead>
+                <tr>
+                  <th>Title</th>
+                  <th>Author</th>
+                  <th>Category</th>
+                  <th>Book Type</th>
+                  <th>Condition</th>
+                  <th>No. of Pages</th>
+                  <th>Price (Tk.)</th>
+                  <th>Quantity</th>
+                  <th>Seller</th>
+                  <th>Total Cost</th>
                 </tr>
-              ))}
-            </tbody>
-            <tfoot>
-              <tr>
-                <td colSpan={9} style={{ textAlign: 'right', fontWeight: 600 }}>Subtotal:</td>
-                <td style={{ fontWeight: 700 }}>{order.booksTotal?.toFixed(2) || ''}</td>
-              </tr>
-              <tr>
-                <td colSpan={9} style={{ textAlign: 'right', fontWeight: 600 }}>Shipping Cost:</td>
-                <td style={{ fontWeight: 700 }}>{Number(order.shippingCost).toFixed(2)}</td>
-              </tr>
-              <tr>
-                <td colSpan={9} style={{ textAlign: 'right', fontWeight: 600 }}>Discount:</td>
-                <td style={{ fontWeight: 700 }}>-{Number(order.discount).toFixed(2)}</td>
-              </tr>
-              <tr>
-                <td colSpan={9} style={{ textAlign: 'right', fontWeight: 600 }}>Order Total:</td>
-                <td style={{ fontWeight: 700 }}>{order.totalCost?.toFixed(2) || ''}</td>
-              </tr>
-            </tfoot>
-          </table>
+              </thead>
+              <tbody>
+                {(order.books || [order]).map((ob, idx) => (
+                  <tr key={ob._id || idx}>
+                    <td className="font-semibold text-ink">{ob.title}</td>
+                    <td>{ob.author}</td>
+                    <td>{Array.isArray(ob.category) ? ob.category.join(', ') : ob.category}</td>
+                    <td>{ob.bookType}</td>
+                    <td>{ob.condition}</td>
+                    <td>{ob.pages}</td>
+                    <td>{ob.price}</td>
+                    <td>{ob.quantity}</td>
+                    <td>{ob.sellerEmail}</td>
+                    <td className="font-bold" style={{ color: '#ff5c35' }}>
+                      {(Number(ob.price) * Number(ob.quantity)).toFixed(2)}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
+          <div className="ot-totals">
+            <div><span>Subtotal:</span><span>৳{order.booksTotal?.toFixed(2) || ''}</span></div>
+            <div><span>Shipping Cost:</span><span>৳{Number(order.shippingCost).toFixed(2)}</span></div>
+            <div><span>Discount:</span><span>-৳{Number(order.discount).toFixed(2)}</span></div>
+            <div className="ot-grand"><span>Order Total:</span><span>৳{order.totalCost?.toFixed(2) || ''}</span></div>
+          </div>
+        </section>
       </div>
     </div>
   );

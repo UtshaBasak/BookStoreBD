@@ -14,7 +14,7 @@ export function Stars({ value, size = 16, className = '' }: StarsProps) {
   return (
     <span
       className={`inline-flex items-center gap-[2px] ${className}`}
-      style={{ color: '#f5a623', fontSize: size }}
+      style={{ color: '#ff8a3d', fontSize: size }}
       // One label for the group rather than five unlabelled icons, so a screen
       // reader says "rated 4.3 out of 5" instead of "star star star".
       role="img"
@@ -53,7 +53,7 @@ export function StarInput({ value, onChange, disabled = false }: StarInputProps)
           aria-label={`${star} ${star === 1 ? 'star' : 'stars'}`}
           aria-pressed={value === star}
           className="icon-button"
-          style={{ color: star <= value ? '#f5a623' : '#c8bdb8', fontSize: 26 }}
+          style={{ color: star <= value ? '#ff8a3d' : '#d6ccf7', fontSize: 26 }}
         >
           {star <= value ? <FaStar /> : <FaRegStar />}
         </button>

@@ -1,28 +1,59 @@
 @import "tailwindcss";
 
+/* Plus Jakarta Sans has no Taka sign, and the fallback drew prices' "৳" at
+   half size. This is that one glyph cut from Noto Sans Bengali (SIL Open
+   Font License), 1 KB, used for nothing else. */
+@font-face {
+  font-family: 'Taka';
+  src: url('./fonts/taka.woff2') format('woff2');
+  font-weight: 100 900;
+  font-display: swap;
+  unicode-range: U+09F3;
+}
+
 /* ------------------------------------------------------------------ theme
-   The palette, as the pages actually use it. Counted before writing it down:
-   #e65100 appears 75 times across the source, #8B6F6F 47, #43a047 and #e74c3c
-   20 each. As literals, a change of brand colour means a find-and-replace
-   across two dozen files; as tokens it is this block.
+   The look, in one place. It was a muted brown (#8b6f6f), Material Design's
+   deep orange, blue, green and red, and Arial - the palette of a site from
+   another decade. It is electric violet for the brand, a sunset orange for
+   prices and calls to action, a sunny yellow for highlights, and clean
+   near-white surfaces; Plus Jakarta Sans for type; rounded cards, pill
+   buttons and soft violet-tinted shadows.
 
    Tailwind 4 reads its theme from CSS rather than from `tailwind.config.js`,
-   so these names become utilities: `bg-brand`, `text-accent`, `border-danger`. */
+   so these names become utilities: `bg-brand`, `text-accent`, `border-danger`.
+   Pages that style inline use the same values. To re-colour the site, change
+   them here and in the few literals that mirror them. */
 @theme {
-  --color-brand: #8b6f6f;
-  --color-brand-dark: #6d5454;
-  --color-brand-tint: #f5f0ee;
-  --color-accent: #e65100;
-  --color-success: #43a047;
-  --color-danger: #e74c3c;
-  --color-ink: #222222;
-  --color-ink-soft: #444444;
-  --color-ink-muted: #6b6b6b;
-  --color-page: #faf8f7;
+  --font-sans: 'Taka', 'Plus Jakarta Sans Variable', 'Plus Jakarta Sans', system-ui, -apple-system,
+    'Segoe UI', Roboto, 'Noto Sans Bengali', 'Hind Siliguri', sans-serif;
+
+  --color-brand: #6d28d9;
+  --color-brand-light: #8b5cf6;
+  --color-brand-dark: #5b21b6;
+  --color-brand-deep: #1e1b4b;
+  --color-brand-tint: #f3efff;
+  --color-brand-line: #e4dcfb;
+  --color-accent: #ff5c35;
+  --color-accent-dark: #e8441d;
+  --color-accent-tint: #fff1ec;
+  --color-sun: #facc15;
+  --color-success: #10b981;
+  --color-success-dark: #047857;
+  --color-danger: #ef4444;
+  --color-danger-dark: #dc2626;
+  --color-ink: #111827;
+  --color-ink-soft: #374151;
+  --color-ink-muted: #6b7280;
+  --color-line: #ece8f7;
+  --color-page: #f8f7fc;
+
+  --radius-card: 18px;
+  --shadow-card: 0 1px 2px rgba(30, 27, 75, 0.06), 0 8px 24px rgba(76, 29, 149, 0.08);
+  --shadow-lift: 0 4px 10px rgba(30, 27, 75, 0.08), 0 18px 40px rgba(76, 29, 149, 0.16);
 }
 
 :root {
-  font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
+  font-family: var(--font-sans);
   line-height: 1.5;
   font-weight: 400;
 
@@ -59,7 +90,7 @@ body {
      scrolled sideways by about 15px on a desktop. */
   display: block;
   min-height: 100vh;
-  background: #fff;
+  background: var(--color-page);
 
   /* A page cannot be wider than the window. Defensive rather than a fix: the
      causes are being removed page by page, and until they all are, a stray
@@ -93,6 +124,14 @@ h1 {
   line-height: 1.15;
 }
 
+h1,
+h2,
+h3 {
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: var(--color-ink);
+}
+
 img,
 video {
   /* Neither can be wider than what contains it. An image with its own inline
@@ -107,7 +146,7 @@ video {
    they asked for. Buttons with no classes of their own are unchanged. */
 @layer base {
 button {
-  border-radius: 8px;
+  border-radius: 12px;
   border: 1px solid transparent;
   /* No padding here. The starter's `0.6em 1.2em` left a 40px-wide icon button
      about 2px of content box, so its icon rendered as a dot - measured at
@@ -122,10 +161,10 @@ button {
   background-color: var(--color-brand-tint);
   color: var(--color-ink);
   cursor: pointer;
-  transition: border-color 0.25s;
+  transition: border-color 0.2s, background-color 0.2s, transform 0.15s, box-shadow 0.2s;
 }
 button:hover {
-  border-color: var(--color-brand);
+  border-color: var(--color-brand-light);
 }
 button:focus,
 button:focus-visible {
@@ -189,10 +228,10 @@ button:focus-visible {
   padding: 0;
   transform: translateY(-50%);
   background: #fff;
-  border: none;
+  border: 1px solid var(--color-line);
   border-radius: 50%;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
-  color: var(--color-ink);
+  box-shadow: var(--shadow-card);
+  color: var(--color-brand);
   cursor: pointer;
 }
 
@@ -213,29 +252,30 @@ button:focus-visible {
    component would have quietly unstyled all nine. */
 .styled-table {
   width: 100%;
-  border-collapse: collapse;
+  border-collapse: separate;
+  border-spacing: 0;
   margin-top: 20px;
   background-color: #fff;
+  border: 1px solid var(--color-line);
+  border-radius: 14px;
+  overflow: hidden;
+  font-size: 0.95rem;
 }
 
-.styled-table thead {
-  background-color: #34495e;
-  color: white;
-}
-
-.styled-table th, .styled-table td {
-  padding: 10px;
+.styled-table th,
+.styled-table td {
+  padding: 12px 14px;
   text-align: left;
-  border: 1px solid #ddd;
+  border-bottom: 1px solid var(--color-line);
 }
 
 .styled-table th {
-  background-color: #34495e;
+  background-color: var(--color-brand-deep);
   color: #fff;
-}
-
-.styled-table tbody {
-  background-color: #fff;
+  font-weight: 700;
+  font-size: 0.8rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
 }
 
 .styled-table tbody tr {
@@ -243,25 +283,155 @@ button:focus-visible {
 }
 
 .styled-table tbody tr:nth-child(even) {
-  background-color: #f2f2f2;
+  background-color: #faf9fe;
 }
 
 .styled-table tbody tr:hover {
-  background-color: #f1f1f1;
+  background-color: var(--color-brand-tint);
+}
+
+.styled-table tbody tr:last-child td {
+  border-bottom: none;
 }
 
 .styled-table button {
-  padding: 5px 10px;
-  background-color: #e74c3c;
+  padding: 8px 14px;
+  background-color: var(--color-brand);
   color: white;
   border: none;
-  border-radius: 3px;
+  border-radius: 999px;
+  font-weight: 600;
   cursor: pointer;
-  transition: background-color 0.3s ease;
 }
 
 .styled-table button:hover {
-  background-color: #c0392b;
+  background-color: var(--color-brand-dark);
+}
+
+/* ------------------------------------------------------------ components
+   The few pieces every page reaches for, so a button looks like the same
+   button wherever it is. Plain classes rather than components: most pages
+   style inline, and can adopt these one element at a time. */
+@layer components {
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    min-height: 44px;
+    padding: 0 1.25rem;
+    border: 1px solid transparent;
+    border-radius: 999px;
+    font-weight: 700;
+    font-size: 0.95rem;
+    text-decoration: none;
+    cursor: pointer;
+    white-space: nowrap;
+  }
+  .btn:active {
+    transform: translateY(1px);
+  }
+  .btn-primary {
+    background: linear-gradient(135deg, var(--color-brand) 0%, var(--color-brand-light) 100%);
+    color: #fff;
+    box-shadow: 0 6px 18px rgba(109, 40, 217, 0.28);
+  }
+  .btn-primary:hover {
+    box-shadow: 0 8px 24px rgba(109, 40, 217, 0.38);
+    color: #fff;
+  }
+  .btn-accent {
+    background: linear-gradient(135deg, var(--color-accent) 0%, #ff8a3d 100%);
+    color: #fff;
+    box-shadow: 0 6px 18px rgba(255, 92, 53, 0.3);
+  }
+  .btn-accent:hover {
+    color: #fff;
+    box-shadow: 0 8px 24px rgba(255, 92, 53, 0.4);
+  }
+  .btn-ghost {
+    background: #fff;
+    color: var(--color-brand);
+    border-color: var(--color-brand-line);
+  }
+  .btn-ghost:hover {
+    background: var(--color-brand-tint);
+    border-color: var(--color-brand-light);
+    color: var(--color-brand-dark);
+  }
+  .btn-danger {
+    background: #fff;
+    color: var(--color-danger-dark);
+    border-color: #fecaca;
+  }
+  .btn-danger:hover {
+    background: #fef2f2;
+    border-color: var(--color-danger);
+  }
+  /* For the last, irreversible confirm: red all over rather than outlined. */
+  .btn-danger-solid {
+    background: var(--color-danger);
+    color: #fff;
+    box-shadow: 0 6px 18px rgba(239, 68, 68, 0.28);
+  }
+  .btn-danger-solid:hover {
+    background: var(--color-danger-dark);
+    color: #fff;
+  }
+  .btn:disabled,
+  .btn[aria-disabled='true'] {
+    opacity: 0.5;
+    cursor: not-allowed;
+    box-shadow: none;
+    transform: none;
+  }
+
+  .card {
+    background: #fff;
+    border: 1px solid var(--color-line);
+    border-radius: var(--radius-card);
+    box-shadow: var(--shadow-card);
+  }
+
+  .field {
+    width: 100%;
+    min-height: 46px;
+    padding: 0 14px;
+    border: 1.5px solid var(--color-line);
+    border-radius: 12px;
+    background: #fff;
+    color: var(--color-ink);
+    font: inherit;
+    font-size: 1rem;
+    transition: border-color 0.2s, box-shadow 0.2s;
+  }
+  .field:focus {
+    outline: none;
+    border-color: var(--color-brand-light);
+    box-shadow: 0 0 0 4px rgba(139, 92, 246, 0.18);
+  }
+
+  .badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 3px 10px;
+    border-radius: 999px;
+    font-size: 0.72rem;
+    font-weight: 800;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+
+  /* The deep violet backdrop used by the auth pages and the admin sidebar,
+     where a stock library photograph used to be. */
+  .aurora {
+    background:
+      radial-gradient(1200px 600px at 10% -10%, rgba(139, 92, 246, 0.55), transparent 60%),
+      radial-gradient(900px 500px at 110% 10%, rgba(255, 92, 53, 0.35), transparent 55%),
+      radial-gradient(800px 600px at 50% 120%, rgba(250, 204, 21, 0.18), transparent 60%),
+      var(--color-brand-deep);
+  }
 }
 
 /* Sticky site header, previously inlined in index.html. */
@@ -282,11 +452,18 @@ button:focus-visible {
    Measured in a real browser - the corners stayed at notistack's 4px until the
    element was added to the selector. */
 div.notistack-MuiContent {
-  border-radius: 10px;
+  border-radius: 14px;
   font-family: inherit;
   font-size: 0.95rem;
   box-shadow: 0 6px 20px rgba(0, 0, 0, 0.18);
 }
+
+/* In the site's colours rather than notistack's stock Material ones. */
+div.notistack-MuiContent-success { background-color: #059669; }
+div.notistack-MuiContent-error { background-color: #dc2626; }
+div.notistack-MuiContent-info { background-color: #6d28d9; }
+div.notistack-MuiContent-warning { background-color: #ea580c; }
+div.notistack-MuiContent-default { background-color: #1e1b4b; }
 
 /* The button a toast can carry, such as "Sign in" on the prompt an anonymous
    visitor gets when they try to add something to the cart. Declared here

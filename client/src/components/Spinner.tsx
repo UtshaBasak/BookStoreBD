@@ -1,6 +1,8 @@
+// A violet ring on a pale violet track, in the brand colours rather than
+// Tailwind's sky blue.
 const Spinner = () => {
   return (
-    <div className='animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-sky-500 mx-auto'></div>
+    <div className='mx-auto h-14 w-14 animate-spin rounded-full border-4 border-brand-tint border-t-brand border-r-brand-light'></div>
   );
 };
 

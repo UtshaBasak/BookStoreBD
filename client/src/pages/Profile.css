@@ -1,0 +1,494 @@
+/*
+ * The profile page and the form that edits it. Both sit on the plain page
+ * background under the homepage's header, with white cards on top; the
+ * photographs of library shelves that used to be behind them are gone.
+ *
+ * Every rule here is outside a cascade layer and so beats the shared `.btn-*`
+ * classes: nothing below targets a bare `button` or `a`.
+ */
+.pf-page {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: var(--color-page);
+}
+
+.pf-main {
+  width: 100%;
+  max-width: 960px;
+  margin: 0 auto;
+  padding: clamp(1rem, 3vw, 2rem) 16px 3rem;
+  box-sizing: border-box;
+}
+
+.pf-main-narrow {
+  max-width: 720px;
+}
+
+/* ------------------------------------------------------------ hero card */
+.pf-hero {
+  overflow: hidden;
+}
+
+.pf-banner {
+  height: clamp(84px, 14vw, 120px);
+  background:
+    radial-gradient(420px 200px at 0% 0%, rgba(139, 92, 246, 0.9), transparent 60%),
+    radial-gradient(380px 220px at 100% 100%, rgba(255, 92, 53, 0.8), transparent 60%),
+    linear-gradient(135deg, #3b0764 0%, #1e1b4b 100%);
+}
+
+.pf-hero-body {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 1rem 1.25rem;
+  padding: 1rem clamp(1.25rem, 3vw, 2rem) 1.5rem;
+}
+
+.pf-avatar {
+  flex: none;
+  width: 104px;
+  height: 104px;
+  /* Half over the banner: the body's 1rem top padding plus half the avatar. */
+  margin-top: calc(-52px - 1rem);
+  border: 4px solid #fff;
+  border-radius: 50%;
+  box-shadow: var(--shadow-card);
+  object-fit: cover;
+  box-sizing: border-box;
+}
+
+.pf-avatar-initial {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #7c3aed 0%, #c026d3 60%, #ff5c35 100%);
+  color: #fff;
+  font-size: 2.6rem;
+  font-weight: 800;
+}
+
+.pf-identity {
+  flex: 1 1 220px;
+  min-width: 0;
+}
+
+.pf-kicker {
+  margin: 0 0 0.15rem;
+  color: var(--color-brand);
+  font-size: 0.75rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.pf-name {
+  margin: 0;
+  font-size: clamp(1.5rem, 1.1rem + 1.6vw, 2rem);
+  overflow-wrap: anywhere;
+}
+
+.pf-email {
+  margin: 0.2rem 0 0;
+  color: var(--color-ink-muted);
+  overflow-wrap: anywhere;
+}
+
+/* ------------------------------------------- segmented Buyer | Seller pill
+   Real radio buttons, visually hidden, so the arrow keys and a screen reader
+   still treat the two as one choice; the label is what shows and is tapped. */
+.pf-mode {
+  display: inline-flex;
+  margin: 0;
+  padding: 4px;
+  border: 1px solid var(--color-line);
+  border-radius: 999px;
+  background: var(--color-page);
+}
+
+.pf-mode-option {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+  min-height: 44px;
+  padding: 0 1.1rem;
+  border-radius: 999px;
+  color: var(--color-ink-soft);
+  font-size: 0.92rem;
+  font-weight: 700;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s, box-shadow 0.2s;
+}
+.pf-mode-option:hover {
+  color: var(--color-brand-dark);
+}
+.pf-mode-option-on,
+.pf-mode-option-on:hover {
+  background: linear-gradient(135deg, var(--color-brand) 0%, var(--color-brand-light) 100%);
+  color: #fff;
+  box-shadow: 0 6px 18px rgba(109, 40, 217, 0.28);
+}
+.pf-mode-option:has(input:focus-visible) {
+  outline: 2px solid var(--color-brand);
+  outline-offset: 2px;
+}
+
+/* --------------------------------------------------------------- details */
+.pf-details {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 0.75rem;
+  margin: 0;
+  padding: 0 clamp(1.25rem, 3vw, 2rem) 1.5rem;
+}
+
+.pf-detail {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  min-width: 0;
+  padding: 0.75rem 0.9rem;
+  border-radius: 14px;
+  background: var(--color-page);
+}
+
+.pf-detail-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  background: var(--color-brand-tint);
+  color: var(--color-brand);
+}
+
+.pf-detail dt {
+  color: var(--color-ink-muted);
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.pf-detail dd {
+  margin: 0;
+  color: var(--color-ink);
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+/* ------------------------------------------------------------------ notes */
+.pf-note {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem 1rem;
+  margin-top: 1rem;
+  padding: 1rem 1.25rem;
+  border: 1px solid;
+  border-radius: var(--radius-card);
+}
+.pf-note p {
+  flex: 1 1 240px;
+  margin: 0;
+}
+.pf-note-icon {
+  flex: none;
+  font-size: 1.35rem;
+}
+.pf-note-ok {
+  background: #ecfdf5;
+  border-color: #a7f3d0;
+  color: #065f46;
+}
+.pf-note-warn {
+  background: #fefce8;
+  border-color: #fde68a;
+  color: #713f12;
+}
+.pf-note-warn .pf-note-icon {
+  color: #ca8a04;
+}
+
+/* ------------------------------------------------------------------ tiles */
+.pf-section-title {
+  margin: 1.75rem 0 0.75rem;
+  font-size: 1.1rem;
+}
+
+.pf-tiles {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.75rem;
+}
+
+/* An odd tile out on a phone takes the whole row rather than half of it. */
+@media (max-width: 719px) {
+  .pf-tile:last-child:nth-child(odd) {
+    grid-column: 1 / -1;
+  }
+}
+
+@media (min-width: 720px) {
+  .pf-tiles {
+    grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+    gap: 1rem;
+  }
+}
+
+.pf-tile {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  padding: 1.1rem;
+  transition: transform 0.15s, box-shadow 0.2s, border-color 0.2s;
+}
+.pf-tile:hover {
+  transform: translateY(-2px);
+  border-color: var(--color-brand-line);
+  box-shadow: var(--shadow-lift);
+}
+.pf-tile:focus-within {
+  border-color: var(--color-brand-light);
+  box-shadow: 0 0 0 4px rgba(139, 92, 246, 0.18);
+}
+
+.pf-tile-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  margin-bottom: 0.4rem;
+  border-radius: 14px;
+  background: var(--color-brand-tint);
+  color: var(--color-brand);
+  font-size: 1.15rem;
+}
+
+/* The one action a seller is here for, in the sunset accent. */
+.pf-tile-accent {
+  border-color: #ffd5c7;
+  background: linear-gradient(160deg, #fff 40%, var(--color-accent-tint) 100%);
+}
+.pf-tile-accent .pf-tile-icon {
+  background: linear-gradient(135deg, var(--color-accent) 0%, #ff8a3d 100%);
+  color: #fff;
+}
+
+/* The whole tile is the button's hit area, through this overlay; the button
+   itself is only the title, so its name stays "Update Profile" and the rest
+   of the tile is its description. */
+.pf-tile-button {
+  padding: 0;
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  color: var(--color-ink);
+  font: inherit;
+  font-size: 1rem;
+  font-weight: 800;
+  text-align: left;
+  cursor: pointer;
+}
+.pf-tile-button:hover {
+  background: transparent;
+  border-color: transparent;
+}
+.pf-tile-button:focus,
+.pf-tile-button:focus-visible {
+  outline: none;
+}
+.pf-tile-button::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+}
+.pf-tile {
+  border-radius: var(--radius-card);
+}
+
+.pf-tile-desc {
+  margin: 0;
+  color: var(--color-ink-muted);
+  font-size: 0.85rem;
+  line-height: 1.4;
+}
+
+.pf-signout {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 1.25rem;
+}
+
+@media (max-width: 600px) {
+  .pf-hero-body {
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+  }
+  .pf-identity {
+    flex-basis: auto;
+    width: 100%;
+  }
+  .pf-mode {
+    width: 100%;
+    box-sizing: border-box;
+  }
+  .pf-mode-option {
+    flex: 1;
+    padding: 0 0.5rem;
+  }
+  .pf-signout .btn {
+    width: 100%;
+  }
+}
+
+/* ---------------------------------------------------------- update form */
+.pf-page-head {
+  margin: 0 0 1.25rem;
+}
+.pf-page-head h1 {
+  margin: 0 0 0.25rem;
+}
+.pf-page-head p {
+  margin: 0;
+  color: var(--color-ink-muted);
+}
+
+.pf-form {
+  padding: clamp(1.25rem, 4vw, 2rem);
+}
+
+.pf-form-section + .pf-form-section {
+  margin-top: 1.5rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid var(--color-line);
+}
+
+.pf-form-section h2 {
+  margin: 0 0 1rem;
+  font-size: 1rem;
+}
+
+.pf-grid {
+  display: grid;
+  gap: 1rem;
+}
+
+@media (min-width: 640px) {
+  .pf-grid-2 {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+.pf-label {
+  display: block;
+  margin: 0 0 0.35rem;
+  padding: 0;
+  color: var(--color-ink-soft);
+  font-size: 0.88rem;
+  font-weight: 700;
+}
+
+.pf-help {
+  display: block;
+  margin-top: 0.4rem;
+  color: var(--color-ink-muted);
+  font-size: 0.82rem;
+}
+
+.pf-photo {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 1rem 1.25rem;
+}
+
+.pf-photo .pf-avatar {
+  margin-top: 0;
+  border-color: var(--color-brand-tint);
+}
+
+.pf-photo-controls {
+  flex: 1 1 240px;
+  min-width: 0;
+  display: grid;
+  gap: 0.6rem;
+  justify-items: start;
+}
+
+.pf-fieldset {
+  margin: 0;
+  padding: 0;
+  border: none;
+  min-width: 0;
+}
+
+/* The gender choice, as pills; the same visually hidden radios as the mode
+   switch on the profile page. */
+.pf-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+.pf-pill {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 0 1.1rem;
+  border: 1.5px solid var(--color-line);
+  border-radius: 999px;
+  background: #fff;
+  color: var(--color-ink-soft);
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s, border-color 0.2s, color 0.2s;
+}
+.pf-pill:hover {
+  border-color: var(--color-brand-line);
+  background: var(--color-brand-tint);
+}
+.pf-pill-on,
+.pf-pill-on:hover {
+  border-color: var(--color-brand);
+  background: var(--color-brand-tint);
+  color: var(--color-brand-dark);
+}
+.pf-pill:has(input:focus-visible) {
+  outline: 2px solid var(--color-brand);
+  outline-offset: 2px;
+}
+
+.pf-payout {
+  padding: 1rem;
+  border: 1px solid var(--color-brand-line);
+  border-radius: 14px;
+  background: var(--color-brand-tint);
+}
+/* Arrived from "add your bKash number first": the box they came for stands out. */
+.pf-payout-first {
+  border-color: #fde68a;
+  background: #fefce8;
+  box-shadow: 0 0 0 4px rgba(250, 204, 21, 0.25);
+}
+
+.pf-error {
+  margin: 1.25rem 0 0;
+  padding: 10px 14px;
+  border-radius: 12px;
+  background: #fef2f2;
+  color: #b91c1c;
+  font-weight: 600;
+}
+
+.pf-submit {
+  width: 100%;
+  margin-top: 1.5rem;
+}

@@ -10,6 +10,7 @@ import { getUserEmail } from '../utils/auth.js';
 import { safeObjectUrl } from '../utils/safeImageSrc.js';
 import { reportError } from '../utils/report.js';
 import AuthImage from './AuthImage.js';
+import './Chat.css';
 
 interface ChatWindowProps {
   receiver: string;
@@ -123,94 +124,56 @@ export default function ChatWindow({ receiver, receiverName, onClose }: ChatWind
 
   if (!userEmail || !receiver) return null;
 
+  // Same bubbles and composer as the messages page (Chat.css), in a floating
+  // card with a deep-indigo head. Across the width of a phone rather than a
+  // fixed 320px in its corner.
   return (
-    <div style={{
-      position: 'fixed',
-      bottom: 20,
-      right: 20,
-      width: 320,
-      height: 400,
-      backgroundColor: 'white',
-      borderRadius: 12,
-      boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
-      display: 'flex',
-      flexDirection: 'column',
-      zIndex: 1000,
-      overflow: 'hidden'
-    }}>
+    <div className="chat-window" role="region" aria-label={`Chat with ${receiverName}`}>
       {/* Chat Header */}
-      <div style={{
-        padding: '12px 16px',
-        backgroundColor: '#8B6F6F',
-        color: 'white',
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center'
-      }}>
-        <span style={{ fontWeight: 500 }}>Chat with {receiverName}</span>
-        <FaTimes 
+      <div className="chat-window-head">
+        <span className="chat-avatar is-tiny" aria-hidden="true">
+          {initialsOf(receiverName || receiver)}
+        </span>
+        <span className="chat-window-title">Chat with {receiverName}</span>
+        <button
+          type="button"
+          className="chat-window-close"
           onClick={onClose}
-          style={{ cursor: 'pointer' }}
-        />
+          aria-label="Close chat"
+        >
+          <FaTimes size={15} />
+        </button>
       </div>
 
       {/* Messages Area */}
-      <div style={{
-        flex: 1,
-        overflowY: 'auto',
-        padding: 16,
-        display: 'flex',
-        flexDirection: 'column',
-        gap: 8,
-        backgroundColor: '#f8f9fa'
-      }}>
+      <div className="chat-messages">
         {messages.map((msg, index) => (
           <div
             key={index}
-            style={{
-              alignSelf: msg.sender === userEmail ? 'flex-end' : 'flex-start',
-              maxWidth: '60%',
-              margin: '0.5rem 0'
-            }}
+            className={`chat-msg${msg.sender === userEmail ? ' is-own' : ''}`}
           >
-            <div style={{
-              background: msg.sender === userEmail ? '#8B6F6F' : '#e9ecef',
-              color: msg.sender === userEmail ? 'white' : 'black',
-              padding: msg.image ? '0.5rem' : '8px 12px',
-              borderRadius: 12,
-              maxWidth: '100%',
-              wordBreak: 'break-word'
-            }}>
-              {msg.message && <div style={{ marginBottom: msg.image ? '0.5rem' : 0 }}>{msg.message}</div>}
+            <div className={`chat-bubble${msg.image ? ' has-image' : ''}`}>
               {msg.image && (
                 <AuthImage
                   src={msg.image}
                   alt="Chat attachment"
-                  style={{
-                    maxWidth: '100%',
-                    maxHeight: '200px',
-                    width: 'auto',
-                    height: 'auto',
-                    borderRadius: '0.5rem',
-                    display: 'block'
-                  }}
+                  className="chat-bubble-image"
                 />
               )}
+              {msg.message && <div className="chat-bubble-text">{msg.message}</div>}
             </div>
+            {msg.timestamp && (
+              <time className="chat-time" dateTime={msg.timestamp}>
+                {timeOf(msg.timestamp)}
+              </time>
+            )}
           </div>
         ))}
         <div ref={messagesEndRef} />
       </div>
 
       {/* Input Area */}
-      <div style={{
-        padding: 12,
-        borderTop: '1px solid #eee',
-        display: 'flex',
-        gap: 8,
-        backgroundColor: 'white',
-        alignItems: 'center'
-      }}>
+      <div className="chat-composer">
         <input
           type="file"
           accept="image/png,image/jpeg,image/webp,image/gif"
@@ -219,52 +182,26 @@ export default function ChatWindow({ receiver, receiverName, onClose }: ChatWind
           style={{ display: 'none' }}
         />
         <button
+          type="button"
+          className="chat-attach"
           onClick={() => fileInputRef.current?.click()}
-          style={{
-            background: 'none',
-            border: 'none',
-            color: '#8B6F6F',
-            cursor: 'pointer',
-            padding: '8px'
-          }}
           title="Add image"
+          aria-label="Add image"
         >
-          <FaImage size={20} />
+          <FaImage size={18} />
         </button>
 
         {selectedImage && (
-          <div style={{ 
-            position: 'relative',
-            width: 40,
-            height: 40
-          }}>
+          <div className="chat-preview">
             <img
               src={safeObjectUrl(selectedImage)}
               alt="Selected"
-              style={{
-                width: '100%',
-                height: '100%',
-                objectFit: 'cover',
-                borderRadius: '4px'
-              }}
             />
             <button
+              type="button"
+              className="chat-preview-remove"
               onClick={() => setSelectedImage(null)}
-              style={{
-                position: 'absolute',
-                top: -8,
-                right: -8,
-                background: '#fff',
-                border: '1px solid #ddd',
-                borderRadius: '50%',
-                width: 20,
-                height: 20,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                cursor: 'pointer',
-                fontSize: '12px'
-              }}
+              aria-label="Remove image"
             >
               ×
             </button>
@@ -272,36 +209,38 @@ export default function ChatWindow({ receiver, receiverName, onClose }: ChatWind
         )}
 
         <input
+          className="field chat-input"
           value={message}
           onChange={(e) => setMessage(e.target.value)}
           onKeyPress={(e) => e.key === 'Enter' && sendMessage()}
           placeholder="Type a message..."
-          style={{
-            flex: 1,
-            padding: '8px 12px',
-            borderRadius: 20,
-            border: '1px solid #ddd',
-            outline: 'none'
-          }}
         />
         <button
+          type="button"
+          className="btn btn-primary chat-send"
           onClick={sendMessage}
-          style={{
-            backgroundColor: '#8B6F6F',
-            color: 'white',
-            border: 'none',
-            borderRadius: '50%',
-            width: 40,
-            height: 40,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            cursor: 'pointer'
-          }}
+          aria-label="Send message"
         >
-          <FaPaperPlane size={16} />
+          <FaPaperPlane size={15} />
         </button>
       </div>
     </div>
   );
+}
+
+/** Two letters for the person at the other end: "nadia_books" is NB. */
+function initialsOf(name: string) {
+  const words = name.split(/[\s._@-]+/).filter(Boolean);
+  const letters = words.length > 1 ? words[0][0] + words[1][0] : name.slice(0, 2);
+  return letters.toUpperCase() || '?';
+}
+
+/** "3:05 pm" today, with the date in front before that. */
+function timeOf(iso: string) {
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return '';
+  const time = d.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+  return d.toDateString() === new Date().toDateString()
+    ? time
+    : `${d.toLocaleDateString([], { day: 'numeric', month: 'short' })}, ${time}`;
 }
