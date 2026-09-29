@@ -3,7 +3,6 @@ import { createRoot } from 'react-dom/client';
 import { SnackbarProvider } from 'notistack';
 import { QueryClientProvider } from '@tanstack/react-query';
 
-import '@fontsource-variable/plus-jakarta-sans';
 import './index.css';
 import App from './App.js';
 import ErrorBoundary from './components/ErrorBoundary.js';

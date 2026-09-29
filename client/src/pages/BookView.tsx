@@ -15,7 +15,7 @@ import './BookView.css';
 
 import type { ChatMessage } from '@shared/api.js';
 
-import { openSocket } from '../utils/socket.js';
+import { subscribeToMessages } from '../utils/socket.js';
 import ChatWindow from '../components/ChatWindow';
 import { API_BASE_URL, signOut } from '../config/api.js';
 import {
@@ -92,10 +92,7 @@ export default function BookView() {
             }
         };
 
-        const { socket, close } = openSocket();
-        socket.on('receive_message', handleNewMessage);
-
-        return close;
+        return subscribeToMessages(handleNewMessage);
     }, [userEmail]);
 
     const toggleCart = async (bookId: string) => {
@@ -278,7 +275,7 @@ export default function BookView() {
                         type="button"
                         className="logo-button"
                         onClick={() => navigate('/')}
-                        aria-label="Go to homepage"
+                        aria-label="BookStoreBD home"
                     >
                         <Logo size={38} />
                     </button>

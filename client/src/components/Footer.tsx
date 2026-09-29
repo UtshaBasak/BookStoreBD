@@ -22,7 +22,7 @@ export default function Footer() {
       </div>
 
       <div className="footer-section">
-        <h4>About us</h4>
+        <h2>About us</h2>
         <ul>
           <li>
             <Link to="/about">Who we are</Link>
@@ -37,7 +37,7 @@ export default function Footer() {
       </div>
 
       <div className="footer-section">
-        <h4>Policies</h4>
+        <h2>Policies</h2>
         <ul>
           <li>
             <Link to="/privacy">Privacy policy</Link>
@@ -52,7 +52,7 @@ export default function Footer() {
       </div>
 
       <div className="footer-section">
-        <h4>Get in touch</h4>
+        <h2>Get in touch</h2>
         <ul>
           <li>
             <a href={`mailto:${site.email}`}>{site.email}</a>

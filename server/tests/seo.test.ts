@@ -126,3 +126,25 @@ describe('GET /sitemap.xml', () => {
     expect(res.text.match(/<\/urlset>/g)).toHaveLength(1);
   });
 });
+
+describe('GET /llms.txt', () => {
+  // It answered with the app's HTML shell, which Lighthouse flagged: an llms.txt
+  // has to be Markdown with a title and links.
+  it('is Markdown with a title and absolute links', async () => {
+    const res = await request.get('/llms.txt').set('X-Forwarded-Host', 'books.example.com');
+
+    expect(res.status).toBe(200);
+    expect(res.headers['content-type']).toMatch(/text\/markdown/);
+    expect(res.text).toMatch(/^# BookStoreBD$/m);
+    expect(res.text).toContain('](http://books.example.com/filter)');
+    expect(res.text).toContain('](http://books.example.com/returns)');
+  });
+
+  it('quotes the rules the API enforces', async () => {
+    const { DELIVERY, RETURN_WINDOW_DAYS } = await import('../config/commerce.js');
+    const res = await request.get('/llms.txt');
+
+    expect(res.text).toContain(`${DELIVERY.insideDhaka} Tk inside Dhaka`);
+    expect(res.text).toContain(`${RETURN_WINDOW_DAYS} days from delivery`);
+  });
+});

@@ -6,7 +6,7 @@ import type { ChatMessage, ChatMessagesResponse } from '@shared/api.js';
 import { API_BASE_URL, apiFetch } from '../config/api.js';
 import { useToast } from '../hooks/useToast.js';
 import { getUserEmail } from '../utils/auth.js';
-import { openSocket } from '../utils/socket.js';
+import { subscribeToMessages } from '../utils/socket.js';
 import { reportError } from '../utils/report.js';
 import AuthImage from './AuthImage.js';
 import FilePreview from './FilePreview.js';
@@ -27,10 +27,6 @@ export default function ChatWindow({ receiver, receiverName, onClose }: ChatWind
   const userEmail = getUserEmail();
   const toast = useToast();
   useEffect(() => {
-    // Live messages. The server sends each person only what is addressed to
-    // them, so nothing is joined and nothing is sent from here.
-    const { socket, close } = openSocket();
-
     // Mark messages as read
     apiFetch(`${API_BASE_URL}/chat/read`, {
       method: 'POST',
@@ -59,9 +55,11 @@ export default function ChatWindow({ receiver, receiverName, onClose }: ChatWind
       }
     };
 
-    socket.on('receive_message', handleNewMessage);
+    // Live messages. The server sends each person only what is addressed to
+    // them, so nothing is joined and nothing is sent from here.
+    const stop = subscribeToMessages(handleNewMessage);
 
-    return close;
+    return stop;
   }, [userEmail, receiver]);
 
   // Auto scroll to bottom when new messages arrive

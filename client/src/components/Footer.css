@@ -26,7 +26,9 @@
   color: rgba(255, 255, 255, 0.7);
 }
 
-.footer-section h4 {
+/* h2, not h4: the footer came straight after the page's own h2, and a skipped
+   level leaves a screen reader's outline with gaps in it. */
+.footer-section h2 {
   margin: 0 0 0.75rem;
   color: #fff;
   font-size: 0.8rem;

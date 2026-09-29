@@ -5,15 +5,10 @@ import tailwindcss from '@tailwindcss/vite';
 // Keep the vendor libraries in their own chunks so app code can be re-deployed
 // without busting the whole bundle cache.
 const REACT_CHUNK = ['react', 'react-dom', 'react-router', 'react-router-dom', 'scheduler'];
-const VENDOR_CHUNK = [
-  'axios',
-  'notistack',
-  'react-icons',
-  'socket.io-client',
-  'socket.io-parser',
-  'engine.io-client',
-  'engine.io-parser',
-];
+const VENDOR_CHUNK = ['axios', 'notistack', 'react-icons'];
+// Loaded only when a signed-in page opens the live chat (utils/socket.ts), so
+// kept out of the vendor chunk every visitor downloads.
+const SOCKET_CHUNK = ['socket.io-client', 'socket.io-parser', 'engine.io-client', 'engine.io-parser', '@socket.io/component-emitter'];
 
 /**
  * Vite 8 builds with Rolldown, which accepts only the function form of
@@ -29,6 +24,7 @@ const manualChunks = (id: string): string | undefined => {
 
   if (REACT_CHUNK.includes(pkg)) return 'react';
   if (VENDOR_CHUNK.includes(pkg)) return 'vendor';
+  if (SOCKET_CHUNK.includes(pkg)) return 'socket';
   return undefined;
 };
 

@@ -12,7 +12,7 @@
  */
 export const API_PREFIX = '/api';
 
-export const ROOT_PATHS: readonly string[] = ['/health', '/robots.txt', '/sitemap.xml'];
+export const ROOT_PATHS: readonly string[] = ['/health', '/robots.txt', '/sitemap.xml', '/llms.txt'];
 
 /** True when a path belongs to the API rather than to a client-side route. */
 export const isApiPath = (pathname: string): boolean =>

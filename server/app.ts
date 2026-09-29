@@ -11,7 +11,7 @@ import { config } from './config/env.js';
 import { createLogger } from './config/logger.js';
 import { corsOptions } from './config/cors.js';
 import { isApiPath, API_PREFIX } from './config/apiPaths.js';
-import { robots, sitemap } from './controllers/seo.controller.js';
+import { llmsTxt, robots, sitemap } from './controllers/seo.controller.js';
 import { publicSiteUrl } from './config/siteUrl.js';
 import AddBook from './models/AddBook.model.js';
 import { BOOK_PAGE, renderBookPage, renderSitePage, templateLoader, type PreviewBook } from './utils/sharePreview.js';
@@ -110,6 +110,7 @@ export const createApp = ({
   // for a sitemap is not the traffic that limiter exists to stop.
   app.get('/robots.txt', crawlerLimiter, robots);
   app.get('/sitemap.xml', crawlerLimiter, sitemap);
+  app.get('/llms.txt', crawlerLimiter, llmsTxt);
 
   app.use(apiLimiter);
 
@@ -140,7 +141,19 @@ export const createApp = ({
     if (existsSync(clientDist)) {
       // No index: '/' is answered below with the rest of the pages, so its head
       // gets the same treatment rather than being sent straight off the disk.
-      app.use(express.static(clientDist, { index: false }));
+      app.use(
+        express.static(clientDist, {
+          index: false,
+          // The build names everything under assets/ after its contents, so a
+          // changed file is a new address and the old one can be kept for a
+          // year. It was revalidated on every visit, a round trip per file.
+          setHeaders: (res, filePath) => {
+            if (path.relative(clientDist, filePath).split(path.sep)[0] === 'assets') {
+              res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
+            }
+          },
+        })
+      );
 
       // A shared book's page carries that book's title and cover in its head,
       // for the link previews that scrapers build without running the app. See
@@ -173,6 +186,12 @@ export const createApp = ({
         // A miss under an API prefix is a 404, not the app shell — otherwise a
         // typo'd endpoint would return HTML and a fetch would fail confusingly.
         if (isApiPath(req.path)) return next();
+        // Nor for a file that is not there. No page of the app has a dot in
+        // its address or lives under /.well-known, so these are requests for
+        // files - an old asset after a deploy, a manifest a tool is looking
+        // for - and answering with the app's HTML told them it existed and was
+        // broken (Lighthouse read "<!doctype" as a malformed ai-catalog.json).
+        if (/\.[a-z0-9]+$/i.test(req.path) || req.path.startsWith('/.well-known/')) return next();
         res.set('Cache-Control', 'no-cache');
         return res.type('html').send(renderSitePage(template(), publicSiteUrl(req)));
       });

@@ -120,7 +120,7 @@ export default function DescriptionForm() {
     <div className="aurora min-h-screen w-full px-4 py-6 sm:py-10" style={{ boxSizing: 'border-box' }}>
       <div className="mx-auto w-full" style={{ maxWidth: 620 }}>
         <div className="mb-5 flex items-center justify-between gap-3">
-          <Link to="/" className="inline-flex items-center" aria-label="Go to Homepage" title="Go to Homepage">
+          <Link to="/" className="inline-flex items-center" aria-label="BookStoreBD home" title="Go to Homepage">
             <Logo size={32} inverted />
           </Link>
           <Link

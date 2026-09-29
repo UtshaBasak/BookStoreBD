@@ -3,6 +3,7 @@ import type { RequestHandler } from 'express';
 import AddBook from '../models/AddBook.model.js';
 import { publicSiteUrl } from '../config/siteUrl.js';
 import { createLogger } from '../config/logger.js';
+import { DELIVERY, RETURN_WINDOW_DAYS, SELLER_FEE_PERCENT } from '../config/commerce.js';
 
 const log = createLogger('seo');
 
@@ -123,4 +124,45 @@ ${urls.join('\n')}
   } catch (error) {
     next(error);
   }
+};
+
+/**
+ * `/llms.txt`: what the shop is and where things are, in Markdown, for the AI
+ * assistants that read it before a site's pages (https://llmstxt.org). Without
+ * it the address answered with the app's HTML shell, which says nothing to a
+ * program that does not run it. Served from here rather than as a file so the
+ * links are absolute on whatever domain the request came in on, and the
+ * figures come from the rules the API enforces.
+ */
+export const llmsTxt: RequestHandler = (req, res) => {
+  const origin = publicSiteUrl(req);
+  const link = (path: string): string => `${origin}${path}`;
+
+  const text = `# BookStoreBD
+
+> An online marketplace for new and second-hand books in Bangladesh. Anyone can list books for sale free of charge; buyers pay cash on delivery and have ${RETURN_WINDOW_DAYS} days from delivery to ask for a return.
+
+- Delivery by courier: ${DELIVERY.insideDhaka} Tk inside Dhaka, ${DELIVERY.outsideDhaka} Tk elsewhere in Bangladesh.
+- Payment: cash on delivery only.
+- Sellers keep the book total less a ${SELLER_FEE_PERCENT}% fee, paid by bKash.
+- Contact: support.utsha@gmail.com. Based in Dhaka, Bangladesh.
+
+## Shop
+
+- [All books](${link('/filter')}): the catalogue, searchable by title, author or ISBN and filterable by category, new or second-hand, price and rating
+- [New books](${link('/filter?bookType=new')})
+- [Second-hand books](${link('/filter?bookType=old')})
+- [In stock](${link('/filter?inStock=1')})
+- [Sitemap](${link('/sitemap.xml')}): every book's own page
+
+## About and policies
+
+- [About](${link('/about')}): who runs the shop and how buying and selling work
+- [Contact](${link('/contact')})
+- [Returns and refunds](${link('/returns')})
+- [Terms of service](${link('/terms')})
+- [Privacy policy](${link('/privacy')})
+`;
+
+  res.type('text/markdown').set('Cache-Control', 'public, max-age=3600').send(text);
 };
