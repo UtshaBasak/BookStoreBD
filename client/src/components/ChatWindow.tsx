@@ -1,12 +1,12 @@
 import { useState, useEffect, useRef, type ChangeEvent } from 'react';
 import { FaTimes, FaPaperPlane, FaImage } from 'react-icons/fa';
-import { io, type Socket } from 'socket.io-client';
 
 import type { ChatMessage, ChatMessagesResponse } from '@shared/api.js';
 
 import { API_BASE_URL, apiFetch } from '../config/api.js';
 import { useToast } from '../hooks/useToast.js';
 import { getUserEmail } from '../utils/auth.js';
+import { openSocket } from '../utils/socket.js';
 import { reportError } from '../utils/report.js';
 import AuthImage from './AuthImage.js';
 import FilePreview from './FilePreview.js';
@@ -26,14 +26,10 @@ export default function ChatWindow({ receiver, receiverName, onClose }: ChatWind
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const userEmail = getUserEmail();
   const toast = useToast();
-  // A ref rather than state: the socket is an imperative handle that nothing
-  // renders, so storing it in state only caused an extra render on mount.
-  const socketRef = useRef<Socket | null>(null);
-
   useEffect(() => {
-    // Initialize socket connection
-    const newSocket = io(API_BASE_URL || window.location.origin);
-    socketRef.current = newSocket;
+    // Live messages. The server sends each person only what is addressed to
+    // them, so nothing is joined and nothing is sent from here.
+    const { socket, close } = openSocket();
 
     // Mark messages as read
     apiFetch(`${API_BASE_URL}/chat/read`, {
@@ -44,10 +40,6 @@ export default function ChatWindow({ receiver, receiverName, onClose }: ChatWind
         receiver: userEmail
       })
     });
-
-    // Join chat room
-    const room = [userEmail, receiver].sort().join('-');
-    newSocket.emit('join_chat', room);
 
     // Load chat history
     apiFetch(`${API_BASE_URL}/chat/messages?sender=${userEmail}&receiver=${receiver}`)
@@ -67,12 +59,9 @@ export default function ChatWindow({ receiver, receiverName, onClose }: ChatWind
       }
     };
 
-    newSocket.on('receive_message', handleNewMessage);
+    socket.on('receive_message', handleNewMessage);
 
-    return () => {
-      newSocket.off('receive_message', handleNewMessage);
-      newSocket.disconnect();
-    };
+    return close;
   }, [userEmail, receiver]);
 
   // Auto scroll to bottom when new messages arrive
@@ -108,11 +97,6 @@ export default function ChatWindow({ receiver, receiverName, onClose }: ChatWind
       if (!res.ok) throw new Error('Failed to send message');
 
       const messageData = (await res.json()) as ChatMessage;
-
-      // Send through socket
-      const room = [userEmail, receiver].sort().join('-');
-      socketRef.current?.emit('send_message', { ...messageData, room });
-
       setMessages(prev => [...prev, messageData]);
       setMessage('');
       setSelectedImage(null);

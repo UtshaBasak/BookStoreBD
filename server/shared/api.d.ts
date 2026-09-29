@@ -616,7 +616,10 @@ export interface ChatMessage {
   sender: string;
   receiver: string;
   message: string;
-  /** A base64 data URI when the message carries an attachment. */
+  /**
+   * The attachment, if any: an address to fetch it from, except in the reply
+   * to sending a message, which carries it as a base64 data URI.
+   */
   image?: string | null;
   timestamp: IsoDate;
   read?: boolean;
@@ -654,16 +657,6 @@ export interface DeleteConversationRequest {
 
 export interface UnreadCountResponse {
   count: number;
-}
-
-/** The payload exchanged over Socket.IO, which bypasses HTTP entirely. */
-export interface ChatSocketMessage {
-  room: string;
-  sender: string;
-  receiver: string;
-  message: string;
-  image?: string | null;
-  timestamp?: IsoDate;
 }
 
 // ---------------------------------------------------------------------------

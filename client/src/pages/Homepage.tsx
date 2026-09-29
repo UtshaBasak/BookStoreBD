@@ -2,11 +2,10 @@ import { useEffect, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { FaChevronLeft, FaChevronRight, FaHeart, FaRegHeart, FaBell, FaComments, FaShoppingBag, FaSearch } from 'react-icons/fa';
 import './Homepage.css';
-import { io } from 'socket.io-client';
 
 import type { ChatMessage } from '@shared/api.js';
 
-import { API_BASE_URL, signOut } from '../config/api.js';
+import { signOut } from '../config/api.js';
 import {
   useProfile,
   useFeatured,
@@ -23,6 +22,7 @@ import { site } from '../config/site.js';
 import Footer from '../components/Footer.js';
 import Logo from '../components/Logo.js';
 import { getUserEmail } from '../utils/auth.js';
+import { openSocket } from '../utils/socket.js';
 import { flagsFor } from '../utils/bookFlags.js';
 import { PLACEHOLDER_IMAGE } from '../utils/safeImageSrc.js';
 import { sized, IMAGE_WIDTHS } from '../utils/imageUrl.js';
@@ -145,16 +145,14 @@ export default function Homepage() {
   useEffect(() => {
     if (!userEmail) return undefined;
 
-    const socket = io(API_BASE_URL || window.location.origin);
+    const { socket, close } = openSocket();
     socket.on('receive_message', (data: ChatMessage) => {
       if (data.receiver === userEmail && !window.location.pathname.includes('/chat')) {
         setLiveUnread((count) => count + 1);
       }
     });
 
-    return () => {
-      socket.disconnect();
-    };
+    return close;
   }, [userEmail]);
 
   const handleSignOut = async () => {

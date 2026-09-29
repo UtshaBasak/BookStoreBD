@@ -1,13 +1,14 @@
 import { useState, useEffect, useRef, type ChangeEvent, type UIEvent } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { FaArrowLeft, FaPaperPlane, FaComments, FaTrash, FaImage, FaBookOpen } from 'react-icons/fa';
-import { io, type Socket } from 'socket.io-client';
+import type { Socket } from 'socket.io-client';
 
 import type { ChatMessage, ChatMessagesResponse, ChatSummary } from '@shared/api.js';
 
 import { API_BASE_URL, apiFetch } from '../config/api.js';
 import { useToast } from '../hooks/useToast.js';
 import { getUserEmail } from '../utils/auth.js';
+import { openSocket } from '../utils/socket.js';
 import { reportError } from '../utils/report.js';
 import AuthImage from '../components/AuthImage.js';
 import FilePreview from '../components/FilePreview.js';
@@ -41,7 +42,10 @@ export default function ChatPage() {
     }, [messages]);
 
     useEffect(() => {
-        socketRef.current = io(API_BASE_URL);
+        // Live messages. The server sends each person only what is addressed
+        // to them, so nothing is joined and nothing is sent from here.
+        const { socket, close } = openSocket();
+        socketRef.current = socket;
         
         if (userEmail) {
             // Add logging to debug
@@ -58,7 +62,8 @@ export default function ChatPage() {
         }
 
         return () => {
-            socketRef.current?.disconnect();
+            close();
+            socketRef.current = null;
         };
     }, [userEmail]);
 
@@ -86,9 +91,6 @@ export default function ChatPage() {
                     receiver: userEmail
                 })
             });
-
-            const room = [userEmail, selectedUser.email].sort().join('-');
-            socketRef.current?.emit('join_chat', room);
 
             // Use async/await for initial fetch
             const fetchMessages = async () => {
@@ -198,9 +200,6 @@ export default function ChatPage() {
             setMessages(prev => [...prev, newMsg]);
             setNewMessage('');
             setSelectedImage(null);
-
-            const room = [userEmail, selectedUser.email].sort().join('-');
-            socketRef.current?.emit('send_message', { ...newMsg, room });
 
             scrollToBottom();
         } catch (err) {
