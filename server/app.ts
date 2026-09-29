@@ -19,7 +19,7 @@ import auditRouter from './routes/audit.route.js';
 import reviewRouter from './routes/review.route.js';
 import { CLIENT_DIST, UPLOADS_DIR } from './config/paths.js';
 import { TRUSTED_PROXIES } from './config/trustedProxies.js';
-import { securityHeaders } from './config/securityHeaders.js';
+import { securityHeaders, shareableImages } from './config/securityHeaders.js';
 import { errorHandler, notFoundHandler } from './middleware/errorHandler.js';
 import { sanitizeRequest } from './middleware/sanitizeRequest.js';
 import { requestLogger } from './middleware/requestLogger.js';
@@ -86,6 +86,7 @@ export const createApp = ({
   // Before any route, so an error response carries the same protections as a
   // successful one.
   app.use(helmet(securityHeaders()));
+  app.use(shareableImages);
 
   app.use(cors(corsOptions));
   // Book covers and chat attachments are sent as base64, so the default 100kb

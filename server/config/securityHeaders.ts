@@ -1,3 +1,4 @@
+import type { RequestHandler } from 'express';
 import type { HelmetOptions } from 'helmet';
 
 import { config } from './env.js';
@@ -103,5 +104,21 @@ export const securityHeaders = (): HelmetOptions => ({
   // avatar and cover hosts do not. Off deliberately rather than by oversight.
   crossOriginEmbedderPolicy: false,
 });
+
+/**
+ * The pictures meant to be shown on other sites: the shop's share card, its
+ * icon, the placeholder cover and a book's cover. A link preview is drawn by
+ * whoever shows it - a preview tool's page, a chat app's web client - and with
+ * the site-wide same-origin policy above, the browser refused to draw them
+ * there, so the card came up with a broken picture. Everything else keeps
+ * same-origin.
+ */
+const SHAREABLE =
+  /^\/(?:og-image\.jpg|favicon\.svg|book-placeholder\.svg)$|^\/api\/book\/[0-9a-f]{24}\/cover(?:\/\d+)?$/i;
+
+export const shareableImages: RequestHandler = (req, res, next) => {
+  if (SHAREABLE.test(req.path)) res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
+  next();
+};
 
 export default securityHeaders;
