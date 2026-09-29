@@ -55,6 +55,14 @@ services:
       # A Gmail App Password, not the account password.
       - key: SMTP_PASS
         sync: false
+      # Render's free plan blocks the SMTP ports, so mail goes over Gmail's
+      # web API instead: all three from Google Cloud and `npm run gmail:token`.
+      - key: GMAIL_CLIENT_ID
+        sync: false
+      - key: GMAIL_CLIENT_SECRET
+        sync: false
+      - key: GMAIL_REFRESH_TOKEN
+        sync: false
 
       # --- Image hosting ------------------------------------------------------
       # The cloud name and API key are not secret; the API secret is.
