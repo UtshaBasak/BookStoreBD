@@ -48,13 +48,13 @@ Docker path is in [Running with Docker](README.md#running-with-docker).
 Branch off `master` and use a short, descriptive name prefixed with the kind of
 change:
 
-| Prefix      | Use for                        | Example                          |
-| ----------- | ------------------------------ | -------------------------------- |
-| `feat/`     | A new capability               | `feat/seller-analytics`          |
-| `fix/`      | A bug fix                      | `fix/cart-stock-race`            |
+| Prefix | Use for | Example |
+| --- | --- | --- |
+| `feat/` | A new capability | `feat/seller-analytics` |
+| `fix/` | A bug fix | `fix/cart-stock-race` |
 | `refactor/` | Restructuring without behaviour change | `refactor/order-controller` |
-| `docs/`     | Documentation only             | `docs/api-reference`             |
-| `chore/`    | Tooling, dependencies, CI      | `chore/bump-vite`                |
+| `docs/` | Documentation only | `docs/api-reference` |
+| `chore/` | Tooling, dependencies, CI | `chore/bump-vite` |
 
 ---
 

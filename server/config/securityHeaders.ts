@@ -16,8 +16,10 @@ import { config } from './env.js';
  *
  * Enumerated rather than blanket-allowing `https:`, so adding a new one is a
  * deliberate edit. `data:` covers the base64 covers stored on a document when
- * image hosting is off; `blob:` covers the preview of a file the user has just
- * picked, which `safeObjectUrl` produces.
+ * image hosting is off; `blob:` covers an image
+ * fetched with a token and shown from memory (`AuthImage`: chat pictures,
+ * return photos). The Unsplash and wallpaper hosts went with the photo
+ * backdrops the redesign replaced.
  */
 const IMAGE_SOURCES = [
   "'self'",
@@ -25,8 +27,6 @@ const IMAGE_SOURCES = [
   'blob:',
   'https://res.cloudinary.com',
   'https://ui-avatars.com',
-  'https://images.unsplash.com',
-  'https://a-static.besthdwallpaper.com',
 ];
 
 /**
