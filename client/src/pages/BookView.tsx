@@ -283,7 +283,7 @@ export default function BookView() {
 
                 <div className="search-bar" role="search">
                     <FaSearch className="search-icon" aria-hidden="true" />
-                    <input
+                    <input name="q"
                         type="search"
                         aria-label="Search books"
                         placeholder="Search books..."

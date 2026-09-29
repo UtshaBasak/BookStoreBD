@@ -133,7 +133,7 @@ export default function SellerBookList() {
           {/* Search bar */}
           <div className="sl-search">
             <FaSearch aria-hidden="true" />
-            <input
+            <input name="q"
               type="text"
               placeholder="Search by title or author..."
               aria-label="Search your books"
@@ -213,7 +213,7 @@ export default function SellerBookList() {
                       <td data-label="No. of Pages">{book.pages}</td>
                       <td data-label="Price (Tk.)" className="sl-price">৳{book.price}</td>
                       <td data-label="Update Price">
-                        <input
+                        <input name="price"
                           type="number"
                           min="0"
                           value={edit[book._id]?.price ?? ''}
@@ -230,7 +230,7 @@ export default function SellerBookList() {
                         </span>
                       </td>
                       <td data-label="Update Stock">
-                        <input
+                        <input name="stock"
                           type="number"
                           min="0"
                           value={edit[book._id]?.stock ?? ''}

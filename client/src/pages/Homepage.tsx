@@ -480,7 +480,7 @@ export default function Homepage() {
             }}
           >
             <FaSearch aria-hidden="true" className="hero-search-icon" />
-            <input
+            <input name="q"
               type="search"
               aria-label="Search books"
               placeholder="Try “Humayun Ahmed” or “physics”"

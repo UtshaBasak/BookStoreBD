@@ -128,7 +128,7 @@ export default function SellerOrderList() {
         <div className="sl-toolbar">
           <div className="sl-search" style={{ maxWidth: 520 }}>
             <FaSearch aria-hidden="true" />
-            <input
+            <input name="q"
               type="text"
               placeholder="Search by order number, title, author, or buyer..."
               aria-label="Search your orders"

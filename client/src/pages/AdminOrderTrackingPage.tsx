@@ -154,7 +154,7 @@ export default function AdminOrderTrackingPage() {
           <div className="admin-status-form">
             <label>
               <b>Update Status: </b>
-              <select value={statusValue} onChange={handleStatusChange} className="field">
+              <select name="status" value={statusValue} onChange={handleStatusChange} className="field">
                 {ORDER_STAGES.map(stage => (
                   <option key={stage} value={stage}>{stage}</option>
                 ))}

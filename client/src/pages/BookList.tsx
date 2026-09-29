@@ -66,7 +66,7 @@ export default function BookList() {
       <div className="admin-toolbar">
         <div className="admin-search">
           <FaSearch className="admin-search-icon" aria-hidden="true" />
-          <input
+          <input name="q"
             type="text"
             className="field"
             placeholder="Search by title, author, or seller..."

@@ -128,7 +128,7 @@ export default function OrderTrackingPage() {
             <div className="mt-7 flex flex-wrap items-center justify-center gap-3 border-t border-line pt-5">
               <label className="flex flex-wrap items-center gap-2">
                 <b>Update Status: </b>
-                <select
+                <select name="status"
                   value={order.status}
                   onChange={handleStatusChange}
                   disabled={updating}

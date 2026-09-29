@@ -156,7 +156,7 @@ export default function ChatWindow({ receiver, receiverName, onClose }: ChatWind
 
       {/* Input Area */}
       <div className="chat-composer">
-        <input
+        <input name="image"
           type="file"
           accept="image/png,image/jpeg,image/webp,image/gif"
           onChange={handleImageSelect}
@@ -187,7 +187,7 @@ export default function ChatWindow({ receiver, receiverName, onClose }: ChatWind
           </div>
         )}
 
-        <input
+        <input name="message"
           className="field chat-input"
           value={message}
           onChange={(e) => setMessage(e.target.value)}

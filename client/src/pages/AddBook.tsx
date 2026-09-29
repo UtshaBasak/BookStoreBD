@@ -453,7 +453,7 @@ const AddBooks = () => {
                     const on = Data.category.includes(cat);
                     return (
                       <label key={cat} className={`sl-choice${on ? ' is-on' : ''}`}>
-                        <input type='checkbox' value={cat} checked={on} onChange={handleCategoryChange} />
+                        <input name='category' type='checkbox' value={cat} checked={on} onChange={handleCategoryChange} />
                         {on && <FaCheck className='sl-choice-icon' aria-hidden='true' />}
                         {cat}
                       </label>
