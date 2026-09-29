@@ -2,7 +2,6 @@ import crypto from 'crypto';
 
 import bcryptjs from 'bcryptjs';
 import type { NextFunction, Request, RequestHandler, Response } from 'express';
-import nodemailer from 'nodemailer';
 
 import type { SessionResponse } from '@shared/api.js';
 
@@ -32,6 +31,7 @@ import type {
 } from '../schemas/index.js';
 import { createLogger } from '../config/logger.js';
 import { alreadyRegisteredEmail, codeEmail, type Email } from '../utils/emailTemplates.js';
+import { mailConfigured, sendMail } from '../utils/mailer.js';
 import {
   clearCode,
   consumeOtpAttempt,
@@ -103,26 +103,10 @@ function generateOTP(): string {
     return crypto.randomInt(100000, 1000000).toString();
 }
 
-function createTransporter() {
-    return nodemailer.createTransport({
-        service: config.smtp.service,
-        auth: {
-            user: config.smtp.user,
-            pass: config.smtp.pass
-        }
-    });
-}
-
+// Over Gmail's web API where the SMTP ports are blocked, as on Render's free
+// plan; see utils/mailer.ts.
 async function sendEmail(email: string, mail: Email): Promise<void> {
-    await createTransporter().sendMail({
-        // A name beside the address: a bare Gmail address in the inbox reads
-        // like the phishing these codes exist to guard against.
-        from: { name: 'BookStoreBD', address: String(config.smtp.user) },
-        to: email,
-        subject: mail.subject,
-        text: mail.text,
-        html: mail.html,
-    });
+    await sendMail({ to: email, subject: mail.subject, text: mail.text, html: mail.html });
 }
 
 const inFlightMail = new Set<Promise<void>>();
@@ -184,7 +168,7 @@ export const sendOtp = async (
 
         // A fault in our configuration, not a fact about this address: every
         // caller gets the same 500, so it reveals nothing.
-        if (!config.smtp.user || !config.smtp.pass) {
+        if (!mailConfigured()) {
             log.error('SMTP credentials missing; cannot send a code');
             res.status(500).json({ message: "Email service not configured" });
             return;

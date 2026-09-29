@@ -92,9 +92,20 @@ export const config = {
     apiSecret: process.env.CLOUDINARY_API_SECRET,
   },
   smtp: {
+    // The address mail is sent from, whichever way it is sent.
     user: process.env.SMTP_USER,
     pass: process.env.SMTP_PASS,
     service: process.env.SMTP_SERVICE ?? 'gmail',
+  },
+  /*
+   * Gmail's web API, over HTTPS. Used when all three are set, and needed on
+   * Render's free plan, which blocks the SMTP ports - every send timed out.
+   * The refresh token comes from `npm run gmail:token`.
+   */
+  gmailApi: {
+    clientId: process.env.GMAIL_CLIENT_ID,
+    clientSecret: process.env.GMAIL_CLIENT_SECRET,
+    refreshToken: process.env.GMAIL_REFRESH_TOKEN,
   },
   uploads: {
     maxFileSizeBytes: Number(process.env.MAX_UPLOAD_BYTES) || 5 * 1024 * 1024,

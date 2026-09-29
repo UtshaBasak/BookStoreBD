@@ -15,6 +15,7 @@
   "seed": "npm --prefix server run seed --",
   "migrate:images": "npm --prefix server run migrate:images --",
   "migrate:images:dry": "npm --prefix server run migrate:images -- --dry-run",
+  "gmail:token": "npm --prefix server run gmail:token",
     "build": "npm --prefix server run build && npm --prefix client run build",
     "build:client": "npm --prefix client run build",
     "build:server": "npm --prefix server run build",
