@@ -13,8 +13,10 @@ import { deliveryChargeFor, site } from '../../config/site.js';
 import {
   DELIVERY,
   RETURN_WINDOW_DAYS,
+  SELLER_FEE_PERCENT,
   deliveryChargeFor as serverDeliveryCharge,
 } from '../../../../server/config/commerce.js';
+import { PROMOTIONS } from '../../../../server/config/promotions.js';
 import About from './About.js';
 import Contact from './Contact.js';
 import Privacy from './Privacy.js';
@@ -149,5 +151,23 @@ describe('the figures quoted match what the API enforces', () => {
 
   it('the return window', () => {
     expect(site.returns.windowDays).toBe(RETURN_WINDOW_DAYS);
+  });
+
+  it('the seller fee', () => {
+    expect(site.sellerFeePercent).toBe(SELLER_FEE_PERCENT);
+  });
+
+  it('the promo code box is shown only while a promotion runs', () => {
+    expect(site.promoCodes).toBe(PROMOTIONS.length > 0);
+  });
+});
+
+describe('the terms tell a seller how they are paid', () => {
+  it('by bKash, to a merchant number, after the return window', () => {
+    renderPage(<Terms />);
+    const body = within(screen.getByRole('main'));
+
+    expect(body.getByRole('heading', { name: 'Getting paid' })).toBeInTheDocument();
+    expect(body.getByText(/bKash merchant number/)).toBeInTheDocument();
   });
 });

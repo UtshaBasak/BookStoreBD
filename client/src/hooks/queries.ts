@@ -22,7 +22,10 @@ import type {
   MessageResponse,
   OrderDetail,
   OrderLine,
+  MarkPayoutPaidRequest,
+  PayoutPage,
   ProfileResponse,
+  SellerOrderLine,
   ReturnRequest,
   ReturnStatus,
   ReviewSummary,
@@ -102,6 +105,8 @@ export const keys = {
   allOrders: (query: string) => ['orders', 'all', query] as const,
   order: (orderNumber: string | undefined) => ['order', orderNumber] as const,
   returnRequests: (query: string) => ['returns', query] as const,
+  /** Under `orders`, so recording a payment refreshes the seller's view too. */
+  payouts: (query: string) => ['orders', 'payouts', query] as const,
   reviews: (id: Id | undefined) => ['reviews', id] as const,
   flaggedReviews: (query: string) => ['reviews', 'flagged', query] as const,
   unreadChats: ['chat', 'unread'] as const,
@@ -435,9 +440,39 @@ export const useBuyerOrders = (
 
 export const useSellerOrders = (
   params: ListParams = {},
-  options: Partial<QueryOptions<Page<OrderLine>>> = {}
-): UseQueryResult<Page<OrderLine>> =>
-  useQuery(pagedQuery<OrderLine>('/order/seller', keys.sellerOrders, params, options));
+  options: Partial<QueryOptions<Page<SellerOrderLine>>> = {}
+): UseQueryResult<Page<SellerOrderLine>> =>
+  useQuery(pagedQuery<SellerOrderLine>('/order/seller', keys.sellerOrders, params, options));
+
+/** What sellers are owed, or have been paid: one row per seller per order. */
+export const usePayouts = (
+  params: { state: 'due' | 'paid'; page?: number; pageSize?: number },
+  options: Partial<QueryOptions<PayoutPage>> = {}
+): UseQueryResult<PayoutPage> => {
+  const query = new URLSearchParams({ state: params.state });
+  if (params.page && params.page > 1) query.set('page', String(params.page));
+  if (params.pageSize) query.set('pageSize', String(params.pageSize));
+  const search = query.toString();
+  return useQuery({
+    queryKey: keys.payouts(search),
+    queryFn: () => request<PayoutPage>(`/order/admin/payouts?${search}`),
+    placeholderData: keepPreviousData,
+    ...options,
+  });
+};
+
+export const useMarkPayoutPaid = (): UseMutationResult<
+  MessageResponse & { amount: number },
+  Error,
+  MarkPayoutPaidRequest
+> => {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: (body: MarkPayoutPaidRequest) =>
+      request<MessageResponse & { amount: number }>('/order/admin/payouts/paid', json('POST', body)),
+    onSuccess: () => client.invalidateQueries({ queryKey: ['orders'] }),
+  });
+};
 
 export const useAllOrders = (
   params: ListParams = {},

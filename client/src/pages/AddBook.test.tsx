@@ -12,6 +12,7 @@ import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import axios from 'axios';
 
 import AddBooks from './AddBook.js';
@@ -60,10 +61,49 @@ afterEach(() => {
 
 const renderPage = () =>
   render(
-    <MemoryRouter>
-      <AddBooks />
-    </MemoryRouter>
+    <QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}>
+      <MemoryRouter>
+        <AddBooks />
+      </MemoryRouter>
+    </QueryClientProvider>
   );
+
+/**
+ * A seller has to be payable before listing. The API refuses otherwise, and
+ * the form says so up front instead of after the photographs are uploaded.
+ */
+describe('a seller with no bKash merchant number', () => {
+  const profileWithout = () =>
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(() =>
+        Promise.resolve(
+          new Response(
+            JSON.stringify({ username: 'rahim', email: 'seller@test.com', role: 'user', bkashMerchant: null }),
+            { status: 200, headers: { 'Content-Type': 'application/json' } }
+          )
+        )
+      )
+    );
+
+  afterEach(() => vi.unstubAllGlobals());
+
+  it('is told before filling the form in, with a way to add one', async () => {
+    localStorage.setItem('authToken', 'a-token');
+    localStorage.setItem('userEmail', 'seller@test.com');
+    profileWithout();
+    renderPage();
+
+    const alert = await screen.findByRole('alert');
+    expect(alert).toHaveTextContent(/bKash merchant number/);
+    expect(screen.getByRole('link', { name: /add it now/i })).toHaveAttribute(
+      'href',
+      '/update-profile#bkash'
+    );
+    expect(screen.getByRole('button', { name: 'Submit' })).toBeDisabled();
+    expect(uploadMock).not.toHaveBeenCalled();
+  });
+});
 
 describe('submitting a listing', () => {
   it('sends the session the rest of the app stores', async () => {

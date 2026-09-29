@@ -35,6 +35,10 @@ const OrderSchema = new Schema({
   discount: { type: Number, default: 0 },
   promo: { type: String, default: '' },
   promoApplied: { type: Boolean, default: false },
+  // When the seller was paid for this line, and the bKash transaction ID the
+  // administrator recorded. A line is payable once its return window closes.
+  sellerPaidAt: { type: Date, default: null },
+  sellerPayoutRef: { type: String, default: '' },
   isReturned: { type: Number, default: 0 },
   defectDescription: { type: String, default: '' },
   createdAt: { type: Date, default: Date.now },
@@ -52,6 +56,9 @@ OrderSchema.index({ orderNumber: 1, bookId: 1 }, { unique: true });
 OrderSchema.index({ buyerEmail: 1, createdAt: -1, _id: -1 });
 OrderSchema.index({ sellerEmail: 1, createdAt: -1, _id: -1 });
 OrderSchema.index({ createdAt: -1, _id: -1 });
+
+// The payouts page: delivered lines, unpaid or paid, by when they arrived.
+OrderSchema.index({ status: 1, sellerPaidAt: 1, deliveredAt: 1 });
 
 export type OrderAttributes = InferSchemaType<typeof OrderSchema>;
 export type OrderDocument = HydratedDocument<OrderAttributes>;

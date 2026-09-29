@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 
-import type { Book, CreateOrderResponse, Id } from '@shared/api.js';
+import type { ApiError, Book, CheckPromoResponse, CreateOrderResponse, Id } from '@shared/api.js';
 
 import { API_BASE_URL, apiFetch } from '../config/api.js';
 import { useCart, useClearCart, useProfile } from '../hooks/queries.js';
@@ -9,9 +9,6 @@ import { isOwnProfile } from '../utils/profile.js';
 import { safeImageSrc, PLACEHOLDER_IMAGE } from '../utils/safeImageSrc.js';
 import { sized, IMAGE_WIDTHS } from '../utils/imageUrl.js';
 import { deliveryChargeFor, site } from '../config/site.js';
-
-const PROMO_CODE = 'BookStore';
-const PROMO_DISCOUNT = 50.00;
 
 /** How many of each book is being bought, keyed by book id. */
 type Quantities = Record<Id, number>;
@@ -21,7 +18,6 @@ interface Buyer {
   name: string;
   email: string;
   phone: string;
-  isFirstOrder: boolean;
 }
 
 /** What is written to localStorage once an order is confirmed. */
@@ -43,12 +39,7 @@ const getUserProfile = (): Buyer => {
     name: localStorage.getItem('username') || '',
     email: localStorage.getItem('userEmail') || '',
     phone: localStorage.getItem('userPhone') || '',
-    isFirstOrder: localStorage.getItem('isFirstOrder') !== 'false',
   };
-};
-
-const setFirstOrderUsed = () => {
-  localStorage.setItem('isFirstOrder', 'false');
 };
 
 /**
@@ -212,15 +203,31 @@ export default function Payment() {
       ? 'Free'
       : `${shipping.toFixed(2)} Tk.`;
 
-  const handleApplyPromo = () => {
-    if (promoApplied) return;
-    if (promo === PROMO_CODE) {
-      setDiscount(PROMO_DISCOUNT);
-      setPromoMsg('Promo code applied: 50.00 TK. discount!');
+  /*
+   * The server says what a code is worth. The code and its discount used to
+   * be written into this page, and the discount it worked out was sent with
+   * the order and stored as given. The order prices the code again, so this
+   * is only a preview.
+   */
+  const handleApplyPromo = async () => {
+    if (promoApplied || !promo.trim()) return;
+    try {
+      const res = await apiFetch(`${API_BASE_URL}/order/promo`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code: promo, booksTotal: subtotal }),
+      });
+      const data = (await res.json()) as CheckPromoResponse & ApiError;
+      if (!res.ok) {
+        setDiscount(0);
+        setPromoMsg(data.message || 'That code is not valid.');
+        return;
+      }
+      setDiscount(data.discount);
       setPromoApplied(true);
-    } else {
-      setDiscount(0);
-      setPromoMsg('Invalid promo code.');
+      setPromoMsg(`${data.description}: ${data.discount.toFixed(2)} Tk off.`);
+    } catch {
+      setPromoMsg('Could not check that code. Please try again.');
     }
   };
 
@@ -249,7 +256,9 @@ export default function Payment() {
       !district ||
       !address.trim()
     ) {
-      setPromoMsg('Please fill all contact and delivery information fields.');
+      // Beside the Confirm button, not in the promo box, which is hidden
+      // while no promotion is running.
+      setConfirmError('Please fill in all the contact and delivery details.');
       return;
     }
     if (cartBooks.length === 0) {
@@ -278,10 +287,8 @@ export default function Payment() {
           bookId: book._id,
           quantity: latestQuantities[book._id] || 1
         })),
-        email: user.email,
-        discount: discount,
-        promo: promo,
-        promoApplied: promoApplied,
+        // The code only: what it is worth is the server's to work out.
+        ...(promoApplied ? { promo } : {}),
         paymentMethod: 'Cash on Delivery', // or get from state if you support more methods
         contactName: user.name,
         contactPhone: user.phone,
@@ -290,10 +297,17 @@ export default function Payment() {
         deliveryAddress: address
       })
     })
-    .then(res => res.json() as Promise<CreateOrderResponse>)
-    .then(data => {
-      if (data.orderNumber) {
+    .then(async res => ({ ok: res.ok, data: (await res.json()) as CreateOrderResponse & ApiError }))
+    .then(({ ok, data }) => {
+      if (ok && data.orderNumber) {
         setOrderNumber(data.orderNumber);
+        // What the server actually took off, which is what was charged.
+        setDiscount(data.discount ?? 0);
+        // Only now: the cart used to be cleared whether or not the order went
+        // through, so a failed checkout threw the basket away. Through the
+        // mutation rather than a bare fetch, so every header's cart badge
+        // drops to zero.
+        clearCart();
         // Save order info to localStorage only after receiving orderNumber
         localStorage.setItem(
           'confirmedOrder',
@@ -303,7 +317,7 @@ export default function Payment() {
             division,
             district,
             address,
-            discount,
+            discount: data.discount ?? 0,
             promo,
             promoApplied,
             quantities: latestQuantities,
@@ -312,20 +326,17 @@ export default function Payment() {
         );
         setOrderConfirmed(true);
       } else {
-        setConfirmError('Order confirmation failed. Please try again.');
+        // Unfreeze, so the basket can be changed and tried again.
+        setCartBooks(null);
+        freezeQuantities(null);
+        setConfirmError(data.message || 'Order confirmation failed. Please try again.');
       }
+    })
+    .catch(() => {
+      setCartBooks(null);
+      freezeQuantities(null);
+      setConfirmError('Could not reach the shop. Your basket is still here - please try again.');
     });
-
-    // Through the mutation rather than a bare fetch: it invalidates the cart
-    // query, so the badge in every header drops to zero. The bare call cleared
-    // the cart on the server and left the cached copy alone, so the icon went
-    // on showing items that were no longer there.
-    clearCart();
-
-    if (promoApplied && promo === PROMO_CODE && user.isFirstOrder) {
-      setFirstOrderUsed();
-      setUser(u => ({ ...u, isFirstOrder: false }));
-    }
   };
 
   useEffect(() => {
@@ -535,10 +546,12 @@ export default function Payment() {
                 <span style={{ color: '#888' }}>Shipping</span>
                 <span style={{ color: '#888' }}>{shippingLabel}</span>
               </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
-                <span style={{ color: '#888' }}>Discount</span>
-                <span style={{ color: '#888' }}>-{discount.toFixed(2)} Tk.</span>
-              </div>
+              {discount > 0 && (
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
+                  <span style={{ color: '#888' }}>Discount{promo ? ` (${promo})` : ''}</span>
+                  <span style={{ color: '#888' }}>-{discount.toFixed(2)} Tk.</span>
+                </div>
+              )}
             </div>
             <div style={{
               display: 'flex',
@@ -875,23 +888,34 @@ export default function Payment() {
               free from {site.delivery.freeFrom} Tk. By courier in {site.delivery.daysInsideDhaka} working
               days in Dhaka, {site.delivery.daysOutsideDhaka} elsewhere. {site.payment}.
             </p>
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
-              <span style={{ color: '#888' }}>Discount</span>
-              <span style={{ color: '#888' }}>-{discount.toFixed(2)} TK.</span>
-            </div>
+            {discount > 0 && (
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
+                <span style={{ color: '#888' }}>Discount</span>
+                <span style={{ color: '#888' }}>-{discount.toFixed(2)} TK.</span>
+              </div>
+            )}
+            {/*
+              Hidden while no promotion is running: a code box that can only
+              ever say "not valid" invites a shopper to go hunting for a code
+              that does not exist. The rules are in server/config/promotions.ts.
+            */}
+            {site.promoCodes && (
             <div>
+              <label htmlFor="promo-code" style={{ display: 'block', marginTop: 8, fontSize: 13, color: '#888' }}>
+                Promo code or voucher
+              </label>
               <input
-                placeholder="Enter Promo Code or Voucher Here"
+                id="promo-code"
                 value={promo}
                 onChange={e => { setPromo(e.target.value); setPromoMsg(''); setPromoApplied(false); setDiscount(0); }}
                 style={{
                   width: '100%',
-                  marginTop: 8,
+                  marginTop: 4,
                   padding: 8,
                   border: '1px solid #ddd',
                   borderRadius: 4
                 }}
-                onKeyDown={e => { if (e.key === 'Enter') handleApplyPromo(); }}
+                onKeyDown={e => { if (e.key === 'Enter') void handleApplyPromo(); }}
                 disabled={promoApplied}
               />
               <button
@@ -906,7 +930,7 @@ export default function Payment() {
                   fontWeight: 500,
                   marginLeft: 4
                 }}
-                onClick={handleApplyPromo}
+                onClick={() => void handleApplyPromo()}
                 disabled={promoApplied}
               >Apply</button>
               {promoApplied && (
@@ -926,13 +950,14 @@ export default function Payment() {
                 >Remove</button>
               )}
               {promoMsg && (
-                <div style={{
+                <div role="status" style={{
                   marginTop: 6,
-                  color: promoMsg.startsWith('Promo code applied') ? 'green' : '#e74c3c',
+                  color: promoApplied ? 'green' : '#e74c3c',
                   fontSize: 13
                 }}>{promoMsg}</div>
               )}
             </div>
+            )}
           </div>
           <div style={{
             display: 'flex',

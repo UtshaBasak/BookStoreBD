@@ -52,8 +52,19 @@ export const site = {
     refundWorkingDays: 15,
   },
 
-  /** What a seller pays: nothing to list, this share of a sale's book total. */
+  /**
+   * What a seller pays: nothing to list, this share of a sale's book total.
+   * Paid by bKash to the seller's merchant number once the order's return
+   * window has closed.
+   */
   sellerFeePercent: 5,
+
+  /**
+   * Whether checkout shows a promo code box. Off while no promotion runs - a
+   * box that can only say "not valid" sends shoppers hunting for a code. Turn
+   * it on together with an entry in `server/config/promotions.ts`.
+   */
+  promoCodes: false,
 
   /** The date the policy pages were last reviewed. */
   policiesUpdated: '29 September 2026',

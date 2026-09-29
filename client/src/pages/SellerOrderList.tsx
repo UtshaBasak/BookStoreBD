@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
-import type { OrderLine } from '@shared/api.js';
+import type { OrderLine, SellerOrderLine } from '@shared/api.js';
 
 import { useSellerOrders } from '../hooks/queries.js';
 import { useDebounced } from '../hooks/useDebounced.js';
@@ -14,6 +14,42 @@ const PAGE_SIZE = 25;
 /** The shop's share of a sale, in taka, rounded to the paisa. */
 const sellerFee = (booksTotal: number) =>
   Math.round(booksTotal * site.sellerFeePercent) / 100;
+
+const date = (iso: string | null | undefined) => (iso ? new Date(iso).toLocaleDateString() : '');
+
+/**
+ * Where the money for one order has got to, in words. The state is the
+ * server's, worked out by the same rule the payouts page uses; a seller used
+ * to have no way of knowing whether, or when, they would be paid.
+ */
+const paymentFor = (lines: SellerOrderLine[]): { text: string; tone: 'good' | 'plain' } => {
+  const open = lines.filter((line) => line.payoutState !== 'returned');
+  if (open.length === 0) {
+    return { text: 'Returned by the buyer: nothing to pay, and no fee.', tone: 'plain' };
+  }
+  if (open.every((line) => line.payoutState === 'paid')) {
+    const paid = open[0];
+    const ref = paid?.sellerPayoutRef ? ` (bKash TrxID ${paid.sellerPayoutRef})` : '';
+    return { text: `Paid to your bKash on ${date(paid?.sellerPaidAt)}${ref}.`, tone: 'good' };
+  }
+  const waiting = open.find((line) => line.payoutState !== 'paid') ?? open[0];
+  switch (waiting?.payoutState) {
+    case 'due':
+      return { text: 'Due: we will send it to your bKash merchant number.', tone: 'plain' };
+    case 'in-return-window':
+      return {
+        text: `Payable from ${date(waiting.payableFrom)}, when the buyer's ${String(site.returns.windowDays)}-day return window closes.`,
+        tone: 'plain',
+      };
+    case 'return-in-progress':
+      return { text: 'On hold while the buyer’s return request is decided.', tone: 'plain' };
+    default:
+      return {
+        text: `Paid once delivered and the ${String(site.returns.windowDays)}-day return window has closed.`,
+        tone: 'plain',
+      };
+  }
+};
 
 export default function SellerOrderList() {
   const [search, setSearch] = useState('');
@@ -117,6 +153,11 @@ export default function SellerOrderList() {
             Object.entries(grouped).map(([orderNumber, orderBooks]) => {
               const order = orderBooks[0];
               const totalCost = orderBooks.reduce((sum, ob) => sum + (Number(ob.price) * Number(ob.quantity)), 0);
+              // A returned book is neither paid for nor charged a fee.
+              const payableTotal = orderBooks
+                .filter((ob) => ob.payoutState !== 'returned')
+                .reduce((sum, ob) => sum + (Number(ob.price) * Number(ob.quantity)), 0);
+              const payment = paymentFor(orderBooks);
               const displayOrderNumber = order.orderNumber && !/@|T\d{2}:\d{2}/.test(order.orderNumber)
                 ? order.orderNumber
                 : orderNumber;
@@ -213,15 +254,27 @@ export default function SellerOrderList() {
                       fontSize: 15,
                     }}
                   >
-                    <dt>Books</dt>
-                    <dd style={{ margin: 0, textAlign: 'right' }}>{totalCost.toFixed(2)} Tk</dd>
+                    <dt>Books{payableTotal !== totalCost ? ' (not returned)' : ''}</dt>
+                    <dd style={{ margin: 0, textAlign: 'right' }}>{payableTotal.toFixed(2)} Tk</dd>
                     <dt>{site.name} fee ({site.sellerFeePercent}%)</dt>
-                    <dd style={{ margin: 0, textAlign: 'right' }}>-{sellerFee(totalCost).toFixed(2)} Tk</dd>
+                    <dd style={{ margin: 0, textAlign: 'right' }}>-{sellerFee(payableTotal).toFixed(2)} Tk</dd>
                     <dt style={{ fontWeight: 700 }}>You receive</dt>
                     <dd style={{ margin: 0, textAlign: 'right', fontWeight: 700 }}>
-                      {(totalCost - sellerFee(totalCost)).toFixed(2)} Tk
+                      {(payableTotal - sellerFee(payableTotal)).toFixed(2)} Tk
                     </dd>
                   </dl>
+                  <p
+                    data-testid="payout-state"
+                    style={{
+                      margin: '10px 0 0',
+                      textAlign: 'right',
+                      fontSize: 14,
+                      color: payment.tone === 'good' ? '#2e7d32' : '#555',
+                      fontWeight: payment.tone === 'good' ? 600 : 400,
+                    }}
+                  >
+                    {payment.text}
+                  </p>
                 </div>
               );
             })

@@ -39,6 +39,13 @@ const UserSchema = new Schema(
         phone: {
             type: String,
         },
+        // The bKash merchant number a seller's sales are paid to, as the
+        // eleven digits bKash uses. Required before listing a book: a seller
+        // must be payable before anything of theirs can sell. Private - only
+        // the owner and administrators see it.
+        bkashMerchant: {
+            type: String,
+        },
         profilePicture: {
             type: String,
         },

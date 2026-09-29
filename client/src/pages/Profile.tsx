@@ -208,6 +208,19 @@ export default function Profile() {
                         <p><strong>Phone:</strong> {profileData.phone}</p>
                     </div>
                 )}
+                {/* Where sales are paid - and, without it, why listing will not work. */}
+                {profileMode === 'seller' && (
+                    <div style={{ marginBottom: '1rem' }}>
+                        {profileData.bkashMerchant ? (
+                            <p><strong>Paid to bKash:</strong> {profileData.bkashMerchant}</p>
+                        ) : (
+                            <p>
+                                <strong>To sell, add your bKash merchant number</strong> so we can pay you.{' '}
+                                <Link to="/update-profile#bkash" style={{ color: '#ffd54f' }}>Add it now</Link>
+                            </p>
+                        )}
+                    </div>
+                )}
 
                 {/* Buttons */}
                 <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center', marginTop: '1.5rem', flexWrap: 'wrap' }}>

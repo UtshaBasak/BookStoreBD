@@ -58,6 +58,15 @@ export default function Terms() {
         the price times the quantity, not counting delivery - and the rest is
         yours. Your orders page shows the fee and what you receive for each
         order.</p>
+
+      <h2 id="getting-paid">Getting paid</h2>
+      <p>Before you list a book, add your <strong>bKash merchant number</strong> to
+        your profile. We pay what you are owed for an order to that number once
+        the buyer's {site.returns.windowDays}-day return window has closed and no
+        return is pending - so money is never sent and then taken back. A book
+        that is returned is not paid for, and no fee is taken on it.</p>
+      <p>Your orders page shows where each payment stands, and the bKash
+        transaction ID once it has been sent.</p>
       <ul>
         <li>List only books you own and are entitled to sell.</li>
         <li>Describe condition honestly. "Good" and "Fair" mean what a reasonable

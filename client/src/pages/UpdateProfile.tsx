@@ -1,5 +1,5 @@
 import { useState, type ChangeEvent, type FormEvent } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 
 import { API_BASE_URL, apiFetch } from '../config/api.js';
 import { useProfile } from '../hooks/queries.js';
@@ -8,6 +8,7 @@ import { getUserEmail } from '../utils/auth.js';
 import { isOwnProfile } from '../utils/profile.js';
 import { safeImageSrc, safeObjectUrl } from '../utils/safeImageSrc.js';
 import { reportError } from '../utils/report.js';
+import type { ApiError } from '@shared/api.js';
 
 /** The editable profile. Every field a string, because every field is an input. */
 interface ProfileForm {
@@ -16,6 +17,7 @@ interface ProfileForm {
     password: string;
     address: string;
     phone: string;
+    bkashMerchant: string;
     dateOfBirth: string;
     gender: string;
 }
@@ -27,6 +29,8 @@ export default function UpdateProfile() {
     const navigate = useNavigate();
     const toast = useToast();
     const userEmail = getUserEmail();
+    // Arriving from "add your bKash number first", straight to that field.
+    const payoutFirst = useLocation().hash === '#bkash';
 
     const { data: profile } = useProfile(userEmail, { enabled: Boolean(userEmail) });
     const stored = isOwnProfile(profile) ? profile : null;
@@ -44,6 +48,7 @@ export default function UpdateProfile() {
         password: edits.password ?? '',
         address: edits.address ?? stored?.address ?? '',
         phone: edits.phone ?? stored?.phone ?? '',
+        bkashMerchant: edits.bkashMerchant ?? stored?.bkashMerchant ?? '',
         dateOfBirth: edits.dateOfBirth ?? stored?.dateOfBirth?.slice(0, 10) ?? '',
         gender: edits.gender ?? stored?.gender ?? '',
     };
@@ -58,6 +63,9 @@ export default function UpdateProfile() {
         const { name, value } = e.target;
         // Only allow numbers in the phone field.
         if (name === 'phone' && !/^\d*$/.test(value)) return;
+        // The merchant number may be typed with spaces, dashes or +880; the
+        // server keeps it as eleven digits.
+        if (name === 'bkashMerchant' && !/^[\d\s+-]*$/.test(value)) return;
         setEdits((prev) => ({ ...prev, [name]: value }));
     };
 
@@ -103,12 +111,10 @@ export default function UpdateProfile() {
             });
 
             if (!res.ok) {
-                const errorData = await res.json();
-                if (errorData.message === "Username already exists" || errorData.message === "Email already exists") {
-                    setErrorMsg(errorData.message);
-                } else {
-                    setErrorMsg(errorData.message || "Failed to update profile.");
-                }
+                const errorData = (await res.json()) as ApiError;
+                // A rejected field says which and why, rather than the bare
+                // "Validation failed" the envelope carries.
+                setErrorMsg(errorData.errors?.[0]?.message || errorData.message || 'Failed to update profile.');
                 return;
             }
             toast.success('Profile updated.');
@@ -341,6 +347,29 @@ export default function UpdateProfile() {
                         inputMode="numeric"
                         pattern="[0-9]*"
                     />
+                </div>
+                {/*
+                  Where a seller's sales are paid. Asked for here rather than
+                  on the listing form, and required before a first listing.
+                */}
+                <div style={{ marginBottom: '1rem' }}>
+                    <label htmlFor="bkash">bKash merchant number (to get paid when your books sell):</label>
+                    <input
+                        id="bkash"
+                        type="tel"
+                        name="bkashMerchant"
+                        value={formData.bkashMerchant || ''}
+                        onChange={handleChange}
+                        style={inputStyle}
+                        inputMode="numeric"
+                        autoComplete="off"
+                        placeholder="01XXXXXXXXX"
+                        autoFocus={payoutFirst}
+                        aria-describedby="bkash-help"
+                    />
+                    <small id="bkash-help" style={{ display: 'block', color: '#ddd' }}>
+                        Only you and the shop can see it. Needed before you list a book.
+                    </small>
                 </div>
 
                 <button type="submit" style={{

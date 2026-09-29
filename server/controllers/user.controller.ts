@@ -47,6 +47,7 @@ export const getUserProfile = async (
             ...publicProfile,
             address: user.address,
             phone: user.phone,
+            bkashMerchant: user.bkashMerchant,
             dateOfBirth: user.dateOfBirth?.toISOString(),
             gender: user.gender,
             role: user.role,
@@ -61,13 +62,13 @@ export const getUserProfile = async (
 };
 
 /** Fields a profile update may clear outright, rather than only replace. */
-const CAN_BE_UNSET = ['address', 'phone', 'dateOfBirth', 'gender', 'profilePicture'] as const;
+const CAN_BE_UNSET = ['address', 'phone', 'bkashMerchant', 'dateOfBirth', 'gender', 'profilePicture'] as const;
 
 /** Fields that must never be sent as an empty value. */
 const REQUIRED_FIELDS = ['username', 'email', 'password'] as const;
 
 /** Fields a caller may set on their own profile. */
-const UPDATABLE_FIELDS = ['username', 'address', 'phone', 'dateOfBirth', 'gender'] as const;
+const UPDATABLE_FIELDS = ['username', 'address', 'phone', 'bkashMerchant', 'dateOfBirth', 'gender'] as const;
 
 // Update user profile
 export const updateUserProfile = async (
@@ -136,10 +137,12 @@ export const updateUserProfile = async (
         if (Object.keys(updateFields).length > 0) updateQuery.$set = updateFields;
         if (Object.keys(unsetFields).length > 0) updateQuery.$unset = unsetFields;
 
+        // Without the password hash. The whole document was sent back, hash
+        // included, to the browser and to anything logging responses there.
         const user = await User.findOneAndUpdate(
             { email },
             updateQuery,
-            { returnDocument: 'after' }
+            { returnDocument: 'after', projection: { password: 0 } }
         );
         if (!user) {
             res.status(404).json({ message: 'User not found' });

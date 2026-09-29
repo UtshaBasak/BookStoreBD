@@ -35,6 +35,10 @@ export const createUser = async (overrides: UserOverrides = {}): Promise<UserDoc
     role: overrides.role ?? 'user',
     ...(overrides.address ? { address: overrides.address } : {}),
     ...(overrides.phone ? { phone: overrides.phone } : {}),
+    // A seller needs one before listing; pass null for an account without.
+    ...(overrides.bkashMerchant === null
+      ? {}
+      : { bkashMerchant: overrides.bkashMerchant ?? '01710000009' }),
     ...(overrides.gender ? { gender: overrides.gender } : {}),
     ...(overrides.profilePicture ? { profilePicture: overrides.profilePicture } : {}),
   });
