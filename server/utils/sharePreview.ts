@@ -139,6 +139,18 @@ export const renderBookPage = (template: string, book: PreviewBook, origin: stri
 };
 
 /**
+ * `index.html` for every other page, with its picture's address made absolute.
+ *
+ * The build cannot know the domain, so the file says `/og-image.jpg`, and not
+ * every scraper resolves that against the page: Facebook's documentation asks
+ * for an absolute URL, and opengraph.xyz showed a broken image. The server
+ * does know the domain, so it writes it in. Left as it is when the request's
+ * host is not one a URL can be built from.
+ */
+export const renderSitePage = (template: string, origin: string): string =>
+  origin ? template.replace(/(<meta\b[^>]*content=")(\/[^/"][^"]*\.(?:jpe?g|png|webp))"/gi, `$1${origin}$2"`) : template;
+
+/**
  * `index.html`, read once. It only changes with a deploy, which restarts the
  * process, so there is no reason to read it from disk on every book view.
  */

@@ -131,3 +131,22 @@ describe('GET /book/:id', () => {
     expect(meta(res.text, 'og:type')).toEqual(['website']);
   });
 });
+
+describe('every other page', () => {
+  // The build writes '/og-image.jpg', and not every scraper resolves that:
+  // opengraph.xyz showed the homepage with a broken picture.
+  it.each(['/', '/filter', '/about'])('gives %s its picture as an absolute address', async (page) => {
+    const res = await agent.get(page).set('X-Forwarded-Host', 'books.example.com');
+
+    expect(res.status).toBe(200);
+    expect(meta(res.text, 'og:image')).toEqual(['http://books.example.com/og-image.jpg']);
+    expect(meta(res.text, 'twitter:image')).toEqual(['http://books.example.com/og-image.jpg']);
+    expect(meta(res.text, 'og:title')).toEqual(['BookStoreBD — the shop']);
+  });
+
+  it('leaves the address relative when the host is not usable', async () => {
+    const res = await agent.get('/').set('X-Forwarded-Host', 'not a host');
+
+    expect(meta(res.text, 'og:image')).toEqual(['/og-image.jpg']);
+  });
+});

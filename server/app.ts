@@ -14,7 +14,7 @@ import { isApiPath, API_PREFIX } from './config/apiPaths.js';
 import { robots, sitemap } from './controllers/seo.controller.js';
 import { publicSiteUrl } from './config/siteUrl.js';
 import AddBook from './models/AddBook.model.js';
-import { BOOK_PAGE, renderBookPage, templateLoader, type PreviewBook } from './utils/sharePreview.js';
+import { BOOK_PAGE, renderBookPage, renderSitePage, templateLoader, type PreviewBook } from './utils/sharePreview.js';
 import auditRouter from './routes/audit.route.js';
 import reviewRouter from './routes/review.route.js';
 import { CLIENT_DIST, UPLOADS_DIR } from './config/paths.js';
@@ -137,7 +137,9 @@ export const createApp = ({
   // ------------------------------------------------------------------------
   if (serveClient) {
     if (existsSync(clientDist)) {
-      app.use(express.static(clientDist));
+      // No index: '/' is answered below with the rest of the pages, so its head
+      // gets the same treatment rather than being sent straight off the disk.
+      app.use(express.static(clientDist, { index: false }));
 
       // A shared book's page carries that book's title and cover in its head,
       // for the link previews that scrapers build without running the app. See
@@ -155,7 +157,9 @@ export const createApp = ({
             : null;
           // No such book: the app shows its own "not found", and a 404 keeps
           // the address out of search results.
-          if (!book) return res.status(404).sendFile(indexHtml);
+          if (!book) {
+            return res.status(404).type('html').send(renderSitePage(template(), publicSiteUrl(req)));
+          }
           res.set('Cache-Control', 'no-cache');
           return res.type('html').send(renderBookPage(template(), book, publicSiteUrl(req)));
         } catch (err) {
@@ -168,7 +172,8 @@ export const createApp = ({
         // A miss under an API prefix is a 404, not the app shell — otherwise a
         // typo'd endpoint would return HTML and a fetch would fail confusingly.
         if (isApiPath(req.path)) return next();
-        return res.sendFile(indexHtml);
+        res.set('Cache-Control', 'no-cache');
+        return res.type('html').send(renderSitePage(template(), publicSiteUrl(req)));
       });
     } else {
       // Asked to serve the app with nothing to serve. Mounting it anyway would
