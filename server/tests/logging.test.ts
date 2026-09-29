@@ -71,7 +71,7 @@ describe('what gets logged', () => {
     statusCode?: number;
   }
 
-  const capture = async ({ url, originalUrl, statusCode = 200 }: CaptureOptions) => {
+  const capture = async ({ url, originalUrl, statusCode = 200, ip }: CaptureOptions & { ip?: string }) => {
     const { EventEmitter } = await import('events');
     const pino = (await import('pino')).default;
     const { createRequestLogger } = await import('../middleware/requestLogger.js');
@@ -88,6 +88,8 @@ describe('what gets logged', () => {
       // A custom req serializer is handed the raw request, so the client
       // address has to be read off the socket.
       socket: { remoteAddress: '203.0.113.5' },
+      // What Express sets from X-Forwarded-For with `trust proxy` on.
+      ...(ip ? { ip } : {}),
     });
     const res = Object.assign(new EventEmitter(), {
       statusCode,
@@ -142,6 +144,14 @@ describe('what gets logged', () => {
     const lines = await capture({ url: '/', originalUrl: '/book' });
 
     expect(lines[0].req.remoteAddress).toBe('203.0.113.5');
+  });
+
+  it('records the visitor behind a proxy, not the proxy', async () => {
+    // Behind Render the socket is the proxy; Express resolves the visitor
+    // from X-Forwarded-For, and that is the address the rate limits count.
+    const lines = await capture({ url: '/', originalUrl: '/book', ip: '198.51.100.7' });
+
+    expect(lines[0].req.remoteAddress).toBe('198.51.100.7');
   });
 
   it('does not include the raw header bag', async () => {
