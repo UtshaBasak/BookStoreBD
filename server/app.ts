@@ -12,6 +12,9 @@ import { createLogger } from './config/logger.js';
 import { corsOptions } from './config/cors.js';
 import { isApiPath, API_PREFIX } from './config/apiPaths.js';
 import { robots, sitemap } from './controllers/seo.controller.js';
+import { publicSiteUrl } from './config/siteUrl.js';
+import AddBook from './models/AddBook.model.js';
+import { BOOK_PAGE, renderBookPage, templateLoader, type PreviewBook } from './utils/sharePreview.js';
 import auditRouter from './routes/audit.route.js';
 import reviewRouter from './routes/review.route.js';
 import { CLIENT_DIST, UPLOADS_DIR } from './config/paths.js';
@@ -46,6 +49,8 @@ export interface CreateAppOptions {
   clientDist?: string;
   /** Overridden in tests so the start-up warning can be asserted on. */
   logger?: Logger;
+  /** Overrides SERVE_CLIENT, so a test can serve a bundle and use the database. */
+  serveClient?: boolean;
 }
 
 /**
@@ -55,6 +60,7 @@ export interface CreateAppOptions {
 export const createApp = ({
   clientDist = CLIENT_DIST,
   logger: appLog = log,
+  serveClient = config.serveClient,
 }: CreateAppOptions = {}): Express => {
   const app = express();
 
@@ -129,15 +135,40 @@ export const createApp = ({
   // Registered after the routers, so an API path is never swallowed by the
   // fallback below.
   // ------------------------------------------------------------------------
-  if (config.serveClient) {
+  if (serveClient) {
     if (existsSync(clientDist)) {
       app.use(express.static(clientDist));
+
+      // A shared book's page carries that book's title and cover in its head,
+      // for the link previews that scrapers build without running the app. See
+      // utils/sharePreview.ts. Anything going wrong here costs the preview,
+      // never the page: the plain app shell is sent instead.
+      const indexHtml = path.join(clientDist, 'index.html');
+      const template = templateLoader(indexHtml);
+      app.get(BOOK_PAGE, async (req, res, next) => {
+        try {
+          const id = BOOK_PAGE.exec(req.path)?.[1];
+          const book = id
+            ? await AddBook.findById(id)
+                .select({ title: 1, author: 1, price: 1, bookType: 1, stock: 1, images: { $slice: 1 } })
+                .lean<PreviewBook>()
+            : null;
+          // No such book: the app shows its own "not found", and a 404 keeps
+          // the address out of search results.
+          if (!book) return res.status(404).sendFile(indexHtml);
+          res.set('Cache-Control', 'no-cache');
+          return res.type('html').send(renderBookPage(template(), book, publicSiteUrl(req)));
+        } catch (err) {
+          appLog.warn({ err, path: req.path }, 'Could not build the link preview; sending the plain page');
+          return next();
+        }
+      });
 
       app.get(/.*/, (req, res, next) => {
         // A miss under an API prefix is a 404, not the app shell — otherwise a
         // typo'd endpoint would return HTML and a fetch would fail confusingly.
         if (isApiPath(req.path)) return next();
-        return res.sendFile(path.join(clientDist, 'index.html'));
+        return res.sendFile(indexHtml);
       });
     } else {
       // Asked to serve the app with nothing to serve. Mounting it anyway would

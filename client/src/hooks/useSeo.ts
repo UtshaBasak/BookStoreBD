@@ -66,8 +66,8 @@ const safeJsonLd = (data: Record<string, unknown>): string =>
  * The tags are set in the browser, which Google renders. Facebook, WhatsApp and
  * the other link scrapers do not run JavaScript, so what they see is whatever
  * `index.html` ships with - which is why that file carries a full set of
- * site-level defaults. Per-book previews on those would need the HTML rendered
- * on the server.
+ * site-level defaults. A book's page is the exception: the server writes that
+ * book's tags into the HTML it sends (server/utils/sharePreview.ts).
  */
 export const useSeo = ({
   title,
