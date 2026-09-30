@@ -89,6 +89,11 @@
 .shelf-writers .shelf-row {
   grid-auto-columns: 150px;
 }
+/* Room above the row for a tile's lift, which the scroll box would clip. */
+.shelf-categories .shelf-row {
+  grid-auto-columns: 176px;
+  padding-top: 8px;
+}
 .shelf-skeleton {
   height: 360px;
   border-radius: var(--radius-card);
@@ -114,6 +119,9 @@
   }
   .shelf-writers .shelf-row {
     grid-auto-columns: 34%;
+  }
+  .shelf-categories .shelf-row {
+    grid-auto-columns: 42%;
   }
   /* A thumb scrolls the row; the arrows only crowd the title. */
   .shelf-arrow {
