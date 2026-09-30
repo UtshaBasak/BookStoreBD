@@ -72,7 +72,7 @@ export default function HomeShelves(actions: ShelfActions) {
     const counted = (s.categories ?? []).map((c) => ({ name: c.name, books: c.books }));
     const named = new Set(counted.map((c) => c.name.toLowerCase()));
     const extra = STARTER_CATEGORIES.filter((name) => !named.has(name.toLowerCase())).map((name) => ({ name, books: 0 }));
-    return [...counted, ...extra].slice(0, 12);
+    return [...counted, ...extra].slice(0, 24);
   })();
 
   const recentBooks = (recent.data ?? []).filter((book) => book && book._id);
@@ -123,35 +123,28 @@ export default function HomeShelves(actions: ShelfActions) {
           : 'The best-rated books in stock - browse a little and these become yours.',
       })}
 
+      {/* One row, like the other shelves, rather than a wall of tiles
+          pushing everything below it down the page. */}
       {tiles.length > 0 && (
-        <section className="shelf" aria-labelledby="categories-title">
-          <div className="shelf-head">
-            <div>
-              <h2 id="categories-title" className="shelf-title">
-                <span className="shelf-emoji" aria-hidden="true">🗂️</span>Shop by category
-              </h2>
-              <p className="shelf-sub">
-                {CATEGORY_GROUPS.reduce((n, g) => n + g.items.length, 0)} subjects, from admission tests to manga.
-              </p>
-            </div>
-            <Link to="/filter" className="shelf-all">
-              All books
+        <BookShelf
+          id="categories"
+          title="Shop by category"
+          emoji="🗂️"
+          subtitle={`${CATEGORY_GROUPS.reduce((n, g) => n + g.items.length, 0)} subjects, from admission tests to manga.`}
+          seeAllTo="/filter"
+          seeAllLabel="All books"
+          variant="categories"
+        >
+          {tiles.map((tile, index) => (
+            <Link key={tile.name} to={categoryLink(tile.name)} className={`cat-tile cat-tone-${index % 6}`}>
+              <span className="cat-tile-emoji" aria-hidden="true">
+                {groupOf(tile.name)?.emoji ?? '📚'}
+              </span>
+              <span className="cat-tile-name">{tile.name}</span>
+              {tile.books > 0 && <span className="cat-tile-count">{tile.books} {tile.books === 1 ? 'book' : 'books'}</span>}
             </Link>
-          </div>
-          <ul className="cat-tiles">
-            {tiles.map((tile) => (
-              <li key={tile.name}>
-                <Link to={categoryLink(tile.name)} className="cat-tile">
-                  <span className="cat-tile-emoji" aria-hidden="true">
-                    {groupOf(tile.name)?.emoji ?? '📚'}
-                  </span>
-                  <span className="cat-tile-name">{tile.name}</span>
-                  {tile.books > 0 && <span className="cat-tile-count">{tile.books} {tile.books === 1 ? 'book' : 'books'}</span>}
-                </Link>
-              </li>
-            ))}
-          </ul>
-        </section>
+          ))}
+        </BookShelf>
       )}
 
       {shelf('bestsellers', s.bestsellers, {

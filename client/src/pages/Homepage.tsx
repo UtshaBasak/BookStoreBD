@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { FaHeart, FaComments, FaShoppingBag, FaSearch } from 'react-icons/fa';
 import './Homepage.css';
@@ -27,6 +27,24 @@ import { CATEGORY_GROUPS, categoryLink } from '../config/categories.js';
 
 export default function Homepage() {
   const [showDropdown, setShowDropdown] = useState<'category' | false>(false);
+  /*
+   * The menu closes a moment after the pointer leaves it, not the instant it
+   * does. Moving from the chip down into a hundred small links, a pointer that
+   * strayed a few pixels outside shut the menu, and the subject aimed at went
+   * with it.
+   */
+  const closeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const openMenu = () => {
+    if (closeTimer.current) clearTimeout(closeTimer.current);
+    setShowDropdown('category');
+  };
+  const closeMenuSoon = () => {
+    if (closeTimer.current) clearTimeout(closeTimer.current);
+    closeTimer.current = setTimeout(() => setShowDropdown(false), 350);
+  };
+  useEffect(() => () => {
+    if (closeTimer.current) clearTimeout(closeTimer.current);
+  }, []);
   const [searchInput, setSearchInput] = useState('');
   const navigate = useNavigate();
   const toast = useToast();
@@ -231,8 +249,8 @@ export default function Homepage() {
       <nav className="nav-bar" aria-label="Browse books">
         <div
           className="dropdown dropdown-categories"
-          onMouseEnter={() => setShowDropdown('category')}
-          onMouseLeave={() => setShowDropdown(false)}
+          onMouseEnter={openMenu}
+          onMouseLeave={closeMenuSoon}
           // Closed once focus leaves the chip and its menu altogether, not when
           // it moves from the chip into the menu.
           onBlur={(e) => {
