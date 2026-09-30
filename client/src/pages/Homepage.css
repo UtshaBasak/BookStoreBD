@@ -515,10 +515,10 @@
 .categories-menu::before {
   content: '';
   position: absolute;
-  top: -14px;
+  top: -24px;
   left: 0;
   right: 0;
-  height: 14px;
+  height: 24px;
 }
 .categories-group {
   margin-bottom: 0.75rem;
@@ -547,10 +547,14 @@
   padding: 0;
   list-style: none;
 }
+/* Each subject a full-width target a comfortable height, not just its word. */
 .categories-group a {
-  padding: 0.22rem 0.5rem;
-  margin-left: -0.5rem;
-  font-size: 0.9rem;
+  display: flex;
+  align-items: center;
+  min-height: 34px;
+  padding: 0.3rem 0.6rem;
+  margin-left: -0.6rem;
+  font-size: 0.92rem;
 }
 @media (max-width: 768px) {
   .categories-menu {

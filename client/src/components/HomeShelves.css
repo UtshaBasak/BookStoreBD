@@ -20,15 +20,8 @@
 }
 
 /* -------------------------------------------------------- category tiles */
-.cat-tiles {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
-  gap: 0.75rem;
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
 .cat-tile {
+  position: relative;
   display: flex;
   flex-direction: column;
   gap: 0.2rem;
@@ -42,17 +35,32 @@
   box-shadow: var(--shadow-card);
   transition: transform 0.2s, border-color 0.2s, box-shadow 0.2s;
 }
-.cat-tile:hover {
+.cat-tile:hover,
+.cat-tile:focus-visible {
   transform: translateY(-3px);
-  border-color: var(--color-brand-line);
+  border-color: var(--color-brand-light);
   box-shadow: var(--shadow-lift);
 }
-.cat-tiles li:nth-child(6n + 1) .cat-tile { background: linear-gradient(135deg, #f3efff, #fff); }
-.cat-tiles li:nth-child(6n + 2) .cat-tile { background: linear-gradient(135deg, #fff1ec, #fff); }
-.cat-tiles li:nth-child(6n + 3) .cat-tile { background: linear-gradient(135deg, #fef9c3, #fff); }
-.cat-tiles li:nth-child(6n + 4) .cat-tile { background: linear-gradient(135deg, #d1fae5, #fff); }
-.cat-tiles li:nth-child(6n + 5) .cat-tile { background: linear-gradient(135deg, #fce7f3, #fff); }
-.cat-tiles li:nth-child(6n + 6) .cat-tile { background: linear-gradient(135deg, #e0f2fe, #fff); }
+/*
+ * The lift moved the tile out from under a pointer resting near its bottom
+ * edge; it dropped back, lifted again, and flickered - a tile that seemed to
+ * dodge the cursor. This strip fills the gap the lift leaves, so the tile
+ * stays hovered (and clickable) wherever the pointer was when it rose.
+ */
+.cat-tile:hover::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -8px;
+  height: 8px;
+}
+.cat-tone-0 { background: linear-gradient(135deg, #f3efff, #fff); }
+.cat-tone-1 { background: linear-gradient(135deg, #fff1ec, #fff); }
+.cat-tone-2 { background: linear-gradient(135deg, #fef9c3, #fff); }
+.cat-tone-3 { background: linear-gradient(135deg, #d1fae5, #fff); }
+.cat-tone-4 { background: linear-gradient(135deg, #fce7f3, #fff); }
+.cat-tone-5 { background: linear-gradient(135deg, #e0f2fe, #fff); }
 .cat-tile-emoji {
   font-size: 1.5rem;
 }
