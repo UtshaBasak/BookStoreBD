@@ -36,6 +36,7 @@
 - [Data models](#data-models)
 - [Deployment](#deployment)
 - [Roadmap](#roadmap)
+- [Coming soon](#coming-soon)
 - [Contributing](#contributing)
 - [License](#license)
 
@@ -954,6 +955,25 @@ interface work between a project and a shop. Every item in its suggested order
 is done. What it still records — the access token in `localStorage` (S3), the
 bcrypt cost (S7), and the business features listed for later — is where to look
 next.
+
+---
+
+## Coming soon
+
+What is planned for the near future, beyond the shop as it stands.
+
+| Upgrade | What it brings |
+| --- | --- |
+| 📱 **E-books** | Digital editions alongside printed ones: buy and read on the site, a free preview of the first pages, a personal library of everything bought, and downloads in EPUB and PDF where the publisher allows. Sellers and local publishers can list e-books next to their paperbacks. |
+| 🔄 **Book exchange** | Swap finished books with other readers instead of selling them: list what you have and what you want, get matched with a reader who has it, and trade through the same courier and chat the shop already runs. Exchange credit for a book given, to spend on a book received, so a swap does not need both sides at once. |
+| 💳 **Online payment** | bKash, Nagad and card payments at checkout, next to cash on delivery, with refunds back to the same account. |
+| 🚚 **Live courier tracking** | Delivery status straight from the courier, so an order's progress updates on its own rather than when the seller moves it on. |
+| 🔔 **Notifications** | E-mail and SMS when an order ships, a return is decided, a wishlisted book goes on a deal, or a message arrives. |
+| ⭐ **Seller ratings** | A score for each seller from their buyers, shown on every listing, for trust between people who have never met. |
+| 📲 **Mobile app** | The shop as an installable app for Android and iOS, with the cart, wishlist and chat always to hand. |
+
+These are plans, not promises of a date. Ideas and requests are welcome in the
+[issues](https://github.com/UtshaBasak/BookStoreBD/issues/new?template=feature_request.md).
 
 ---
 
