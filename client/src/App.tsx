@@ -25,6 +25,8 @@ const UpdateProfile = lazy(() => import('./pages/UpdateProfile'));
 const SellerBookList = lazy(() => import('./pages/SellerBookList'));
 const Filter = lazy(() => import('./pages/Filter'));
 const Wishlist = lazy(() => import('./pages/Wishlist'));
+const NotificationsPage = lazy(() => import('./pages/NotificationsPage'));
+const ShopPage = lazy(() => import('./pages/ShopPage'));
 const Cart = lazy(() => import('./pages/Cart'));
 const BuyerBookList = lazy(() => import('./pages/BuyerBookList'));
 const BuyerOrderList = lazy(() => import('./pages/buyer/BuyerOrderList'));
@@ -258,6 +260,16 @@ export default function App() {
           element={
             <ProtectedRoute>
               <DescriptionForm />
+            </ProtectedRoute>
+          }
+        />
+        {/* A seller's shop front: public, like their listings. */}
+        <Route path="/shop/:username" element={<ShopPage />} />
+        <Route
+          path="/notifications"
+          element={
+            <ProtectedRoute>
+              <NotificationsPage />
             </ProtectedRoute>
           }
         />

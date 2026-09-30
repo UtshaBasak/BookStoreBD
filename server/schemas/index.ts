@@ -78,6 +78,10 @@ export const bookSchemas = {
   adminList: {
     query: z.object({
       search: shortText.optional(),
+      bookType: z.enum(['new', 'old']).optional(),
+      stock: z.enum(['in', 'out', 'low']).optional(),
+      deals: z.enum(['yes', 'no']).optional(),
+      sort: z.enum(['newest', 'oldest', 'priceHigh', 'priceLow', 'stockLow', 'titleAZ']).default('newest'),
       page: positiveInt.default(1),
       pageSize: boundedInt(1, 100).default(25),
     }),
@@ -99,6 +103,9 @@ export const bookSchemas = {
 // The owner comes from the token, so only the book being acted on is a param.
 export const cartSchemas = {
   mutate: { params: objectIdParam },
+  /** Adding a book; a quantity sets how many copies, and is capped by the stock. */
+  add: { params: objectIdParam, body: z.object({ quantity: boundedInt(1, 99).optional() }).default({}) },
+  setQuantity: { params: objectIdParam, body: z.object({ quantity: boundedInt(1, 99) }) },
 };
 
 export const wishlistSchemas = cartSchemas;
@@ -140,8 +147,10 @@ export const filterSchemas = {
         .enum(['relevant', 'newest', 'rated', 'priceLowHigh', 'priceHighLow', 'dealPercent', 'dealAmount'])
         .default('relevant'),
       page: positiveInt.default(1),
+      // One seller's books, by their username: the seller's shop page.
+      seller: shortText.optional(),
       // Bounded, so one request cannot ask for the whole database.
-      pageSize: boundedInt(1, 48).default(12),
+      pageSize: boundedInt(1, 50).default(20),
     }),
   },
   /**
@@ -186,12 +195,22 @@ const pagedList = (maxPageSize = 100) => ({
   }),
 });
 
+/** A page of orders, with the status filter, date range and order an administrator asks for. */
+const orderList = () => ({
+  query: pagedList().query.extend({
+    status: z.enum(['Order Confirmed', 'Processing', 'Shipped', 'Out for Delivery', 'Delivered', 'Cancelled']).optional(),
+    from: z.string().trim().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+    to: z.string().trim().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+    sort: z.enum(['newest', 'oldest', 'totalHigh', 'totalLow']).default('newest'),
+  }),
+});
+
 export const orderSchemas = {
   /**
    * Paged by order, not by line: an order of three books is three rows, and a
    * page that cut between them would show part of a purchase.
    */
-  list: pagedList(),
+  list: orderList(),
   create: {
     body: z.object({
       items: z
@@ -213,6 +232,11 @@ export const orderSchemas = {
     params: z.object({ orderNumber }),
     body: z.object({ status: shortText.min(1, 'Status is required') }),
   },
+  /** Calling an order off; the reason is optional and shown to the others in it. */
+  cancel: {
+    params: z.object({ orderNumber }),
+    body: z.object({ reason: shortText.optional() }).default({}),
+  },
   byId: { params: objectIdParam },
   /** What a promo code is worth on a basket, before the order is placed. */
   checkPromo: {
@@ -224,7 +248,10 @@ export const orderSchemas = {
   /** The administrator's payouts table: what is owed, or what has been paid. */
   payouts: {
     query: z.object({
-      state: z.enum(['due', 'paid']).default('due'),
+      // 'upcoming': delivered, but still inside the buyer's return window.
+      state: z.enum(['due', 'upcoming', 'paid']).default('due'),
+      search: shortText.optional(),
+      sort: z.enum(['oldest', 'newest', 'amountHigh', 'amountLow']).optional(),
       page: positiveInt.default(1),
       pageSize: boundedInt(1, 100).default(25),
     }),
@@ -246,12 +273,18 @@ export const orderSchemas = {
 
 // -------------------------------------------------------------- return
 export const returnSchemas = {
-  list: pagedList(),
+  list: {
+    query: pagedList().query.extend({
+      status: z.enum(['pending', 'approved', 'rejected']).optional(),
+      sort: z.enum(['newest', 'oldest']).default('newest'),
+    }),
+  },
   image: { params: z.object({ id: objectId, index: nonNegativeInt.optional() }) },
   create: {
     body: z.object({
       // The order line, not the book: the same title can be bought twice.
-      orderId: objectId,
+      // Several lines at once to return a whole order, under one description.
+      orderId: repeatable(objectId).pipe(z.array(objectId).min(1).max(50)),
       defectDescription: mediumText.min(1, 'A description is required'),
       refundBkash: bdMobile,
       // Present only when image hosting is configured; the browser uploads to
@@ -354,6 +387,7 @@ export const userSchemas = {
   /** Somebody's profile picture, by address rather than inline. */
   avatar: { params: emailParam },
   banner: { params: emailParam.extend({ role: z.enum(['buyer', 'seller']) }) },
+  shop: { params: z.object({ username: z.string().trim().min(1).max(60) }) },
   /**
    * Deleting your own account asks for the password again.
    *
@@ -367,6 +401,9 @@ export const userSchemas = {
   adminList: {
     query: z.object({
       search: shortText.optional(),
+      // A seller here is somebody who has given a bKash number to be paid on.
+      kind: z.enum(['sellers', 'buyers']).optional(),
+      sort: z.enum(['newest', 'oldest', 'nameAZ', 'nameZA']).default('newest'),
       page: positiveInt.default(1),
       pageSize: boundedInt(1, 100).default(25),
     }),
@@ -406,7 +443,37 @@ export const reviewSchemas = {
     body: z.object({ reason: shortText.optional() }),
   },
   /** The administrator's queue of reported reviews. */
-  flagged: pagedList(),
+  flagged: {
+    query: pagedList().query.extend({
+      rating: boundedInt(1, 5).optional(),
+      sort: z.enum(['mostReported', 'newest', 'oldest', 'ratingLow', 'ratingHigh']).default('mostReported'),
+    }),
+  },
+  /** Every review, for the administrator: searched, filtered and ordered. */
+  adminList: {
+    query: pagedList().query.extend({
+      rating: boundedInt(1, 5).optional(),
+      replied: z.enum(['yes', 'no']).optional(),
+      reported: z.enum(['yes', 'no']).optional(),
+      sort: z.enum(['newest', 'oldest', 'ratingHigh', 'ratingLow', 'mostReported']).default('newest'),
+    }),
+  },
+};
+
+/** The bell: a page of a person's notifications, and marking them read. */
+export const notificationSchemas = {
+  list: {
+    query: z.object({
+      page: positiveInt.default(1),
+      pageSize: boundedInt(1, 50).default(20),
+      unreadOnly: z
+        .union([z.literal('1'), z.literal('0'), z.boolean()])
+        .transform((value) => value === true || value === '1')
+        .optional(),
+    }),
+  },
+  // No ids: all of them.
+  markRead: { body: z.object({ ids: z.array(objectId).max(100).optional() }) },
 };
 
 /**
@@ -472,6 +539,10 @@ export type OrderListQuery = z.infer<typeof orderSchemas.list.query>;
 export type ReturnListQuery = z.infer<typeof returnSchemas.list.query>;
 export type ReviewListQuery = z.infer<typeof reviewSchemas.flagged.query>;
 export type ClientErrorBody = z.infer<typeof clientErrorSchemas.report.body>;
+export type FlaggedReviewQuery = z.infer<typeof reviewSchemas.flagged.query>;
+export type AdminReviewQuery = z.infer<typeof reviewSchemas.adminList.query>;
+export type NotificationListQuery = z.infer<typeof notificationSchemas.list.query>;
+export type MarkNotificationsBody = z.infer<typeof notificationSchemas.markRead.body>;
 export type CatalogueQuery = z.infer<typeof filterSchemas.catalogue.query>;
 export type FeaturedQuery = z.infer<typeof filterSchemas.featured.query>;
 export type ByIdsQuery = z.infer<typeof filterSchemas.byIds.query>;
@@ -481,6 +552,7 @@ export type CreateOrderBody = z.infer<typeof orderSchemas.create.body>;
 export type OrderNumberParams = z.infer<typeof orderSchemas.byOrderNumber.params>;
 export type UpdateOrderStatusBody = z.infer<typeof orderSchemas.updateStatus.body>;
 export type CheckPromoBody = z.infer<typeof orderSchemas.checkPromo.body>;
+export type CancelOrderBody = z.infer<typeof orderSchemas.cancel.body>;
 export type PayoutsQuery = z.infer<typeof orderSchemas.payouts.query>;
 export type MarkPaidBody = z.infer<typeof orderSchemas.markPaid.body>;
 

@@ -97,3 +97,48 @@ export const returnDeadline = (line: {
   if (line.status !== 'Delivered' || !line.deliveredAt) return null;
   return new Date(line.deliveredAt.getTime() + RETURN_WINDOW_DAYS * DAY_MS);
 };
+
+// ---------------------------------------------------------------- statuses
+
+/** The steps an order goes through, in order. */
+export const ORDER_STAGES = ['Order Confirmed', 'Processing', 'Shipped', 'Out for Delivery', 'Delivered'] as const;
+export type OrderStage = (typeof ORDER_STAGES)[number];
+
+/** Not a step: where an order goes when it is called off, and stays. */
+export const CANCELLED = 'Cancelled';
+
+/**
+ * The last step a seller sets. Handing a parcel to the courier is theirs to
+ * say; that it is out for delivery and that it arrived are the shop's, since
+ * a seller marking their own sale delivered is what starts their payout.
+ */
+export const SELLER_LAST_STAGE: OrderStage = 'Shipped';
+
+const stageOf = (status: string | null | undefined): number => ORDER_STAGES.indexOf((status ?? 'Order Confirmed') as OrderStage);
+
+/** Why this person cannot move an order from one status to another, or null when they can. */
+export const statusChangeProblem = (role: 'admin' | 'seller', from: string | null | undefined, to: string): string | null => {
+  if (from === CANCELLED) return 'A cancelled order cannot be changed.';
+  if (stageOf(to) === -1) return 'That is not a status an order can have.';
+  if (role === 'admin') return null;
+  if (stageOf(from) > stageOf(SELLER_LAST_STAGE)) {
+    return 'Once an order is past Shipped, only the shop can update it.';
+  }
+  if (stageOf(to) > stageOf(SELLER_LAST_STAGE)) {
+    return 'Out for Delivery and Delivered are set by the shop.';
+  }
+  return null;
+};
+
+/**
+ * Who may call an order off, and until when:
+ * - the buyer, until the seller has started on it (still Order Confirmed);
+ * - the seller, until it has shipped;
+ * - an administrator, until it has been delivered.
+ */
+export const canCancel = (who: 'buyer' | 'seller' | 'admin', status: string | null | undefined): boolean => {
+  if (status === CANCELLED || status === 'Delivered') return false;
+  if (who === 'admin') return true;
+  if (who === 'seller') return stageOf(status) < stageOf(SELLER_LAST_STAGE);
+  return stageOf(status) === 0;
+};

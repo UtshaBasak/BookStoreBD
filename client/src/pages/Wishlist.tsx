@@ -1,4 +1,5 @@
-import { FaHeart, FaHome, FaShoppingBag, FaShoppingCart } from 'react-icons/fa';
+import { useState } from 'react';
+import { FaHeart, FaShoppingBag, FaShoppingCart } from 'react-icons/fa';
 import { useNavigate, Link } from 'react-router-dom';
 import './Homepage.css';
 import './Wishlist.css';
@@ -9,11 +10,47 @@ import { API_BASE_URL } from '../config/api.js';
 import { useCart, useToggleCart, useToggleWishlist, useWishlist } from '../hooks/queries.js';
 import { promptSignIn, useToast } from '../hooks/useToast.js';
 import Logo from '../components/Logo.js';
+import NotificationBell from '../components/NotificationBell.js';
 import PriceTag from '../components/PriceTag.js';
 import { getUserEmail } from '../utils/auth.js';
 import { flagsFor } from '../utils/bookFlags.js';
 import { PLACEHOLDER_IMAGE } from '../utils/safeImageSrc.js';
 import { isCloudinary, sized, IMAGE_WIDTHS } from '../utils/imageUrl.js';
+import { priceOf } from '../utils/pricing.js';
+
+/**
+ * The orders a wishlist can be put in. The list arrives in the order the books
+ * were saved, and is short enough to sort here.
+ */
+const SORTS = {
+  recent: { label: 'Recently saved', sort: (books: Book[]) => [...books].reverse() },
+  oldest: { label: 'Saved first', sort: (books: Book[]) => books },
+  inStock: {
+    label: 'In stock first',
+    sort: (books: Book[]) => [...books].sort((a, b) => Number(b.stock > 0) - Number(a.stock > 0)),
+  },
+  deals: {
+    label: 'Biggest discount',
+    sort: (books: Book[]) => [...books].sort((a, b) => Number(b.discountPercent ?? 0) - Number(a.discountPercent ?? 0)),
+  },
+  priceLow: { label: 'Price - Low to High', sort: (books: Book[]) => [...books].sort((a, b) => priceOf(a) - priceOf(b)) },
+  priceHigh: { label: 'Price - High to Low', sort: (books: Book[]) => [...books].sort((a, b) => priceOf(b) - priceOf(a)) },
+  title: {
+    label: 'Title A-Z',
+    sort: (books: Book[]) => [...books].sort((a, b) => (a.title ?? '').localeCompare(b.title ?? '')),
+  },
+} as const;
+type WishlistSort = keyof typeof SORTS;
+const SORT_KEY = 'wishlistSort';
+
+const storedSort = (): WishlistSort => {
+  try {
+    const saved = localStorage.getItem(SORT_KEY);
+    return saved && saved in SORTS ? (saved as WishlistSort) : 'recent';
+  } catch {
+    return 'recent';
+  }
+};
 
 export default function Wishlist() {
   const navigate = useNavigate();
@@ -22,7 +59,17 @@ export default function Wishlist() {
   const signedIn = Boolean(userEmail);
 
   const wishlistQuery = useWishlist({ enabled: signedIn });
-  const wishlist = wishlistQuery.data ?? [];
+  const [sort, setSortState] = useState<WishlistSort>(storedSort);
+  const setSort = (value: WishlistSort) => {
+    setSortState(value);
+    try {
+      localStorage.setItem(SORT_KEY, value);
+    } catch {
+      // Private browsing: it lasts for this visit only.
+    }
+  };
+  const saved = wishlistQuery.data ?? [];
+  const wishlist = SORTS[sort].sort(saved);
   const error = wishlistQuery.isError ? 'Failed to load wishlist.' : null;
 
   // Only the ids are needed for the cart buttons.
@@ -67,15 +114,7 @@ export default function Wishlist() {
         </Link>
       </div>
       <div className="user-options">
-        {/* Home */}
-        <Link to="/"
-          className="icon-button"
-          style={{ color: '#6d28d9' }}
-          title="Go to Homepage"
-          aria-label="Go to Homepage"
-        >
-          <FaHome />
-        </Link>
+        <NotificationBell />
         {/* Cart */}
         <Link
           to="/cart"
@@ -130,6 +169,21 @@ export default function Wishlist() {
             <p>
               {wishlist.length} saved {wishlist.length === 1 ? 'book' : 'books'}
             </p>
+          )}
+          {wishlist.length > 1 && (
+            <select
+              name="sort"
+              aria-label="Sort your wishlist"
+              className="field wishlist-sort"
+              value={sort}
+              onChange={(e) => setSort(e.target.value as WishlistSort)}
+            >
+              {Object.entries(SORTS).map(([value, { label }]) => (
+                <option key={value} value={value}>
+                  {label}
+                </option>
+              ))}
+            </select>
           )}
         </div>
 

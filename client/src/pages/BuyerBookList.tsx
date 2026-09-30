@@ -68,7 +68,11 @@ export default function BuyerBookList() {
    * the server checked nothing at all.
    */
   const returnLabel = (order: BuyerOrderLine) =>
-    order.status === 'Delivered' ? 'Return period over' : 'Returns open on delivery';
+    order.status === 'Cancelled'
+      ? 'Cancelled'
+      : order.status === 'Delivered'
+        ? 'Return period over'
+        : 'Returns open on delivery';
 
 
   // The page used to carry `overflow-x: hidden`, which cut the toolbar off
@@ -87,7 +91,8 @@ export default function BuyerBookList() {
             <p className="ot-kicker">📚 Your library</p>
             <h1 className="m-0" style={{ fontSize: 'clamp(1.6rem, 1.2rem + 1.6vw, 2.2rem)' }}>Your Purchased Books</h1>
             <p className="m-0 mt-1 text-sm text-ink-muted">
-              Something wrong with a book? Ask for a return from its row.
+              Something wrong with a book? Ask for a return from its row, or send back a whole order
+              at once from <Link to="/buyer/orders">Your Orders</Link>.
             </p>
           </div>
         </div>
@@ -151,7 +156,9 @@ export default function BuyerBookList() {
             ) : (
               orders.map((order, idx) => (
                 <tr key={order._id || idx}>
-                  <td className="font-semibold text-ink" style={{ minWidth: 140 }}>{order.title}</td>
+                  <td className="font-semibold text-ink" style={{ minWidth: 140 }}>
+                    <Link to={`/book/${order.bookId}`}>{order.title}</Link>
+                  </td>
                   <td style={{ minWidth: 150 }}>
                     {order.returnStatus ? (
                       <span className="ot-pill" style={returnColours(order.returnStatus)}>

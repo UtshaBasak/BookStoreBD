@@ -90,7 +90,7 @@ describe('what the page asks the API for', () => {
 
     const url = await askedFor('/filter/booklist');
 
-    expect(url).toContain('pageSize=12');
+    expect(url).toContain('pageSize=20');
     // This is the whole point: the request is bounded.
     expect(url).not.toContain('pageSize=1000');
   });

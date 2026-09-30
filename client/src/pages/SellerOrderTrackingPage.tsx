@@ -4,9 +4,12 @@ import { FaCheck } from 'react-icons/fa';
 
 import './Seller.css';
 import Logo from '../components/Logo.js';
+import CancelOrder, { CancelledNote } from '../components/CancelOrder.js';
+import NotificationBell from '../components/NotificationBell.js';
 import { site } from '../config/site.js';
 import { useOrder, useUpdateOrderStatus } from '../hooks/queries.js';
-import { getUserEmail, getUserRole } from '../utils/auth.js';
+import { getUserEmail } from '../utils/auth.js';
+import { CANCELLED } from '../utils/orderTotals.js';
 
 const ORDER_STAGES = [
   'Order Confirmed',
@@ -20,9 +23,6 @@ export default function SellerOrderTrackingPage() {
   const { orderNumber } = useParams();
   const [error, setError] = useState('');
   const userEmail = getUserEmail();
-  // The role is stored under 'userRole'; reading 'role' always came back null,
-  // so this control never appeared for anyone.
-  const userRole = getUserRole();
 
   const orderQuery = useOrder(orderNumber);
   const order = orderQuery.data ?? null;
@@ -46,11 +46,12 @@ export default function SellerOrderTrackingPage() {
         <Logo size={34} />
       </Link>
       <div className="sl-topbar-actions">
+        <NotificationBell />
         <Link to="/profile?mode=seller" className="btn btn-ghost">
           ← Back to Profile
         </Link>
-        <button type="button" onClick={() => window.location.reload()} className="btn btn-primary">
-          ⟳ Refresh
+        <button type="button" onClick={() => void orderQuery.refetch()} disabled={orderQuery.isFetching} className="btn btn-primary">
+          ⟳ {orderQuery.isFetching ? 'Refreshing...' : 'Refresh'}
         </button>
       </div>
     </header>
@@ -80,16 +81,17 @@ export default function SellerOrderTrackingPage() {
   // Filter books for this seller
   const sellerBooks = (order.books ?? []).filter(book => book.sellerEmail === userEmail);
 
-  // Only admin or the seller of this order can update status. There is no
-  // 'seller' role - accounts are 'user' or 'admin' - so this used to require
-  // one that never exists and the control appeared for administrators only.
-  // Selling is decided the way the API decides it: by whose books these are.
-  const canUpdateStatus =
-    userRole === 'admin' ||
-    (Boolean(userEmail) && (order.sellerEmail === userEmail || sellerBooks.length > 0));
-
-  const status = order.status || 'Order Confirmed';
+  // Where this seller's books stand, which is what they move - another
+  // seller's books in the same order go at their own pace.
+  const liveBooks = sellerBooks.filter((book) => book.status !== CANCELLED);
+  const status = liveBooks[0]?.status || (sellerBooks.length ? CANCELLED : order.status || 'Order Confirmed');
   const currentStage = ORDER_STAGES.indexOf(status);
+  // What the server will accept from this person, worked out by the server:
+  // a seller moves an order up to Shipped, and the courier's steps after that
+  // are the shop's.
+  const statusOptions = order.statusOptions ?? [];
+  const handedOver = status !== CANCELLED && currentStage > ORDER_STAGES.indexOf('Shipped');
+  const ownTotal = liveBooks.reduce((sum, ob) => sum + Number(ob.price) * Number(ob.quantity), 0);
 
   return (
     <div className="sl-page">
@@ -107,7 +109,7 @@ export default function SellerOrderTrackingPage() {
           <section className="card sl-card">
             <h3 className="sl-card-title" style={{ justifyContent: 'space-between', flexWrap: 'wrap' }}>
               <span>Progress</span>
-              <span className={`sl-pill ${status === 'Delivered' ? 'is-done' : currentStage <= 0 ? 'is-pending' : 'is-progress'}`}>
+              <span className={`sl-pill ${status === CANCELLED ? 'is-bad' : status === 'Delivered' ? 'is-done' : currentStage <= 0 ? 'is-pending' : 'is-progress'}`}>
                 {status}
               </span>
             </h3>
@@ -130,24 +132,41 @@ export default function SellerOrderTrackingPage() {
               })}
             </ol>
 
-            {canUpdateStatus && (
+            <CancelledNote lines={sellerBooks} />
+
+            {statusOptions.length > 1 && (
               <div className="sl-status-box">
                 <label htmlFor="seller-order-status" className="sl-label" style={{ marginBottom: 0 }}>
                   Update Status:
                 </label>
                 <select
                   id="seller-order-status"
-                  value={order.status}
+                  value={status}
                   onChange={handleStatusChange}
                   disabled={updating}
                   className="field"
                 >
-                  {ORDER_STAGES.map(stage => (
+                  {statusOptions.map((stage) => (
                     <option key={stage} value={stage}>{stage}</option>
                   ))}
                 </select>
-                <p className="sl-status-help">{updating ? 'Saving...' : 'The buyer sees the new status on their tracking page.'}</p>
+                <p className="sl-status-help">
+                  {updating
+                    ? 'Saving...'
+                    : 'The buyer sees the new status on their tracking page. Once it is Shipped, BookStoreBD takes it from there.'}
+                </p>
                 {error && <span role="alert" className="sl-error">{error}</span>}
+              </div>
+            )}
+            {handedOver && (
+              <p className="sl-status-box sl-status-help" role="note">
+                This order has left your hands: BookStoreBD updates it until it is delivered. You are paid once the
+                buyer&apos;s return window closes.
+              </p>
+            )}
+            {order.canCancel && (
+              <div className="sl-status-box">
+                <CancelOrder orderNumber={order.orderNumber} who="seller" />
               </div>
             )}
           </section>
@@ -202,8 +221,11 @@ export default function SellerOrderTrackingPage() {
               </thead>
               <tbody>
                 {sellerBooks.map((ob, idx) => (
-                  <tr key={ob._id || idx}>
-                    <td data-label="Title" className="sl-title-cell">{ob.title}</td>
+                  <tr key={ob._id || idx} className={ob.status === CANCELLED ? 'sl-row-cancelled' : undefined}>
+                    <td data-label="Title" className="sl-title-cell">
+                      {ob.title}
+                      {ob.status === CANCELLED && sellerBooks.length > 1 && <span className="sl-pill is-bad sl-line-pill">Cancelled</span>}
+                    </td>
                     <td data-label="Author">{ob.author}</td>
                     <td data-label="Category">{Array.isArray(ob.category) ? ob.category.join(', ') : ob.category}</td>
                     <td data-label="Book Type">{ob.bookType}</td>
@@ -218,7 +240,7 @@ export default function SellerOrderTrackingPage() {
               <tfoot>
                 <tr>
                   <td colSpan={8} style={{ textAlign: 'right', fontWeight: 700 }}>Order Total:</td>
-                  <td className="sl-price">৳{sellerBooks.reduce((sum, ob) => sum + (Number(ob.price) * Number(ob.quantity)), 0).toFixed(2)}</td>
+                  <td className="sl-price">৳{ownTotal.toFixed(2)}</td>
                 </tr>
               </tfoot>
             </table>

@@ -6,6 +6,7 @@ import {
   dismissFlags,
   flagReview,
   listFlaggedReviews,
+  listAllReviews,
   listReviews,
   replyToReview,
   upsertReview,
@@ -20,6 +21,9 @@ const router = express.Router();
  * Before '/:id', or Express reads "flagged" as a book id and the schema
  * rejects it.
  */
+// Every review, for the administrator's Reviews page.
+router.get('/all', requireAuth, requireAdmin, validate(reviewSchemas.adminList), listAllReviews);
+
 router.get(
   '/flagged',
   requireAuth,

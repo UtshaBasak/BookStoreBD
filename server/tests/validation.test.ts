@@ -92,7 +92,7 @@ describe('parsed values reach the handler', () => {
 
     expect(res.status).toBe(200);
     expect(res.body.page).toBe(1);
-    expect(res.body.pageSize).toBe(12);
+    expect(res.body.pageSize).toBe(20);
   });
 });
 

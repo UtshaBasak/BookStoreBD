@@ -7,7 +7,6 @@ import {
     FaCheckCircle,
     FaExclamationTriangle,
     FaHeart,
-    FaHome,
     FaMapMarkerAlt,
     FaPhone,
     FaPlus,
@@ -23,6 +22,7 @@ import type { OwnProfile } from '@shared/api.js';
 
 import AccountData from '../components/AccountData.js';
 import Logo from '../components/Logo.js';
+import NotificationBell from '../components/NotificationBell.js';
 import { signOut } from '../config/api.js';
 import { useProfile } from '../hooks/queries.js';
 import { getUserEmail, isAdmin } from '../utils/auth.js';
@@ -141,21 +141,14 @@ export default function Profile() {
                     <Logo size={38} />
                 </Link>
                 <div className="user-options">
-                    {/* Home icon button */}
-                    <Link to="/"
-                        className="icon-button"
-                        style={{ color: '#6d28d9' }}
-                        title="Go to Homepage"
-                    >
-                        <FaHome />
-                    </Link>
+                    <NotificationBell />
                     {/* Cart and Wishlist buttons for buyer profile */}
                     {profileMode === 'buyer' && (
                         <>
-                            <Link to="/wishlist" className="icon-link" style={{ color: '#ff5c35' }} title="Go to Wishlist">
+                            <Link to="/wishlist" className="icon-link" style={{ color: '#ff5c35' }} title="Go to Wishlist" aria-label="Go to Wishlist">
                                 <FaHeart />
                             </Link>
-                            <Link to="/cart" className="icon-link" style={{ color: '#6d28d9' }} title="Go to Cart">
+                            <Link to="/cart" className="icon-link" style={{ color: '#6d28d9' }} title="Go to Cart" aria-label="Go to Cart">
                                 <FaShoppingCart />
                             </Link>
                         </>

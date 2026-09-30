@@ -138,3 +138,27 @@
   flex: none;
   color: var(--color-brand);
 }
+
+.cart-item-title a {
+  color: inherit;
+  text-decoration: none;
+}
+.cart-item-title a:hover {
+  color: var(--color-brand);
+  text-decoration: underline;
+}
+
+/* Stock news about one line: running low, lowered, or gone. */
+.cart-note {
+  margin: 8px 0 0;
+  color: #c2410c;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+.cart-note.is-out {
+  color: #b91c1c;
+}
+.cart-item.is-sold-out .cart-cover {
+  filter: grayscale(1);
+  opacity: 0.6;
+}

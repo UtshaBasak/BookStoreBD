@@ -1192,3 +1192,37 @@ button.sl-link-danger:hover {
   letter-spacing: 0.06em;
   text-transform: uppercase;
 }
+
+/* A cancelled book stays in the table, struck through, because it happened. */
+.sl-row-cancelled td {
+  color: var(--color-ink-muted);
+  text-decoration: line-through;
+}
+.sl-line-pill {
+  margin-left: 8px;
+  text-decoration: none;
+  vertical-align: middle;
+}
+.sl-card .co-cancelled {
+  margin-top: 1rem;
+}
+.sl-status-box .co-panel {
+  max-width: none;
+}
+
+/* Status and sort on the orders list, pill-shaped like the search. */
+.sl-filter .field {
+  width: auto;
+  min-height: 44px;
+  padding-right: 32px;
+  border-radius: 999px;
+  font-weight: 600;
+}
+@media (max-width: 560px) {
+  .sl-filter {
+    flex: 1 1 40%;
+  }
+  .sl-filter .field {
+    width: 100%;
+  }
+}

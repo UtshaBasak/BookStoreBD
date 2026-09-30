@@ -11,6 +11,7 @@ import {
 } from 'react-icons/fa';
 import './AdminPanel.css';
 import Logo from '../components/Logo.js';
+import CancelOrder, { CancelledNote } from '../components/CancelOrder.js';
 import { useOrder, useUpdateOrderStatus } from '../hooks/queries.js';
 import { messageOf } from '../utils/apiError.js';
 import { isAdmin } from '../utils/auth.js';
@@ -23,9 +24,15 @@ const ORDER_STAGES = [
   'Delivered'
 ];
 
-/** The colour of the status pill: waiting, under way, or delivered. */
+/** The colour of the status pill: waiting, under way, delivered or called off. */
 const statusTone = (status: string) =>
-  status === 'Delivered' ? 'is-good' : status === 'Order Confirmed' ? 'is-pending' : 'is-progress';
+  status === 'Delivered'
+    ? 'is-good'
+    : status === 'Cancelled'
+      ? 'is-bad'
+      : status === 'Order Confirmed'
+        ? 'is-pending'
+        : 'is-progress';
 
 export default function AdminOrderTrackingPage() {
   const navigate = useNavigate();
@@ -72,8 +79,8 @@ export default function AdminOrderTrackingPage() {
         >
           ← Back to Admin Panel
         </Link>
-        <button type="button" className="btn btn-primary" onClick={() => window.location.reload()}>
-          ⟳ Refresh
+        <button type="button" className="btn btn-primary" onClick={() => void orderQuery.refetch()} disabled={orderQuery.isFetching}>
+          ⟳ {orderQuery.isFetching ? 'Refreshing...' : 'Refresh'}
         </button>
       </div>
     </header>
@@ -98,10 +105,12 @@ export default function AdminOrderTrackingPage() {
   }
 
   const books = order.books || [];
-  const itemTotal = books.reduce((sum, ob) => sum + (Number(ob.price) * Number(ob.quantity)), 0);
+  // The server's totals, which leave cancelled books out.
+  const itemTotal = Number(order.booksTotal) || 0;
   const shipping = typeof order.shippingCost === 'number' ? order.shippingCost : 0;
   const discount = typeof order.discount === 'number' ? order.discount : 0;
-  const finalTotal = itemTotal + shipping - discount;
+  const finalTotal = Number(order.totalCost) || 0;
+  const statusOptions = order.statusOptions ?? [];
   const currentStatus = order.status || 'Order Confirmed';
   const currentIndex = ORDER_STAGES.indexOf(currentStatus);
 
@@ -149,15 +158,19 @@ export default function AdminOrderTrackingPage() {
               );
             })}
           </ol>
+          <CancelledNote lines={books} />
           <div className="admin-status-form">
-            <label>
-              <b>Update Status: </b>
-              <select name="status" value={statusValue} onChange={handleStatusChange} className="field">
-                {ORDER_STAGES.map(stage => (
-                  <option key={stage} value={stage}>{stage}</option>
-                ))}
-              </select>
-            </label>
+            {statusOptions.length > 0 && (
+              <label>
+                <b>Update Status: </b>
+                <select name="status" value={statusValue} onChange={handleStatusChange} className="field">
+                  {statusOptions.map((stage) => (
+                    <option key={stage} value={stage}>{stage}</option>
+                  ))}
+                </select>
+              </label>
+            )}
+            {order.canCancel && <CancelOrder orderNumber={order.orderNumber} who="admin" />}
             {_error && <span className="admin-alert" style={{ margin: 0 }}>{_error}</span>}
           </div>
         </section>
@@ -253,8 +266,13 @@ export default function AdminOrderTrackingPage() {
               </thead>
               <tbody>
                 {books.map((ob, idx) => (
-                  <tr key={ob._id || idx}>
-                    <td className="admin-cell-strong" style={{ minWidth: 150 }}>{ob.title}</td>
+                  <tr key={ob._id || idx} className={ob.status === 'Cancelled' ? 'admin-row-cancelled' : undefined}>
+                    <td className="admin-cell-strong" style={{ minWidth: 150 }}>
+                      {ob.title}
+                      {ob.status === 'Cancelled' && books.length > 1 && (
+                        <span className="badge admin-status is-bad admin-line-pill">Cancelled</span>
+                      )}
+                    </td>
                     <td style={{ minWidth: 130 }}>{ob.author}</td>
                     <td style={{ minWidth: 120 }}>{Array.isArray(ob.category) ? ob.category.join(', ') : ob.category}</td>
                     <td style={{ textTransform: 'capitalize' }}>{ob.bookType}</td>

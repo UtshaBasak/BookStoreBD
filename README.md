@@ -82,7 +82,13 @@ It ships three distinct experiences from one codebase:
   and price either way
 - Multi-image upload straight from the browser to Cloudinary, or stored inline
   as base64 when image hosting is not configured
-- Stock tracking, with out-of-stock titles automatically dropped from every cart
+- Twenty books to a page, or 30, 40 or 50, and a box to jump straight to a page
+- Stock tracking: a book that sells out stays in carts, marked sold out and left
+  out of checkout, and a cart asking for more copies than are left is lowered
+  to what there is
+- A shop page for every seller (`/shop/:username`): banner, picture, books
+  listed, copies sold, their rating across every book, and their books to
+  search and sort - reached from the seller's name on any book
 
 ### Homepage shelves
 
@@ -100,14 +106,38 @@ It ships three distinct experiences from one codebase:
   an amount of taka off (at most 90%). The book carries its sale price, which
   the catalogue filters and sorts by and checkout charges; the listed price is
   shown struck through. Rules in [`server/config/pricing.ts`](server/config/pricing.ts)
-- Wishlist and cart, both scoped per user
+- Wishlist and cart, both scoped per user; the wishlist sorts seven ways, and
+  the cart holds several copies of a book, chosen on the book page or in the cart
 - Checkout capturing delivery division, district, address, contact and payment method
 - Delivery charges worked out by the server from the district: 70 Tk in Dhaka, 120 Tk elsewhere
 - Promo codes priced by the server from one list, `server/config/promotions.ts`: `BookStoreBD` (50 Tk off a first order) and `FreeDelivery` (free delivery on 1000 Tk of books), one per order
 - A 16-character order number shared by every line item in a single order
-- Order tracking for buyers, sellers and admins, each with its own view
-- Returns within 7 days of delivery, with a defect description, photos and a bKash number for the refund
-- Seller payouts by bKash to the seller's merchant number once an order's return window closes, less a 5% fee, recorded with the bKash transaction ID
+- Order tracking for buyers, sellers and admins, each with its own view. A
+  seller moves their books up to Shipped; Out for Delivery and Delivered are
+  the shop's
+- Cancelling: the buyer until the seller starts on it, a seller (their own
+  books) until they ship, an administrator until delivery. The stock goes back
+  on sale, cancelled books are left out of every total, and the others in the
+  order are told why. Rules in [`server/config/commerce.ts`](server/config/commerce.ts)
+- Returns within 7 days of delivery, with a defect description, photos and a bKash number for the refund - one book, or a whole order in one request
+- Seller payouts by bKash to the seller's merchant number once an order's return window closes, less a 5% fee, recorded with the bKash transaction ID. Orders still inside the window are listed too, with the date each becomes payable
+
+### Notifications
+
+- A bell in every header, with the unread count and the latest few, and a
+  full page at `/notifications`
+- Everyone in an order hears what concerns them: the buyer, each seller and
+  the administrators are told of a new order, a status change, a cancellation,
+  a book selling out, a return asked for or decided, a payout, a review, a
+  seller's reply, a reported review, and a deal on a wishlisted book
+- Delivered live over the chat's Socket.IO connection, with a short toast;
+  kept for 90 days
+
+### Administration
+
+- Users, transactions, books, returns, payouts, every review and reported
+  reviews, each searchable, filterable, sortable and refreshable
+- The administrator can move an order through every stage, and cancel it
 
 ### Profiles
 
@@ -727,6 +757,7 @@ administrator without a migration.
 | `POST` | `/user/add-book` | Create a listing with up to 10 images |
 | `GET` | `/user/:email/avatar` | A profile picture, as an image |
 | `GET` | `/user/:email/banner/:role` | A buyer or seller banner kept inline, as an image |
+| `GET` | `/user/shop/:username` | A seller's shop: who they are and how they do; `404` without books |
 | `POST` | `/user/signup` | Alias of `/auth/signup`, kept for older callers |
 | `POST` | `/user/signin` | Alias of `/auth/signin`, kept for older callers |
 | `DELETE` | `/user/:id` | Delete a user (admin) |
@@ -738,7 +769,7 @@ administrator without a migration.
 | `GET` | `/book/admin` | One page of every listing (admin) |
 | `GET` | `/book/:id` | Book detail plus related titles |
 | `GET` | `/book/seller/:email` | Every listing by one seller |
-| `PUT` | `/book/update-stock/:id` | Set stock; clears carts when it hits 0 |
+| `PUT` | `/book/update-stock/:id` | Set stock; carts keep the book, marked sold out at 0 |
 | `PUT` | `/book/update-price/:id` | Set price; drops a taka discount that no longer fits |
 | `PUT` | `/book/discount/:id` | The seller's discount: `{ type: 'percent' \| 'amount', value }` or `{ type: 'none' }` |
 | `DELETE` | `/book/:id` | Delete a listing |
@@ -762,17 +793,33 @@ document path chosen by the caller, which needed a whitelist to stop it
 becoming a query operator. Naming each filter removes the question, and a
 search is now a URL you can link to, share and go back to.
 
+The catalogue also takes `seller` (a username) for a seller's shop; `rating`
+is a floor from 1 to 5, and `pageSize` goes up to 50 (20 by default).
+
 The order and return lists take the same three parameters — `search`, `page`,
 `pageSize` — and answer in the same shape. Orders are paged by **order**, not
 by line: a basket of three books is three rows, and a page that cut between
 them would show part of a purchase.
 
+Each admin list adds its own filters and a `sort`:
+
+| List | Filters | `sort` |
+| --- | --- | --- |
+| `/user` | `kind` = `sellers` \| `buyers` | `newest`, `oldest`, `nameAZ`, `nameZA` |
+| `/order/admin/all`, `/order/buyer`, `/order/seller` | `status`, `from`, `to` (YYYY-MM-DD) | `newest`, `oldest`, `totalHigh`, `totalLow` |
+| `/book/admin` | `bookType`, `stock` = `in` \| `low` \| `out`, `deals` = `yes` \| `no` | `newest`, `oldest`, `priceHigh`, `priceLow`, `stockLow`, `titleAZ` |
+| `/return/requests` | `status` = `pending` \| `approved` \| `rejected` | `newest`, `oldest` |
+| `/order/admin/payouts` | `state` = `due` \| `upcoming` \| `paid` | `oldest`, `newest`, `amountHigh`, `amountLow` |
+| `/review/flagged` | `rating` | `mostReported`, `newest`, `oldest`, `ratingLow`, `ratingHigh` |
+| `/review/all` | `rating`, `replied` = `yes` \| `no`, `reported` = `yes` \| `no` | `newest`, `oldest`, `ratingHigh`, `ratingLow`, `mostReported` |
+
 ### Cart and wishlist
 
 | Method | Endpoint | Description |
 | --- | --- | --- |
-| `GET` | `/cart?email=` | Items in a user's cart (in-stock only) |
-| `POST` | `/cart/add/:id` | Add a book to the cart |
+| `GET` | `/cart` | The cart, each book with `cartQuantity` (and `cartAdjusted` when it was lowered to the stock) |
+| `POST` | `/cart/add/:id` | Add a book; `{ quantity }` for several copies, `409` past the stock |
+| `PATCH` | `/cart/:id` | Set how many copies: `{ quantity }` |
 | `POST` | `/cart/remove/:id` | Remove a book from the cart |
 | `POST` | `/cart/clear` | Empty a cart, called after checkout |
 | `GET` | `/wishlist?email=` | Items in a user's wishlist |
@@ -788,14 +835,17 @@ them would show part of a purchase.
 | `GET` | `/order/seller` | A page of the caller's sales |
 | `GET` | `/order/admin/all` | A page of every order (admin) |
 | `GET` | `/order/:orderNumber` | One order with its line items and totals |
-| `PATCH` | `/order/status/:orderNumber` | Update the status of every item in an order |
+| `PATCH` | `/order/status/:orderNumber` | Move an order on: a seller their own books, up to Shipped; an admin anything |
+| `POST` | `/order/:orderNumber/cancel` | Cancel it, `{ reason? }`: the buyer, a seller or an admin, each within their rules |
+| `GET` | `/order/admin/payouts` | What sellers are owed, in their return window, or have been paid (admin) |
+| `POST` | `/order/admin/payouts/paid` | Record a payout with its bKash transaction ID (admin) |
 | `DELETE` | `/order/:id` | Delete a single line item |
 
 ### Returns and purchases
 
 | Method | Endpoint | Description |
 | --- | --- | --- |
-| `POST` | `/return` | Submit a return request, with its photographs |
+| `POST` | `/return` | Submit a return request, with its photographs; `orderId` repeats for a whole order |
 | `GET` | `/return/requests` | A page of return requests, scoped to the caller |
 | `GET` | `/return/requests/:id/image/:n` | One photograph, to its buyer or an admin |
 | `PATCH` | `/return/requests/:id` | Approve or reject a request (admin) |
@@ -811,6 +861,7 @@ them would show part of a purchase.
 | `DELETE` | `/review/:id/reply` | Withdraw that answer |
 | `POST` | `/review/:id/flag` | Report a review, once per person |
 | `GET` | `/review/flagged` | The moderation queue (admin) |
+| `GET` | `/review/all` | Every review, to search and filter (admin) |
 | `DELETE` | `/review/:id/flags` | Clear the reports, keep the review (admin) |
 
 Only somebody who bought the book may review it, and only the seller of that
@@ -819,6 +870,13 @@ words the shop did not write. Reporting hides nothing: a review stays where it
 is and keeps counting towards the score until an administrator decides
 otherwise, because anything else makes "report" a button for removing an
 inconvenient review.
+
+### Notifications — `/notification`
+
+| Method | Endpoint | Description |
+| --- | --- | --- |
+| `GET` | `/notification` | A page of yours, newest first, with the unread count; `?unreadOnly=1` |
+| `POST` | `/notification/read` | Mark `{ ids }` read, or all of them without |
 
 ### Purchases — `/purchase`
 
@@ -881,6 +939,7 @@ and the server then delivers the saved message to its receiver:
 | Direction | Event | Payload | Meaning |
 | --- | --- | --- | --- |
 | server → client | `receive_message` | `{ _id, sender, receiver, message, image, timestamp, read }` | A new message for you |
+| server → client | `notification` | `{ _id, type, title, body, link, read, createdAt }` | Something for the bell |
 
 `image` is the address of the attachment (`/api/chat/messages/:id/image`),
 not its bytes.
@@ -899,6 +958,7 @@ not its bytes.
 | `Purchase` | `purchases` | Purchase history |
 | `ReturnRequest` | `returnrequests` | Return requests with defect details and status |
 | `ChatMessage` | `chatmessages` | Messages with read state, indexed by sender/receiver/time |
+| `Notification` | `notifications` | What the bell shows, per person; removed after 90 days |
 
 ---
 
@@ -968,7 +1028,7 @@ What is planned for the near future, beyond the shop as it stands.
 | 🔄 **Book exchange** | Swap finished books with other readers instead of selling them: list what you have and what you want, get matched with a reader who has it, and trade through the same courier and chat the shop already runs. Exchange credit for a book given, to spend on a book received, so a swap does not need both sides at once. |
 | 💳 **Online payment** | bKash, Nagad and card payments at checkout, next to cash on delivery, with refunds back to the same account. |
 | 🚚 **Live courier tracking** | Delivery status straight from the courier, so an order's progress updates on its own rather than when the seller moves it on. |
-| 🔔 **Notifications** | E-mail and SMS when an order ships, a return is decided, a wishlisted book goes on a deal, or a message arrives. |
+| 🔔 **E-mail and SMS alerts** | The bell's news by e-mail and SMS too - an order shipped, a return decided, a deal on a wishlisted book - for anyone not on the site. |
 | ⭐ **Seller ratings** | A score for each seller from their buyers, shown on every listing, for trust between people who have never met. |
 | 📲 **Mobile app** | The shop as an installable app for Android and iOS, with the cart, wishlist and chat always to hand. |
 

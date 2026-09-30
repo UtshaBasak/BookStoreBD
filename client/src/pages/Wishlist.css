@@ -217,3 +217,20 @@
   color: var(--color-ink-muted);
   font-weight: 600;
 }
+
+/* The order of the list, at the end of the heading row. */
+.wishlist-sort {
+  width: auto;
+  min-height: 42px;
+  margin-left: auto;
+  padding-right: 32px;
+  border-radius: 999px;
+  align-self: center;
+  font-weight: 600;
+}
+@media (max-width: 520px) {
+  .wishlist-sort {
+    width: 100%;
+    margin-left: 0;
+  }
+}

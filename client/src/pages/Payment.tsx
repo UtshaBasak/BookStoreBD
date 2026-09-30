@@ -1,13 +1,14 @@
 import { useState, useEffect, useMemo } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import {
-  FaArrowLeft, FaCheck, FaMapMarkerAlt, FaMinus, FaMoneyBillWave, FaPlus, FaTag, FaTrash, FaTruck,
+  FaArrowLeft, FaCheck, FaMapMarkerAlt, FaMoneyBillWave, FaTag, FaTrash, FaTruck,
 } from 'react-icons/fa';
 
-import type { ApiError, Book, CheckPromoResponse, CreateOrderResponse, Id } from '@shared/api.js';
+import type { ApiError, Book, CheckPromoResponse, CreateOrderResponse, Id, UnavailableItem } from '@shared/api.js';
 
 import { API_BASE_URL, apiFetch } from '../config/api.js';
-import { useCart, useClearCart, useProfile } from '../hooks/queries.js';
+import { useCart, useClearCart, useProfile, useSetCartQuantity, useToggleCart } from '../hooks/queries.js';
+import QuantityStepper from '../components/QuantityStepper.js';
 import { isOwnProfile } from '../utils/profile.js';
 import { safeImageSrc, PLACEHOLDER_IMAGE } from '../utils/safeImageSrc.js';
 import { sized, IMAGE_WIDTHS } from '../utils/imageUrl.js';
@@ -138,7 +139,12 @@ export default function Payment() {
   // page shows what was actually bought.
   const cartQuery = useCart({ enabled: !orderConfirmed && Boolean(storedUser.email) });
   const { mutate: clearCart } = useClearCart();
-  const liveCart = cartQuery.data ?? [];
+  // A sold-out book stays in the cart, so it can be bought when it is back,
+  // but it cannot be ordered now and is left out here.
+  const fullCart = cartQuery.data ?? [];
+  const liveCart = fullCart.filter((book) => Number(book.stock) > 0);
+  const soldOut = orderConfirmed ? [] : fullCart.filter((book) => !(Number(book.stock) > 0));
+  const [leftOut, setLeftOut] = useState<UnavailableItem[]>([]);
 
   const cartBooks = confirmedBooks ?? liveCart;
   const loading = orderConfirmed ? false : cartQuery.isPending;
@@ -155,12 +161,16 @@ export default function Payment() {
     phone: (isOwnProfile(profile) ? profile.phone : null) || storedUser.phone,
   };
 
-  const [quantityOverrides, setQuantityOverrides] = useState<Quantities>({});
+  // How many of each: what the cart holds, which the cart page and the book
+  // page set, never more than is in stock.
   const quantities: Quantities =
     confirmedQuantities ??
-    Object.fromEntries(liveCart.map((book) => [book._id, quantityOverrides[book._id] ?? 1]));
-  const setQuantities = setQuantityOverrides;
+    Object.fromEntries(
+      liveCart.map((book) => [book._id, Math.max(1, Math.min(book.cartQuantity ?? 1, Number(book.stock) || 1))])
+    );
   const setCartBooks = setConfirmedBooks;
+  const { mutate: setCartQuantity, isPending: savingQuantity } = useSetCartQuantity();
+  const { mutate: toggleCart } = useToggleCart();
 
   const divisions = [
     "Dhaka", "Chattogram", "Khulna", "Rajshahi", "Barisal", "Sylhet", "Rangpur", "Mymensingh"
@@ -196,39 +206,18 @@ export default function Payment() {
     return safeImageSrc(`${API_BASE_URL}/uploads/${encodeURIComponent(img)}`, PLACEHOLDER_IMAGE);
   };
 
-  const handleQuantityChange = (bookId: Id, delta: number, maxStock: number) => {
-    setQuantities(q => {
-      const newQ = { ...q };
-      newQ[bookId] = Math.max(1, Math.min((newQ[bookId] || 1) + delta, maxStock));
-      return newQ;
-    });
+  // Saved to the cart as it changes, so leaving and coming back - or going
+  // to the cart page - keeps the number chosen here.
+  const handleQuantityChange = (bookId: Id, quantity: number) => {
+    setCartQuantity({ bookId, quantity });
   };
 
   const handleRemoveBook = (bookId: Id) => {
-    const email = user.email;
-    apiFetch(`${API_BASE_URL}/cart/remove/${bookId}`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email })
-    })
-      .then(res => res.json() as Promise<Book[]>)
-      .then(data => {
-        setCartBooks(Array.isArray(data) ? data : []);
-        setQuantities(q => {
-          const nq = { ...q };
-          delete nq[bookId];
-          return nq;
-        });
-      });
+    toggleCart({ bookId, inCart: true });
   };
 
-  const subtotal = useMemo(() => {
-    return cartBooks.reduce((sum, book) => {
-      const qty = quantities[book._id] || 1;
-      // The sale price, which is what the order is charged.
-      return sum + (priceOf(book) * qty);
-    }, 0);
-  }, [cartBooks, quantities]);
+  // The sale price, which is what the order is charged, times the copies.
+  const subtotal = cartBooks.reduce((sum, book) => sum + priceOf(book) * (quantities[book._id] || 1), 0);
 
   /*
    * A code's preview belongs to the basket it was checked against. Change a
@@ -370,9 +359,19 @@ export default function Payment() {
         deliveryAddress: address
       })
     })
-    .then(async res => ({ ok: res.ok, data: (await res.json()) as CreateOrderResponse & ApiError }))
+    .then(async res => ({ ok: res.ok, data: (await res.json()) as CreateOrderResponse & ApiError & { unavailable?: UnavailableItem[] } }))
     .then(({ ok, data }) => {
+      const missing = data.unavailable ?? [];
       if (ok && data.orderNumber) {
+        // A book that sold out between the page loading and the order going
+        // in is not in the order: the confirmation says so, and does not
+        // show it as bought.
+        const gone = new Set(missing.map((item) => String(item.bookId)));
+        const bought = latestCartBooks.filter((book) => !gone.has(String(book._id)));
+        if (missing.length) {
+          setCartBooks(bought);
+          setLeftOut(missing);
+        }
         setOrderNumber(data.orderNumber);
         // What the server actually charged, which may differ from the preview
         // if a book sold out in the meantime.
@@ -397,15 +396,23 @@ export default function Payment() {
             promo,
             promoApplied,
             quantities: latestQuantities,
-            cartBooks: latestCartBooks,
+            cartBooks: bought,
           })
         );
         setOrderConfirmed(true);
       } else {
-        // Unfreeze, so the basket can be changed and tried again.
+        // Unfreeze, so the basket can be changed and tried again - with the
+        // stock as it now is.
         setCartBooks(null);
         freezeQuantities(null);
-        setConfirmError(data.message || 'Order confirmation failed. Please try again.');
+        void cartQuery.refetch();
+        setConfirmError(
+          missing.length
+            ? `Not enough in stock: ${missing
+                .map((item) => (item.available ? `${item.title} (only ${item.available} left)` : `${item.title} (sold out)`))
+                .join(', ')}. Change the quantity and try again.`
+            : data.message || 'Order confirmation failed. Please try again.'
+        );
       }
     })
     .catch(() => {
@@ -645,8 +652,22 @@ export default function Payment() {
               {orderConfirmed && <div className="font-bold text-brand">#{orderNumber}</div>}
             </div>
             <div className="lg:max-h-85 lg:overflow-y-auto">
+              {leftOut.length > 0 && (
+                <p role="status" className="pay-notice">
+                  Sold out before your order went in, so not included:{' '}
+                  {leftOut.map((item) => item.title).join(', ')}.
+                </p>
+              )}
+              {soldOut.length > 0 && (
+                <p role="status" className="pay-notice">
+                  Sold out, so left out of this order: {soldOut.map((book) => book.title).join(', ')}. It stays in
+                  your cart for when it is back.
+                </p>
+              )}
               {cartBooks.length === 0 ? (
-                <div className="p-6 text-center text-ink-muted">No books in cart.</div>
+                <div className="p-6 text-center text-ink-muted">
+                  {soldOut.length ? 'Nothing in your cart is in stock right now.' : 'No books in cart.'}
+                </div>
               ) : (
                 <ul className="m-0 list-none p-0">
                   {cartBooks.map(book => (
@@ -680,22 +701,19 @@ export default function Payment() {
                           ><FaTrash /></button>
                         </div>
                         <div className="mt-2 flex items-center justify-between gap-2">
-                          <div className="qty">
-                            <button
-                              type="button"
-                              className="qty-btn"
-                              onClick={() => handleQuantityChange(book._id, -1, book.stock)}
-                              disabled={quantities[book._id] <= 1}
-                              aria-label="Decrease quantity"
-                            ><FaMinus /></button>
-                            <div className="qty-num">{quantities[book._id] || 1}</div>
-                            <button
-                              type="button"
-                              className="qty-btn"
-                              onClick={() => handleQuantityChange(book._id, 1, book.stock)}
-                              disabled={quantities[book._id] >= book.stock}
-                              aria-label="Increase quantity"
-                            ><FaPlus /></button>
+                          <div className="flex flex-col items-start gap-0.5">
+                            <QuantityStepper
+                              value={quantities[book._id] || 1}
+                              max={Number(book.stock) || 1}
+                              onChange={(value) => handleQuantityChange(book._id, value)}
+                              disabled={savingQuantity}
+                              label={`Copies of ${book.title}`}
+                            />
+                            {Number(book.stock) <= 5 && (
+                              <span className="text-xs font-semibold" style={{ color: '#c2410c' }}>
+                                Only {book.stock} left
+                              </span>
+                            )}
                           </div>
                           <div className="price">
                             {money(priceOf(book) * (quantities[book._id] || 1))}

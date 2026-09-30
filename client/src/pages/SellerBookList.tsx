@@ -6,6 +6,7 @@ import type { Id } from '@shared/api.js';
 
 import './Seller.css';
 import Logo from '../components/Logo.js';
+import NotificationBell from '../components/NotificationBell.js';
 import DiscountEditor from '../components/DiscountEditor.js';
 import { API_BASE_URL, apiFetch } from '../config/api.js';
 import { site } from '../config/site.js';
@@ -102,9 +103,12 @@ export default function SellerBookList() {
         <Link to="/" className="sl-logo-link" aria-label={`${site.name} home`}>
           <Logo size={34} />
         </Link>
-        <Link to="/profile?mode=seller" className="btn btn-ghost">
-          ← Return to Profile
-        </Link>
+        <div className="sl-topbar-actions">
+          <NotificationBell />
+          <Link to="/profile?mode=seller" className="btn btn-ghost">
+            ← Return to Profile
+          </Link>
+        </div>
       </header>
 
       <div className="sl-wrap sl-wrap-wide">

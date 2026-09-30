@@ -60,3 +60,8 @@ export const registerChatSocket = (httpServer: HttpServer): Server => {
 export const deliverChatMessage = (message: ChatMessage): void => {
   io?.to(userRoom(message.receiver)).emit('receive_message', message);
 };
+
+/** Anything else addressed to one person: a notification, for the bell. */
+export const deliverToUser = (email: string, event: string, payload: unknown): void => {
+  io?.to(userRoom(email)).emit(event, payload);
+};

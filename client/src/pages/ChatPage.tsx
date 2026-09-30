@@ -12,6 +12,7 @@ import { reportError } from '../utils/report.js';
 import AuthImage from '../components/AuthImage.js';
 import FilePreview from '../components/FilePreview.js';
 import Logo from '../components/Logo.js';
+import NotificationBell from '../components/NotificationBell.js';
 import './Homepage.css';
 import '../components/Chat.css';
 
@@ -243,12 +244,9 @@ export default function ChatPage() {
                     <FaComments className="chat-header-icon" size={22} aria-hidden="true" />
                     <h1>Messages</h1>
                 </div>
-                <Link to="/"
-                    className="btn btn-ghost chat-home"
-                >
-                    <FaArrowLeft size={14} aria-hidden="true" />
-                    <span className="chat-home-label">Back to Home</span>
-                </Link>
+                <div className="user-options">
+                    <NotificationBell />
+                </div>
             </header>
 
             {/* Main Content.

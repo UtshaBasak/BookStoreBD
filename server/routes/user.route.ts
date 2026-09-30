@@ -7,7 +7,9 @@ import {
 } from '../controllers/user.controller.js';
 import { deleteMyAccount, exportMyData } from '../controllers/account.controller.js';
 import AddBook from '../models/AddBook.model.js';
+import Order from '../models/Order.model.js';
 import User from '../models/user.model.js';
+import { API_PREFIX } from '../config/apiPaths.js';
 import { config } from '../config/env.js';
 import { actingUser, requireAuth, requireAdmin, optionalAuth } from '../middleware/auth.js';
 import { imageUpload, verifyImageBytes } from '../middleware/imageUpload.js';
@@ -72,6 +74,74 @@ router.get(
       if (!serveStoredImage(req, res, user?.profilePicture)) {
         res.status(404).json({ message: 'No profile picture' });
       }
+    } catch (error) {
+      next(error);
+    }
+  }
+);
+
+/**
+ * A seller's shop front: who they are and how their shop is doing. Public,
+ * like the name and picture on a listing already are; the books themselves
+ * come from the catalogue, `/filter/booklist?seller=`.
+ */
+router.get(
+  '/shop/:username',
+  validate(userSchemas.shop),
+  async (req: Request<{ username: string }>, res: Response, next) => {
+    try {
+      const user = await User.findOne(
+        { username: req.params.username },
+        { username: 1, email: 1, profilePicture: 1, sellerBanner: 1, createdAt: 1, updatedAt: 1 }
+      ).lean();
+      if (!user) {
+        res.status(404).json({ message: 'No shop by that name' });
+        return;
+      }
+
+      const [books, inStock, sold, rated] = await Promise.all([
+        AddBook.countDocuments({ sellerEmail: user.email }),
+        AddBook.countDocuments({ sellerEmail: user.email, stock: { $gt: 0 } }),
+        Order.aggregate<{ copies: number }>([
+          { $match: { sellerEmail: user.email, status: { $ne: 'Cancelled' }, isReturned: { $ne: 1 } } },
+          { $group: { _id: null, copies: { $sum: { $ifNull: ['$quantity', 1] } } } },
+        ]),
+        AddBook.aggregate<{ average: number; count: number }>([
+          { $match: { sellerEmail: user.email, ratingCount: { $gt: 0 } } },
+          {
+            $group: {
+              _id: null,
+              count: { $sum: '$ratingCount' },
+              weighted: { $sum: { $multiply: ['$ratingAverage', '$ratingCount'] } },
+            },
+          },
+          { $project: { count: 1, average: { $divide: ['$weighted', '$count'] } } },
+        ]),
+      ]);
+      if (books === 0) {
+        res.status(404).json({ message: 'That account has no shop yet' });
+        return;
+      }
+
+      const version = user.updatedAt ? new Date(user.updatedAt).getTime() : 0;
+      const banner = user.sellerBanner
+        ? /^https?:\/\//.test(user.sellerBanner)
+          ? user.sellerBanner
+          : `${API_PREFIX}/user/${encodeURIComponent(user.email)}/banner/seller?v=${version}`
+        : null;
+
+      res.json({
+        username: user.username,
+        email: user.email,
+        profilePicture: user.profilePicture || null,
+        sellerBanner: banner,
+        joinedAt: user.createdAt ? new Date(user.createdAt).toISOString() : null,
+        books,
+        inStock,
+        sold: sold[0]?.copies ?? 0,
+        ratingAverage: rated[0] ? Math.round(rated[0].average * 10) / 10 : 0,
+        ratingCount: rated[0]?.count ?? 0,
+      });
     } catch (error) {
       next(error);
     }
@@ -217,7 +287,7 @@ router.get(
   requireAdmin,
   validate(userSchemas.adminList),
   async (req, res) => {
-    const { search, page, pageSize } = validatedQuery<AdminUserQuery>(req);
+    const { search, page, pageSize, kind, sort } = validatedQuery<AdminUserQuery>(req);
 
     const pattern = search ? contains(search) : null;
     // A plain record: the values are regexes, which the generated filter type
@@ -231,12 +301,23 @@ router.get(
     const filter: Record<string, unknown> = {
       role: 'user',
       ...(pattern ? { $or: [{ username: pattern }, { email: pattern }] } : {}),
+      ...(kind === 'sellers'
+        ? { bkashMerchant: { $nin: [null, ''] } }
+        : kind === 'buyers'
+          ? { bkashMerchant: { $in: [null, ''] } }
+          : {}),
     };
+    const order = {
+      newest: { createdAt: -1 },
+      oldest: { createdAt: 1 },
+      nameAZ: { username: 1 },
+      nameZA: { username: -1 },
+    }[sort] as Record<string, 1 | -1>;
 
     try {
       const [items, total] = await Promise.all([
-        User.find(filter, { username: 1, email: 1, role: 1, createdAt: 1 })
-          .sort({ createdAt: -1, _id: -1 })
+        User.find(filter, { username: 1, email: 1, role: 1, createdAt: 1, bkashMerchant: 1 })
+          .sort({ ...order, _id: -1 })
           .skip((page - 1) * pageSize)
           .limit(pageSize)
           .lean(),

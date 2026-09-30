@@ -10,6 +10,7 @@ import { useDebounced } from '../../hooks/useDebounced.js';
 import { useToast } from '../../hooks/useToast.js';
 import { messageOf } from '../../utils/apiError.js';
 import Pager from '../../components/Pager.js';
+import { FilterSelect, RefreshButton } from './AdminControls.js';
 import '../AdminPanel.css';
 
 /** The colour of a request's status pill. */
@@ -19,9 +20,22 @@ const statusTone = (status: string) =>
 /** Requests per page. */
 const PAGE_SIZE = 25;
 
+const STATUSES = [
+  { value: '', label: 'Any status' },
+  { value: 'pending', label: 'Pending' },
+  { value: 'approved', label: 'Approved' },
+  { value: 'rejected', label: 'Rejected' },
+];
+const SORTS = [
+  { value: 'newest', label: 'Newest first' },
+  { value: 'oldest', label: 'Oldest first' },
+];
+
 export default function ReturnManagement() {
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(1);
+  const [status, setStatus] = useState('');
+  const [sort, setSort] = useState('newest');
 
   /*
    * This asked for every return request there is, and a request carries the
@@ -34,6 +48,7 @@ export default function ReturnManagement() {
     search: settledSearch || undefined,
     page,
     pageSize: PAGE_SIZE,
+    filters: { status, sort },
   });
 
   const returnRequests = requestsQuery.data?.items ?? [];
@@ -105,6 +120,7 @@ export default function ReturnManagement() {
             the bKash number shown.
           </p>
         </div>
+        <RefreshButton onClick={() => void requestsQuery.refetch()} busy={requestsQuery.isFetching} />
       </header>
 
       <div className="admin-toolbar">
@@ -113,6 +129,7 @@ export default function ReturnManagement() {
           <input name="q"
             type="text"
             className="field"
+            aria-label="Search return requests"
             placeholder="Search by book, buyer, seller, or description..."
             value={search}
             onChange={(e) => {
@@ -121,6 +138,26 @@ export default function ReturnManagement() {
             }}
           />
         </div>
+        <FilterSelect
+          name="status"
+          label="Status"
+          value={status}
+          onChange={(value) => {
+            setStatus(value);
+            setPage(1);
+          }}
+          options={STATUSES}
+        />
+        <FilterSelect
+          name="sort"
+          label="Sort"
+          value={sort}
+          onChange={(value) => {
+            setSort(value);
+            setPage(1);
+          }}
+          options={SORTS}
+        />
       </div>
 
       {loading ? (

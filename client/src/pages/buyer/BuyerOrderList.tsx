@@ -1,12 +1,16 @@
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
-import { FaSearch, FaTruck } from 'react-icons/fa';
+import { Link, useNavigate } from 'react-router-dom';
+import { FaSearch, FaTruck, FaUndoAlt } from 'react-icons/fa';
 
-import type { OrderLine } from '@shared/api.js';
+import type { BuyerOrderLine, OrderLine } from '@shared/api.js';
 
 import { useBuyerOrders } from '../../hooks/queries.js';
 import { useDebounced } from '../../hooks/useDebounced.js';
 import Pager from '../../components/Pager.js';
+import CancelOrder from '../../components/CancelOrder.js';
+import NotificationBell from '../../components/NotificationBell.js';
+import { CANCELLED, orderTotals } from '../../utils/orderTotals.js';
+import { ORDER_SORTS, ORDER_STATUS_FILTER } from '../admin/orderFilters.js';
 import '../../styles/orderTracking.css';
 
 /** Orders per page. Each one may be several rows. */
@@ -16,14 +20,23 @@ const PAGE_SIZE = 25;
 const statusColours = (status: string) =>
   status === 'Delivered'
     ? { background: '#ecfdf5', color: '#047857' }
-    : ['Order Confirmed', 'Processing', 'Shipped', 'Out for Delivery'].includes(status)
+    : status === CANCELLED
+      ? { background: '#fef2f2', color: '#b91c1c' }
+      : ['Order Confirmed', 'Processing', 'Shipped', 'Out for Delivery'].includes(status)
       ? { background: '#f3efff', color: '#5b21b6' }
       : { background: '#fff7ed', color: '#c2410c' };
 
+/** The lines of one order that can still be sent back. */
+const returnable = (lines: BuyerOrderLine[]) =>
+  lines.filter((line) => line.status !== CANCELLED && line.returnableUntil && !line.returnStatus);
+
 export default function BuyerOrderList() {
   const [search, setSearch] = useState('');
+  const navigate = useNavigate();
 
   const [page, setPage] = useState(1);
+  const [status, setStatus] = useState('');
+  const [sort, setSort] = useState('newest');
 
   // Fetched every order this account has ever placed, and searched them here.
   const settledSearch = useDebounced(search);
@@ -31,6 +44,7 @@ export default function BuyerOrderList() {
     search: settledSearch || undefined,
     page,
     pageSize: PAGE_SIZE,
+    filters: { status, sort },
   });
 
   const orders = ordersQuery.data?.items ?? [];
@@ -66,21 +80,25 @@ export default function BuyerOrderList() {
           <Link to="/profile?mode=buyer" className="btn btn-ghost">
             ← Return to Profile
           </Link>
-          <button
-            type="button"
-            className="btn btn-ghost"
-            onClick={fetchOrders}
-            disabled={refreshing}
-            style={{ cursor: refreshing ? 'not-allowed' : 'pointer' }}
-          >
-            {refreshing ? 'Refreshing...' : 'Refresh'}
-          </button>
+          <span className="ot-toolbar-end">
+            <NotificationBell />
+            <button
+              type="button"
+              className="btn btn-ghost"
+              onClick={fetchOrders}
+              disabled={refreshing}
+              style={{ cursor: refreshing ? 'not-allowed' : 'pointer' }}
+            >
+              {refreshing ? 'Refreshing...' : 'Refresh'}
+            </button>
+          </span>
         </div>
 
         <p className="ot-kicker">🛍️ Orders</p>
         <h1 className="m-0" style={{ fontSize: 'clamp(1.6rem, 1.2rem + 1.6vw, 2.2rem)' }}>Your Orders (as Buyer)</h1>
 
-        <div className="relative mt-4 mb-5" style={{ maxWidth: 440 }}>
+        <div className="mt-4 mb-5 flex flex-wrap items-center gap-2">
+        <div className="relative min-w-0 flex-1" style={{ maxWidth: 440, minWidth: 220 }}>
           <FaSearch
             aria-hidden="true"
             className="pointer-events-none absolute top-1/2 left-4 -translate-y-1/2 text-ink-muted"
@@ -90,6 +108,7 @@ export default function BuyerOrderList() {
             className="field"
             style={{ paddingLeft: 42, borderRadius: 999 }}
             placeholder="Search by order number, title, author or seller..."
+            aria-label="Search your orders"
             value={search}
             onChange={(e) => {
               setSearch(e.target.value);
@@ -97,23 +116,61 @@ export default function BuyerOrderList() {
             }}
           />
         </div>
+        <label className="ot-filter">
+          <span className="sr-only">Status</span>
+          <select
+            name="status"
+            className="field"
+            value={status}
+            onChange={(e) => {
+              setStatus(e.target.value);
+              setPage(1);
+            }}
+          >
+            {ORDER_STATUS_FILTER.map((option) => (
+              <option key={option.value} value={option.value}>{option.label}</option>
+            ))}
+          </select>
+        </label>
+        <label className="ot-filter">
+          <span className="sr-only">Sort</span>
+          <select
+            name="sort"
+            className="field"
+            value={sort}
+            onChange={(e) => {
+              setSort(e.target.value);
+              setPage(1);
+            }}
+          >
+            {ORDER_SORTS.map((option) => (
+              <option key={option.value} value={option.value}>{option.label}</option>
+            ))}
+          </select>
+        </label>
+        </div>
 
         <div>
           {loading ? (
             <div className="py-10 text-center font-semibold text-ink-muted">Loading...</div>
           ) : Object.keys(grouped).length === 0 ? (
-            <div className="card p-8 text-center text-ink-muted">No orders found.</div>
+            <div className="card p-8 text-center text-ink-muted">
+              {search || status ? 'No order matches.' : 'No orders yet.'}{' '}
+              {!search && !status && <Link to="/filter">Find a book</Link>}
+            </div>
           ) : (
             Object.entries(grouped).map(([orderNumber, orderBooks]) => {
               const order = orderBooks[0];
-              const shippingCost = order.shippingCharge || 0;
-              const discount = order.discount || 0;
-              const booksTotal = orderBooks.reduce((sum, ob) => sum + (Number(ob.price) * Number(ob.quantity)), 0);
-              const totalCost = booksTotal + Number(shippingCost) - Number(discount);
+              // Cancelled books are not paid for, so they are not in the totals.
+              const { itemTotal: booksTotal, shipping: shippingCost, discount, total: totalCost, status } = orderTotals(orderBooks);
+              const canReturn = returnable(orderBooks);
+              // The buyer may call it off until the seller starts on it; the
+              // server checks the same rule.
+              const live = orderBooks.filter((ob) => ob.status !== CANCELLED);
+              const canCancel = live.length > 0 && live.every((ob) => ob.status === 'Order Confirmed');
               const displayOrderNumber = order.orderNumber && !/@|T\d{2}:\d{2}/.test(order.orderNumber)
                 ? order.orderNumber
                 : orderNumber;
-              const status = order.status || 'Order Confirmed';
               return (
                 <section key={orderNumber} className="card mb-5 min-w-0 p-4 sm:p-6">
                   <div className="flex flex-wrap items-start justify-between gap-3">
@@ -128,13 +185,49 @@ export default function BuyerOrderList() {
                         Status: {status}
                       </span>
                     </div>
-                    {/* Track Your Order button */}
-                    <Link to={`/order-tracking/${order.orderNumber ? order.orderNumber : order._id}`}
-                      className="btn btn-primary"
-                    >
-                      <FaTruck aria-hidden="true" /> Track Your Order
-                    </Link>
+                    <div className="flex flex-wrap gap-2">
+                      {canReturn.length > 1 && (
+                        <button
+                          type="button"
+                          className="btn btn-ghost"
+                          onClick={() =>
+                            navigate(`/description-form/${canReturn[0]._id}?lines=${canReturn.map((ob) => ob._id).join(',')}`, {
+                              state: {
+                                bookTitles: canReturn.map((ob) => ob.title ?? ''),
+                                returnableUntil: canReturn[0].returnableUntil,
+                              },
+                            })
+                          }
+                        >
+                          <FaUndoAlt aria-hidden="true" size={12} />
+                          {canReturn.length === live.length ? 'Return the whole order' : `Return these ${canReturn.length} books`}
+                        </button>
+                      )}
+                      {canReturn.length === 1 && (
+                        <button
+                          type="button"
+                          className="btn btn-ghost"
+                          onClick={() =>
+                            navigate(`/description-form/${canReturn[0]._id}`, {
+                              state: { bookTitle: canReturn[0].title, returnableUntil: canReturn[0].returnableUntil },
+                            })
+                          }
+                        >
+                          <FaUndoAlt aria-hidden="true" size={12} /> Return {live.length > 1 ? 'a book' : 'it'}
+                        </button>
+                      )}
+                      <Link to={`/order-tracking/${order.orderNumber ? order.orderNumber : order._id}`}
+                        className="btn btn-primary"
+                      >
+                        <FaTruck aria-hidden="true" /> Track Your Order
+                      </Link>
+                    </div>
                   </div>
+                  {canCancel && order.orderNumber && (
+                    <div className="mt-3">
+                      <CancelOrder orderNumber={order.orderNumber} who="buyer" />
+                    </div>
+                  )}
                   <div className="table-scroll">
                   <table className="styled-table ot-table">
                     <thead>
@@ -154,8 +247,12 @@ export default function BuyerOrderList() {
 
                     <tbody>
                       {orderBooks.map((ob, idx) => (
-                        <tr key={ob._id || idx}>
-                          <td className="font-semibold text-ink">{ob.title}</td>
+                        <tr key={ob._id || idx} className={ob.status === CANCELLED ? 'ot-row-cancelled' : undefined}>
+                          <td className="font-semibold text-ink">
+                            <Link to={`/book/${ob.bookId}`}>{ob.title}</Link>
+                            {ob.status === CANCELLED && orderBooks.length > 1 && <span className="ot-line-pill">Cancelled</span>}
+                            {ob.returnStatus && <span className="ot-line-pill is-return">Return {ob.returnStatus}</span>}
+                          </td>
                           <td>{ob.author}</td>
                           <td>{Array.isArray(ob.category) ? ob.category.join(', ') : ob.category}</td>
                           <td>{ob.bookType}</td>

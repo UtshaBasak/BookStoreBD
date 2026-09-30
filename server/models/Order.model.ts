@@ -43,6 +43,10 @@ const OrderSchema = new Schema({
   sellerPaidAt: { type: Date, default: null },
   sellerPayoutRef: { type: String, default: '' },
   isReturned: { type: Number, default: 0 },
+  // Set when the line is called off: when, by whom (buyer, seller, admin) and why.
+  cancelledAt: { type: Date, default: null },
+  cancelledBy: { type: String, default: '' },
+  cancelReason: { type: String, default: '' },
   defectDescription: { type: String, default: '' },
   createdAt: { type: Date, default: Date.now },
 });

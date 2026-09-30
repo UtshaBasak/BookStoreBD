@@ -1,10 +1,12 @@
 import { useState, type ChangeEvent } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { FaCheck, FaMapMarkerAlt, FaMoneyBillWave, FaTruck, FaUser } from 'react-icons/fa';
+import { FaCheck, FaMapMarkerAlt, FaMoneyBillWave, FaTimesCircle, FaTruck, FaUser } from 'react-icons/fa';
 
 import '../styles/orderTracking.css';
+import CancelOrder, { CancelledNote } from '../components/CancelOrder.js';
+import NotificationBell from '../components/NotificationBell.js';
 import { useOrder, useUpdateOrderStatus } from '../hooks/queries.js';
-import { getUserEmail, getUserRole } from '../utils/auth.js';
+import { CANCELLED } from '../utils/orderTotals.js';
 
 const ORDER_STAGES = [
   'Order Confirmed',
@@ -18,17 +20,15 @@ const ORDER_STAGES = [
 const statusColours = (status: string) =>
   status === 'Delivered'
     ? { background: '#ecfdf5', color: '#047857' }
-    : ORDER_STAGES.includes(status)
+    : status === CANCELLED
+      ? { background: '#fef2f2', color: '#b91c1c' }
+      : ORDER_STAGES.includes(status)
       ? { background: '#f3efff', color: '#5b21b6' }
       : { background: '#fff7ed', color: '#c2410c' };
 
 export default function OrderTrackingPage() {
   const { orderNumber } = useParams();
   const [error, setError] = useState('');
-  const userEmail = getUserEmail();
-  // The role is stored under 'userRole'; reading 'role' always came back null,
-  // so this control never appeared for anyone.
-  const userRole = getUserRole();
 
   const orderQuery = useOrder(orderNumber);
   const order = orderQuery.data ?? null;
@@ -51,9 +51,12 @@ export default function OrderTrackingPage() {
       <Link to="/profile" className="btn btn-ghost">
         ← Back to Profile
       </Link>
-      <button type="button" className="btn btn-primary" onClick={() => window.location.reload()}>
-        ⟳ Refresh
-      </button>
+      <span className="ot-toolbar-end">
+        <NotificationBell />
+        <button type="button" className="btn btn-primary" onClick={() => void orderQuery.refetch()} disabled={orderQuery.isFetching}>
+          ⟳ {orderQuery.isFetching ? 'Refreshing...' : 'Refresh'}
+        </button>
+      </span>
     </div>
   );
 
@@ -76,10 +79,9 @@ export default function OrderTrackingPage() {
     );
   }
 
-  // Only admin or the seller of this order can update status
-  const canUpdateStatus =
-    userRole === 'admin' ||
-    (userRole === 'seller' && userEmail && userEmail === order.sellerEmail);
+  // The server says who may move it and to what: nothing, for a buyer.
+  const statusOptions = order.statusOptions ?? [];
+  const canUpdateStatus = statusOptions.length > 1;
 
   const status = order.status || 'Order Confirmed';
   const currentIndex = ORDER_STAGES.indexOf(status);
@@ -96,7 +98,7 @@ export default function OrderTrackingPage() {
               <h1 className="m-0" style={{ fontSize: 'clamp(1.6rem, 1.2rem + 1.6vw, 2.2rem)' }}>Track Your Order</h1>
             </div>
             <span className="ot-pill" style={statusColours(status)}>
-              {status === 'Delivered' ? <FaCheck aria-hidden="true" /> : <FaTruck aria-hidden="true" />}
+              {status === 'Delivered' ? <FaCheck aria-hidden="true" /> : status === CANCELLED ? <FaTimesCircle aria-hidden="true" /> : <FaTruck aria-hidden="true" />}
               <span><span className="sr-only">Status: </span>{status}</span>
             </span>
           </div>
@@ -105,6 +107,9 @@ export default function OrderTrackingPage() {
             <li><b>Placed On:</b> {order.createdAt ? new Date(order.createdAt).toLocaleString() : ''}</li>
           </ul>
 
+          <CancelledNote lines={order.books ?? []} />
+
+          {status !== CANCELLED && (
           <ol className="ot-stepper" aria-label="Order progress">
             {ORDER_STAGES.map((stage, idx) => {
               const isActive = idx <= currentIndex;
@@ -123,6 +128,13 @@ export default function OrderTrackingPage() {
               );
             })}
           </ol>
+          )}
+
+          {order.canCancel && (
+            <div className="mt-6 flex flex-wrap justify-center border-t border-line pt-5">
+              <CancelOrder orderNumber={order.orderNumber} who="buyer" />
+            </div>
+          )}
 
           {canUpdateStatus && (
             <div className="mt-7 flex flex-wrap items-center justify-center gap-3 border-t border-line pt-5">
@@ -135,7 +147,7 @@ export default function OrderTrackingPage() {
                   className="field"
                   style={{ width: 'auto' }}
                 >
-                  {ORDER_STAGES.map(stage => (
+                  {statusOptions.map((stage) => (
                     <option key={stage} value={stage}>{stage}</option>
                   ))}
                 </select>
@@ -185,8 +197,11 @@ export default function OrderTrackingPage() {
               </thead>
               <tbody>
                 {(order.books || [order]).map((ob, idx) => (
-                  <tr key={ob._id || idx}>
-                    <td className="font-semibold text-ink">{ob.title}</td>
+                  <tr key={ob._id || idx} className={ob.status === CANCELLED ? 'ot-row-cancelled' : undefined}>
+                    <td className="font-semibold text-ink">
+                      <Link to={`/book/${ob.bookId}`}>{ob.title}</Link>
+                      {ob.status === CANCELLED && (order.books?.length ?? 0) > 1 && <span className="ot-line-pill">Cancelled</span>}
+                    </td>
                     <td>{ob.author}</td>
                     <td>{Array.isArray(ob.category) ? ob.category.join(', ') : ob.category}</td>
                     <td>{ob.bookType}</td>

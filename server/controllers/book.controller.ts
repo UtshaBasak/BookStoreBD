@@ -97,17 +97,29 @@ export const getBookById: RequestHandler = async (req, res) => {
  * seller's e-mail address is not something a shop's search box should do.
  */
 export const adminBookList: RequestHandler = async (req, res) => {
-  const { search, page, pageSize } = validatedQuery<AdminBookQuery>(req);
+  const { search, page, pageSize, bookType, stock, deals, sort } = validatedQuery<AdminBookQuery>(req);
 
   const pattern = search ? contains(search) : null;
-  const filter = pattern
-    ? { $or: [{ title: pattern }, { author: pattern }, { sellerEmail: pattern }] }
-    : {};
+  const filter: Record<string, unknown> = {
+    ...(pattern ? { $or: [{ title: pattern }, { author: pattern }, { sellerEmail: pattern }] } : {}),
+    ...(bookType ? { bookType } : {}),
+    // Low: one or two copies left, the ones about to run out.
+    ...(stock === 'in' ? { stock: { $gt: 0 } } : stock === 'out' ? { stock: 0 } : stock === 'low' ? { stock: { $gt: 0, $lte: 2 } } : {}),
+    ...(deals === 'yes' ? { discountPercent: { $gt: 0 } } : deals === 'no' ? { discountPercent: { $in: [0, null] } } : {}),
+  };
+  const order = {
+    newest: { createdAt: -1 },
+    oldest: { createdAt: 1 },
+    priceHigh: { salePrice: -1 },
+    priceLow: { salePrice: 1 },
+    stockLow: { stock: 1 },
+    titleAZ: { title: 1 },
+  }[sort] as Record<string, 1 | -1>;
 
   try {
     const [items, total] = await Promise.all([
       AddBook.find(filter, LIST_IMAGE_PROJECTION)
-        .sort({ createdAt: -1, _id: -1 })
+        .sort({ ...order, _id: -1 })
         .skip((page - 1) * pageSize)
         .limit(pageSize)
         .lean(),

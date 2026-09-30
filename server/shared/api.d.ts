@@ -173,6 +173,10 @@ export interface Book {
   discountPercent?: number;
   /** The discount in taka. */
   discountAmount?: number;
+  /** In the cart: how many copies. */
+  cartQuantity?: number;
+  /** In the cart: the quantity was lowered to what is left in stock. */
+  cartAdjusted?: boolean;
 }
 
 /** GET /filter/sections: every shelf on the homepage, in one response. */
@@ -199,6 +203,22 @@ export interface PopularWriter {
   name: string;
   books: number;
   sold: number;
+}
+
+/** GET /user/shop/:username - a seller's shop front. */
+export interface SellerShop {
+  username: string;
+  email: string;
+  profilePicture: string | null;
+  sellerBanner: string | null;
+  joinedAt: IsoDate | null;
+  books: number;
+  inStock: number;
+  /** Copies sold, not counting cancelled or returned ones. */
+  sold: number;
+  /** Across every rated book of theirs, weighted by how many reviews each has. */
+  ratingAverage: number;
+  ratingCount: number;
 }
 
 /** GET /filter/for-you. `personal` is false when there was nothing to go on. */
@@ -301,6 +321,8 @@ export interface CatalogueParams {
   inStock?: boolean;
   /** Only books with a discount: Quick deals. */
   deals?: boolean;
+  /** One seller's books, by username: their shop. */
+  seller?: string;
   sort?: CatalogueSort;
   page?: number;
   pageSize?: number;
@@ -373,6 +395,8 @@ export interface ListParams {
   search?: string;
   page?: number;
   pageSize?: number;
+  /** Anything else a list takes - a status, a sort, a date - sent as it is; empty values are left out. */
+  filters?: Record<string, string | number | undefined>;
 }
 
 export interface OrderLine {
@@ -406,6 +430,10 @@ export interface OrderLine {
   promo?: string;
   promoApplied?: boolean;
   isReturned?: number;
+  /** When, by whom and why a cancelled line was called off. */
+  cancelledAt?: IsoDate | null;
+  cancelledBy?: 'buyer' | 'seller' | 'admin' | '';
+  cancelReason?: string;
   defectDescription?: string;
   createdAt?: IsoDate;
 }
@@ -438,6 +466,15 @@ export interface OrderDetail extends OrderLine {
   booksTotal: number;
   shippingCost: number;
   totalCost: number;
+  /** Whether the person looking may cancel it now (config/commerce.ts has the rules). */
+  canCancel: boolean;
+  /** The statuses they may move it to from here; empty for a buyer. */
+  statusOptions: string[];
+}
+
+/** POST /order/:orderNumber/cancel */
+export interface CancelOrderRequest {
+  reason?: string;
 }
 
 export interface OrderItemRequest {
@@ -524,6 +561,8 @@ export interface PayoutRow {
   fee: number;
   payout: number;
   deliveredAt: IsoDate | null;
+  /** When the buyer's return window closes and the sale can be paid. */
+  payableFrom: IsoDate | null;
   paidAt: IsoDate | null;
   /** The bKash transaction ID recorded with the payment. */
   reference: string | null;
@@ -596,6 +635,8 @@ export interface UpdateReturnStatusRequest {
 export interface CreateReturnResponse {
   message: string;
   returnId: Id;
+  /** One per book, when a whole order was returned. */
+  returnIds?: Id[];
 }
 
 // ---------------------------------------------------------------------------
@@ -686,8 +727,7 @@ export interface ChatMessage {
   receiver: string;
   message: string;
   /**
-   * The attachment, if any: an address to fetch it from, except in the reply
-   * to sending a message, which carries it as a base64 data URI.
+   * The attachment, if any: an address to fetch it from.
    */
   image?: string | null;
   timestamp: IsoDate;
@@ -758,4 +798,45 @@ export interface UploadUnavailable {
 export interface HealthResponse {
   status: 'ok';
   uptime: number;
+}
+
+// ---------------------------------------------------------------------------
+// Notifications
+// ---------------------------------------------------------------------------
+
+export type NotificationType =
+  | 'order-placed'
+  | 'order-received'
+  | 'order-status'
+  | 'order-cancelled'
+  | 'stock'
+  | 'return-requested'
+  | 'return-decided'
+  | 'payout'
+  | 'review'
+  | 'review-reply'
+  | 'review-reported'
+  | 'deal';
+
+/** One thing somebody was told about, for the bell. */
+export interface NotificationItem {
+  _id: Id;
+  type: NotificationType;
+  title: string;
+  body: string;
+  /** A path inside the site; empty when there is nowhere to go. */
+  link: string;
+  read: boolean;
+  createdAt: IsoDate;
+}
+
+/** GET /notification */
+export interface NotificationPage {
+  items: NotificationItem[];
+  /** Across all of them, not only this page: the number on the bell. */
+  unread: number;
+  total: number;
+  page: number;
+  pageSize: number;
+  pageCount: number;
 }

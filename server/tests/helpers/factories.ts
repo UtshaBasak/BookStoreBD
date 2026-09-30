@@ -93,3 +93,15 @@ export const createSignedInUser = async (
   const token = await signIn(request, user.email, overrides.password);
   return { user, token, auth: `Bearer ${token}` };
 };
+
+/**
+ * A user with a token minted directly rather than by signing in. The sign-in
+ * route is rate limited per address, and a file that signs a dozen people in
+ * runs into its own limit; the token is the same one sign-in would issue.
+ */
+export const createUserWithToken = async (overrides: UserOverrides = {}): Promise<SignedInUser> => {
+  const { signAccessToken } = await import('../../utils/jwt.js');
+  const user = await createUser(overrides);
+  const token = signAccessToken({ _id: user._id, email: user.email, role: user.role });
+  return { user, token, auth: `Bearer ${token}` };
+};
