@@ -1,6 +1,6 @@
 import { useRef, useState, type ChangeEvent, type HTMLInputTypeAttribute } from 'react';
 import axios from 'axios';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { FaCamera, FaCheck, FaExclamationTriangle, FaInfoCircle, FaTimes } from 'react-icons/fa';
 
 import './Seller.css';
@@ -8,6 +8,7 @@ import FilePreview from '../components/FilePreview.js';
 import Logo from '../components/Logo.js';
 import { API_BASE_URL } from '../config/api.js';
 import { site } from '../config/site.js';
+import { CATEGORY_GROUPS } from '../config/categories.js';
 import { useProfile } from '../hooks/queries.js';
 import { apiErrorMessage } from '../utils/apiError.js';
 import { authHeaders, getUserEmail } from '../utils/auth.js';
@@ -32,36 +33,21 @@ interface BookForm {
   bookType: string;
   condition: string;
   conditionDetails: string;
+  /** Optional from the start: a percentage or taka off, or '' for none. */
+  discountType: '' | 'percent' | 'amount';
+  discountValue: string;
 }
 
 const EMPTY_FORM: BookForm = {
   title: "", author: "", publisher: "", country: "", language: "",
   isbn: "", pages: "", price: "", desc: "", category: [], bookType: "new",
-  condition: "mint", conditionDetails: ""
+  condition: "mint", conditionDetails: "", discountType: "", discountValue: ""
 };
 
 /** The text fields, which is everything except the category checkboxes. */
-type TextField = Exclude<keyof BookForm, 'category'>;
-
-const categoriesList = [
-  "Fiction",
-  "Non-Fiction",
-  "Science & Technology",
-  "Self-Help & Personal Development",
-  "Romance",
-  "Mystery & Thriller",
-  "Fantasy & Sci-Fi",
-  "History & Politics",
-  "Children's & Young Adult",
-  "Health, Wellness & Spirituality",
-  "Graphic Novels & Comics",
-  "Business & Finance",
-  "Travel & Culture",
-  "Others"
-];
+type TextField = Exclude<keyof BookForm, 'category' | 'discountType'>;
 
 const AddBooks = () => {
-  const navigate = useNavigate();
   const [Data, setData] = useState<BookForm>(EMPTY_FORM);
   const [images, setImages] = useState<File[]>([]);
   const [loading, setLoading] = useState(false);
@@ -96,6 +82,15 @@ const AddBooks = () => {
     setData({ ...Data, [name]: value });
     setFeedbackMessage('');
   };
+
+  // What the discount would make the price, or null when it does not fit.
+  const salePreview = (() => {
+    const price = Number(Data.price);
+    const value = Number(Data.discountValue);
+    if (!Data.discountType || !(price > 0) || !Number.isInteger(value) || value < 1) return null;
+    if (Data.discountType === 'percent') return value <= 90 ? Math.max(1, Math.round((price * (100 - value)) / 100)) : null;
+    return value < price && value / price <= 0.9 ? price - value : null;
+  })();
 
   const handleCategoryChange = (e: ChangeEvent<HTMLInputElement>) => {
     const { value, checked } = e.target;
@@ -155,6 +150,16 @@ const AddBooks = () => {
       setLoading(false);
       return;
     }
+    if (Data.discountType && salePreview === null) {
+      setFeedbackMessage(
+        Data.discountType === 'percent'
+          ? 'A discount is between 1% and 90%.'
+          : 'A discount is less than the price, and at most 90% of it.'
+      );
+      setIsError(true);
+      setLoading(false);
+      return;
+    }
     if (!Array.isArray(Data.category) || Data.category.length === 0) {
       setFeedbackMessage("Please select at least one category.");
       setIsError(true);
@@ -198,7 +203,7 @@ const AddBooks = () => {
       }
 
       const value = filledData[key];
-      if (requiredFields.includes(key)) {
+      if ((requiredFields as string[]).includes(key)) {
         formData.append(key, value);
       } else if (value !== undefined && value !== null && value.trim() !== '') {
         // Only append optional fields if not empty
@@ -260,7 +265,7 @@ const AddBooks = () => {
         <Link to='/' className='sl-logo-link' aria-label={`${site.name} home`}>
           <Logo size={34} />
         </Link>
-        <button type='button' onClick={() => navigate('/profile')} className='btn btn-ghost'>← Back</button>
+        <Link to="/profile?mode=seller" className='btn btn-ghost'>← Back</Link>
       </header>
 
       <div className='sl-wrap'>
@@ -417,13 +422,15 @@ const AddBooks = () => {
                 name="price"
                 value={Data.price}
                 onChange={e => {
-                  const val = e.target.value.replace(/[^\d.]/g, '').replace(/(\..*)\./g, '$1');
+                  // Whole taka: the API takes nothing else, and a decimal was
+                  // only found out about on submit.
+                  const val = e.target.value.replace(/\D/g, '');
                   setData({ ...Data, price: val });
                   setFeedbackMessage('');
                 }}
                 type="number"
-                min="0.01"
-                step="0.01"
+                min="1"
+                step="1"
                 money
               />
               {/*
@@ -440,6 +447,48 @@ const AddBooks = () => {
                   .
                 </span>
               </p>
+
+              {/* An optional deal from the start. Changeable later, from the books list. */}
+              <div className='sl-discount-new'>
+                <label htmlFor='ab-discount-type' className='sl-label'>Discount (optional)</label>
+                <div className='sl-discount-row'>
+                  <select
+                    id='ab-discount-type'
+                    name='discountType'
+                    className='field'
+                    style={{ width: 'auto' }}
+                    value={Data.discountType}
+                    onChange={e => {
+                      setData({ ...Data, discountType: e.target.value as BookForm['discountType'] });
+                      setFeedbackMessage('');
+                    }}
+                  >
+                    <option value=''>No discount</option>
+                    <option value='percent'>% off</option>
+                    <option value='amount'>৳ off</option>
+                  </select>
+                  {Data.discountType && (
+                    <input
+                      name='discountValue'
+                      type='number'
+                      min={1}
+                      inputMode='numeric'
+                      className='field'
+                      style={{ width: 110 }}
+                      aria-label={Data.discountType === 'percent' ? 'Percent off' : 'Taka off'}
+                      placeholder={Data.discountType === 'percent' ? 'e.g. 15' : 'e.g. 50'}
+                      value={Data.discountValue}
+                      onChange={e => {
+                        setData({ ...Data, discountValue: e.target.value.replace(/\D/g, '') });
+                        setFeedbackMessage('');
+                      }}
+                    />
+                  )}
+                </div>
+                {Data.discountType && salePreview !== null && (
+                  <p className='sl-discount-hint'>Sells for ৳{salePreview} - it will show in Quick deals.</p>
+                )}
+              </div>
             </section>
 
             <section className='card sl-card'>
@@ -448,18 +497,25 @@ const AddBooks = () => {
                   <span className='sl-step'>5</span><span>Category <span className='sl-required'>*</span></span>
                 </legend>
                 <p className='sl-card-hint'>Pick all that fit - it helps buyers find it.</p>
-                <div className='sl-choices'>
-                  {categoriesList.map(cat => {
-                    const on = Data.category.includes(cat);
-                    return (
-                      <label key={cat} className={`sl-choice${on ? ' is-on' : ''}`}>
-                        <input name='category' type='checkbox' value={cat} checked={on} onChange={handleCategoryChange} />
-                        {on && <FaCheck className='sl-choice-icon' aria-hidden='true' />}
-                        {cat}
-                      </label>
-                    );
-                  })}
-                </div>
+                {CATEGORY_GROUPS.map(group => (
+                  <div key={group.name} className='sl-choice-group'>
+                    <p className='sl-choice-group-name'>
+                      <span aria-hidden='true'>{group.emoji}</span> {group.name}
+                    </p>
+                    <div className='sl-choices'>
+                      {group.items.map(cat => {
+                        const on = Data.category.includes(cat);
+                        return (
+                          <label key={cat} className={`sl-choice${on ? ' is-on' : ''}`}>
+                            <input name='category' type='checkbox' value={cat} checked={on} onChange={handleCategoryChange} />
+                            {on && <FaCheck className='sl-choice-icon' aria-hidden='true' />}
+                            {cat}
+                          </label>
+                        );
+                      })}
+                    </div>
+                  </div>
+                ))}
               </fieldset>
             </section>
 

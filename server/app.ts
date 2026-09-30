@@ -166,7 +166,7 @@ export const createApp = ({
           const id = BOOK_PAGE.exec(req.path)?.[1];
           const book = id
             ? await AddBook.findById(id)
-                .select({ title: 1, author: 1, price: 1, bookType: 1, stock: 1, images: { $slice: 1 } })
+                .select({ title: 1, author: 1, price: 1, salePrice: 1, discountPercent: 1, bookType: 1, stock: 1, images: { $slice: 1 } })
                 .lean<PreviewBook>()
             : null;
           // No such book: the app shows its own "not found", and a 404 keeps

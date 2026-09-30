@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { FaSearch, FaTruck } from 'react-icons/fa';
 
 import type { OrderLine } from '@shared/api.js';
@@ -22,7 +22,6 @@ const statusColours = (status: string) =>
 
 export default function BuyerOrderList() {
   const [search, setSearch] = useState('');
-  const navigate = useNavigate();
 
   const [page, setPage] = useState(1);
 
@@ -64,9 +63,9 @@ export default function BuyerOrderList() {
     <div className="ot-page">
       <div className="ot-wrap" style={{ maxWidth: 1200 }}>
         <div className="ot-toolbar">
-          <button type="button" className="btn btn-ghost" onClick={() => navigate('/profile')}>
+          <Link to="/profile?mode=buyer" className="btn btn-ghost">
             ← Return to Profile
-          </button>
+          </Link>
           <button
             type="button"
             className="btn btn-ghost"
@@ -130,13 +129,11 @@ export default function BuyerOrderList() {
                       </span>
                     </div>
                     {/* Track Your Order button */}
-                    <button
-                      type="button"
+                    <Link to={`/order-tracking/${order.orderNumber ? order.orderNumber : order._id}`}
                       className="btn btn-primary"
-                      onClick={() => navigate(`/order-tracking/${order.orderNumber ? order.orderNumber : order._id}`)}
                     >
                       <FaTruck aria-hidden="true" /> Track Your Order
-                    </button>
+                    </Link>
                   </div>
                   <div className="table-scroll">
                   <table className="styled-table ot-table">

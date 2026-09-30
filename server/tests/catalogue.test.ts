@@ -271,8 +271,10 @@ describe('how the database answers', () => {
     await fill();
 
     const orders: Record<string, 1 | -1>[] = [
+      { discountPercent: -1, createdAt: -1, _id: -1 },
       { createdAt: -1, _id: -1 },
-      { price: 1, _id: -1 },
+      { salePrice: 1, _id: -1 },
+      { discountAmount: -1, _id: -1 },
       { ratingAverage: -1, ratingCount: -1, _id: -1 },
     ];
 

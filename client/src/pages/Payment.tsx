@@ -13,6 +13,7 @@ import { safeImageSrc, PLACEHOLDER_IMAGE } from '../utils/safeImageSrc.js';
 import { sized, IMAGE_WIDTHS } from '../utils/imageUrl.js';
 import { deliveryChargeFor, site } from '../config/site.js';
 import Logo from '../components/Logo.js';
+import { priceOf } from '../utils/pricing.js';
 import './Homepage.css';
 import './Cart.css';
 import './Payment.css';
@@ -224,7 +225,8 @@ export default function Payment() {
   const subtotal = useMemo(() => {
     return cartBooks.reduce((sum, book) => {
       const qty = quantities[book._id] || 1;
-      return sum + (Number(book.price) * qty);
+      // The sale price, which is what the order is charged.
+      return sum + (priceOf(book) * qty);
     }, 0);
   }, [cartBooks, quantities]);
 
@@ -561,7 +563,7 @@ export default function Payment() {
                       </div>
                     </div>
                     <div className="price text-right">
-                      {money(Number(book.price) * (quantities[book._id] || 1))}
+                      {money(priceOf(book) * (quantities[book._id] || 1))}
                     </div>
                   </li>
                 ))}
@@ -616,14 +618,12 @@ export default function Payment() {
         <div className="mb-5 flex items-center gap-2">
           {/* A span with a tabIndex could be focused and then did nothing
               on Enter. A button is focusable and works. */}
-          <button
-            type="button"
+          <Link to="/cart"
             className="icon-button"
             style={{ fontSize: 18, color: '#6d28d9', background: '#fff', border: '1px solid #e4dcfb', borderRadius: 999 }}
-            onClick={() => navigate('/cart')}
             title="Go back to cart"
             aria-label="Go back to cart"
-          ><FaArrowLeft /></button>
+          ><FaArrowLeft /></Link>
           <div>
             <h1 className="shop-title">Checkout</h1>
             <p className="shop-sub">Almost there - tell us where to bring your books.</p>
@@ -698,7 +698,7 @@ export default function Payment() {
                             ><FaPlus /></button>
                           </div>
                           <div className="price">
-                            {money(Number(book.price) * (quantities[book._id] || 1))}
+                            {money(priceOf(book) * (quantities[book._id] || 1))}
                           </div>
                         </div>
                       </div>

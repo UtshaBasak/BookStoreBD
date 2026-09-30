@@ -4,6 +4,8 @@ import { useNavigate, Link } from 'react-router-dom';
 import type { Book } from '@shared/api.js';
 
 import Logo from '../components/Logo.js';
+import PriceTag from '../components/PriceTag.js';
+import { priceOf } from '../utils/pricing.js';
 import { API_BASE_URL } from '../config/api.js';
 import { site } from '../config/site.js';
 import { useCart, useToggleCart, useToggleWishlist, useWishlist } from '../hooks/queries.js';
@@ -77,7 +79,7 @@ export default function Cart() {
 
   // One of each: how many of a book is chosen at checkout, where the stock is
   // checked, so this is what the basket comes to before that.
-  const subtotal = cartBooks.reduce((sum, book) => sum + Number(book.price || 0), 0);
+  const subtotal = cartBooks.reduce((sum, book) => sum + priceOf(book), 0);
 
   if (!userEmail) {
     return (
@@ -185,7 +187,9 @@ export default function Cart() {
                     </p>
 
                     <div className="mt-auto flex flex-wrap items-center justify-between gap-2 pt-3">
-                      <span className="price text-xl">৳{book.price}</span>
+                      <span className="text-xl">
+                        <PriceTag book={book} size="md" />
+                      </span>
 
                       {/* Remove from cart */}
                       <button
@@ -225,14 +229,12 @@ export default function Cart() {
               </div>
 
               {/* Proceed to Checkout Button */}
-              <button
-                type="button"
+              <Link to="/payment"
                 className="btn btn-accent mt-5 w-full"
                 style={{ minHeight: 52, fontSize: 17 }}
-                onClick={() => navigate('/payment')}
               >
                 Proceed to Checkout
-              </button>
+              </Link>
               <Link to="/filter" className="btn btn-ghost mt-2 w-full">
                 Continue shopping
               </Link>

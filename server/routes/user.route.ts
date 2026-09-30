@@ -18,6 +18,7 @@ import { createLogger } from '../config/logger.js';
 import { errorMessage } from '../utils/error.js';
 import { validate, validatedQuery } from '../middleware/validate.js';
 import { contains } from '../utils/regex.js';
+import { discountProblem } from '../config/pricing.js';
 import {
   authSchemas,
   userSchemas,
@@ -77,6 +78,27 @@ router.get(
   }
 );
 
+/**
+ * One of somebody's two profile banners, as an image. Only reached for a
+ * banner kept inline; a hosted one is linked to directly.
+ */
+router.get(
+  '/:email/banner/:role',
+  validate(userSchemas.banner),
+  async (req: Request<{ email: string; role: 'buyer' | 'seller' }>, res: Response, next) => {
+    try {
+      const field = req.params.role === 'seller' ? 'sellerBanner' : 'buyerBanner';
+      const user = await User.findOne({ email: req.params.email }).select(field).lean();
+
+      if (!serveStoredImage(req, res, user?.[field])) {
+        res.status(404).json({ message: 'No banner' });
+      }
+    } catch (error) {
+      next(error);
+    }
+  }
+);
+
 // ---------------------------------------------------------------------------
 // Authenticated
 // ---------------------------------------------------------------------------
@@ -84,7 +106,11 @@ router.get(
 router.put(
   '/profile',
   requireAuth,
-  imageUpload.single('profilePicture'),
+  imageUpload.fields([
+    { name: 'profilePicture', maxCount: 1 },
+    { name: 'buyerBanner', maxCount: 1 },
+    { name: 'sellerBanner', maxCount: 1 },
+  ]),
   verifyImageBytes,
   // After multer, which is what populates req.body for a multipart form.
   validate(userSchemas.updateProfile),
@@ -125,8 +151,21 @@ router.post(
       // arrive here and are stored inline as before.
       const uploaded = collectImages(req);
 
+      // A discount from the start is optional, and has to fit the price.
+      const discount = {
+        type: req.body.discountType ? req.body.discountType : null,
+        value: Number(req.body.discountValue ?? 0),
+      };
+      const problem = discountProblem(Number(req.body.price), discount);
+      if (problem) {
+        res.status(400).json({ message: problem });
+        return;
+      }
+
       const newBook = new AddBook({
         ...req.body,
+        discountType: discount.type,
+        discountValue: discount.type ? discount.value : 0,
         images: uploaded.images,
         imagePublicIds: uploaded.publicIds,
         // The seller is the signed-in user. Taking this from the body would let

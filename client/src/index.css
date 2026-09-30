@@ -522,3 +522,16 @@ div.notistack-MuiContent-default { background-color: #1e1b4b; }
     min-width: 0;
   }
 }
+
+/* Controls that are links: they used to be buttons that navigated, and were
+   made links so a right-click can open them in a new tab. A link is
+   underlined by default; none of these ever were. */
+a.btn,
+a.icon-button,
+a.logo-button,
+a.admin-side-button,
+a.pf-tile-button,
+a.auth-text-button,
+a.profile-link {
+  text-decoration: none;
+}

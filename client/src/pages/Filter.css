@@ -354,3 +354,54 @@
     display: none;
   }
 }
+
+/* Categories, a group at a time. */
+.filter-cat-group {
+  border-top: 1px solid var(--color-line);
+}
+.filter-cat-group:last-of-type {
+  border-bottom: 1px solid var(--color-line);
+}
+.filter-cat-group summary {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  min-height: 44px;
+  cursor: pointer;
+  color: var(--color-ink);
+  font-size: 0.92rem;
+  font-weight: 700;
+  list-style: none;
+}
+.filter-cat-group summary::-webkit-details-marker {
+  display: none;
+}
+.filter-cat-group summary::after {
+  content: '▾';
+  margin-left: auto;
+  color: var(--color-brand);
+  transition: transform 0.2s;
+}
+.filter-cat-group[open] summary::after {
+  transform: rotate(180deg);
+}
+.filter-cat-group .filter-chips {
+  padding-bottom: 0.75rem;
+}
+.filter-cat-count {
+  display: inline-grid;
+  place-items: center;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 6px;
+  border-radius: 999px;
+  background: var(--color-brand);
+  color: #fff;
+  font-size: 0.72rem;
+}
+/* On a phone the smaller card buttons, as the old cards had. */
+@media (max-width: 520px) {
+  .results-grid .bc-actions .btn {
+    font-size: 0.8rem;
+  }
+}

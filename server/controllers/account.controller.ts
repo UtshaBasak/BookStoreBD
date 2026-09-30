@@ -16,6 +16,7 @@ import { clearRefreshCookie } from '../utils/authCookies.js';
 import { recordAudit } from '../utils/audit.js';
 import { anonymousEmail, DELETED_USER_NAME } from '../utils/anonymous.js';
 import { createLogger } from '../config/logger.js';
+import { destroyAssets } from '../config/cloudinary.js';
 
 const log = createLogger('account');
 
@@ -169,6 +170,8 @@ export const deleteMyAccount: RequestHandler = async (req, res, next) => {
     });
 
     await User.findByIdAndDelete(user._id);
+    // Their banners, when they were hosted: the account they decorated is gone.
+    await destroyAssets([user.buyerBannerPublicId, user.sellerBannerPublicId]);
     clearRefreshCookie(res);
 
     log.info({ ...summary }, 'Account deleted at the owner’s request');

@@ -1,0 +1,117 @@
+/* ----------------------------------------------------------- empty shelf */
+.home-empty {
+  max-width: 520px;
+  margin: 8px auto 0;
+  padding: 28px 20px;
+  border: 1px dashed #d6ccf7;
+  border-radius: 12px;
+  background: var(--color-brand-tint);
+  color: var(--color-ink-soft);
+  line-height: 1.5;
+  text-align: center;
+}
+.home-empty p {
+  margin: 0 0 16px;
+}
+.home-empty .home-empty-title {
+  margin-bottom: 6px;
+  font-size: 18px;
+  font-weight: 600;
+}
+
+/* -------------------------------------------------------- category tiles */
+.cat-tiles {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 0.75rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.cat-tile {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  height: 100%;
+  padding: 0.9rem 1rem;
+  border: 1px solid var(--color-line);
+  border-radius: 16px;
+  background: #fff;
+  color: var(--color-ink);
+  text-decoration: none;
+  box-shadow: var(--shadow-card);
+  transition: transform 0.2s, border-color 0.2s, box-shadow 0.2s;
+}
+.cat-tile:hover {
+  transform: translateY(-3px);
+  border-color: var(--color-brand-line);
+  box-shadow: var(--shadow-lift);
+}
+.cat-tiles li:nth-child(6n + 1) .cat-tile { background: linear-gradient(135deg, #f3efff, #fff); }
+.cat-tiles li:nth-child(6n + 2) .cat-tile { background: linear-gradient(135deg, #fff1ec, #fff); }
+.cat-tiles li:nth-child(6n + 3) .cat-tile { background: linear-gradient(135deg, #fef9c3, #fff); }
+.cat-tiles li:nth-child(6n + 4) .cat-tile { background: linear-gradient(135deg, #d1fae5, #fff); }
+.cat-tiles li:nth-child(6n + 5) .cat-tile { background: linear-gradient(135deg, #fce7f3, #fff); }
+.cat-tiles li:nth-child(6n + 6) .cat-tile { background: linear-gradient(135deg, #e0f2fe, #fff); }
+.cat-tile-emoji {
+  font-size: 1.5rem;
+}
+.cat-tile-name {
+  font-weight: 800;
+  line-height: 1.25;
+}
+.cat-tile-count {
+  color: var(--color-ink-muted);
+  font-size: 0.8rem;
+}
+
+/* --------------------------------------------------------------- writers */
+.writer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.75rem 0.5rem;
+  border-radius: 16px;
+  color: var(--color-ink);
+  text-align: center;
+  text-decoration: none;
+}
+.writer:hover {
+  background: var(--color-brand-tint);
+}
+.writer-photo {
+  display: grid;
+  place-items: center;
+  width: 104px;
+  height: 104px;
+  border: 4px solid #fff;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #7c3aed, #c026d3 60%, #ff5c35);
+  box-shadow: var(--shadow-card);
+  color: #fff;
+  font-size: 2rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+.shelf-writers .shelf-row > :nth-child(3n + 2) .writer-photo {
+  background: linear-gradient(135deg, #ff5c35, #facc15);
+}
+.shelf-writers .shelf-row > :nth-child(3n + 3) .writer-photo {
+  background: linear-gradient(135deg, #10b981, #0ea5e9);
+}
+.writer-name {
+  font-weight: 800;
+  line-height: 1.25;
+}
+.writer-meta {
+  color: var(--color-ink-muted);
+  font-size: 0.8rem;
+}
+@media (max-width: 640px) {
+  .writer-photo {
+    width: 84px;
+    height: 84px;
+    font-size: 1.6rem;
+  }
+}

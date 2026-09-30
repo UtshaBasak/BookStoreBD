@@ -153,6 +153,7 @@ export const llmsTxt: RequestHandler = (req, res) => {
 - [New books](${link('/filter?bookType=new')})
 - [Second-hand books](${link('/filter?bookType=old')})
 - [In stock](${link('/filter?inStock=1')})
+- [Quick deals](${link('/filter?deals=1&sort=dealPercent')}): books their sellers have discounted, the biggest share off first
 - [Sitemap](${link('/sitemap.xml')}): every book's own page
 
 ## About and policies

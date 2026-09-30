@@ -1,5 +1,5 @@
 import { useState, type ChangeEvent } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, Link } from 'react-router-dom';
 import { FaCheck, FaMapMarkerAlt, FaMoneyBillWave, FaTruck, FaUser } from 'react-icons/fa';
 
 import '../styles/orderTracking.css';
@@ -48,9 +48,9 @@ export default function OrderTrackingPage() {
 
   const toolbar = (
     <div className="ot-toolbar">
-      <button type="button" className="btn btn-ghost" onClick={() => window.location.href='/profile'}>
+      <Link to="/profile" className="btn btn-ghost">
         ← Back to Profile
-      </button>
+      </Link>
       <button type="button" className="btn btn-primary" onClick={() => window.location.reload()}>
         ⟳ Refresh
       </button>

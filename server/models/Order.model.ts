@@ -21,7 +21,10 @@ const OrderSchema = new Schema({
   bookType: String,
   condition: String,
   pages: Number,
+  // The price paid for one copy: the sale price, when the book had one.
   price: Number,
+  // The listed price at the time, for showing what the discount saved.
+  listPrice: Number,
   quantity: Number,
   // --- New fields for full order info ---
   paymentMethod: { type: String, default: '' },

@@ -1,0 +1,176 @@
+/* One book card, shared by every shelf and the catalogue. Prefixed `bc-` so
+   the page stylesheets around it (.book-info p and friends) cannot reach in. */
+.bc {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  padding: 10px;
+  background: #fff;
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-card);
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+.bc:hover {
+  transform: translateY(-4px);
+  box-shadow: var(--shadow-lift);
+}
+
+.bc-cover {
+  position: relative;
+  aspect-ratio: 3 / 4;
+  margin-bottom: 0.7rem;
+  border-radius: 14px;
+  overflow: hidden;
+  background: var(--color-brand-tint);
+}
+.bc-cover-link,
+.bc-cover-link img {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+.bc-cover-link img {
+  object-fit: cover;
+  transition: transform 0.3s;
+}
+.bc:hover .bc-cover-link img {
+  transform: scale(1.04);
+}
+
+.bc-type,
+.bc-deal {
+  position: absolute;
+  left: 8px;
+  padding: 3px 9px;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  box-shadow: 0 2px 8px rgba(30, 27, 75, 0.18);
+  pointer-events: none;
+  /* Above the cover link, which is raised over the title's stretched hit area. */
+  z-index: 2;
+}
+.bc-type {
+  top: 8px;
+}
+.bc-type.is-new {
+  background: var(--color-sun);
+  color: var(--color-ink);
+}
+.bc-type.is-used {
+  background: #fff;
+  color: var(--color-brand-dark);
+}
+.bc-deal {
+  bottom: 8px;
+  background: linear-gradient(135deg, var(--color-accent), #ff8a3d);
+  color: #fff;
+}
+
+.bc-heart {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  min-height: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.92);
+  color: var(--color-ink-soft);
+  font-size: 1.05rem;
+  box-shadow: 0 2px 8px rgba(30, 27, 75, 0.15);
+}
+.bc-heart.is-on {
+  color: var(--color-accent);
+}
+
+.bc-body {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 0.2rem;
+  padding: 0 2px 2px;
+  text-align: left;
+}
+.bc-title {
+  margin: 0;
+  font-size: 0.97rem;
+  font-weight: 700;
+  line-height: 1.3;
+  letter-spacing: -0.01em;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.bc-title a {
+  color: var(--color-ink);
+  font-weight: inherit;
+  text-decoration: none;
+}
+.bc-title a:hover {
+  color: var(--color-brand);
+}
+/* The whole card answers a click on its title, as it used to answer a click
+   anywhere: the link's hit area is stretched over the card, under the
+   buttons. The link itself is still the one thing a right-click finds. */
+.bc {
+  position: relative;
+}
+.bc-title a::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+}
+.bc-heart,
+.bc-actions,
+.bc-cover-link {
+  position: relative;
+  z-index: 1;
+}
+.bc-heart {
+  position: absolute;
+  z-index: 2;
+}
+.bc-author {
+  margin: 0;
+  color: var(--color-ink-muted);
+  font-size: 0.83rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.bc-rating {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--color-ink-muted);
+  font-size: 0.75rem;
+}
+.bc-actions {
+  margin-top: auto;
+  padding-top: 0.55rem;
+}
+.bc-actions .btn {
+  width: 100%;
+  min-height: 40px;
+  padding: 0 0.75rem;
+  font-size: 0.88rem;
+}
+.bc-soldout {
+  display: block;
+  padding: 9px 12px;
+  border-radius: 999px;
+  background: #f3f4f6;
+  color: var(--color-ink-muted);
+  font-size: 0.82rem;
+  font-weight: 700;
+  text-align: center;
+}

@@ -40,8 +40,8 @@ const renderHomepage = (books: Book[] = [BOOK]) => {
   });
   // Seeded rather than fetched: the request is not what is being tested, and a
   // page with no books has no "Add to Cart" button to click. The strip asks
-  // the API for the newest ten now, rather than filtering the whole catalogue.
-  queryClient.setQueryData(keys.featured(10), books);
+  // the API for the newest twelve, rather than filtering the whole catalogue.
+  queryClient.setQueryData(keys.featured(12), books);
 
   return render(
     <QueryClientProvider client={queryClient}>
@@ -101,14 +101,14 @@ describe('a shop with no books yet', () => {
 
     expect(screen.getByText('No books on the shelf yet.')).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'List a book' })).toHaveAttribute('href', '/add-book');
-    expect(screen.queryByRole('button', { name: 'Scroll left' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Scroll Latest books left' })).not.toBeInTheDocument();
   });
 
   it('shows the strip as usual once there are books', () => {
     renderHomepage();
 
     expect(screen.queryByText('No books on the shelf yet.')).not.toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Scroll left' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Scroll Latest books left' })).toBeInTheDocument();
   });
 });
 
@@ -116,6 +116,9 @@ describe('the header', () => {
   it('names the shop BookStoreBD, as everywhere else', () => {
     renderHomepage();
 
-    expect(screen.getByRole('button', { name: 'BookStoreBD home' })).toHaveTextContent(/^BookStoreBD$/);
+    // A link now, so it can be opened in a new tab like any other.
+    const home = screen.getByRole('link', { name: 'BookStoreBD home' });
+    expect(home).toHaveTextContent(/^BookStoreBD$/);
+    expect(home).toHaveAttribute('href', '/');
   });
 });

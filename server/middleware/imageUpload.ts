@@ -74,7 +74,8 @@ export const imageUpload = multer({
 export const verifyImageBytes: RequestHandler = (req, res, next) => {
   const files = [
     ...(req.file ? [req.file] : []),
-    ...(Array.isArray(req.files) ? req.files : []),
+    // An array from .array(); a map of field name to files from .fields().
+    ...(Array.isArray(req.files) ? req.files : Object.values(req.files ?? {}).flat()),
   ];
 
   for (const file of files) {

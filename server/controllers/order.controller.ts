@@ -20,6 +20,7 @@ import { createLogger } from '../config/logger.js';
 import { errorMessage } from '../utils/error.js';
 import { deliveryChargeFor, payoutStateFor, returnDeadline } from '../config/commerce.js';
 import { applyPromotion, findPromotion } from '../config/promotions.js';
+import { unitPriceOf } from '../config/pricing.js';
 
 const log = createLogger('order');
 
@@ -163,7 +164,7 @@ export const decreaseStock = async (
     // is taken, rather than the order going through at the full price.
     if (promotion) {
       const asked = applyPromotion(promotion, {
-        booksTotal: wanted.reduce((sum, { book, quantity }) => sum + Number(book.price) * quantity, 0),
+        booksTotal: wanted.reduce((sum, { book, quantity }) => sum + unitPriceOf(book) * quantity, 0),
         isFirstOrder,
       });
       if (!asked.ok) {
@@ -200,7 +201,7 @@ export const decreaseStock = async (
      * checkout request could name its own delivery charge.
      */
     const booksTotal = reserved.reduce(
-      (sum, { book, quantity }) => sum + Number(book.price) * quantity,
+      (sum, { book, quantity }) => sum + unitPriceOf(book) * quantity,
       0
     );
     // Priced again on what was actually reserved: if a book sold out in the
@@ -224,7 +225,10 @@ export const decreaseStock = async (
         bookType: book.bookType,
         condition: book.condition,
         pages: book.pages,
-        price: book.price,
+        // What the buyer pays, which is what the seller's share and every
+        // total are worked out from; the listed price is kept beside it.
+        price: unitPriceOf(book),
+        listPrice: book.price,
         quantity,
         // --- New fields for full order info ---
         paymentMethod: req.body.paymentMethod || '',

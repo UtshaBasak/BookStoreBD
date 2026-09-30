@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, type ChangeEvent, type UIEvent } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { FaArrowLeft, FaPaperPlane, FaComments, FaTrash, FaImage, FaBookOpen } from 'react-icons/fa';
 
 import type { ChatMessage, ChatMessagesResponse, ChatSummary } from '@shared/api.js';
@@ -27,7 +27,6 @@ export default function ChatPage() {
     /** What the open conversation does with a live message; nothing when none is open. */
     const onMessageRef = useRef<((message: ChatMessage) => void) | null>(null);
     const fileInputRef = useRef<HTMLInputElement | null>(null);
-    const navigate = useNavigate();
     const toast = useToast();
     const userEmail = getUserEmail();
     const messagesEndRef = useRef<HTMLDivElement | null>(null);
@@ -244,14 +243,12 @@ export default function ChatPage() {
                     <FaComments className="chat-header-icon" size={22} aria-hidden="true" />
                     <h1>Messages</h1>
                 </div>
-                <button
-                    type="button"
+                <Link to="/"
                     className="btn btn-ghost chat-home"
-                    onClick={() => navigate('/')}
                 >
                     <FaArrowLeft size={14} aria-hidden="true" />
                     <span className="chat-home-label">Back to Home</span>
-                </button>
+                </Link>
             </header>
 
             {/* Main Content.

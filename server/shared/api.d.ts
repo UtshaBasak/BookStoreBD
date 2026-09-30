@@ -32,7 +32,17 @@ export type BookType = 'new' | 'old';
 export type ReturnStatus = 'pending' | 'approved' | 'rejected';
 
 /** How the catalogue may be ordered. */
-export type CatalogueSort = 'newest' | 'rated' | 'priceLowHigh' | 'priceHighLow';
+export type CatalogueSort =
+  | 'relevant'
+  | 'newest'
+  | 'rated'
+  | 'priceLowHigh'
+  | 'priceHighLow'
+  | 'dealPercent'
+  | 'dealAmount';
+
+/** How a seller gives a discount: a share of the price, or taka off it. */
+export type DiscountType = 'percent' | 'amount';
 
 // ---------------------------------------------------------------------------
 // Errors
@@ -150,7 +160,55 @@ export interface Book {
    */
   ratingAverage?: number;
   ratingCount?: number;
+  /** The seller's discount, as they gave it; null when there is none. */
+  discountType?: DiscountType | null;
+  discountValue?: number;
+  /**
+   * What a copy costs the buyer: `price` less the discount. The price the
+   * catalogue filters and sorts by, and the one checkout charges. Absent only
+   * on records from before discounts, where it equals `price`.
+   */
+  salePrice?: number;
+  /** The discount as a share of the price, whichever way it was given. */
+  discountPercent?: number;
+  /** The discount in taka. */
+  discountAmount?: number;
 }
+
+/** GET /filter/sections: every shelf on the homepage, in one response. */
+export interface HomeSections {
+  /** Discounted and in stock, the biggest share off first. */
+  deals: Book[];
+  /** Ordered and saved most in the last fortnight. */
+  trending: Book[];
+  /** Saved to wishlists most, then ordered. */
+  popular: Book[];
+  /** The most copies sold. */
+  bestsellers: Book[];
+  topRated: Book[];
+  /** In stock at 300 Tk or less. */
+  budget: Book[];
+  /** A random handful, different on each visit. */
+  discover: Book[];
+  writers: PopularWriter[];
+  /** Every category that has a listing, with how many. */
+  categories: { name: string; books: number }[];
+}
+
+export interface PopularWriter {
+  name: string;
+  books: number;
+  sold: number;
+}
+
+/** GET /filter/for-you. `personal` is false when there was nothing to go on. */
+export interface ForYouResponse {
+  items: Book[];
+  personal: boolean;
+}
+
+/** PUT /book/discount/:id */
+export type UpdateDiscountRequest = { type: 'none' } | { type: DiscountType; value: number };
 
 /** One verified buyer's verdict. */
 export interface Review {
@@ -241,6 +299,8 @@ export interface CatalogueParams {
   /** A floor, not a match: 4 means "four stars and up". */
   rating?: number;
   inStock?: boolean;
+  /** Only books with a discount: Quick deals. */
+  deals?: boolean;
   sort?: CatalogueSort;
   page?: number;
   pageSize?: number;
@@ -330,7 +390,10 @@ export interface OrderLine {
   bookType?: string;
   condition?: string;
   pages?: number;
+  /** What one copy cost: the sale price, when the book had a discount. */
   price?: number;
+  /** The listed price when it was bought, for what the discount saved. */
+  listPrice?: number;
   quantity?: number;
   paymentMethod?: string;
   contactName?: string;
@@ -544,6 +607,12 @@ export interface PublicProfile {
   username: string;
   email: string;
   profilePicture: string | null;
+  /**
+   * The two banner pictures across the top of a profile, one for each way of
+   * using the shop, as addresses to fetch. Null when not set.
+   */
+  buyerBanner: string | null;
+  sellerBanner: string | null;
 }
 
 /**

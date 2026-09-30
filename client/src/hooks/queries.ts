@@ -13,7 +13,11 @@ import type {
   AdminUserPage,
   Book,
   BookDetail,
+  BookMutationResponse,
   CataloguePage,
+  ForYouResponse,
+  HomeSections,
+  UpdateDiscountRequest,
   CatalogueParams,
   BuyerOrderLine,
   Id,
@@ -94,6 +98,10 @@ export const keys = {
   /** One entry per distinct search, so turning a page keeps the last one. */
   catalogue: (query: string) => ['catalogue', query] as const,
   featured: (limit: number) => ['catalogue', 'featured', limit] as const,
+  /** Under `catalogue`, so a new discount or listing refreshes the shelves too. */
+  sections: ['catalogue', 'sections'] as const,
+  byIds: (ids: string) => ['catalogue', 'by-ids', ids] as const,
+  forYou: (seen: string, who: string | null) => ['catalogue', 'for-you', who, seen] as const,
   cart: ['cart'] as const,
   wishlist: ['wishlist'] as const,
   profile: (email?: string | null) => ['profile', email ?? 'me'] as const,
@@ -158,6 +166,7 @@ export const catalogueSearch = (params: CatalogueParams): string => {
   if (params.maxPrice !== undefined) query.set('maxPrice', String(params.maxPrice));
   if (params.rating) query.set('rating', String(params.rating));
   if (params.inStock) query.set('inStock', '1');
+  if (params.deals) query.set('deals', '1');
   if (params.sort) query.set('sort', params.sort);
   if (params.page && params.page > 1) query.set('page', String(params.page));
   if (params.pageSize) query.set('pageSize', String(params.pageSize));
@@ -196,6 +205,51 @@ export const useFeatured = (
     queryFn: () => request<Book[]>(`/filter/featured?limit=${String(limit)}`),
     ...options,
   });
+
+/** Every homepage shelf, in one request. */
+export const useHomeSections = (): UseQueryResult<HomeSections> =>
+  useQuery<HomeSections, Error, HomeSections>({
+    queryKey: keys.sections,
+    queryFn: () => request<HomeSections>('/filter/sections'),
+    staleTime: 60_000,
+  });
+
+/** Books by id, in that order: Recently viewed. */
+export const useBooksByIds = (ids: readonly string[]): UseQueryResult<Book[]> => {
+  const joined = ids.join(',');
+  return useQuery<Book[], Error, Book[]>({
+    queryKey: keys.byIds(joined),
+    queryFn: () => request<Book[]>(`/filter/by-ids?ids=${joined}`),
+    enabled: ids.length > 0,
+  });
+};
+
+/** Top picks: from the account's history when signed in, and what was viewed. */
+export const useForYou = (seen: readonly string[]): UseQueryResult<ForYouResponse> => {
+  const joined = seen.slice(0, 12).join(',');
+  return useQuery<ForYouResponse, Error, ForYouResponse>({
+    queryKey: keys.forYou(joined, getUserEmail()),
+    queryFn: () => request<ForYouResponse>(`/filter/for-you${joined ? `?seen=${joined}` : ''}`),
+    staleTime: 60_000,
+  });
+};
+
+/** A seller's discount on one of their books. */
+export const useUpdateDiscount = (): UseMutationResult<
+  BookMutationResponse,
+  Error,
+  { bookId: Id; discount: UpdateDiscountRequest }
+> => {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: ({ bookId, discount }: { bookId: Id; discount: UpdateDiscountRequest }) =>
+      request<BookMutationResponse>(`/book/discount/${bookId}`, json('PUT', discount)),
+    onSuccess: () => {
+      void client.invalidateQueries({ queryKey: ['books', 'seller'] });
+      void client.invalidateQueries({ queryKey: ['catalogue'] });
+    },
+  });
+};
 
 export const useBook = <TData = BookDetail>(
   id: Id | undefined,

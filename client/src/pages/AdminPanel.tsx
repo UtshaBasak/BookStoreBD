@@ -102,15 +102,13 @@ export default function AdminPanel() {
             <h2>Admin Panel</h2>
           </div>
           <div className="admin-sidebar-actions">
-            <button
-              type="button"
+            <Link to="/"
               className="admin-side-button icon-only"
-              onClick={() => navigate('/')}
               title="Go to Homepage"
             >
               <FaHome size={18} aria-hidden="true" />
               <span className="admin-side-text">Back to shop</span>
-            </button>
+            </Link>
             <button type="button" className="admin-side-button is-danger" onClick={handleSignOut}>
               <FaSignOutAlt aria-hidden="true" />
               Sign Out
@@ -132,15 +130,13 @@ export default function AdminPanel() {
         </nav>
 
         <div className="admin-sidebar-foot">
-          <button
-            type="button"
+          <Link to="/"
             className="admin-side-button"
-            onClick={() => navigate('/')}
             title="Go to Homepage"
           >
             <FaHome aria-hidden="true" />
             <span className="admin-side-text">Back to shop</span>
-          </button>
+          </Link>
           <button type="button" className="admin-side-button is-danger" onClick={handleSignOut}>
             <FaSignOutAlt aria-hidden="true" />
             Sign Out

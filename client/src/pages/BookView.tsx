@@ -17,7 +17,7 @@ import type { ChatMessage } from '@shared/api.js';
 
 import { subscribeToMessages } from '../utils/socket.js';
 import ChatWindow from '../components/ChatWindow';
-import { API_BASE_URL, signOut } from '../config/api.js';
+import { API_BASE_URL } from '../config/api.js';
 import {
     useBook,
     useCart,
@@ -39,9 +39,11 @@ import { flagsFor } from '../utils/bookFlags.js';
 import { PLACEHOLDER_IMAGE } from '../utils/safeImageSrc.js';
 import { isCloudinary, sized, IMAGE_WIDTHS } from '../utils/imageUrl.js';
 import { reportError } from '../utils/report.js';
+import PriceTag from '../components/PriceTag.js';
+import { priceOf } from '../utils/pricing.js';
+import { recordView } from '../utils/recentlyViewed.js';
 
 export default function BookView() {
-    const [showDropdown, setShowDropdown] = useState(false);
     const [searchQuery, setSearchQuery] = useState('');
     const [showChat, setShowChat] = useState(false);
     /** Which photograph is on show, for the book it was chosen on. */
@@ -65,6 +67,12 @@ export default function BookView() {
     const { data: sellerInfo = null } = useProfile(book?.sellerEmail, {
         enabled: Boolean(book?.sellerEmail),
     });
+
+    // Remembered on this device for the homepage's Recently viewed, once the
+    // book has loaded - so an address that turns out not to be a book is not.
+    useEffect(() => {
+        if (book?._id) recordView(book._id);
+    }, [book?._id]);
 
     const { data: profile } = useProfile(userEmail, { enabled: signedIn });
     const profilePic = profile?.profilePicture ?? null;
@@ -146,7 +154,7 @@ export default function BookView() {
     const cover = book?.images?.[0];
     const coverUrl = cover && /^https?:\/\//.test(cover) ? cover : undefined;
     const summary = book
-        ? `${book.title} by ${book.author}. ${book.bookType === 'old' ? 'Second-hand' : 'New'}, ${book.price} Tk${book.stock > 0 ? ', in stock' : ', out of stock'}.`
+        ? `${book.title} by ${book.author}. ${book.bookType === 'old' ? 'Second-hand' : 'New'}, ${priceOf(book)} Tk${(book.discountPercent ?? 0) > 0 ? ` (${book.discountPercent}% off)` : ''}${book.stock > 0 ? ', in stock' : ', out of stock'}.`
         : undefined;
 
     useSeo({
@@ -178,7 +186,8 @@ export default function BookView() {
                       : {}),
                   offers: {
                       '@type': 'Offer',
-                      price: book.price,
+                      // What it sells for, which is the sale price on a deal.
+                      price: priceOf(book),
                       priceCurrency: 'BDT',
                       itemCondition:
                           book.bookType === 'old'
@@ -193,16 +202,6 @@ export default function BookView() {
               }
             : null,
     });
-
-    const handleSignOut = async () => {
-        await signOut();
-        setShowDropdown(false);
-        navigate('/sign-in');
-    };
-
-    const handleViewProfile = () => {
-        navigate('/profile');
-    };
 
     // Scroll handlers for similar books
     const scrollAmount = 320;
@@ -271,14 +270,12 @@ export default function BookView() {
                 <div className="logo">
                     {/* A button, and no reload: the queries refetch on their
                         own, as on the homepage. */}
-                    <button
-                        type="button"
+                    <Link to="/"
                         className="logo-button"
-                        onClick={() => navigate('/')}
                         aria-label="BookStoreBD home"
                     >
                         <Logo size={38} />
-                    </button>
+                    </Link>
                 </div>
 
                 <div className="search-bar" role="search">
@@ -300,11 +297,9 @@ export default function BookView() {
 
                 <div className="user-options" style={{ position: 'relative' }}>
                     {user && (
-                        <button
-                            type="button"
+                        <Link to="/chat"
                             className="chat-icon icon-button"
                             style={{ color: '#6d28d9' }}
-                            onClick={() => navigate('/chat')}
                             title="Chat"
                             aria-label="Chat"
                         >
@@ -314,7 +309,7 @@ export default function BookView() {
                                     {unreadCount > 99 ? '99+' : unreadCount}
                                 </span>
                             )}
-                        </button>
+                        </Link>
                     )}
 
                     <button
@@ -328,34 +323,28 @@ export default function BookView() {
                         <FaBell />
                     </button>
 
-                    <button
-                        type="button"
+                    <Link to="/wishlist"
                         className="wishlist-icon icon-button"
                         style={{ color: '#ff5c35' }}
-                        onClick={() => navigate('/wishlist')}
                         title="Wishlist"
                         aria-label="Wishlist"
                     >
                         <FaHeart />
-                    </button>
+                    </Link>
 
                     <Link to="/cart" className="icon-link" style={{ color: '#6d28d9' }} title="Cart" aria-label="Cart">
                         <FaShoppingBag />
                     </Link>
 
                     {user ? (
-                        <div
-                            style={{ display: 'inline-block', marginLeft: '0.25rem', cursor: 'pointer', position: 'relative' }}
-                            tabIndex={0}
-                            onMouseEnter={() => setShowDropdown(true)}
-                            onMouseLeave={() => setShowDropdown(false)}
-                        >
+                        // A link to the profile, and nothing on hover.
+                        <Link to="/profile" className="profile-link" title="Your profile" aria-label="Your profile">
                             <img
                                 src={
                                     profilePic ||
                                     `https://ui-avatars.com/api/?name=${encodeURIComponent(username ? username[0] : 'U')}&background=6d28d9&color=fff&bold=true`
                                 }
-                                alt="Profile"
+                                alt=""
                                 style={{
                                     width: 36,
                                     height: 36,
@@ -365,22 +354,7 @@ export default function BookView() {
                                     verticalAlign: 'middle',
                                 }}
                             />
-                            {showDropdown && (
-                                <div className="book-page-menu">
-                                    <button type="button" onClick={handleViewProfile} tabIndex={0}>
-                                        View Profile
-                                    </button>
-                                    <button
-                                        type="button"
-                                        onClick={handleSignOut}
-                                        tabIndex={0}
-                                        style={{ color: '#ef4444' }}
-                                    >
-                                        Sign Out
-                                    </button>
-                                </div>
-                            )}
-                        </div>
+                        </Link>
                     ) : (
                         <Link
                             to="/sign-in"
@@ -464,7 +438,9 @@ export default function BookView() {
                             )}
 
                             <div className="book-price-row">
-                                <span className="book-price">৳{book.price}</span>
+                                <span className="book-price">
+                                    <PriceTag book={book} size="lg" />
+                                </span>
                                 {/* Stock Status */}
                                 <span
                                     className="badge"
@@ -635,7 +611,9 @@ export default function BookView() {
                                         <div className="book-info">
                                             <h3>{relatedBook.title}</h3>
                                             <p className="book-similar-author">{relatedBook.author}</p>
-                                            <p className="book-similar-price">৳{relatedBook.price}</p>
+                                            <p className="book-similar-price">
+                                                <PriceTag book={relatedBook} size="sm" showSaving={false} />
+                                            </p>
                                         </div>
                                     </Link>
                                 ))}

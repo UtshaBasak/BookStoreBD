@@ -1,6 +1,7 @@
 import { Schema, type HydratedDocument, type InferSchemaType, type Types } from 'mongoose';
 
 import { defineModel } from './defineModel.js';
+import { priceWith } from '../config/pricing.js';
 
 const AddBookSchema = new Schema({
   title: { type: String, required: true },
@@ -35,7 +36,34 @@ const AddBookSchema = new Schema({
    */
   ratingAverage: { type: Number, default: 0, min: 0, max: 5 },
   ratingCount: { type: Number, default: 0, min: 0 },
-  stock: { type: Number, default: 1, min: 0 }    // allow zero
+  stock: { type: Number, default: 1, min: 0 },    // allow zero
+
+  /*
+   * The seller's discount, and what it comes to. See config/pricing.ts: the
+   * last three are worked out from price and discount on every save, never
+   * written directly, and stored so the catalogue can sort by them.
+   */
+  discountType: { type: String, enum: ['percent', 'amount', null] as const, default: null },
+  discountValue: { type: Number, default: 0, min: 0 },
+  salePrice: { type: Number, min: 0 },
+  discountPercent: { type: Number, default: 0, min: 0 },
+  discountAmount: { type: Number, default: 0, min: 0 },
+});
+
+AddBookSchema.pre('validate', function () {
+  const priced = priceWith(Number(this.price), {
+    type: (this.discountType as 'percent' | 'amount' | null | undefined) ?? null,
+    value: Number(this.discountValue ?? 0),
+  });
+  // A discount that no longer fits the price is dropped rather than kept
+  // half-applied.
+  if (priced.discountAmount === 0) {
+    this.discountType = null;
+    this.discountValue = 0;
+  }
+  this.salePrice = priced.salePrice;
+  this.discountPercent = priced.discountPercent;
+  this.discountAmount = priced.discountAmount;
 });
 
 /*
@@ -59,7 +87,10 @@ const AddBookSchema = new Schema({
  * would ever have noticed.
  */
 AddBookSchema.index({ createdAt: -1, _id: -1 });
-AddBookSchema.index({ price: 1, _id: -1 });
+AddBookSchema.index({ salePrice: 1, _id: -1 });
+// Quick deals, and the catalogue's default order: the biggest share off first.
+AddBookSchema.index({ discountPercent: -1, createdAt: -1, _id: -1 });
+AddBookSchema.index({ discountAmount: -1, _id: -1 });
 AddBookSchema.index({ ratingAverage: -1, ratingCount: -1, _id: -1 });
 AddBookSchema.index({ bookType: 1, createdAt: -1, _id: -1 });
 AddBookSchema.index({ sellerEmail: 1, createdAt: -1, _id: -1 });

@@ -1,7 +1,7 @@
 import { useState } from 'react';
 
 import type { BuyerOrderLine } from '@shared/api.js';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { FaSearch, FaUndoAlt } from 'react-icons/fa';
 
 import { useBuyerOrders } from '../hooks/queries.js';
@@ -77,9 +77,9 @@ export default function BuyerBookList() {
     <div className="ot-page">
       <div className="ot-wrap" style={{ maxWidth: 1200 }}>
         <div className="ot-toolbar">
-          <button type="button" className="btn btn-ghost" onClick={() => navigate('/profile')}>
+          <Link to="/profile?mode=buyer" className="btn btn-ghost">
             ← Return to Profile
-          </button>
+          </Link>
         </div>
 
         <div className="mb-4 flex flex-wrap items-end justify-between gap-3">

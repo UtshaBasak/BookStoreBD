@@ -1,0 +1,122 @@
+.shelf {
+  padding: 0.5rem clamp(1rem, 3vw, 2.5rem) 1.75rem;
+}
+.shelf-head {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 0.85rem;
+}
+.shelf-title {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0;
+  color: var(--color-ink);
+  font-size: clamp(1.25rem, 1.05rem + 0.9vw, 1.7rem);
+}
+.shelf-emoji {
+  display: grid;
+  place-items: center;
+  width: 2.1rem;
+  height: 2.1rem;
+  border-radius: 12px;
+  background: var(--color-brand-tint);
+  font-size: 1.1rem;
+}
+.shelf-sub {
+  margin: 0.25rem 0 0;
+  color: var(--color-ink-muted);
+  font-size: 0.92rem;
+}
+.shelf-tools {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 0.4rem;
+}
+.shelf-all {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  min-height: 40px;
+  padding: 0 0.85rem;
+  border-radius: 999px;
+  color: var(--color-brand);
+  font-size: 0.9rem;
+  font-weight: 700;
+  text-decoration: none;
+  white-space: nowrap;
+}
+.shelf-all:hover {
+  background: var(--color-brand-tint);
+}
+.shelf-arrow {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  min-height: 0;
+  padding: 0;
+  border: 1px solid var(--color-line);
+  border-radius: 50%;
+  background: #fff;
+  color: var(--color-ink);
+  box-shadow: var(--shadow-card);
+}
+.shelf-arrow:hover {
+  border-color: var(--color-brand-light);
+  color: var(--color-brand);
+}
+
+.shelf-row {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: 212px;
+  gap: 1rem;
+  overflow-x: auto;
+  padding: 4px 4px 14px;
+  margin: 0 -4px;
+  scroll-snap-type: x mandatory;
+  scroll-padding: 4px;
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-brand-line) transparent;
+}
+.shelf-row > * {
+  scroll-snap-align: start;
+}
+.shelf-writers .shelf-row {
+  grid-auto-columns: 150px;
+}
+.shelf-skeleton {
+  height: 360px;
+  border-radius: var(--radius-card);
+  background: linear-gradient(90deg, var(--color-brand-tint) 25%, #fff 50%, var(--color-brand-tint) 75%);
+  background-size: 200% 100%;
+  animation: shelf-shimmer 1.4s linear infinite;
+}
+@keyframes shelf-shimmer {
+  to {
+    background-position: -200% 0;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .shelf-skeleton {
+    animation: none;
+  }
+}
+
+@media (max-width: 640px) {
+  .shelf-row {
+    grid-auto-columns: 46%;
+    gap: 0.75rem;
+  }
+  .shelf-writers .shelf-row {
+    grid-auto-columns: 34%;
+  }
+  /* A thumb scrolls the row; the arrows only crowd the title. */
+  .shelf-arrow {
+    display: none;
+  }
+}

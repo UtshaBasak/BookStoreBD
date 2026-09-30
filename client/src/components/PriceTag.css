@@ -1,0 +1,33 @@
+/* A price, and on a deal the price it was and what comes off. Imported by
+   PriceTag itself, so every page that shows one has the styles. */
+.price-tag {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.15rem 0.45rem;
+}
+.price-now {
+  color: var(--color-accent);
+  font-weight: 800;
+}
+.price-was {
+  color: var(--color-ink-muted);
+  font-weight: 600;
+}
+.price-off {
+  letter-spacing: normal;
+  white-space: nowrap;
+  padding: 1px 8px;
+  border-radius: 999px;
+  background: #fff1ec;
+  color: #c2410c;
+  font-size: 0.75em;
+  font-weight: 800;
+}
+.price-tag-sm .price-now { font-size: 0.95rem; }
+.price-tag-sm .price-was { font-size: 0.78rem; }
+.price-tag-md .price-now { font-size: 1.1rem; }
+.price-tag-md .price-was { font-size: 0.82rem; }
+.price-tag-lg .price-now { font-size: 2rem; letter-spacing: -0.02em; }
+.price-tag-lg .price-was { font-size: 1.1rem; }
+.price-tag-lg .price-off { font-size: 0.9rem; }

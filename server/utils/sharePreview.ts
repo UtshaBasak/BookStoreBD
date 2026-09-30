@@ -17,6 +17,9 @@ export interface PreviewBook {
   title: string;
   author: string;
   price: number;
+  /** What it sells for, when the seller has a discount on it. */
+  salePrice?: number;
+  discountPercent?: number;
   bookType: 'new' | 'old';
   stock?: number;
   images?: string[];
@@ -36,7 +39,9 @@ export const escapeAttribute = (value: string): string =>
  * the card and the page it opens agree.
  */
 export const describeBook = (book: PreviewBook): string =>
-  `${book.title} by ${book.author}. ${book.bookType === 'old' ? 'Second-hand' : 'New'}, ${book.price} Tk${
+  `${book.title} by ${book.author}. ${book.bookType === 'old' ? 'Second-hand' : 'New'}, ${book.salePrice ?? book.price} Tk${
+    (book.discountPercent ?? 0) > 0 ? ` (${book.discountPercent}% off)` : ''
+  }${
     (book.stock ?? 0) > 0 ? ', in stock' : ', out of stock'
   }.`;
 
@@ -126,7 +131,7 @@ export const renderBookPage = (template: string, book: PreviewBook, origin: stri
       ? [tag('property', 'og:image:width', String(image.width)), tag('property', 'og:image:height', String(image.height))]
       : []),
     tag('property', 'og:image:alt', `Cover of ${book.title}`),
-    tag('property', 'product:price:amount', String(book.price)),
+    tag('property', 'product:price:amount', String(book.salePrice ?? book.price)),
     tag('property', 'product:price:currency', 'BDT'),
     tag('name', 'twitter:card', 'summary_large_image'),
     tag('name', 'twitter:title', title),

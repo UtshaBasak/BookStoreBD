@@ -64,9 +64,19 @@ export default function Footer() {
         </ul>
       </div>
 
-      <p className="footer-legal">
-        © {new Date().getFullYear()} {site.name}, run by {site.owner}.
-      </p>
+      {/* The name of the person running the shop lives on the About and
+          policy pages, where it is needed; the footer carries the shop. */}
+      <div className="footer-legal">
+        <p>© {new Date().getFullYear()} {site.name}. All rights reserved.</p>
+        <ul className="footer-trust" aria-label="Why shop here">
+          <li>🔒 Secure checkout</li>
+          <li>💵 {site.payment}</li>
+          <li>↩️ {site.returns.windowDays}-day returns</li>
+        </ul>
+        <p>
+          Made with <span aria-label="love">💜</span> for readers in Bangladesh <span aria-hidden="true">🇧🇩</span>
+        </p>
+      </div>
     </footer>
   );
 }
