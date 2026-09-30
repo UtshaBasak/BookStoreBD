@@ -1,6 +1,7 @@
 /* One book card, shared by every shelf and the catalogue. Prefixed `bc-` so
    the page stylesheets around it (.book-info p and friends) cannot reach in. */
 .bc {
+  position: relative;
   display: flex;
   flex-direction: column;
   height: 100%;
@@ -14,6 +15,16 @@
 .bc:hover {
   transform: translateY(-4px);
   box-shadow: var(--shadow-lift);
+}
+/* Fills the gap the lift leaves under the card, so a pointer near its
+   bottom edge does not make it flicker up and down. */
+.bc:hover::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -10px;
+  height: 10px;
 }
 
 .bc-cover {

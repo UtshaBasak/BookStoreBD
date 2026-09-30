@@ -29,8 +29,8 @@ export default function BookShelf({
   seeAllTo?: string;
   seeAllLabel?: string;
   children: ReactNode;
-  /** Books are card-wide; writers are narrower. */
-  variant?: 'books' | 'writers';
+  /** Books are card-wide; writers and category tiles are narrower. */
+  variant?: 'books' | 'writers' | 'categories';
 }) {
   const rowRef = useRef<HTMLDivElement | null>(null);
   const scroll = (direction: 1 | -1) => {

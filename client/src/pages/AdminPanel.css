@@ -1076,17 +1076,6 @@
   outline: 2px solid #fff;
   outline-offset: 3px;
 }
-/* The bell sits on the dark sidebar, so its icon is light. */
-.admin-bell {
-  display: inline-flex;
-}
-.admin-bell .icon-button {
-  color: #fff !important;
-}
-.admin-bell .icon-button:hover {
-  background: rgba(255, 255, 255, 0.12);
-}
-
 /* A cancelled book stays in the table, struck through, because it happened. */
 .admin-row-cancelled td {
   color: var(--color-ink-muted);
