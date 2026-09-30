@@ -124,8 +124,11 @@ export default function HomeShelves(actions: ShelfActions) {
       })}
 
       {/* One row, like the other shelves, rather than a wall of tiles
-          pushing everything below it down the page. */}
-      {tiles.length > 0 && (
+          pushing everything below it down the page. Drawn once the counts
+          are in: the row snaps to a tile, and when the counted categories
+          arrived in front of the starter ones it kept the starter it had
+          snapped to in view - opening the row a dozen tiles along. */}
+      {tiles.length > 0 && !sections.isPending && (
         <BookShelf
           id="categories"
           title="Shop by category"
