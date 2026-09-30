@@ -8,17 +8,19 @@ import BookList from './BookList';
 import ReturnManagement from './admin/ReturnManagement';
 import ReviewModeration from './admin/ReviewModeration';
 import SellerPayouts from './admin/SellerPayouts';
+import AllReviews from './admin/AllReviews';
 import {
   FaBook,
   FaFlag,
-  FaHome,
   FaMoneyBillWave,
+  FaStar,
   FaReceipt,
   FaSignOutAlt,
   FaUndoAlt,
   FaUsers,
 } from 'react-icons/fa';
 import Logo from '../components/Logo.js';
+import NotificationBell from '../components/NotificationBell.js';
 import { isAdmin } from '../utils/auth.js';
 import { signOut } from '../config/api.js';
 
@@ -36,6 +38,7 @@ const SECTIONS: Section[] = [
   { to: '/admin/books', label: 'Book List', icon: FaBook, blurb: 'Every listing in the shop.' },
   { to: '/admin/returns', label: 'Return Management', icon: FaUndoAlt, blurb: 'Approve or refuse a return.' },
   { to: '/admin/payouts', label: 'Seller Payouts', icon: FaMoneyBillWave, blurb: 'What sellers are owed, and paid.' },
+  { to: '/admin/all-reviews', label: 'Reviews', icon: FaStar, blurb: 'Every review in the shop.' },
   { to: '/admin/reviews', label: 'Reported Reviews', icon: FaFlag, blurb: 'Reviews somebody has reported.' },
 ];
 
@@ -97,18 +100,18 @@ export default function AdminPanel() {
       {/* Sidebar: a bar across the top on a phone. */}
       <aside className="admin-sidebar aurora">
         <div className="admin-sidebar-top">
+          {/* The logo is the way back to the shop, as on every other page;
+              the "Back to shop" buttons it replaces said the same thing twice. */}
           <div className="admin-brand">
-            <Logo inverted size={34} />
+            <Link to="/" className="admin-brand-link" aria-label="BookStoreBD home" title="Back to the shop">
+              <Logo inverted size={34} />
+            </Link>
             <h2>Admin Panel</h2>
           </div>
           <div className="admin-sidebar-actions">
-            <Link to="/"
-              className="admin-side-button icon-only"
-              title="Go to Homepage"
-            >
-              <FaHome size={18} aria-hidden="true" />
-              <span className="admin-side-text">Back to shop</span>
-            </Link>
+            <span className="admin-bell">
+              <NotificationBell />
+            </span>
             <button type="button" className="admin-side-button is-danger" onClick={handleSignOut}>
               <FaSignOutAlt aria-hidden="true" />
               Sign Out
@@ -130,13 +133,9 @@ export default function AdminPanel() {
         </nav>
 
         <div className="admin-sidebar-foot">
-          <Link to="/"
-            className="admin-side-button"
-            title="Go to Homepage"
-          >
-            <FaHome aria-hidden="true" />
-            <span className="admin-side-text">Back to shop</span>
-          </Link>
+          <span className="admin-bell">
+            <NotificationBell />
+          </span>
           <button type="button" className="admin-side-button is-danger" onClick={handleSignOut}>
             <FaSignOutAlt aria-hidden="true" />
             Sign Out
@@ -152,6 +151,7 @@ export default function AdminPanel() {
           <Route path="/books" element={<BookList />} />
           <Route path="/returns" element={<ReturnManagement />} />
           <Route path="/payouts" element={<SellerPayouts />} />
+          <Route path="/all-reviews" element={<AllReviews />} />
           <Route path="/reviews" element={<ReviewModeration />} />
         </Routes>
       </main>

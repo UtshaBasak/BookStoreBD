@@ -1,0 +1,53 @@
+.co-panel {
+  display: grid;
+  gap: 10px;
+  width: 100%;
+  max-width: 520px;
+  padding: 14px 16px;
+  border: 1px solid #fecaca;
+  border-radius: 14px;
+  background: #fef2f2;
+  text-align: left;
+}
+
+.co-note {
+  margin: 0;
+  color: #7f1d1d;
+  font-size: 0.9rem;
+}
+
+.co-label {
+  display: grid;
+  gap: 4px;
+  font-weight: 700;
+  color: var(--color-ink);
+}
+
+.co-label span {
+  font-weight: 500;
+  color: var(--color-ink-muted);
+}
+
+.co-label textarea {
+  resize: vertical;
+}
+
+.co-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+/* What was called off, on the tracking pages. */
+.co-cancelled {
+  display: grid;
+  gap: 4px;
+  padding: 12px 16px;
+  border-radius: 14px;
+  background: #fef2f2;
+  color: #991b1b;
+}
+
+.co-cancelled p {
+  margin: 0;
+}

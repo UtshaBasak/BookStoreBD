@@ -13,12 +13,23 @@ import type {
   OrderNumberParams,
   UpdateOrderStatusBody,
   CheckPromoBody,
+  CancelOrderBody,
 } from '../schemas/index.js';
 import { validatedQuery } from '../middleware/validate.js';
 import { contains } from '../utils/regex.js';
 import { createLogger } from '../config/logger.js';
 import { errorMessage } from '../utils/error.js';
-import { deliveryChargeFor, payoutStateFor, returnDeadline } from '../config/commerce.js';
+import {
+  CANCELLED,
+  ORDER_STAGES,
+  SELLER_LAST_STAGE,
+  canCancel,
+  deliveryChargeFor,
+  payoutStateFor,
+  returnDeadline,
+  statusChangeProblem,
+} from '../config/commerce.js';
+import { adminEmails, notify } from '../utils/notify.js';
 import { applyPromotion, findPromotion } from '../config/promotions.js';
 import { unitPriceOf } from '../config/pricing.js';
 
@@ -42,12 +53,15 @@ async function generateUniqueOrderNumber(): Promise<string> {
 
 /** The order-level totals, which repeat on every line of the same order. */
 const totalsFor = (lines: readonly LeanOrder[]) => {
-  const booksTotal = lines.reduce(
+  // A cancelled book is not paid for, and an order with nothing left in it
+  // has no delivery to charge for either.
+  const live = lines.filter((line) => line.status !== CANCELLED);
+  const booksTotal = live.reduce(
     (sum, line) => sum + Number(line.price) * Number(line.quantity),
     0
   );
-  const shippingCost = lines[0]?.shippingCharge ?? 0;
-  const discount = lines[0]?.discount ?? 0;
+  const shippingCost = live.length ? (lines[0]?.shippingCharge ?? 0) : 0;
+  const discount = live.length ? (lines[0]?.discount ?? 0) : 0;
 
   return {
     booksTotal,
@@ -79,8 +93,19 @@ const pageOfOrders = async (
   query: OrderListQuery
 ): Promise<{ lines: LeanOrder[]; total: number; page: number; pageSize: number; pageCount: number }> => {
   const pattern = query.search ? contains(query.search) : null;
+  // Dates are the shop's days, Dhaka time, from the start of one to the end of the other.
+  const day = (value: string, end: boolean) => new Date(`${value}T${end ? '23:59:59.999' : '00:00:00.000'}+06:00`);
   const filter: Record<string, unknown> = {
     ...scope,
+    ...(query.status ? { status: query.status } : {}),
+    ...(query.from || query.to
+      ? {
+          createdAt: {
+            ...(query.from ? { $gte: day(query.from, false) } : {}),
+            ...(query.to ? { $lte: day(query.to, true) } : {}),
+          },
+        }
+      : {}),
     ...(pattern
       ? {
           $or: [
@@ -97,8 +122,23 @@ const pageOfOrders = async (
   const [numbers, counted] = await Promise.all([
     Order.aggregate<{ _id: string }>([
       { $match: filter },
-      { $group: { _id: '$orderNumber', createdAt: { $max: '$createdAt' } } },
-      { $sort: { createdAt: -1, _id: -1 } },
+      {
+        $group: {
+          _id: '$orderNumber',
+          createdAt: { $max: '$createdAt' },
+          total: { $sum: { $multiply: [{ $ifNull: ['$price', 0] }, { $ifNull: ['$quantity', 1] }] } },
+        },
+      },
+      {
+        $sort:
+          query.sort === 'oldest'
+            ? { createdAt: 1, _id: 1 }
+            : query.sort === 'totalHigh'
+              ? { total: -1, createdAt: -1, _id: -1 }
+              : query.sort === 'totalLow'
+                ? { total: 1, createdAt: -1, _id: -1 }
+                : { createdAt: -1, _id: -1 },
+      },
       { $skip: (query.page - 1) * query.pageSize },
       { $limit: query.pageSize },
       { $project: { _id: 1 } },
@@ -115,10 +155,13 @@ const pageOfOrders = async (
 
   // The same filter again, so a search for a title still shows the line that
   // matched rather than the whole order - which is what the browser did.
+  const rank = new Map(orderNumbers.map((number, index) => [number, index]));
   const lines = orderNumbers.length
-    ? await Order.find({ ...filter, orderNumber: { $in: orderNumbers } })
-        .sort({ createdAt: -1, _id: -1 })
-        .lean()
+    ? (
+        await Order.find({ ...filter, orderNumber: { $in: orderNumbers } })
+          .sort({ createdAt: -1, _id: -1 })
+          .lean()
+      ).sort((a, b) => (rank.get(a.orderNumber) ?? 0) - (rank.get(b.orderNumber) ?? 0))
     : [];
 
   return {
@@ -128,6 +171,67 @@ const pageOfOrders = async (
     pageSize: query.pageSize,
     pageCount: Math.max(1, Math.ceil(total / query.pageSize)),
   };
+};
+
+/** Order lines in a book's own words, for a notification: "Deyal × 2, Sapiens". */
+const describeLines = (lines: readonly { title?: string | null; quantity?: number | null }[]): string =>
+  lines
+    .map((line) => `${line.title || 'A book'}${Number(line.quantity) > 1 ? ` × ${line.quantity}` : ''}`)
+    .join(', ');
+
+/**
+ * A new order, told to everyone it concerns: the buyer that it went through,
+ * each seller what of theirs to send, the administrators that it exists, and
+ * a seller whose book it sold the last copy of.
+ */
+const announceOrder = async (
+  orderNumber: string,
+  buyer: string,
+  reserved: readonly { book: BookDocument; quantity: number }[],
+  { total }: { total: number }
+): Promise<void> => {
+  const copies = reserved.reduce((sum, { quantity }) => sum + quantity, 0);
+  await notify([buyer], {
+    type: 'order-placed',
+    title: `Order ${orderNumber} confirmed`,
+    body: `${copies} ${copies === 1 ? 'book' : 'books'}, ${total} Tk to pay on delivery.`,
+    link: `/order-tracking/${orderNumber}`,
+  });
+
+  const bySeller = new Map<string, { title: string; quantity: number }[]>();
+  for (const { book, quantity } of reserved) {
+    const list = bySeller.get(book.sellerEmail) ?? [];
+    list.push({ title: book.title, quantity });
+    bySeller.set(book.sellerEmail, list);
+  }
+  for (const [seller, lines] of bySeller) {
+    await notify([seller], {
+      type: 'order-received',
+      title: `New order: ${describeLines(lines)}`,
+      body: `Order ${orderNumber}. Get it ready and mark it as it moves on.`,
+      link: `/seller/order-tracking/${orderNumber}`,
+    });
+  }
+
+  await notify(await adminEmails(), {
+    type: 'order-received',
+    title: `New order ${orderNumber}`,
+    body: `${describeLines(reserved.map(({ book, quantity }) => ({ title: book.title, quantity })))} - ${total} Tk.`,
+    link: `/admin/order-tracking/${orderNumber}`,
+  }, { except: buyer });
+
+  const soldOut = await AddBook.find(
+    { _id: { $in: reserved.map(({ book }) => book._id) }, stock: 0 },
+    { title: 1, sellerEmail: 1 }
+  ).lean();
+  for (const book of soldOut) {
+    await notify([book.sellerEmail], {
+      type: 'stock',
+      title: `"${book.title}" has sold out`,
+      body: 'Add more copies from your books list if you have them.',
+      link: '/seller-books',
+    });
+  }
 };
 
 export const decreaseStock = async (
@@ -149,7 +253,7 @@ export const decreaseStock = async (
       res.status(400).json({ message: 'That promo code is not valid.' });
       return;
     }
-    const isFirstOrder = !(await Order.exists({ buyerEmail: String(email) }));
+    const isFirstOrder = !(await Order.exists({ buyerEmail: String(email), status: { $ne: CANCELLED } }));
 
     const wanted: { book: BookDocument; quantity: number }[] = [];
     for (const item of items) {
@@ -252,6 +356,10 @@ export const decreaseStock = async (
       return;
     }
 
+    await announceOrder(orderNumber, String(email), reserved, {
+      total: booksTotal + shippingCharge - discount,
+    });
+
     res.status(200).json({
       message: 'Stock updated & order saved',
       orderNumber,
@@ -341,7 +449,7 @@ export const checkPromo = async (
 ): Promise<void> => {
   try {
     const { email } = actingUser(req);
-    const isFirstOrder = !(await Order.exists({ buyerEmail: String(email) }));
+    const isFirstOrder = !(await Order.exists({ buyerEmail: String(email), status: { $ne: CANCELLED } }));
     const result = applyPromotion(findPromotion(req.body.code), {
       booksTotal: Number(req.body.booksTotal),
       isFirstOrder,
@@ -424,13 +532,20 @@ export const getOrderByOrderNumber = async (
     // Group and summarize as in getOrdersByBuyer
     const first = orders[0];
     const totals = totalsFor(orders);
+    const live = orders.filter((line) => line.status !== CANCELLED);
+    const status = live[0]?.status || (live.length ? 'Order Confirmed' : CANCELLED);
+    const who = viewerRole(orders, actor, role);
     // The defaults come after the spread rather than before it. Records
     // written before these fields existed have no value to spread, and `.lean()`
     // does not apply schema defaults, so something has to fill the gap.
     res.status(200).json({
       ...first,
       orderNumber: first.orderNumber,
-      status: first.status || 'Order Confirmed',
+      status,
+      // Worked out here, by the rules that enforce them, so the page offers
+      // exactly what the API will accept.
+      canCancel: who ? canCancel(who, statusFor(orders, who, actor)) : false,
+      statusOptions: who === 'admin' || who === 'seller' ? statusOptionsFor(who, statusFor(orders, who, actor)) : [],
       paymentMethod: first.paymentMethod || '',
       contactName: first.contactName || '',
       contactPhone: first.contactPhone || '',
@@ -444,6 +559,29 @@ export const getOrderByOrderNumber = async (
     res.status(500).json({ message: errorMessage(err) });
   }
 };
+
+/** How someone stands to an order: the one who bought it, a seller in it, an administrator, or nobody. */
+const viewerRole = (
+  lines: readonly LeanOrder[],
+  actor: string | undefined,
+  role: string | undefined
+): 'admin' | 'seller' | 'buyer' | null => {
+  if (role === 'admin') return 'admin';
+  if (lines.some((line) => line.sellerEmail === actor)) return 'seller';
+  if (lines.some((line) => line.buyerEmail === actor)) return 'buyer';
+  return null;
+};
+
+/** The lines a person acts on: a seller their own books, everyone else all of them. */
+const linesFor = (lines: readonly LeanOrder[], who: 'admin' | 'seller' | 'buyer', actor: string | undefined) =>
+  lines.filter((line) => line.status !== CANCELLED && (who !== 'seller' || line.sellerEmail === actor));
+
+const statusFor = (lines: readonly LeanOrder[], who: 'admin' | 'seller' | 'buyer', actor: string | undefined): string =>
+  linesFor(lines, who, actor)[0]?.status || CANCELLED;
+
+/** The statuses a person may pick from where the order is now. */
+const statusOptionsFor = (who: 'admin' | 'seller', current: string): string[] =>
+  current === CANCELLED ? [] : ORDER_STAGES.filter((stage) => stage === current || !statusChangeProblem(who, current, stage));
 
 // Update order status by orderNumber (for all books in the order)
 export const updateOrderStatusByOrderNumber = async (
@@ -467,18 +605,33 @@ export const updateOrderStatusByOrderNumber = async (
      * of 'Delivered' and back would have restarted it.
      */
     const { email: actor, role } = actingUser(req);
-    const sends = existing.some((o) => o.sellerEmail === actor);
-    if (role !== 'admin' && !sends) {
+    const who = viewerRole(existing, actor, role);
+    if (who !== 'admin' && who !== 'seller') {
       res.status(403).json({ message: 'Only the seller or an administrator can change this' });
+      return;
+    }
+
+    /*
+     * A seller moves their own books along, up to Shipped. Past that the
+     * order is the shop's: Out for Delivery and Delivered are the
+     * administrator's to set, and a seller who could mark their own sale
+     * delivered could start their own payout. A cancelled book stays
+     * cancelled.
+     */
+    const mine = linesFor(existing, who, actor);
+    const current = mine[0]?.status || CANCELLED;
+    const problem = statusChangeProblem(who, current, String(status));
+    if (problem) {
+      res.status(403).json({ message: problem });
       return;
     }
 
     // Delivery is stamped when it happens, and only then: marking an order
     // delivered twice does not move the date the return window counts from.
-    const wasDelivered = existing.every((o) => o.status === 'Delivered');
+    const wasDelivered = mine.length > 0 && mine.every((o) => o.status === 'Delivered');
     const becomesDelivered = String(status) === 'Delivered';
     const orders = await Order.updateMany(
-      { orderNumber: String(orderNumber) },
+      { _id: { $in: mine.map((line) => line._id) } },
       {
         status: String(status),
         ...(becomesDelivered && !wasDelivered ? { deliveredAt: new Date() } : {}),
@@ -496,9 +649,113 @@ export const updateOrderStatusByOrderNumber = async (
       details: { from: existing[0]?.status, to: status, lines: orders.modifiedCount },
     });
 
+    if (current !== String(status)) {
+      await notify([existing[0]?.buyerEmail], {
+        type: 'order-status',
+        title: `Order ${orderNumber} is ${String(status) === 'Delivered' ? 'delivered' : `now ${String(status)}`}`,
+        body: String(status) === 'Delivered' ? 'Enjoy your books! You can ask for a return within 7 days.' : describeLines(mine),
+        link: `/order-tracking/${orderNumber}`,
+      });
+      // When the shop moves it on, the seller hears too.
+      if (who === 'admin') {
+        await notify([...new Set(mine.map((line) => line.sellerEmail))], {
+          type: 'order-status',
+          title: `Order ${orderNumber} is now ${String(status)}`,
+          body: describeLines(mine),
+          link: `/seller/order-tracking/${orderNumber}`,
+        }, { except: actor });
+      }
+    }
+
     // Optionally, return the updated orders
     const updatedOrders = await Order.find({ orderNumber });
     res.status(200).json(updatedOrders);
+  } catch (err) {
+    res.status(500).json({ message: errorMessage(err) });
+  }
+};
+
+/**
+ * Calls an order off and puts the books back on sale.
+ *
+ * The buyer may, until the seller has started on it; a seller may cancel
+ * their own books in it until they have shipped; an administrator may until
+ * it is delivered (config/commerce.ts). The stock comes back, the books are
+ * marked cancelled rather than deleted - the order is still something that
+ * happened - and everyone else in it is told.
+ */
+export const cancelOrder = async (
+  req: Request<OrderNumberParams, unknown, CancelOrderBody>,
+  res: Response
+): Promise<void> => {
+  try {
+    const { orderNumber } = req.params;
+    const reason = req.body?.reason?.trim() ?? '';
+    const existing = await Order.find({ orderNumber }).lean();
+    if (existing.length === 0) {
+      res.status(404).json({ message: 'Order not found' });
+      return;
+    }
+
+    const { email: actor, role } = actingUser(req);
+    const who = viewerRole(existing, actor, role);
+    if (!who) {
+      res.status(403).json({ message: 'You do not have access to this order' });
+      return;
+    }
+
+    const lines = linesFor(existing, who, actor);
+    if (!lines.length || !lines.every((line) => canCancel(who, line.status))) {
+      res.status(409).json({
+        message:
+          who === 'buyer'
+            ? 'This order is already being prepared, so it can no longer be cancelled here. Message the seller, or ask for a return once it arrives.'
+            : who === 'seller'
+              ? `Books can be cancelled until they are ${SELLER_LAST_STAGE.toLowerCase()}.`
+              : 'A delivered or cancelled order cannot be cancelled.',
+      });
+      return;
+    }
+
+    const cancelled = await Order.updateMany(
+      { _id: { $in: lines.map((line) => line._id) }, status: { $ne: CANCELLED } },
+      { $set: { status: CANCELLED, cancelledAt: new Date(), cancelledBy: who, cancelReason: reason } }
+    );
+    // Back on the shelf, copy for copy.
+    for (const line of lines) {
+      await AddBook.updateOne({ _id: line.bookId }, { $inc: { stock: Number(line.quantity) || 1 } });
+    }
+
+    await recordAudit(req, {
+      action: 'order.cancel',
+      targetType: 'order',
+      targetId: orderNumber,
+      details: { by: who, lines: cancelled.modifiedCount, reason },
+    });
+
+    const what = describeLines(lines);
+    const by = who === 'buyer' ? 'the buyer' : who === 'seller' ? 'the seller' : 'the shop';
+    const body = `${what}, cancelled by ${by}${reason ? `: "${reason}"` : '.'}`;
+    await notify([existing[0]?.buyerEmail], {
+      type: 'order-cancelled',
+      title: `Order ${orderNumber} was cancelled`,
+      body,
+      link: `/order-tracking/${orderNumber}`,
+    }, { except: actor });
+    await notify([...new Set(lines.map((line) => line.sellerEmail))], {
+      type: 'order-cancelled',
+      title: `Order ${orderNumber} was cancelled`,
+      body: `${body} The stock is back on sale.`,
+      link: `/seller/order-tracking/${orderNumber}`,
+    }, { except: actor });
+    await notify(await adminEmails(), {
+      type: 'order-cancelled',
+      title: `Order ${orderNumber} was cancelled`,
+      body,
+      link: `/admin/order-tracking/${orderNumber}`,
+    }, { except: actor });
+
+    res.status(200).json({ message: 'Order cancelled', cancelled: cancelled.modifiedCount });
   } catch (err) {
     res.status(500).json({ message: errorMessage(err) });
   }

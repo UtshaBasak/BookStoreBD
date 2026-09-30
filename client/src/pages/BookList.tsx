@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { FaBook, FaSearch, FaSyncAlt, FaTrashAlt } from 'react-icons/fa';
+import { FaBook, FaSearch, FaTrashAlt } from 'react-icons/fa';
 
 import type { Id } from '@shared/api.js';
 
@@ -9,13 +9,48 @@ import { useAdminBooks, apiRequest } from '../hooks/queries.js';
 import { useDebounced } from '../hooks/useDebounced.js';
 import PriceTag from '../components/PriceTag.js';
 import Pager from '../components/Pager.js';
+import { FilterSelect, RefreshButton } from './admin/AdminControls.js';
 
 /** Rows per page. Enough to scan, few enough to draw. */
 const PAGE_SIZE = 25;
 
+const TYPES = [
+  { value: '', label: 'New and old' },
+  { value: 'new', label: 'New' },
+  { value: 'old', label: 'Old' },
+];
+const STOCK = [
+  { value: '', label: 'Any stock' },
+  { value: 'in', label: 'In stock' },
+  { value: 'low', label: 'Running low' },
+  { value: 'out', label: 'Sold out' },
+];
+const DEALS = [
+  { value: '', label: 'Any price' },
+  { value: 'yes', label: 'On discount' },
+  { value: 'no', label: 'Full price' },
+];
+const SORTS = [
+  { value: 'newest', label: 'Newest first' },
+  { value: 'oldest', label: 'Oldest first' },
+  { value: 'titleAZ', label: 'Title A-Z' },
+  { value: 'priceLow', label: 'Price: low to high' },
+  { value: 'priceHigh', label: 'Price: high to low' },
+  { value: 'stockLow', label: 'Least stock' },
+];
+
 export default function BookList() {
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(1);
+  const [bookType, setBookType] = useState('');
+  const [stock, setStock] = useState('');
+  const [deals, setDeals] = useState('');
+  const [sort, setSort] = useState('newest');
+  // Any change but the page starts again from the first one.
+  const change = (set: (value: string) => void) => (value: string) => {
+    set(value);
+    setPage(1);
+  };
 
   /*
    * This table used to fetch every listing in the database and every user
@@ -24,7 +59,12 @@ export default function BookList() {
    * seller names that come back are the ones on this page.
    */
   const settledSearch = useDebounced(search);
-  const booksQuery = useAdminBooks({ search: settledSearch || undefined, page, pageSize: PAGE_SIZE });
+  const booksQuery = useAdminBooks({
+    search: settledSearch || undefined,
+    page,
+    pageSize: PAGE_SIZE,
+    filters: { bookType, stock, deals, sort },
+  });
 
   const books = booksQuery.data?.items ?? [];
   const total = booksQuery.data?.total ?? 0;
@@ -32,7 +72,6 @@ export default function BookList() {
   const currentPage = booksQuery.data?.page ?? page;
 
   const loading = booksQuery.isFetching;
-  const fetchData = () => booksQuery.refetch();
 
   const client = useQueryClient();
   const { mutate: deleteBook } = useMutation({
@@ -51,17 +90,9 @@ export default function BookList() {
             </span>
             Book List
           </h2>
-          <p className="admin-lede">Every listing in the shop, newest first, with the seller who owns it.</p>
+          <p className="admin-lede">Every listing in the shop, with the seller who owns it.</p>
         </div>
-        <button
-          type="button"
-          className="btn btn-ghost admin-btn-sm"
-          onClick={fetchData}
-          disabled={loading}
-        >
-          <FaSyncAlt aria-hidden="true" className={loading ? 'admin-spin' : undefined} />
-          {loading ? 'Refreshing...' : 'Refresh'}
-        </button>
+        <RefreshButton onClick={() => void booksQuery.refetch()} busy={loading} />
       </header>
       {/* Search input */}
       <div className="admin-toolbar">
@@ -71,6 +102,7 @@ export default function BookList() {
             type="text"
             className="field"
             placeholder="Search by title, author, or seller..."
+            aria-label="Search listings"
             value={search}
             onChange={(e) => {
               setSearch(e.target.value);
@@ -79,6 +111,10 @@ export default function BookList() {
             }}
           />
         </div>
+        <FilterSelect name="bookType" label="Type" value={bookType} onChange={change(setBookType)} options={TYPES} />
+        <FilterSelect name="stock" label="Stock" value={stock} onChange={change(setStock)} options={STOCK} />
+        <FilterSelect name="deals" label="Discount" value={deals} onChange={change(setDeals)} options={DEALS} />
+        <FilterSelect name="sort" label="Sort" value={sort} onChange={change(setSort)} options={SORTS} />
       </div>
 
       <div className="admin-card">
@@ -142,7 +178,7 @@ export default function BookList() {
             <span className="admin-empty-mark" aria-hidden="true">
               📚
             </span>
-            <p>No listing matches that search.</p>
+            <p>{bookType || stock || deals ? 'No listing matches those filters.' : 'No listing matches that search.'}</p>
           </div>
         )}
       </div>

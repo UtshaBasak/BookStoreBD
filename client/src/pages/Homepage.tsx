@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { FaHeart, FaBell, FaComments, FaShoppingBag, FaSearch } from 'react-icons/fa';
+import { FaHeart, FaComments, FaShoppingBag, FaSearch } from 'react-icons/fa';
 import './Homepage.css';
 
 import type { ChatMessage } from '@shared/api.js';
@@ -16,6 +16,7 @@ import {
 import { promptSignIn, useToast } from '../hooks/useToast.js';
 import { useSeo } from '../hooks/useSeo.js';
 import { site } from '../config/site.js';
+import NotificationBell from '../components/NotificationBell.js';
 import Footer from '../components/Footer.js';
 import HomeShelves from '../components/HomeShelves.js';
 import Logo from '../components/Logo.js';
@@ -174,16 +175,7 @@ export default function Homepage() {
             </Link>
           )}
 
-          <button
-            type="button"
-            className="notification-icon icon-button"
-            style={{ color: '#6d28d9' }}
-            title="Notifications"
-            onClick={() => toast.info('No new notifications.')}
-            aria-label="Notifications"
-          >
-            <FaBell />
-          </button>
+          <NotificationBell />
 
           <Link to="/wishlist"
             className="wishlist-icon icon-button"

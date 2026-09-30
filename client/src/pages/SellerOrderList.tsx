@@ -6,6 +6,9 @@ import type { OrderLine, SellerOrderLine } from '@shared/api.js';
 
 import './Seller.css';
 import Logo from '../components/Logo.js';
+import NotificationBell from '../components/NotificationBell.js';
+import { ORDER_SORTS, ORDER_STATUS_FILTER } from './admin/orderFilters.js';
+import { CANCELLED } from '../utils/orderTotals.js';
 import { useSellerOrders } from '../hooks/queries.js';
 import { useDebounced } from '../hooks/useDebounced.js';
 import Pager from '../components/Pager.js';
@@ -26,9 +29,11 @@ const date = (iso: string | null | undefined) => (iso ? new Date(iso).toLocaleDa
  * to have no way of knowing whether, or when, they would be paid.
  */
 const paymentFor = (lines: SellerOrderLine[]): { text: string; tone: 'good' | 'due' | 'plain' } => {
-  const open = lines.filter((line) => line.payoutState !== 'returned');
+  const open = lines.filter((line) => line.payoutState !== 'returned' && line.status !== CANCELLED);
   if (open.length === 0) {
-    return { text: 'Returned by the buyer: nothing to pay, and no fee.', tone: 'plain' };
+    return lines.every((line) => line.status === CANCELLED)
+      ? { text: 'Cancelled: nothing to pay, and no fee.', tone: 'plain' }
+      : { text: 'Returned by the buyer: nothing to pay, and no fee.', tone: 'plain' };
   }
   if (open.every((line) => line.payoutState === 'paid')) {
     const paid = open[0];
@@ -66,6 +71,8 @@ export default function SellerOrderList() {
   const [search, setSearch] = useState('');
 
   const [page, setPage] = useState(1);
+  const [status, setStatus] = useState('');
+  const [sort, setSort] = useState('newest');
 
   /*
    * This fetched every order this seller has ever had and searched them here,
@@ -76,6 +83,7 @@ export default function SellerOrderList() {
     search: settledSearch || undefined,
     page,
     pageSize: PAGE_SIZE,
+    filters: { status, sort },
   });
 
   const orders = ordersQuery.data?.items ?? [];
@@ -106,9 +114,12 @@ export default function SellerOrderList() {
         <Link to="/" className="sl-logo-link" aria-label={`${site.name} home`}>
           <Logo size={34} />
         </Link>
-        <Link to="/profile?mode=seller" className="btn btn-ghost">
-          ← Return to Profile
-        </Link>
+        <div className="sl-topbar-actions">
+          <NotificationBell />
+          <Link to="/profile?mode=seller" className="btn btn-ghost">
+            ← Return to Profile
+          </Link>
+        </div>
       </header>
 
       <div className="sl-wrap">
@@ -140,6 +151,38 @@ export default function SellerOrderList() {
             />
           </div>
           <div className="sl-toolbar-actions">
+            <label className="sl-filter">
+              <span className="sr-only">Status</span>
+              <select
+                name="status"
+                className="field"
+                value={status}
+                onChange={(e) => {
+                  setStatus(e.target.value);
+                  setPage(1);
+                }}
+              >
+                {ORDER_STATUS_FILTER.map((option) => (
+                  <option key={option.value} value={option.value}>{option.label}</option>
+                ))}
+              </select>
+            </label>
+            <label className="sl-filter">
+              <span className="sr-only">Sort</span>
+              <select
+                name="sort"
+                className="field"
+                value={sort}
+                onChange={(e) => {
+                  setSort(e.target.value);
+                  setPage(1);
+                }}
+              >
+                {ORDER_SORTS.map((option) => (
+                  <option key={option.value} value={option.value}>{option.label}</option>
+                ))}
+              </select>
+            </label>
             <button type="button" onClick={fetchOrders} disabled={refreshing} className="btn btn-ghost">
               <FaSyncAlt aria-hidden="true" /> {refreshing ? 'Refreshing...' : 'Refresh'}
             </button>
@@ -153,22 +196,23 @@ export default function SellerOrderList() {
             <div className="card sl-empty">
               <span className="sl-empty-emoji" aria-hidden="true">🛍️</span>
               <h3>No orders found.</h3>
-              <p>{search ? 'Try a different order number, title or buyer.' : 'When someone buys one of your books, it shows up here.'}</p>
-              {!search && <Link to="/add-book" className="btn btn-accent">List a book</Link>}
+              <p>{search || status ? 'Try a different search or status.' : 'When someone buys one of your books, it shows up here.'}</p>
+              {!search && !status && <Link to="/add-book" className="btn btn-accent">List a book</Link>}
             </div>
           ) : (
             Object.entries(grouped).map(([orderNumber, orderBooks]) => {
               const order = orderBooks[0];
-              const totalCost = orderBooks.reduce((sum, ob) => sum + (Number(ob.price) * Number(ob.quantity)), 0);
-              // A returned book is neither paid for nor charged a fee.
-              const payableTotal = orderBooks
+              const liveBooks = orderBooks.filter((ob) => ob.status !== CANCELLED);
+              const totalCost = liveBooks.reduce((sum, ob) => sum + (Number(ob.price) * Number(ob.quantity)), 0);
+              // A returned or cancelled book is neither paid for nor charged a fee.
+              const payableTotal = liveBooks
                 .filter((ob) => ob.payoutState !== 'returned')
                 .reduce((sum, ob) => sum + (Number(ob.price) * Number(ob.quantity)), 0);
               const payment = paymentFor(orderBooks);
               const displayOrderNumber = order.orderNumber && !/@|T\d{2}:\d{2}/.test(order.orderNumber)
                 ? order.orderNumber
                 : orderNumber;
-              const status = order.status || 'Order Confirmed';
+              const status = liveBooks[0]?.status || (liveBooks.length ? 'Order Confirmed' : CANCELLED);
               return (
                 <article key={orderNumber} className="card sl-card sl-order">
                   <div className="sl-order-head">
@@ -210,8 +254,11 @@ export default function SellerOrderList() {
 
                       <tbody>
                         {orderBooks.map((ob, idx) => (
-                          <tr key={ob._id || idx}>
-                            <td data-label="Title" className="sl-title-cell">{ob.title}</td>
+                          <tr key={ob._id || idx} className={ob.status === CANCELLED ? 'sl-row-cancelled' : undefined}>
+                            <td data-label="Title" className="sl-title-cell">
+                              {ob.title}
+                              {ob.status === CANCELLED && orderBooks.length > 1 && <span className="sl-pill is-bad sl-line-pill">Cancelled</span>}
+                            </td>
                             <td data-label="Author">{ob.author}</td>
                             <td data-label="Category">{Array.isArray(ob.category) ? ob.category.join(', ') : ob.category}</td>
                             <td data-label="Book Type">{ob.bookType}</td>

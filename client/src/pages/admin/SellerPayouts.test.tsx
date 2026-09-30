@@ -23,6 +23,7 @@ const ROW: PayoutRow = {
   fee: 42.5,
   payout: 807.5,
   deliveredAt: '2026-09-01T00:00:00.000Z',
+  payableFrom: '2026-09-08T00:00:00.000Z',
   paidAt: null,
   reference: null,
 };

@@ -9,7 +9,9 @@ import type { MarkPaidBody, PayoutsQuery } from '../schemas/index.js';
 import { validatedQuery } from '../middleware/validate.js';
 import { recordAudit } from '../utils/audit.js';
 import { createLogger } from '../config/logger.js';
-import { returnWindowClosedBefore, sellerFeeFor, sellerPayoutFor } from '../config/commerce.js';
+import { RETURN_WINDOW_DAYS, returnWindowClosedBefore, sellerFeeFor, sellerPayoutFor } from '../config/commerce.js';
+import { contains } from '../utils/regex.js';
+import { notify } from '../utils/notify.js';
 
 const log = createLogger('payout');
 
@@ -28,10 +30,31 @@ export const getPayouts: RequestHandler = async (req, res, next) => {
   try {
     const query = validatedQuery<PayoutsQuery>(req);
     const due = query.state === 'due';
-
-    const match = due
-      ? { status: 'Delivered', sellerPaidAt: null, deliveredAt: { $lte: returnWindowClosedBefore() } }
-      : { sellerPaidAt: { $ne: null } };
+    /*
+     * Three states. "Due": delivered, the return window closed, not yet paid.
+     * "Upcoming": delivered but still inside the window - a sale the page used
+     * to leave out entirely, so that an order delivered today made the page
+     * look empty, and broken, for a week. "Paid": paid.
+     */
+    const pattern = query.search ? contains(query.search) : null;
+    const match = {
+      ...(query.state === 'paid'
+        ? { sellerPaidAt: { $ne: null } }
+        : {
+            status: 'Delivered',
+            sellerPaidAt: null,
+            deliveredAt: due ? { $lte: returnWindowClosedBefore() } : { $gt: returnWindowClosedBefore() },
+          }),
+      ...(pattern ? { $or: [{ orderNumber: pattern }, { sellerEmail: pattern }, { title: pattern }] } : {}),
+    };
+    const order: Record<string, 1 | -1> =
+      query.sort === 'amountHigh'
+        ? { booksTotal: -1 }
+        : query.sort === 'amountLow'
+          ? { booksTotal: 1 }
+          : query.state === 'paid'
+            ? { paidAt: query.sort === 'oldest' ? 1 : -1 }
+            : { deliveredAt: query.sort === 'newest' ? -1 : 1 };
 
     const [result] = await Order.aggregate<{
       items: {
@@ -54,7 +77,7 @@ export const getPayouts: RequestHandler = async (req, res, next) => {
           as: 'returns',
         },
       },
-      ...(due ? [{ $match: { 'returns.status': { $nin: HOLDING_RETURNS } } }] : []),
+      ...(query.state !== 'paid' ? [{ $match: { 'returns.status': { $nin: HOLDING_RETURNS } } }] : []),
       {
         $group: {
           _id: { orderNumber: '$orderNumber', sellerEmail: '$sellerEmail' },
@@ -65,8 +88,8 @@ export const getPayouts: RequestHandler = async (req, res, next) => {
           reference: { $first: '$sellerPayoutRef' },
         },
       },
-      // Oldest debt first; newest payment first.
-      { $sort: due ? { deliveredAt: 1, '_id.orderNumber': 1 } : { paidAt: -1, '_id.orderNumber': 1 } },
+      // By default the oldest debt first, and the newest payment first.
+      { $sort: { ...order, '_id.orderNumber': 1 } },
       {
         $facet: {
           items: [{ $skip: (query.page - 1) * query.pageSize }, { $limit: query.pageSize }],
@@ -94,6 +117,9 @@ export const getPayouts: RequestHandler = async (req, res, next) => {
         fee: sellerFeeFor(group.booksTotal),
         payout: sellerPayoutFor(group.booksTotal),
         deliveredAt: group.deliveredAt?.toISOString() ?? null,
+        payableFrom: group.deliveredAt
+          ? new Date(group.deliveredAt.getTime() + RETURN_WINDOW_DAYS * 24 * 60 * 60 * 1000).toISOString()
+          : null,
         paidAt: group.paidAt?.toISOString() ?? null,
         reference: group.reference || null,
       };
@@ -169,6 +195,13 @@ export const markPayoutPaid = async (
       targetType: 'order',
       targetId: orderNumber,
       details: { sellerEmail, reference, amount, lines: payable.length },
+    });
+
+    await notify([String(sellerEmail)], {
+      type: 'payout',
+      title: `You have been paid ${amount.toFixed(2)} Tk`,
+      body: `For order ${String(orderNumber)}, by bKash. Transaction ID ${String(reference)}.`,
+      link: '/seller-orders',
     });
 
     res.json({ message: `Recorded ${amount.toFixed(2)} Tk paid.`, amount, paidAt: paidAt.toISOString() });

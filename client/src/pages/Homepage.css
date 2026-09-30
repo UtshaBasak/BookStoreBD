@@ -470,11 +470,6 @@
     padding: 0 0.9rem;
     font-size: 0.9rem;
   }
-  /* A placeholder that only ever says "No new notifications": not worth a
-     place in a phone's header. */
-  .notification-icon {
-    display: none;
-  }
 
   .search-bar {
     order: 3;

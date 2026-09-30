@@ -36,6 +36,9 @@ import type {
   FlaggedReview,
   WriteReviewRequest,
   UnreadCountResponse,
+  NotificationPage,
+  SellerShop,
+  CancelOrderRequest,
 } from '@shared/api.js';
 
 import { apiFetch, apiUrl } from '../config/api.js';
@@ -118,6 +121,9 @@ export const keys = {
   reviews: (id: Id | undefined) => ['reviews', id] as const,
   flaggedReviews: (query: string) => ['reviews', 'flagged', query] as const,
   unreadChats: ['chat', 'unread'] as const,
+  notifications: (query: string) => ['notifications', query] as const,
+  allReviews: (query: string) => ['reviews', 'all', query] as const,
+  shop: (username: string | undefined) => ['shop', username] as const,
   chatHistory: ['chat', 'history'] as const,
 };
 
@@ -131,14 +137,10 @@ export const keys = {
  * search what it had in the browser.
  */
 export const useAdminBooks = (
-  params: { search?: string; page?: number; pageSize?: number },
+  params: ListParams,
   options: Partial<QueryOptions<AdminBookPage>> = {}
 ): UseQueryResult<AdminBookPage> => {
-  const query = new URLSearchParams();
-  if (params.search) query.set('search', params.search);
-  if (params.page && params.page > 1) query.set('page', String(params.page));
-  if (params.pageSize) query.set('pageSize', String(params.pageSize));
-  const search = query.toString();
+  const search = listSearch(params);
 
   return useQuery<AdminBookPage, Error, AdminBookPage>({
     queryKey: keys.adminBooks(search),
@@ -167,6 +169,7 @@ export const catalogueSearch = (params: CatalogueParams): string => {
   if (params.rating) query.set('rating', String(params.rating));
   if (params.inStock) query.set('inStock', '1');
   if (params.deals) query.set('deals', '1');
+  if (params.seller) query.set('seller', params.seller);
   if (params.sort) query.set('sort', params.sort);
   if (params.page && params.page > 1) query.set('page', String(params.page));
   if (params.pageSize) query.set('pageSize', String(params.pageSize));
@@ -294,17 +297,36 @@ export const useWishlist = <TData = Book[]>(
     ...options,
   });
 
-/** Adds or removes in one hook, since the UI toggles rather than does one. */
+/**
+ * Adds or removes in one hook, since the UI toggles rather than does one.
+ * Adding with a quantity puts that many copies in; the server refuses more
+ * than are in stock.
+ */
 export const useToggleCart = (): UseMutationResult<
   Book[],
   Error,
-  { bookId: Id; inCart: boolean }
+  { bookId: Id; inCart: boolean; quantity?: number }
 > => {
   const client = useQueryClient();
   return useMutation({
-    mutationFn: ({ bookId, inCart }: { bookId: Id; inCart: boolean }) =>
-      request<Book[]>(`/cart/${inCart ? 'remove' : 'add'}/${bookId}`, json('POST')),
-    onSuccess: () => client.invalidateQueries({ queryKey: keys.cart }),
+    mutationFn: ({ bookId, inCart, quantity }: { bookId: Id; inCart: boolean; quantity?: number }) =>
+      request<Book[]>(
+        `/cart/${inCart ? 'remove' : 'add'}/${bookId}`,
+        json('POST', !inCart && quantity ? { quantity } : undefined)
+      ),
+    onSuccess: (books) => client.setQueryData(keys.cart, books),
+  });
+};
+
+/** How many copies of a book already in the cart. */
+export const useSetCartQuantity = (): UseMutationResult<Book[], Error, { bookId: Id; quantity: number }> => {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: ({ bookId, quantity }: { bookId: Id; quantity: number }) =>
+      request<Book[]>(`/cart/${bookId}`, json('PATCH', { quantity })),
+    onSuccess: (books) => client.setQueryData(keys.cart, books),
+    // Refused (not enough stock) or failed: read the cart as it really is.
+    onError: () => client.invalidateQueries({ queryKey: keys.cart }),
   });
 };
 
@@ -416,6 +438,13 @@ export const useFlaggedReviews = (
 ): UseQueryResult<Page<FlaggedReview>> =>
   useQuery(pagedQuery<FlaggedReview>('/review/flagged', keys.flaggedReviews, params, options));
 
+/** Every review, for the administrator's Reviews page. */
+export const useAllReviews = (
+  params: ListParams = {},
+  options: Partial<QueryOptions<Page<FlaggedReview>>> = {}
+): UseQueryResult<Page<FlaggedReview>> =>
+  useQuery(pagedQuery<FlaggedReview>('/review/all', keys.allReviews, params, options));
+
 /** Clears the reports and leaves the review where it is. */
 export const useDismissFlags = (): UseMutationResult<MessageResponse, Error, Id> => {
   const client = useQueryClient();
@@ -439,7 +468,8 @@ export const useRemoveReview = (): UseMutationResult<
         `/review/${bookId}?email=${encodeURIComponent(reviewerEmail)}`,
         json('DELETE')
       ),
-    onSuccess: () => client.invalidateQueries({ queryKey: ['reviews', 'flagged'] }),
+    // Both administrator lists: the reported queue and every review.
+    onSuccess: () => client.invalidateQueries({ queryKey: ['reviews'] }),
   });
 };
 
@@ -469,6 +499,9 @@ export const listSearch = (params: ListParams): string => {
   if (params.search) query.set('search', params.search);
   if (params.page && params.page > 1) query.set('page', String(params.page));
   if (params.pageSize) query.set('pageSize', String(params.pageSize));
+  for (const [key, value] of Object.entries(params.filters ?? {})) {
+    if (value !== undefined && value !== '') query.set(key, String(value));
+  }
   return query.toString();
 };
 
@@ -500,13 +533,10 @@ export const useSellerOrders = (
 
 /** What sellers are owed, or have been paid: one row per seller per order. */
 export const usePayouts = (
-  params: { state: 'due' | 'paid'; page?: number; pageSize?: number },
+  params: ListParams & { state: 'due' | 'upcoming' | 'paid' },
   options: Partial<QueryOptions<PayoutPage>> = {}
 ): UseQueryResult<PayoutPage> => {
-  const query = new URLSearchParams({ state: params.state });
-  if (params.page && params.page > 1) query.set('page', String(params.page));
-  if (params.pageSize) query.set('pageSize', String(params.pageSize));
-  const search = query.toString();
+  const search = listSearch({ ...params, filters: { state: params.state, ...params.filters } });
   return useQuery({
     queryKey: keys.payouts(search),
     queryFn: () => request<PayoutPage>(`/order/admin/payouts?${search}`),
@@ -544,6 +574,23 @@ export const useOrder = <TData = OrderDetail>(
     enabled: Boolean(orderNumber),
     ...options,
   });
+
+/** Calls an order off - the buyer's, a seller's books in it, or an administrator's. */
+export const useCancelOrder = (
+  orderNumber: string | undefined
+): UseMutationResult<MessageResponse, Error, CancelOrderRequest | void> => {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: (body: CancelOrderRequest | void) =>
+      request<MessageResponse>(`/order/${orderNumber}/cancel`, json('POST', body ?? {})),
+    onSuccess: () => {
+      void client.invalidateQueries({ queryKey: keys.order(orderNumber) });
+      void client.invalidateQueries({ queryKey: ['orders'] });
+      void client.invalidateQueries({ queryKey: ['catalogue'] });
+      void client.invalidateQueries({ queryKey: ['notifications'] });
+    },
+  });
+};
 
 export const useUpdateOrderStatus = (
   orderNumber: string | undefined
@@ -583,14 +630,10 @@ export const useProfile = <TData = ProfileResponse>(
  * response carried every user's photograph to draw a table of three columns.
  */
 export const useUsers = (
-  params: { search?: string; page?: number; pageSize?: number } = {},
+  params: ListParams = {},
   options: Partial<QueryOptions<AdminUserPage>> = {}
 ): UseQueryResult<AdminUserPage> => {
-  const query = new URLSearchParams();
-  if (params.search) query.set('search', params.search);
-  if (params.page && params.page > 1) query.set('page', String(params.page));
-  if (params.pageSize) query.set('pageSize', String(params.pageSize));
-  const search = query.toString();
+  const search = listSearch(params);
 
   return useQuery<AdminUserPage, Error, AdminUserPage>({
     queryKey: keys.users(search),
@@ -642,3 +685,39 @@ export const useUnreadChatCount = <TData = UnreadCountResponse>(
   });
 
 export { request as apiRequest };
+
+// ---------------------------------------------------------------------------
+// Notifications and shops
+// ---------------------------------------------------------------------------
+
+/** A page of the signed-in person's notifications, and how many are unread. */
+export const useNotifications = (
+  params: { page?: number; pageSize?: number; unreadOnly?: boolean } = {},
+  options: Partial<QueryOptions<NotificationPage>> = {}
+): UseQueryResult<NotificationPage> => {
+  const search = listSearch({ page: params.page, pageSize: params.pageSize, filters: { unreadOnly: params.unreadOnly ? '1' : undefined } });
+  return useQuery<NotificationPage, Error, NotificationPage>({
+    queryKey: keys.notifications(search),
+    queryFn: () => request<NotificationPage>(`/notification${search ? `?${search}` : ''}`),
+    enabled: Boolean(getUserEmail()),
+    placeholderData: keepPreviousData,
+    ...options,
+  });
+};
+
+/** Marks some notifications read, or with no ids, all of them. */
+export const useMarkNotificationsRead = (): UseMutationResult<MessageResponse, Error, Id[] | void> => {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: (ids: Id[] | void) => request<MessageResponse>('/notification/read', json('POST', ids ? { ids } : {})),
+    onSuccess: () => client.invalidateQueries({ queryKey: ['notifications'] }),
+  });
+};
+
+/** A seller's shop front. */
+export const useShop = (username: string | undefined): UseQueryResult<SellerShop> =>
+  useQuery<SellerShop, Error, SellerShop>({
+    queryKey: keys.shop(username),
+    queryFn: () => request<SellerShop>(`/user/shop/${encodeURIComponent(username ?? '')}`),
+    enabled: Boolean(username),
+  });

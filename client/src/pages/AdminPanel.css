@@ -1025,3 +1025,97 @@
     align-items: stretch;
   }
 }
+
+/* Filters and sorts on the toolbar, beside the search box. */
+.admin-filter {
+  display: inline-flex;
+  flex: 0 1 auto;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.admin-filter-label {
+  padding-left: 12px;
+  color: var(--color-ink-muted);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+.admin-filter .field {
+  width: auto;
+  min-width: 150px;
+  max-width: 100%;
+  min-height: 42px;
+  padding-right: 32px;
+  border-radius: 999px;
+}
+.admin-toolbar .admin-search {
+  align-self: flex-end;
+}
+.admin-date {
+  min-width: 150px;
+}
+@media (max-width: 640px) {
+  .admin-filter {
+    flex: 1 1 45%;
+  }
+  .admin-filter .field {
+    width: 100%;
+    min-width: 0;
+  }
+}
+
+/* The logo is a link home. */
+.admin-brand-link {
+  display: inline-flex;
+  border-radius: 10px;
+  text-decoration: none;
+}
+.admin-brand-link:focus-visible {
+  outline: 2px solid #fff;
+  outline-offset: 3px;
+}
+/* The bell sits on the dark sidebar, so its icon is light. */
+.admin-bell {
+  display: inline-flex;
+}
+.admin-bell .icon-button {
+  color: #fff !important;
+}
+.admin-bell .icon-button:hover {
+  background: rgba(255, 255, 255, 0.12);
+}
+
+/* A cancelled book stays in the table, struck through, because it happened. */
+.admin-row-cancelled td {
+  color: var(--color-ink-muted);
+  text-decoration: line-through;
+}
+.admin-row-cancelled td .admin-line-pill {
+  text-decoration: none;
+}
+.admin-line-pill {
+  margin-left: 8px;
+  vertical-align: middle;
+}
+.admin-panel-card .co-cancelled {
+  margin-top: 16px;
+}
+
+/* A short explanation above a list, where the list alone would puzzle. */
+.admin-note {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin: 0 0 14px;
+  padding: 12px 16px;
+  border-radius: 14px;
+  background: #fff7ed;
+  color: #9a3412;
+  font-size: 0.92rem;
+}
+.admin-note svg {
+  flex: none;
+  margin-top: 3px;
+}

@@ -1,5 +1,5 @@
 import { useState, type ChangeEvent, type FormEvent } from 'react';
-import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
+import { Link, useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { FaCalendarCheck, FaMoneyBillWave, FaTruck, FaUndoAlt } from 'react-icons/fa';
 
 import type { MessageResponse } from '@shared/api.js';
@@ -23,6 +23,8 @@ const BD_MOBILE = /^01[3-9]\d{8}$/;
 /** What the orders page passes along, when the form is reached from it. */
 interface ReturnState {
   bookTitle?: string;
+  /** Every title, when a whole order is being sent back. */
+  bookTitles?: string[];
   returnableUntil?: string | null;
 }
 
@@ -34,7 +36,16 @@ export default function DescriptionForm() {
   const [bkash, setBkash] = useState('');
   // The order line, not the book: the same title can be bought twice.
   const { orderId } = useParams();
-  const { bookTitle, returnableUntil } = (useLocation().state ?? {}) as ReturnState;
+  // A whole order: every line in it that can still go back, in the address
+  // so a reload keeps them. One description, one set of photographs and one
+  // bKash number cover them all.
+  const [params] = useSearchParams();
+  const lineIds = [
+    ...new Set([orderId ?? '', ...(params.get('lines') ?? '').split(',')].map((id) => id.trim()).filter(Boolean)),
+  ];
+  const { bookTitle, bookTitles, returnableUntil } = (useLocation().state ?? {}) as ReturnState;
+  const titles = bookTitles?.length ? bookTitles : bookTitle ? [bookTitle] : [];
+  const several = lineIds.length > 1;
   const navigate = useNavigate();
   const toast = useToast();
 
@@ -55,7 +66,7 @@ export default function DescriptionForm() {
     e.preventDefault();
 
     if (!description.trim()) {
-      toast.warning('Please describe what is wrong with the book.');
+      toast.warning(several ? 'Please describe what is wrong with the books.' : 'Please describe what is wrong with the book.');
       return;
     }
 
@@ -82,7 +93,7 @@ export default function DescriptionForm() {
       });
 
       const form = new FormData();
-      form.append('orderId', orderId ?? '');
+      lineIds.forEach((id) => form.append('orderId', id));
       form.append('defectDescription', description);
       form.append('refundBkash', normaliseMobile(bkash));
 
@@ -141,15 +152,20 @@ export default function DescriptionForm() {
             >
               <FaUndoAlt />
             </div>
-            <h1 className="m-0" style={{ fontSize: 'clamp(1.6rem, 1.2rem + 1.6vw, 2.1rem)' }}>Return a book</h1>
-            {bookTitle && (
-              <p className="m-0 mt-2">
-                <span
-                  className="inline-block rounded-full px-4 py-1 font-bold"
-                  style={{ background: '#f3efff', color: '#5b21b6', overflowWrap: 'anywhere' }}
-                >
-                  {bookTitle}
-                </span>
+            <h1 className="m-0" style={{ fontSize: 'clamp(1.6rem, 1.2rem + 1.6vw, 2.1rem)' }}>
+              {several ? `Return ${lineIds.length} books` : 'Return a book'}
+            </h1>
+            {titles.length > 0 && (
+              <p className="m-0 mt-2 flex flex-wrap justify-center gap-2">
+                {titles.map((title, index) => (
+                  <span
+                    key={`${title}-${index}`}
+                    className="inline-block rounded-full px-4 py-1 font-bold"
+                    style={{ background: '#f3efff', color: '#5b21b6', overflowWrap: 'anywhere' }}
+                  >
+                    {title}
+                  </span>
+                ))}
               </p>
             )}
           </div>
@@ -184,7 +200,7 @@ export default function DescriptionForm() {
           </ul>
 
           <form onSubmit={handleSubmit}>
-            <h2 className="m-0 mb-4 text-xl">What is wrong with it?</h2>
+            <h2 className="m-0 mb-4 text-xl">{several ? 'What is wrong with them?' : 'What is wrong with it?'}</h2>
             <label htmlFor="defect" className="mb-1.5 block text-sm font-semibold text-ink-soft">
               Describe the problem
             </label>
@@ -193,7 +209,7 @@ export default function DescriptionForm() {
               className="field mb-4"
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              placeholder="Describe the issue with the book..."
+              placeholder={several ? 'Describe the issue with each book...' : 'Describe the issue with the book...'}
               rows={5}
               style={{ minHeight: 130, padding: '12px 14px', resize: 'vertical' }}
             />

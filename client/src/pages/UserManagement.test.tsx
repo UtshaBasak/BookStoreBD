@@ -99,6 +99,18 @@ describe('what it asks for', () => {
 
     expect(await askedFor('page=2')).toContain('page=2');
   });
+
+  it('the kind of account and the order chosen', async () => {
+    stubFetch();
+    renderPage();
+    await screen.findByText('Ayesha Rahman');
+
+    await userEvent.selectOptions(screen.getByRole('combobox', { name: /show/i }), 'sellers');
+    await userEvent.selectOptions(screen.getByRole('combobox', { name: /sort/i }), 'nameAZ');
+
+    const url = await askedFor('sort=nameAZ');
+    expect(url).toContain('kind=sellers');
+  });
 });
 
 describe('what it shows', () => {

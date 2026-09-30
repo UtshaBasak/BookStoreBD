@@ -4,11 +4,13 @@ import { useNavigate, Link } from 'react-router-dom';
 import type { Book } from '@shared/api.js';
 
 import Logo from '../components/Logo.js';
+import NotificationBell from '../components/NotificationBell.js';
+import QuantityStepper from '../components/QuantityStepper.js';
 import PriceTag from '../components/PriceTag.js';
 import { priceOf } from '../utils/pricing.js';
 import { API_BASE_URL } from '../config/api.js';
 import { site } from '../config/site.js';
-import { useCart, useToggleCart, useToggleWishlist, useWishlist } from '../hooks/queries.js';
+import { useCart, useSetCartQuantity, useToggleCart, useToggleWishlist, useWishlist } from '../hooks/queries.js';
 import { promptSignIn, useToast } from '../hooks/useToast.js';
 import { getUserEmail } from '../utils/auth.js';
 import { flagsFor } from '../utils/bookFlags.js';
@@ -25,6 +27,7 @@ function CartTopBar() {
         <Logo size={34} />
       </Link>
       <div className="user-options">
+        <NotificationBell />
         <Link to="/wishlist" className="icon-link" title="Go to Wishlist" aria-label="Go to Wishlist" style={{ color: '#ff5c35' }}>
           <FaHeart size={20} />
         </Link>
@@ -51,6 +54,7 @@ export default function Cart() {
   // from the cache instead of from each response individually.
   const { mutate: toggleCart } = useToggleCart();
   const { mutate: toggleWishlist } = useToggleWishlist();
+  const { mutate: setQuantity, isPending: savingQuantity } = useSetCartQuantity();
 
   const handleRemoveFromCart = (id: string) => {
     toggleCart({ bookId: id, inCart: true });
@@ -77,9 +81,13 @@ export default function Cart() {
     return `${API_BASE_URL}/uploads/${img}`;
   };
 
-  // One of each: how many of a book is chosen at checkout, where the stock is
-  // checked, so this is what the basket comes to before that.
-  const subtotal = cartBooks.reduce((sum, book) => sum + priceOf(book), 0);
+  // A sold-out book stays in the cart - it may come back - but is not part of
+  // what the basket costs, and checkout leaves it out.
+  const inStock = (book: Book) => Number(book.stock) > 0;
+  const copies = (book: Book) => Math.max(1, Math.min(book.cartQuantity ?? 1, Number(book.stock) || 1));
+  const buyable = cartBooks.filter(inStock);
+  const copyCount = buyable.reduce((sum, book) => sum + copies(book), 0);
+  const subtotal = buyable.reduce((sum, book) => sum + priceOf(book) * copies(book), 0);
 
   if (!userEmail) {
     return (
@@ -142,14 +150,16 @@ export default function Cart() {
           <div className="grid items-start gap-5 lg:grid-cols-[minmax(0,1fr)_360px]">
             <ul className="m-0 grid list-none gap-3 p-0">
               {cartBooks.map((book) => (
-                <li key={book._id} className="card cart-item">
-                  <img
-                    loading="lazy"
-                    decoding="async"
-                    src={getBookImageSrc(book)}
-                    alt={book.title}
-                    className="cart-cover"
-                  />
+                <li key={book._id} className={`card cart-item${inStock(book) ? '' : ' is-sold-out'}`}>
+                  <Link to={`/book/${book._id}`} className="shrink-0" tabIndex={-1} aria-hidden="true">
+                    <img
+                      loading="lazy"
+                      decoding="async"
+                      src={getBookImageSrc(book)}
+                      alt=""
+                      className="cart-cover"
+                    />
+                  </Link>
 
                   <div className="flex min-w-0 flex-1 flex-col">
                     <div className="flex items-start justify-between gap-2">
@@ -165,7 +175,9 @@ export default function Cart() {
                             {book.bookType === 'old' ? 'Used' : book.bookType.toUpperCase()}
                           </span>
                         )}
-                        <h2 className="cart-item-title">{book.title}</h2>
+                        <h2 className="cart-item-title">
+                          <Link to={`/book/${book._id}`}>{book.title}</Link>
+                        </h2>
                         <p className="m-0 mt-0.5 text-sm text-ink-muted">by {book.author}</p>
                       </div>
 
@@ -186,10 +198,37 @@ export default function Cart() {
                       {Array.isArray(book.category) ? book.category.join(', ') : (book.category || 'N/A')}
                     </p>
 
+                    {!inStock(book) ? (
+                      <p role="status" className="cart-note is-out">
+                        Sold out. It stays here, and you can order it when it is back.
+                      </p>
+                    ) : book.cartAdjusted ? (
+                      <p role="status" className="cart-note">
+                        Only {book.stock} left, so we lowered your quantity to {copies(book)}.
+                      </p>
+                    ) : Number(book.stock) <= 5 ? (
+                      <p className="cart-note">Only {book.stock} left.</p>
+                    ) : null}
+
                     <div className="mt-auto flex flex-wrap items-center justify-between gap-2 pt-3">
                       <span className="text-xl">
                         <PriceTag book={book} size="md" />
                       </span>
+
+                      {inStock(book) && (
+                        <QuantityStepper
+                          value={copies(book)}
+                          max={Number(book.stock)}
+                          onChange={(quantity) =>
+                            setQuantity(
+                              { bookId: book._id, quantity },
+                              { onError: (err) => toast.error(err.message || 'Could not change the quantity.') }
+                            )
+                          }
+                          disabled={savingQuantity}
+                          label={`Copies of ${book.title}`}
+                        />
+                      )}
 
                       {/* Remove from cart */}
                       <button
@@ -212,7 +251,7 @@ export default function Cart() {
             <aside className="card p-5 sm:p-6 lg:sticky lg:top-24" aria-label="Order summary">
               <h2 className="m-0 mb-3 text-lg">Order summary</h2>
               <div className="sum-row">
-                <span>Subtotal ({cartBooks.length} book{cartBooks.length === 1 ? '' : 's'})</span>
+                <span>Subtotal ({copyCount} book{copyCount === 1 ? '' : 's'})</span>
                 <span>৳{subtotal.toFixed(2)}</span>
               </div>
               <div className="sum-row">
@@ -220,8 +259,8 @@ export default function Cart() {
                 <span className="text-sm">Worked out at checkout</span>
               </div>
               <p className="m-0 text-xs leading-relaxed text-ink-muted">
-                {site.delivery.insideDhaka} Tk inside Dhaka, {site.delivery.outsideDhaka} Tk elsewhere. Choose how
-                many of each book at checkout.
+                {site.delivery.insideDhaka} Tk inside Dhaka, {site.delivery.outsideDhaka} Tk elsewhere.
+                {buyable.length < cartBooks.length && ' Sold-out books are not included.'}
               </p>
               <div className="sum-total">
                 <span>Total</span>
@@ -229,12 +268,18 @@ export default function Cart() {
               </div>
 
               {/* Proceed to Checkout Button */}
-              <Link to="/payment"
-                className="btn btn-accent mt-5 w-full"
-                style={{ minHeight: 52, fontSize: 17 }}
-              >
-                Proceed to Checkout
-              </Link>
+              {buyable.length > 0 ? (
+                <Link to="/payment"
+                  className="btn btn-accent mt-5 w-full"
+                  style={{ minHeight: 52, fontSize: 17 }}
+                >
+                  Proceed to Checkout
+                </Link>
+              ) : (
+                <button type="button" className="btn btn-accent mt-5 w-full" style={{ minHeight: 52, fontSize: 17 }} disabled>
+                  Nothing in stock to check out
+                </button>
+              )}
               <Link to="/filter" className="btn btn-ghost mt-2 w-full">
                 Continue shopping
               </Link>

@@ -231,11 +231,13 @@ router.post(
         });
 
         await newMessage.save();
-        res.status(201).json(newMessage);
 
-        // Live to the receiver, as the thread's own endpoint describes it: the
-        // picture as an address to fetch, not the base64 on the record.
-        deliverChatMessage({
+        // As the thread's own endpoint describes a message, to the sender and
+        // live to the receiver alike: the picture as an address to fetch, not
+        // the base64 on the record. The sender was sent the base64, which the
+        // chat window cannot show, so their own picture said "attachment
+        // unavailable" until the thread was reloaded.
+        const wire = {
             _id: String(newMessage._id),
             sender,
             receiver,
@@ -243,7 +245,9 @@ router.post(
             image: imageData ? `${API_PREFIX}/chat/messages/${String(newMessage._id)}/image` : null,
             timestamp: newMessage.timestamp.toISOString(),
             read: false,
-        });
+        };
+        res.status(201).json(wire);
+        deliverChatMessage(wire);
     } catch (error) {
         log.error({ err: error }, 'Chat message error');
         res.status(500).json({ message: errorMessage(error) });

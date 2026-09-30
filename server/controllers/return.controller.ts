@@ -16,6 +16,7 @@ import { API_PREFIX } from '../config/apiPaths.js';
 import { createLogger } from '../config/logger.js';
 import { recordAudit } from '../utils/audit.js';
 import { RETURN_WINDOW_DAYS, returnDeadline } from '../config/commerce.js';
+import { adminEmails, notify } from '../utils/notify.js';
 
 const log = createLogger('return');
 
@@ -34,30 +35,43 @@ export const returnBook = async (
      * asking had bought the book, and the three-day limit lived only in the
      * browser, so a request for any book at any time was accepted.
      */
-    const line = await Order.findOne({
-      _id: String(req.body.orderId),
-      buyerEmail: String(userEmail),
-    }).lean();
-    if (!line) {
+    /*
+     * One book, or a whole order: every line has to be the buyer's own,
+     * delivered, inside its window and not already on its way back. If any
+     * one is not, nothing is requested - half an order returned by accident
+     * is worse than being told which book held it up.
+     */
+    const ids = [...new Set(req.body.orderId.map(String))];
+    const lines = await Order.find({ _id: { $in: ids }, buyerEmail: String(userEmail) }).lean();
+    if (lines.length !== ids.length) {
       res.status(404).json({ message: 'Order not found' });
       return;
     }
 
-    const deadline = returnDeadline(line);
-    if (!deadline) {
-      res.status(409).json({ message: 'A return can be requested once the order has been delivered.' });
-      return;
-    }
-    if (deadline.getTime() < Date.now()) {
-      res.status(409).json({
-        message: `The ${String(RETURN_WINDOW_DAYS)}-day return window for this order has closed.`,
-      });
-      return;
-    }
-
-    if (await ReturnRequest.exists({ orderId: line._id })) {
-      res.status(409).json({ message: 'A return has already been requested for this book.' });
-      return;
+    const already = new Set(
+      (await ReturnRequest.find({ orderId: { $in: lines.map((l) => l._id) } }, { orderId: 1 }).lean()).map((r) =>
+        String(r.orderId)
+      )
+    );
+    for (const line of lines) {
+      const name = lines.length > 1 ? `"${line.title || 'A book'}"` : 'this order';
+      const deadline = returnDeadline(line);
+      if (!deadline) {
+        res.status(409).json({ message: `A return can be requested once ${name} has been delivered.` });
+        return;
+      }
+      if (deadline.getTime() < Date.now()) {
+        res.status(409).json({
+          message: `The ${String(RETURN_WINDOW_DAYS)}-day return window for ${name} has closed.`,
+        });
+        return;
+      }
+      if (already.has(String(line._id))) {
+        res.status(409).json({
+          message: lines.length > 1 ? `A return has already been requested for ${name}.` : 'A return has already been requested for this book.',
+        });
+        return;
+      }
     }
 
     /*
@@ -72,29 +86,46 @@ export const returnBook = async (
     const uploaded = collectImages(req);
 
     // Copied from the order rather than the listing, which may since have
-    // been edited or taken down.
-    const returnRequest = new ReturnRequest({
-      orderId: line._id,
-      orderNumber: line.orderNumber,
-      bookId: line.bookId,
-      bookTitle: line.title || 'Untitled',
-      userEmail,
-      sellerEmail: line.sellerEmail,
-      defectDescription,
-      refundBkash,
-      images: uploaded.images,
-      imagePublicIds: uploaded.publicIds,
-      status: 'pending'
+    // been edited or taken down. One request per book, so each can be decided
+    // on its own, all carrying the same description and photographs.
+    const created = await ReturnRequest.insertMany(
+      lines.map((line) => ({
+        orderId: line._id,
+        orderNumber: line.orderNumber,
+        bookId: line.bookId,
+        bookTitle: line.title || 'Untitled',
+        userEmail,
+        sellerEmail: line.sellerEmail,
+        defectDescription,
+        refundBkash,
+        images: uploaded.images,
+        imagePublicIds: uploaded.publicIds,
+        status: 'pending',
+      }))
+    );
+
+    // Update the order status
+    await Order.updateMany({ _id: { $in: lines.map((line) => line._id) } }, { isReturned: 1 });
+
+    const titles = lines.map((line) => line.title || 'A book').join(', ');
+    const orderNumber = lines[0]?.orderNumber ?? '';
+    await notify([...new Set(lines.map((line) => line.sellerEmail))], {
+      type: 'return-requested',
+      title: `A buyer wants to return ${titles}`,
+      body: `Order ${orderNumber}: "${defectDescription.slice(0, 120)}"`,
+      link: `/seller/order-tracking/${orderNumber}`,
+    });
+    await notify(await adminEmails(), {
+      type: 'return-requested',
+      title: `Return requested: ${titles}`,
+      body: `Order ${orderNumber}. Decide it in Return Management.`,
+      link: '/admin/returns',
     });
 
-    await returnRequest.save();
-    
-    // Update the order status
-    await Order.updateOne({ _id: line._id }, { isReturned: 1 });
-
-    res.status(200).json({ 
-      message: 'Return request submitted successfully',
-      returnId: returnRequest._id
+    res.status(200).json({
+      message: lines.length > 1 ? `Return requested for ${lines.length} books` : 'Return request submitted successfully',
+      returnId: created[0]?._id,
+      returnIds: created.map((request) => request._id),
     });
   } catch (error) {
     log.error({ err: error }, 'Failed to process return request');
@@ -120,6 +151,7 @@ export const getReturnRequests: RequestHandler = async (req, res) => {
     const pattern = query.search ? contains(query.search) : null;
     const filter: Record<string, unknown> = {
       ...(actor.role === 'admin' ? {} : { userEmail: actor.email }),
+      ...(query.status ? { status: query.status } : {}),
       ...(pattern
         ? {
             $or: [
@@ -134,7 +166,7 @@ export const getReturnRequests: RequestHandler = async (req, res) => {
 
     const [requests, total] = await Promise.all([
       ReturnRequest.find(filter)
-        .sort({ createdAt: -1, _id: -1 })
+        .sort(query.sort === 'oldest' ? { createdAt: 1, _id: 1 } : { createdAt: -1, _id: -1 })
         .skip((query.page - 1) * query.pageSize)
         .limit(query.pageSize)
         .lean(),
@@ -215,6 +247,25 @@ export const updateReturnStatus = async (
     if (!updatedRequest) {
       res.status(404).json({ message: 'Return request not found' });
       return;
+    }
+
+    if (status !== 'pending') {
+      const decided = status === 'approved' ? 'approved' : 'turned down';
+      await notify([updatedRequest.userEmail], {
+        type: 'return-decided',
+        title: `Your return of "${updatedRequest.bookTitle}" was ${decided}`,
+        body:
+          status === 'approved'
+            ? 'Send the book back to us; the refund goes to your bKash within 15 working days of it arriving.'
+            : 'Write to support if you would like to know why.',
+        link: '/buyer-books',
+      });
+      await notify([updatedRequest.sellerEmail], {
+        type: 'return-decided',
+        title: `The return of "${updatedRequest.bookTitle}" was ${decided}`,
+        body: `Order ${updatedRequest.orderNumber}.`,
+        link: '/seller-orders',
+      });
     }
 
     await recordAudit(req, {

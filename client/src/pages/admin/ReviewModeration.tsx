@@ -1,10 +1,12 @@
 import { useState } from 'react';
-import { FaCheck, FaFlag, FaTrashAlt } from 'react-icons/fa';
+import { FaCheck, FaFlag, FaSearch, FaTrashAlt } from 'react-icons/fa';
 
 import type { Id } from '@shared/api.js';
 
 import { useDismissFlags, useFlaggedReviews, useRemoveReview } from '../../hooks/queries.js';
 import { useToast } from '../../hooks/useToast.js';
+import { useDebounced } from '../../hooks/useDebounced.js';
+import { FilterSelect, RefreshButton } from './AdminControls.js';
 import { messageOf } from '../../utils/apiError.js';
 import Pager from '../../components/Pager.js';
 import { Stars } from '../../components/Stars.js';
@@ -12,6 +14,18 @@ import '../AdminPanel.css';
 
 /** Reports per page. */
 const PAGE_SIZE = 25;
+
+const SORTS = [
+  { value: 'mostReported', label: 'Most reported' },
+  { value: 'newest', label: 'Newest first' },
+  { value: 'oldest', label: 'Oldest first' },
+  { value: 'ratingLow', label: 'Lowest rating' },
+  { value: 'ratingHigh', label: 'Highest rating' },
+];
+const STARS = [
+  { value: '', label: 'Any stars' },
+  ...[5, 4, 3, 2, 1].map((n) => ({ value: String(n), label: `${'★'.repeat(n)} (${n})` })),
+];
 
 const when = (value?: string): string =>
   value ? new Date(value).toLocaleDateString(undefined, { dateStyle: 'medium' }) : '';
@@ -29,9 +43,22 @@ const when = (value?: string): string =>
  */
 export default function ReviewModeration() {
   const [page, setPage] = useState(1);
+  const [search, setSearch] = useState('');
+  const [sort, setSort] = useState('mostReported');
+  const [rating, setRating] = useState('');
+  const settled = useDebounced(search);
   const toast = useToast();
 
-  const query = useFlaggedReviews({ page, pageSize: PAGE_SIZE });
+  const query = useFlaggedReviews({
+    search: settled || undefined,
+    page,
+    pageSize: PAGE_SIZE,
+    filters: { sort, rating },
+  });
+  const change = (set: (value: string) => void) => (value: string) => {
+    set(value);
+    setPage(1);
+  };
   const reviews = query.data?.items ?? [];
   const total = query.data?.total ?? 0;
   const pageCount = query.data?.pageCount ?? 1;
@@ -56,8 +83,6 @@ export default function ReviewModeration() {
     }
   };
 
-  if (query.isPending) return <div className="admin-loading">Loading...</div>;
-  if (query.error) return <div className="admin-alert">Error: {query.error.message}</div>;
 
   return (
     <div className="admin-page">
@@ -74,14 +99,36 @@ export default function ReviewModeration() {
             remove it if it breaks the rules.
           </p>
         </div>
+        <RefreshButton onClick={() => void query.refetch()} busy={query.isFetching} />
       </header>
 
-      {reviews.length === 0 ? (
+      <div className="admin-toolbar">
+        <div className="admin-search">
+          <FaSearch className="admin-search-icon" aria-hidden="true" />
+          <input
+            name="q"
+            type="text"
+            className="field"
+            placeholder="Search words, reviewer or book..."
+            aria-label="Search reported reviews"
+            value={search}
+            onChange={(e) => change(setSearch)(e.target.value)}
+          />
+        </div>
+        <FilterSelect name="sort" label="Sort" value={sort} onChange={change(setSort)} options={SORTS} />
+        <FilterSelect name="rating" label="Stars" value={rating} onChange={change(setRating)} options={STARS} />
+      </div>
+
+      {query.isPending ? (
+        <div className="admin-loading">Loading...</div>
+      ) : query.error ? (
+        <div className="admin-alert">Error: {query.error.message}</div>
+      ) : reviews.length === 0 ? (
         <div className="admin-card admin-empty">
           <span className="admin-empty-mark" aria-hidden="true">
             ✨
           </span>
-          <p>Nothing has been reported.</p>
+          <p>{settled || rating ? 'No reported review matches.' : 'Nothing has been reported.'}</p>
         </div>
       ) : (
         <ul className="admin-reviews">

@@ -6,6 +6,9 @@ import { adminBookList, getBookById, getBookCover } from '../controllers/book.co
 import { actingUser, requireAdmin, requireAuth } from '../middleware/auth.js';
 import { destroyAssets } from '../config/cloudinary.js';
 import { discountProblem } from '../config/pricing.js';
+import Wishlist from '../models/Wishlist.model.js';
+import User from '../models/user.model.js';
+import { notify } from '../utils/notify.js';
 import { errorMessage } from '../utils/error.js';
 import { LIST_IMAGE_PROJECTION, withCoverUrls } from '../utils/projections.js';
 import { validate } from '../middleware/validate.js';
@@ -95,10 +98,8 @@ router.put(
       book.stock = stock;
       await book.save();
 
-      // A listing that is out of stock should not sit in anyone's cart.
-      if (book.stock === 0) {
-        await Cart.deleteMany({ book: book._id });
-      }
+      // A sold-out book stays in the carts it is in, marked sold out there,
+      // rather than vanishing from under the people who chose it.
 
       res.status(200).json({ message: 'Stock updated', book });
     } catch (error) {
@@ -149,9 +150,22 @@ router.put(
         return;
       }
 
+      const before = Number(book.discountPercent) || 0;
       book.discountType = discount.type;
       book.discountValue = discount.value;
       await book.save();
+
+      // A deal, or a better one, is worth telling the people who saved the book.
+      if (Number(book.discountPercent) > before && Number(book.stock) > 0) {
+        const savers = await Wishlist.distinct('user', { book: book._id });
+        const emails = (await User.find({ _id: { $in: savers } }, { email: 1 }).lean()).map((user) => user.email);
+        await notify(emails, {
+          type: 'deal',
+          title: `"${book.title}" is now ${book.discountPercent}% off`,
+          body: `${book.salePrice} Tk instead of ${book.price} Tk - a book on your wishlist.`,
+          link: `/book/${String(book._id)}`,
+        });
+      }
 
       res.status(200).json({ message: discount.type ? 'Discount saved' : 'Discount removed', book });
     } catch (error) {

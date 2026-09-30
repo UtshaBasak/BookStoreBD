@@ -1,20 +1,40 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { FaCheck, FaMoneyBillWave } from 'react-icons/fa';
+import { FaCheck, FaHourglassHalf, FaMoneyBillWave, FaSearch } from 'react-icons/fa';
 
 import type { PayoutRow } from '@shared/api.js';
 
 import { useMarkPayoutPaid, usePayouts } from '../../hooks/queries.js';
 import { useToast } from '../../hooks/useToast.js';
+import { useDebounced } from '../../hooks/useDebounced.js';
 import { messageOf } from '../../utils/apiError.js';
 import { site } from '../../config/site.js';
 import Pager from '../../components/Pager.js';
+import { FilterSelect, RefreshButton } from './AdminControls.js';
 import '../AdminPanel.css';
 
 const PAGE_SIZE = 25;
 
 const taka = (amount: number) => `${amount.toFixed(2)} Tk`;
 const date = (iso: string | null) => (iso ? new Date(iso).toLocaleDateString() : '');
+
+type State = 'due' | 'upcoming' | 'paid';
+const TABS: { value: State; label: string }[] = [
+  { value: 'due', label: 'To pay' },
+  { value: 'upcoming', label: 'In return window' },
+  { value: 'paid', label: 'Paid' },
+];
+const SORTS = [
+  { value: 'oldest', label: 'Oldest first' },
+  { value: 'newest', label: 'Newest first' },
+  { value: 'amountHigh', label: 'Amount: high to low' },
+  { value: 'amountLow', label: 'Amount: low to high' },
+];
+const EMPTY: Record<State, [string, string]> = {
+  due: ['🎉', 'Nothing is due to any seller right now.'],
+  upcoming: ['📭', 'No delivered order is waiting out its return window.'],
+  paid: ['🗂️', 'No payouts recorded yet.'],
+};
 
 /**
  * What sellers are owed, and a record of what they have been paid.
@@ -25,9 +45,18 @@ const date = (iso: string | null) => (iso ? new Date(iso).toLocaleDateString() :
  * to send it, or whether it had been sent.
  */
 export default function SellerPayouts() {
-  const [state, setState] = useState<'due' | 'paid'>('due');
+  const [state, setState] = useState<State>('due');
   const [page, setPage] = useState(1);
-  const payoutsQuery = usePayouts({ state, page, pageSize: PAGE_SIZE });
+  const [search, setSearch] = useState('');
+  const [sort, setSort] = useState('oldest');
+  const settled = useDebounced(search);
+  const payoutsQuery = usePayouts({
+    state,
+    search: settled || undefined,
+    page,
+    pageSize: PAGE_SIZE,
+    filters: { sort },
+  });
   const rows = payoutsQuery.data?.items ?? [];
   const toast = useToast();
 
@@ -47,35 +76,71 @@ export default function SellerPayouts() {
             {site.sellerFeePercent}% of the books.
           </p>
         </div>
+        <RefreshButton onClick={() => void payoutsQuery.refetch()} busy={payoutsQuery.isFetching} />
       </header>
 
       <div className="admin-toolbar">
         <div role="tablist" className="admin-tabs">
-          {(['due', 'paid'] as const).map((tab) => (
+          {TABS.map((tab) => (
             <button
-              key={tab}
+              key={tab.value}
+              type="button"
               role="tab"
-              aria-selected={state === tab}
+              aria-selected={state === tab.value}
               onClick={() => {
-                setState(tab);
+                setState(tab.value);
                 setPage(1);
               }}
               className="admin-tab"
             >
-              {tab === 'due' ? 'To pay' : 'Paid'}
+              {tab.label}
             </button>
           ))}
         </div>
+        <div className="admin-search">
+          <FaSearch className="admin-search-icon" aria-hidden="true" />
+          <input
+            name="q"
+            type="text"
+            className="field"
+            placeholder="Search by seller, order or book..."
+            aria-label="Search payouts"
+            value={search}
+            onChange={(e) => {
+              setSearch(e.target.value);
+              setPage(1);
+            }}
+          />
+        </div>
+        <FilterSelect
+          name="sort"
+          label="Sort"
+          value={sort}
+          onChange={(value) => {
+            setSort(value);
+            setPage(1);
+          }}
+          options={SORTS}
+        />
       </div>
+
+      {state === 'upcoming' && (
+        <p className="admin-note" role="note">
+          <FaHourglassHalf aria-hidden="true" />
+          These orders are delivered, but the buyer can still ask for a return for{' '}
+          {site.returns.windowDays} days. Each one moves to To pay on the date shown, unless a
+          return is asked for.
+        </p>
+      )}
 
       {payoutsQuery.isPending ? (
         <p className="admin-loading">Loading...</p>
       ) : rows.length === 0 ? (
         <div className="admin-card admin-empty">
           <span className="admin-empty-mark" aria-hidden="true">
-            {state === 'due' ? '🎉' : '🗂️'}
+            {EMPTY[state][0]}
           </span>
-          <p>{state === 'due' ? 'Nothing is due to any seller right now.' : 'No payouts recorded yet.'}</p>
+          <p>{settled ? 'No payout matches that search.' : EMPTY[state][1]}</p>
         </div>
       ) : (
         <div className="admin-card">
@@ -86,7 +151,7 @@ export default function SellerPayouts() {
                 <th>Seller</th>
                 <th>bKash merchant</th>
                 <th className="admin-num">Pay</th>
-                <th>{state === 'due' ? 'Record payment' : 'Paid'}</th>
+                <th>{state === 'due' ? 'Record payment' : state === 'upcoming' ? 'Payable from' : 'Paid'}</th>
                 <th>Order</th>
                 <th>Books</th>
                 <th className="admin-num">Books total</th>
@@ -112,6 +177,8 @@ export default function SellerPayouts() {
                         onDone={(message) => toast.success(message)}
                         onError={(message) => toast.error(message)}
                       />
+                    ) : state === 'upcoming' ? (
+                      <span className="badge admin-status is-pending">{date(row.payableFrom)}</span>
                     ) : (
                       <>
                         <span className="badge admin-status is-good">{date(row.paidAt)}</span>

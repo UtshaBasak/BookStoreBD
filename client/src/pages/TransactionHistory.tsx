@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { FaReceipt, FaSearch, FaSyncAlt, FaTruck } from 'react-icons/fa';
+import { FaReceipt, FaSearch, FaTruck } from 'react-icons/fa';
 
 import type { OrderLine } from '@shared/api.js';
 
@@ -8,6 +8,9 @@ import './AdminPanel.css';
 import { useAllOrders } from '../hooks/queries.js';
 import { useDebounced } from '../hooks/useDebounced.js';
 import Pager from '../components/Pager.js';
+import { orderTotals, CANCELLED } from '../utils/orderTotals.js';
+import { FilterSelect, RefreshButton } from './admin/AdminControls.js';
+import { ORDER_STATUS_FILTER, ORDER_SORTS } from './admin/orderFilters.js';
 
 // Utility to format date as dd/mm/yyyy
 function formatDate(dateStr: string | undefined) {
@@ -34,6 +37,15 @@ const PAGE_SIZE = 25;
 export default function TransactionHistory() {
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(1);
+  const [status, setStatus] = useState('');
+  const [sort, setSort] = useState('newest');
+  const [from, setFrom] = useState('');
+  const [to, setTo] = useState('');
+  // Any change but the page starts again from the first one.
+  const change = (set: (value: string) => void) => (value: string) => {
+    set(value);
+    setPage(1);
+  };
 
   /*
    * This fetched every order line ever placed and then searched and grouped
@@ -46,6 +58,7 @@ export default function TransactionHistory() {
     search: settledSearch || undefined,
     page,
     pageSize: PAGE_SIZE,
+    filters: { status, sort, from, to },
   });
 
   const orders = ordersQuery.data?.items ?? [];
@@ -53,7 +66,6 @@ export default function TransactionHistory() {
   const pageCount = ordersQuery.data?.pageCount ?? 1;
   const currentPage = ordersQuery.data?.page ?? page;
   const refreshing = ordersQuery.isFetching;
-  const fetchOrders = () => ordersQuery.refetch();
 
   // Group orders by orderNumber (if present), else fallback to _id
   function groupOrdersByOrderNumber<T extends OrderLine>(orders: T[]): Record<string, T[]> {
@@ -80,18 +92,10 @@ export default function TransactionHistory() {
             Transaction History
           </h1>
           <p className="admin-lede">
-            Every order placed in the shop, newest first. Open one to follow it or move it along.
+            Every order placed in the shop. Open one to follow it, move it along or cancel it.
           </p>
         </div>
-        <button
-          type="button"
-          className="btn btn-ghost admin-btn-sm"
-          onClick={fetchOrders}
-          disabled={refreshing}
-        >
-          <FaSyncAlt aria-hidden="true" className={refreshing ? 'admin-spin' : undefined} />
-          {refreshing ? 'Refreshing...' : 'Refresh'}
-        </button>
+        <RefreshButton onClick={() => void ordersQuery.refetch()} busy={refreshing} />
       </header>
       {/* Search bar */}
       <div className="admin-toolbar">
@@ -101,6 +105,7 @@ export default function TransactionHistory() {
             type="text"
             className="field"
             placeholder="Search by order number, buyer, seller, title, or author..."
+            aria-label="Search orders"
             value={search}
             onChange={(e) => {
               setSearch(e.target.value);
@@ -109,6 +114,16 @@ export default function TransactionHistory() {
             }}
           />
         </div>
+        <FilterSelect name="status" label="Status" value={status} onChange={change(setStatus)} options={ORDER_STATUS_FILTER} />
+        <FilterSelect name="sort" label="Sort" value={sort} onChange={change(setSort)} options={ORDER_SORTS} />
+        <label className="admin-filter">
+          <span className="admin-filter-label">From</span>
+          <input name="from" type="date" className="field" value={from} max={to || undefined} onChange={(e) => change(setFrom)(e.target.value)} />
+        </label>
+        <label className="admin-filter">
+          <span className="admin-filter-label">To</span>
+          <input name="to" type="date" className="field" value={to} min={from || undefined} onChange={(e) => change(setTo)(e.target.value)} />
+        </label>
       </div>
       {/* Individual Order Cards */}
       <div className="admin-orders">
@@ -125,14 +140,9 @@ export default function TransactionHistory() {
             const displayOrderNumber = order.orderNumber && !/@|T\d{2}:\d{2}/.test(order.orderNumber)
               ? order.orderNumber
               : orderNumber;
-            const itemTotal = orderBooks.reduce((sum, ob) => sum + (Number(ob.price) * Number(ob.quantity)), 0);
-            const shipping = typeof order.shippingCharge === 'number' ? order.shippingCharge : 0;
-            const discount = typeof order.discount === 'number' ? order.discount : 0;
+            const { itemTotal, shipping, discount, total: finalTotal, status: shownStatus } = orderTotals(orderBooks);
             const promo = order.promo || '';
             const promoApplied = !!order.promoApplied;
-            const finalTotal = itemTotal + shipping - discount;
-            const status = order.status;
-            const shownStatus = status || 'Order Confirmed';
 
             return (
               <article key={orderNumber} className="admin-card admin-order">
@@ -182,8 +192,13 @@ export default function TransactionHistory() {
                   </thead>
                   <tbody>
                     {orderBooks.map((ob, idx) => (
-                      <tr key={ob._id || idx}>
-                        <td className="admin-cell-strong" style={{ minWidth: 150 }}>{ob.title}</td>
+                      <tr key={ob._id || idx} className={ob.status === CANCELLED ? 'admin-row-cancelled' : undefined}>
+                        <td className="admin-cell-strong" style={{ minWidth: 150 }}>
+                          {ob.title}
+                          {ob.status === CANCELLED && orderBooks.length > 1 && (
+                            <span className="badge admin-status is-bad admin-line-pill">Cancelled</span>
+                          )}
+                        </td>
                         <td style={{ minWidth: 130 }}>{ob.author}</td>
                         <td style={{ minWidth: 120 }}>{Array.isArray(ob.category) ? ob.category.join(', ') : ob.category}</td>
                         <td style={{ textTransform: 'capitalize' }}>{ob.bookType}</td>

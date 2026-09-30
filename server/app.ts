@@ -37,6 +37,7 @@ import returnRouter from './routes/return.route.js';
 import uploadRouter from './routes/upload.route.js';
 import userRouter from './routes/user.route.js';
 import wishlistRouter from './routes/wishlist.route.js';
+import notificationRouter from './routes/notification.route.js';
 
 const log = createLogger('app');
 
@@ -121,6 +122,7 @@ export const createApp = ({
   app.use(`${API_PREFIX}/chat`, writeLimiter, chatRouter);
   app.use(`${API_PREFIX}/client-error`, clientErrorRouter);
   app.use(`${API_PREFIX}/filter`, filterRouter);
+  app.use(`${API_PREFIX}/notification`, notificationRouter);
   app.use(`${API_PREFIX}/order`, orderRouter);
   app.use(`${API_PREFIX}/purchase`, purchaseRouter);
   app.use(`${API_PREFIX}/return`, writeLimiter, returnRouter);

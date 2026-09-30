@@ -1,0 +1,226 @@
+.sp-page {
+  min-height: 100vh;
+  background: var(--color-page);
+}
+
+.sp-main {
+  width: 100%;
+  max-width: 1180px;
+  margin: 0 auto;
+  padding: 1.25rem 16px 3rem;
+  box-sizing: border-box;
+}
+@media (min-width: 640px) {
+  .sp-main {
+    padding: 2rem 24px 4rem;
+  }
+}
+
+.sp-status {
+  padding: 2rem 0;
+  color: var(--color-ink-muted);
+  font-weight: 600;
+  text-align: center;
+}
+
+/* The seller: banner, picture, name, and how they do. */
+.sp-hero {
+  overflow: hidden;
+  padding: 0;
+}
+.sp-hero-loading {
+  height: 260px;
+  background: var(--color-brand-tint);
+}
+.sp-banner {
+  display: block;
+  width: 100%;
+  height: clamp(120px, 22vw, 220px);
+  object-fit: cover;
+}
+.sp-banner-plain {
+  background:
+    radial-gradient(420px 200px at 0% 0%, rgba(255, 92, 53, 0.9), transparent 60%),
+    radial-gradient(380px 220px at 100% 100%, rgba(250, 204, 21, 0.75), transparent 60%),
+    linear-gradient(135deg, #7c2d12 0%, #1e1b4b 100%);
+}
+
+.sp-who {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 0.75rem 1rem;
+  padding: 0 clamp(1rem, 3vw, 1.75rem);
+  margin-top: -44px;
+}
+.sp-avatar {
+  width: 96px;
+  height: 96px;
+  flex: none;
+  border: 4px solid #fff;
+  border-radius: 50%;
+  background: #fff;
+  object-fit: cover;
+  box-shadow: 0 8px 22px rgba(30, 27, 75, 0.18);
+}
+.sp-avatar-letter {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, var(--color-brand), #c026d3);
+  color: #fff;
+  font-size: 2.2rem;
+  font-weight: 800;
+}
+.sp-name {
+  flex: 1 1 12rem;
+  min-width: 0;
+  padding-top: 48px;
+}
+.sp-kicker {
+  margin: 0;
+  color: var(--color-accent);
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.sp-name h1 {
+  margin: 0;
+  font-size: clamp(1.5rem, 1.1rem + 1.6vw, 2.1rem);
+  overflow-wrap: anywhere;
+}
+.sp-joined {
+  margin: 0.15rem 0 0;
+  color: var(--color-ink-muted);
+  font-size: 0.9rem;
+}
+
+.sp-stats {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.75rem;
+  margin: 1.25rem 0 0;
+  padding: 1rem clamp(1rem, 3vw, 1.75rem) 1.25rem;
+  border-top: 1px solid var(--color-line);
+}
+@media (max-width: 560px) {
+  .sp-stats {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+.sp-stats dt {
+  color: var(--color-ink-muted);
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+.sp-stats dd {
+  margin: 0.15rem 0 0;
+  color: var(--color-ink);
+  font-size: 1.35rem;
+  font-weight: 800;
+}
+.sp-star {
+  display: inline-block;
+  color: #f59e0b;
+  font-size: 1.05rem;
+  vertical-align: -1px;
+}
+.sp-count {
+  color: var(--color-ink-muted);
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+/* The books. */
+.sp-books {
+  margin-top: 1.75rem;
+  scroll-margin-top: 90px;
+}
+.sp-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.6rem;
+  margin-bottom: 1.1rem;
+}
+.sp-toolbar h2 {
+  flex: 1 1 100%;
+  margin: 0 0 0.25rem;
+  font-size: 1.3rem;
+}
+.sp-search {
+  position: relative;
+  flex: 1 1 240px;
+  max-width: 420px;
+}
+.sp-search svg {
+  position: absolute;
+  top: 50%;
+  left: 16px;
+  transform: translateY(-50%);
+  color: var(--color-ink-muted);
+  pointer-events: none;
+}
+.sp-search .field {
+  padding-left: 42px;
+  border-radius: 999px;
+}
+.sp-sort {
+  width: auto;
+  min-height: 44px;
+  padding-right: 32px;
+  border-radius: 999px;
+  font-weight: 600;
+}
+@media (max-width: 560px) {
+  .sp-search {
+    flex-basis: 100%;
+    max-width: none;
+  }
+  .sp-sort {
+    flex: 1 1 auto;
+  }
+}
+
+.sp-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
+  gap: 1.25rem;
+  transition: opacity 150ms ease;
+}
+@media (max-width: 520px) {
+  .sp-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.75rem;
+  }
+}
+.sp-empty {
+  padding: 2rem 1.25rem;
+  color: var(--color-ink-muted);
+  text-align: center;
+}
+.sp-pager {
+  margin-top: 1.5rem;
+}
+
+.sp-missing {
+  max-width: 460px;
+  margin: 2rem auto;
+  padding: 2.5rem 1.5rem;
+  text-align: center;
+}
+.sp-missing svg {
+  color: var(--color-brand);
+  font-size: 2.4rem;
+}
+.sp-missing h1 {
+  margin: 0.75rem 0 0.25rem;
+  font-size: 1.5rem;
+}
+.sp-missing p {
+  margin: 0 0 1.25rem;
+  color: var(--color-ink-muted);
+}

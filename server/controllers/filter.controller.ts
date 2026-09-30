@@ -79,6 +79,12 @@ export const Booklist: RequestHandler = async (req, res) => {
   const filter = buildFilter(q);
 
   try {
+    // A seller's shop: their books only. An unknown name finds nothing.
+    if (q.seller) {
+      const seller = await User.findOne({ username: q.seller }, { email: 1 }).lean();
+      filter.sellerEmail = seller?.email ?? '\u0000';
+    }
+
     const [items, total] = await Promise.all([
       AddBook.find(filter, LIST_IMAGE_PROJECTION)
         // `_id` breaks ties, so a book cannot appear on two pages or none:
@@ -168,7 +174,7 @@ const DAY_MS = 24 * 60 * 60 * 1000;
 /** Book ids ranked by copies ordered, optionally since a date. */
 const mostOrdered = async (since?: Date): Promise<Types.ObjectId[]> => {
   const rows = await Order.aggregate<{ _id: Types.ObjectId }>([
-    { $match: { isReturned: { $ne: 1 }, ...(since ? { createdAt: { $gte: since } } : {}) } },
+    { $match: { isReturned: { $ne: 1 }, status: { $ne: 'Cancelled' }, ...(since ? { createdAt: { $gte: since } } : {}) } },
     { $group: { _id: '$bookId', copies: { $sum: { $ifNull: ['$quantity', 1] } }, last: { $max: '$createdAt' } } },
     { $sort: { copies: -1, last: -1 } },
     { $limit: SHELF * 2 },
@@ -252,7 +258,7 @@ const buildSections = async (): Promise<StoredSections> => {
 
   // Writers ranked by copies sold, then by how many of their books are listed.
   const soldByAuthor = await Order.aggregate<{ _id: string; sold: number }>([
-    { $match: { isReturned: { $ne: 1 } } },
+    { $match: { isReturned: { $ne: 1 }, status: { $ne: 'Cancelled' } } },
     { $group: { _id: { $toLower: { $trim: { input: { $ifNull: ['$author', ''] } } } }, sold: { $sum: { $ifNull: ['$quantity', 1] } } } },
   ]);
   const sold = new Map(soldByAuthor.map((row) => [row._id, row.sold]));

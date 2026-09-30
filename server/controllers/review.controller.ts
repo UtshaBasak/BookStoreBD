@@ -9,8 +9,10 @@ import User from '../models/user.model.js';
 import { actingUser } from '../middleware/auth.js';
 import { recordAudit } from '../utils/audit.js';
 import { createLogger } from '../config/logger.js';
+import { adminEmails, notify } from '../utils/notify.js';
+import { contains } from '../utils/regex.js';
 import { validatedQuery } from '../middleware/validate.js';
-import type { ReviewListQuery } from '../schemas/index.js';
+import type { AdminReviewQuery, FlaggedReviewQuery } from '../schemas/index.js';
 
 const log = createLogger('review');
 
@@ -38,7 +40,8 @@ const hasBought = async (email: string, bookId: string): Promise<string | null> 
   // Any order for the book counts, not only a delivered one: delivery status is
   // set by hand by the seller and is often never updated, and a buyer who has
   // paid should not need the seller's cooperation to say what they think.
-  const order = await Order.findOne({ buyerEmail: email, bookId }).sort({ createdAt: -1 }).lean();
+  // A cancelled order is not a purchase.
+  const order = await Order.findOne({ buyerEmail: email, bookId, status: { $ne: 'Cancelled' } }).sort({ createdAt: -1 }).lean();
   return order ? String(order.orderNumber) : null;
 };
 
@@ -152,6 +155,17 @@ export const upsertReview: RequestHandler<{ id: string }> = async (req, res, nex
 
     await recomputeBookRating(bookId);
 
+    // A new review, not an edit of one, is news to the seller.
+    const isNew = review && Math.abs(new Date(review.createdAt).getTime() - new Date(review.updatedAt).getTime()) < 1000;
+    if (isNew) {
+      await notify([book.sellerEmail], {
+        type: 'review',
+        title: `New ${'★'.repeat(Number(rating))} review of "${book.title}"`,
+        body: String(title || body).slice(0, 140) || `${reviewer?.username || 'A buyer'} rated it ${rating} out of 5.`,
+        link: `/book/${String(bookId)}#reviews`,
+      });
+    }
+
     log.info({ rating }, 'Review written');
     res.status(200).json(review);
   } catch (error) {
@@ -233,6 +247,13 @@ export const replyToReview: RequestHandler<{ id: string }> = async (req, res, ne
     };
     await review.save();
 
+    await notify([review.reviewerEmail], {
+      type: 'review-reply',
+      title: 'The seller replied to your review',
+      body: body.slice(0, 140),
+      link: `/book/${String(review.book)}#reviews`,
+    });
+
     res.status(200).json({ message: 'Reply saved', reply: review.reply });
   } catch (error) {
     next(error);
@@ -309,6 +330,12 @@ export const flagReview: RequestHandler<{ id: string }> = async (req, res, next)
     // Only a new report moves the counter; a repeat is the same report.
     if (!existing) {
       await Review.findByIdAndUpdate(reviewId, { $inc: { flagCount: 1 } });
+      await notify(await adminEmails(), {
+        type: 'review-reported',
+        title: 'A review was reported',
+        body: reason ? `"${reason.slice(0, 120)}"` : 'Nobody gave a reason.',
+        link: '/admin/reviews',
+      });
     }
 
     res.status(200).json({ message: 'Thank you. An administrator will look at this review.' });
@@ -320,12 +347,13 @@ export const flagReview: RequestHandler<{ id: string }> = async (req, res, next)
 /** The administrator's queue: reported reviews, most-reported first. */
 export const listFlaggedReviews: RequestHandler = async (req, res, next) => {
   try {
-    const { page, pageSize } = validatedQuery<ReviewListQuery>(req);
+    const query = validatedQuery<FlaggedReviewQuery>(req);
+    const { page, pageSize } = query;
 
-    const filter = { flagCount: { $gt: 0 } };
+    const filter = { flagCount: { $gt: 0 }, ...(await reviewSearch(query)) };
     const [reviews, total] = await Promise.all([
       Review.find(filter)
-        .sort({ flagCount: -1, createdAt: -1, _id: -1 })
+        .sort(REVIEW_SORTS[query.sort])
         .skip((page - 1) * pageSize)
         .limit(pageSize)
         .lean(),
@@ -361,6 +389,74 @@ export const listFlaggedReviews: RequestHandler = async (req, res, next) => {
       page,
       pageSize,
       pageCount: Math.max(1, Math.ceil(total / pageSize)),
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+const REVIEW_SORTS = {
+  newest: { createdAt: -1, _id: -1 },
+  oldest: { createdAt: 1, _id: 1 },
+  ratingHigh: { rating: -1, createdAt: -1, _id: -1 },
+  ratingLow: { rating: 1, createdAt: -1, _id: -1 },
+  mostReported: { flagCount: -1, createdAt: -1, _id: -1 },
+} as const satisfies Record<string, Record<string, 1 | -1>>;
+
+/** The search box and the star filter, as a query: the review's words, its author, or its book. */
+const reviewSearch = async (query: { search?: string; rating?: number }): Promise<Record<string, unknown>> => {
+  const filter: Record<string, unknown> = {};
+  if (query.rating) filter.rating = query.rating;
+  if (query.search) {
+    const pattern = contains(query.search);
+    const books = await AddBook.find({ title: pattern }, { _id: 1 }).limit(200).lean();
+    filter.$or = [
+      { title: pattern },
+      { body: pattern },
+      { reviewerName: pattern },
+      { reviewerEmail: pattern },
+      { book: { $in: books.map((book) => book._id) } },
+    ];
+  }
+  return filter;
+};
+
+/**
+ * Every review, for the administrator's Reviews page: searched by what it
+ * says, who wrote it or its book; filtered by stars, whether the seller has
+ * answered and whether anyone has reported it; newest first by default.
+ */
+export const listAllReviews: RequestHandler = async (req, res, next) => {
+  try {
+    const query = validatedQuery<AdminReviewQuery>(req);
+    const filter: Record<string, unknown> = {
+      ...(await reviewSearch(query)),
+      ...(query.replied === 'yes' ? { reply: { $exists: true } } : query.replied === 'no' ? { reply: { $exists: false } } : {}),
+      ...(query.reported === 'yes' ? { flagCount: { $gt: 0 } } : query.reported === 'no' ? { flagCount: 0 } : {}),
+    };
+
+    const [reviews, total] = await Promise.all([
+      Review.find(filter)
+        .sort(REVIEW_SORTS[query.sort])
+        .skip((query.page - 1) * query.pageSize)
+        .limit(query.pageSize)
+        .lean(),
+      Review.countDocuments(filter),
+    ]);
+
+    const books = await AddBook.find({ _id: { $in: reviews.map((review) => review.book) } }, { title: 1 }).lean();
+    const titles = new Map(books.map((book) => [String(book._id), book.title]));
+
+    res.status(200).json({
+      items: reviews.map((review) => ({
+        ...review,
+        bookTitle: titles.get(String(review.book)) ?? '(deleted listing)',
+        reasons: [],
+      })),
+      total,
+      page: query.page,
+      pageSize: query.pageSize,
+      pageCount: Math.max(1, Math.ceil(total / query.pageSize)),
     });
   } catch (error) {
     next(error);

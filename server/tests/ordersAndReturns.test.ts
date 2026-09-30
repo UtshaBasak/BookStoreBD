@@ -17,7 +17,7 @@ import {
   closeTestContext,
   type PrefixedRequest,
 } from './helpers/testApp.js';
-import { createBook, createSignedInUser, PNG_PIXEL } from './helpers/factories.js';
+import { createBook, createSignedInUser, createUserWithToken, PNG_PIXEL } from './helpers/factories.js';
 import Order from '../models/Order.model.js';
 import ReturnRequest from '../models/ReturnRequest.model.js';
 
@@ -610,40 +610,67 @@ describe('the return window', () => {
 
 describe('marking an order delivered', () => {
   const place = async () => {
-    const buyer = await createSignedInUser(request, { email: BUYER });
-    const seller = await createSignedInUser(request, { email: SELLER });
+    const buyer = await createUserWithToken({ email: BUYER });
+    const seller = await createUserWithToken({ email: SELLER });
+    const admin = await createUserWithToken({ email: 'admin@test.com', role: 'admin' });
     await placeOrder(orderNumber(1), [{ title: 'Parcel' }]);
     const move = (auth: string, status: string) =>
       request.patch(`/order/status/${orderNumber(1)}`).set('Authorization', auth).send({ status });
     const line = () => Order.findOne({ orderNumber: orderNumber(1) }).lean();
-    return { buyer, seller, move, line };
+    return { buyer, seller, admin, move, line };
   };
 
   it('stamps the date the return window counts from', async () => {
-    const { seller, move, line } = await place();
+    const { admin, move, line } = await place();
 
-    await move(seller.auth, 'Delivered');
+    await move(admin.auth, 'Delivered');
 
     expect((await line())?.deliveredAt).toBeInstanceOf(Date);
   });
 
   it('does not move that date when it is marked delivered again', async () => {
-    const { seller, move, line } = await place();
-    await move(seller.auth, 'Delivered');
+    const { admin, move, line } = await place();
+    await move(admin.auth, 'Delivered');
     const first = (await line())?.deliveredAt;
 
-    await move(seller.auth, 'Delivered');
+    await move(admin.auth, 'Delivered');
 
     expect((await line())?.deliveredAt).toEqual(first);
   });
 
-  it('is for the seller or an administrator, not the buyer', async () => {
+  it('is not for the buyer', async () => {
     const { buyer, move, line } = await place();
 
     // Otherwise a buyer could step their own order out of 'Delivered' and back
     // to restart the window.
     expect((await move(buyer.auth, 'Delivered')).status).toBe(403);
     expect((await line())?.deliveredAt).toBeNull();
+  });
+
+  it('is not for the seller either: a seller takes an order as far as Shipped', async () => {
+    const { seller, move, line } = await place();
+
+    expect((await move(seller.auth, 'Processing')).status).toBe(200);
+    expect((await move(seller.auth, 'Shipped')).status).toBe(200);
+    // Out for Delivery and Delivered are the shop's, since a seller marking
+    // their own sale delivered would start their own payout.
+    expect((await move(seller.auth, 'Out for Delivery')).status).toBe(403);
+    expect((await move(seller.auth, 'Delivered')).status).toBe(403);
+    expect((await line())?.status).toBe('Shipped');
+  });
+
+  it('takes the order out of the seller\'s hands once it is past Shipped', async () => {
+    const { seller, admin, move, line } = await place();
+    await move(admin.auth, 'Out for Delivery');
+
+    expect((await move(seller.auth, 'Shipped')).status).toBe(403);
+    expect((await line())?.status).toBe('Out for Delivery');
+  });
+
+  it('refuses a status that is not one of the steps', async () => {
+    const { admin, move } = await place();
+
+    expect((await move(admin.auth, 'Teleported')).status).toBe(403);
   });
 });
 

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { FaSearch, FaSyncAlt, FaTrashAlt, FaUsers } from 'react-icons/fa';
+import { FaSearch, FaTrashAlt, FaUsers } from 'react-icons/fa';
 
 import type { Id } from '@shared/api.js';
 import './AdminPanel.css';
@@ -7,13 +7,33 @@ import './UserManagement.css';
 import { useUsers, useDeleteUser } from '../hooks/queries.js';
 import { useDebounced } from '../hooks/useDebounced.js';
 import Pager from '../components/Pager.js';
+import { FilterSelect, RefreshButton } from './admin/AdminControls.js';
 
 /** Rows per page. Enough to scan, few enough to draw. */
 const PAGE_SIZE = 25;
 
+const KINDS = [
+  { value: '', label: 'Everyone' },
+  { value: 'sellers', label: 'Sellers' },
+  { value: 'buyers', label: 'Buyers only' },
+];
+const SORTS = [
+  { value: 'newest', label: 'Newest first' },
+  { value: 'oldest', label: 'Oldest first' },
+  { value: 'nameAZ', label: 'Name A-Z' },
+  { value: 'nameZA', label: 'Name Z-A' },
+];
+
 export default function UserManagement() {
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(1);
+  const [kind, setKind] = useState('');
+  const [sort, setSort] = useState('newest');
+  // Any change but the page starts again from the first one.
+  const change = (set: (value: string) => void) => (value: string) => {
+    set(value);
+    setPage(1);
+  };
 
   /*
    * This table used to fetch every account with every field except the
@@ -30,6 +50,7 @@ export default function UserManagement() {
     search: settledSearch || undefined,
     page,
     pageSize: PAGE_SIZE,
+    filters: { kind, sort },
   });
 
   const users = data?.items ?? [];
@@ -58,15 +79,7 @@ export default function UserManagement() {
             Everyone who has signed up to buy or sell. Search by name or email address.
           </p>
         </div>
-        <button
-          type="button"
-          className="btn btn-ghost admin-btn-sm"
-          onClick={() => refetch()}
-          disabled={isFetching}
-        >
-          <FaSyncAlt aria-hidden="true" className={isFetching ? 'admin-spin' : undefined} />
-          {isFetching ? 'Refreshing...' : 'Refresh'}
-        </button>
+        <RefreshButton onClick={() => void refetch()} busy={isFetching} />
       </header>
       {/* Search input */}
       <div className="admin-toolbar">
@@ -76,6 +89,7 @@ export default function UserManagement() {
             type="text"
             className="field"
             placeholder="Search by username or email..."
+            aria-label="Search accounts"
             value={search}
             onChange={(e) => {
               setSearch(e.target.value);
@@ -84,6 +98,8 @@ export default function UserManagement() {
             }}
           />
         </div>
+        <FilterSelect name="kind" label="Show" value={kind} onChange={change(setKind)} options={KINDS} />
+        <FilterSelect name="sort" label="Sort" value={sort} onChange={change(setSort)} options={SORTS} />
       </div>
       {deleteError && (
         <p role="alert" className="admin-alert">
@@ -137,7 +153,7 @@ export default function UserManagement() {
             <span className="admin-empty-mark" aria-hidden="true">
               🔍
             </span>
-            <p>No account matches that search.</p>
+            <p>{kind ? 'No account matches those filters.' : 'No account matches that search.'}</p>
           </div>
         )}
       </div>

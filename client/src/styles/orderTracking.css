@@ -389,3 +389,50 @@
 .ot-table td {
   vertical-align: middle;
 }
+
+.ot-toolbar-end {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
+
+/* A cancelled book stays in the table, struck through, because it happened. */
+.ot-row-cancelled td {
+  color: var(--color-ink-muted);
+  text-decoration: line-through;
+}
+.ot-line-pill {
+  display: inline-block;
+  margin-left: 8px;
+  padding: 1px 8px;
+  border-radius: 999px;
+  background: #fef2f2;
+  color: #b91c1c;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-decoration: none;
+}
+.ot-page .co-cancelled {
+  margin-top: 1.25rem;
+}
+.ot-line-pill.is-return {
+  background: #fff7ed;
+  color: #c2410c;
+}
+
+/* Status and sort on the orders list, pill-shaped like the search. */
+.ot-filter .field {
+  width: auto;
+  min-height: 44px;
+  padding-right: 32px;
+  border-radius: 999px;
+  font-weight: 600;
+}
+@media (max-width: 560px) {
+  .ot-filter {
+    flex: 1 1 40%;
+  }
+  .ot-filter .field {
+    width: 100%;
+  }
+}

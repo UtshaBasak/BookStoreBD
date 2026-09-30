@@ -1,7 +1,6 @@
 import { useState, useMemo } from 'react';
 import {
   FaSearch,
-  FaHome,
   FaHeart,
   FaShoppingBag,
   FaSlidersH,
@@ -30,6 +29,7 @@ import { Stars } from '../components/Stars.js';
 import BookCard from '../components/BookCard.js';
 import { CATEGORY_GROUPS } from '../config/categories.js';
 import Logo from '../components/Logo.js';
+import NotificationBell from '../components/NotificationBell.js';
 
 interface FilterState {
   bookType: string;
@@ -53,9 +53,21 @@ interface FilterEdits {
  * Books per page.
  *
  * The page used to render every match at once - fine at six books, and a
- * screenful of base64 covers to decode at six hundred.
+ * screenful of base64 covers to decode at six hundred. Twenty to start with;
+ * the shopper can ask for up to fifty, which is as many as the API sends.
  */
-const PAGE_SIZE = 12;
+const PAGE_SIZES = [20, 30, 40, 50] as const;
+const PAGE_SIZE_KEY = 'browsePageSize';
+
+/** The page size last chosen on this device, or twenty. */
+const storedPageSize = (): number => {
+  try {
+    const saved = Number(localStorage.getItem(PAGE_SIZE_KEY));
+    return (PAGE_SIZES as readonly number[]).includes(saved) ? saved : PAGE_SIZES[0];
+  } catch {
+    return PAGE_SIZES[0];
+  }
+};
 
 const capitalise = (value: string): string => value.charAt(0).toUpperCase() + value.slice(1);
 
@@ -85,6 +97,9 @@ export default function BookFilter() {
    * it to reach a single book, so it starts closed on small screens.
    */
   const [showFilters, setShowFilters] = useState(false);
+  const [pageSize, setPageSizeState] = useState(storedPageSize);
+  // What is typed into "Go to page", until it is used.
+  const [pageDraft, setPageDraft] = useState('');
 
   // Relevant by default: the deals first, then the newest.
   const [sortOption, setSortOption] = useState<CatalogueSort>(() => {
@@ -214,7 +229,7 @@ export default function BookFilter() {
     deals: dealsOnly || undefined,
     sort: sortOption,
     page,
-    pageSize: PAGE_SIZE,
+    pageSize,
   };
 
   const { data: catalogue, isFetching } = useCatalogue(params);
@@ -225,8 +240,26 @@ export default function BookFilter() {
   // The API clamps the page it answers for, so `?page=99` on a search with two
   // pages still shows something rather than an empty grid.
   const currentPage = catalogue?.page ?? page;
-  const firstOnPage = total === 0 ? 0 : (currentPage - 1) * PAGE_SIZE + 1;
-  const lastOnPage = Math.min(currentPage * PAGE_SIZE, total);
+  const firstOnPage = total === 0 ? 0 : (currentPage - 1) * pageSize + 1;
+  const lastOnPage = Math.min(currentPage * pageSize, total);
+
+  const setPageSize = (value: number) => {
+    setPageSizeState(value);
+    try {
+      localStorage.setItem(PAGE_SIZE_KEY, String(value));
+    } catch {
+      // Private browsing: it lasts for this visit only.
+    }
+    update({ page: 1 });
+  };
+
+  const goToTypedPage = () => {
+    const wanted = Math.round(Number(pageDraft));
+    setPageDraft('');
+    if (!Number.isFinite(wanted) || wanted < 1) return;
+    const target = Math.min(wanted, pageCount);
+    if (target !== currentPage) setPage(target);
+  };
 
   const handleSearch = () => {
     setSearchTerm(searchInput);
@@ -306,14 +339,7 @@ export default function BookFilter() {
         </div>
 
         <div className="user-options">
-          <Link to="/"
-            className="icon-button browse-home"
-            style={{ color: '#6d28d9' }}
-            title="Go to Homepage"
-            aria-label="Go to Homepage"
-          >
-            <FaHome />
-          </Link>
+          <NotificationBell />
           <Link to="/wishlist"
             className="icon-button"
             style={{ color: '#ff5c35' }}
@@ -492,7 +518,7 @@ export default function BookFilter() {
           <div className="filter-group">
             <h2>Rating</h2>
             <div className="filter-chips">
-              {[4, 3, 2].map((floor) => (
+              {[5, 4, 3, 2, 1].map((floor) => (
                 <button
                   key={floor}
                   type="button"
@@ -510,7 +536,8 @@ export default function BookFilter() {
                   >
                     <Stars value={floor} size={13} />
                   </span>
-                  <span>&amp; up</span>
+                  <span className="sr-only">{floor} star{floor === 1 ? '' : 's'}</span>
+                  {floor < 5 && <span>&amp; up</span>}
                 </button>
               ))}
             </div>
@@ -622,9 +649,26 @@ export default function BookFilter() {
               they have run out of them. */}
           {total > 0 && (
             <div className="pager">
-              <p className="m-0 text-sm" style={{ color: '#6b7280' }}>
-                Showing {firstOnPage}&ndash;{lastOnPage} of {total}
-              </p>
+              <div className="flex flex-wrap items-center gap-3">
+                <p className="m-0 text-sm" style={{ color: '#6b7280' }}>
+                  Showing {firstOnPage}&ndash;{lastOnPage} of {total}
+                </p>
+                <label className="pager-size">
+                  <span>Per page</span>
+                  <select
+                    name="pageSize"
+                    className="field"
+                    value={pageSize}
+                    onChange={(e) => setPageSize(Number(e.target.value))}
+                  >
+                    {PAGE_SIZES.map((size) => (
+                      <option key={size} value={size}>
+                        {size}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              </div>
 
               {pageCount > 1 && (
                 <div className="flex flex-wrap items-center gap-2">
@@ -649,6 +693,33 @@ export default function BookFilter() {
                   >
                     Next
                   </button>
+
+                  <form
+                    className="pager-jump"
+                    onSubmit={(e) => {
+                      e.preventDefault();
+                      goToTypedPage();
+                    }}
+                  >
+                    <label htmlFor="go-to-page" className="sr-only">
+                      Go to page (1 to {pageCount})
+                    </label>
+                    <input
+                      id="go-to-page"
+                      name="goToPage"
+                      type="number"
+                      inputMode="numeric"
+                      min={1}
+                      max={pageCount}
+                      placeholder="Page"
+                      className="field"
+                      value={pageDraft}
+                      onChange={(e) => setPageDraft(e.target.value)}
+                    />
+                    <button type="submit" className="btn btn-primary" disabled={!pageDraft}>
+                      Go
+                    </button>
+                  </form>
                 </div>
               )}
             </div>

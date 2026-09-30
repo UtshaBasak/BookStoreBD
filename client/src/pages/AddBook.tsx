@@ -6,6 +6,7 @@ import { FaCamera, FaCheck, FaExclamationTriangle, FaInfoCircle, FaTimes } from 
 import './Seller.css';
 import FilePreview from '../components/FilePreview.js';
 import Logo from '../components/Logo.js';
+import NotificationBell from '../components/NotificationBell.js';
 import { API_BASE_URL } from '../config/api.js';
 import { site } from '../config/site.js';
 import { CATEGORY_GROUPS } from '../config/categories.js';
@@ -265,7 +266,10 @@ const AddBooks = () => {
         <Link to='/' className='sl-logo-link' aria-label={`${site.name} home`}>
           <Logo size={34} />
         </Link>
-        <Link to="/profile?mode=seller" className='btn btn-ghost'>← Back</Link>
+        <div className='sl-topbar-actions'>
+          <NotificationBell />
+          <Link to="/profile?mode=seller" className='btn btn-ghost'>← Back</Link>
+        </div>
       </header>
 
       <div className='sl-wrap'>

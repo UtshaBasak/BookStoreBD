@@ -7,6 +7,7 @@ import {
   getAllOrders,
   getOrderByOrderNumber,
   updateOrderStatusByOrderNumber,
+  cancelOrder,
   checkPromo,
 } from '../controllers/order.controller.js';
 import { getPayouts, markPayoutPaid } from '../controllers/payout.controller.js';
@@ -34,5 +35,6 @@ router.get('/seller', validate(orderSchemas.list), getOrdersBySeller);
 // or an administrator before returning or changing anything.
 router.get('/:orderNumber', validate(orderSchemas.byOrderNumber), getOrderByOrderNumber);
 router.patch('/status/:orderNumber', validate(orderSchemas.updateStatus), updateOrderStatusByOrderNumber);
+router.post('/:orderNumber/cancel', validate(orderSchemas.cancel), cancelOrder);
 
 export default router;

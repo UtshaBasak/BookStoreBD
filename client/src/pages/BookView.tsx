@@ -6,9 +6,9 @@ import {
     FaChevronLeft,
     FaChevronRight,
     FaComments,
-    FaBell,
     FaSearch,
     FaShoppingBag,
+    FaStore,
 } from 'react-icons/fa';
 import './Homepage.css';
 import './BookView.css';
@@ -22,6 +22,7 @@ import {
     useBook,
     useCart,
     useProfile,
+    useSetCartQuantity,
     useToggleCart,
     useToggleWishlist,
     useUnreadChatCount,
@@ -34,6 +35,8 @@ import { Stars } from '../components/Stars.js';
 import { messageOf } from '../utils/apiError.js';
 import { site } from '../config/site.js';
 import Logo from '../components/Logo.js';
+import NotificationBell from '../components/NotificationBell.js';
+import QuantityStepper from '../components/QuantityStepper.js';
 import { getUserEmail } from '../utils/auth.js';
 import { flagsFor } from '../utils/bookFlags.js';
 import { PLACEHOLDER_IMAGE } from '../utils/safeImageSrc.js';
@@ -81,6 +84,14 @@ export default function BookView() {
 
     // Only the ids are needed for the heart and cart buttons.
     const { data: cart = {} } = useCart({ enabled: signedIn, select: flagsFor });
+    // How many copies of each are in the cart, for the stepper beside the button.
+    const { data: cartCopies = {} } = useCart({
+        enabled: signedIn,
+        select: (books) => Object.fromEntries(books.map((b) => [b._id, b.cartQuantity ?? 1])) as Record<string, number>,
+    });
+    // How many to add, before the book is in the cart.
+    const [copies, setCopies] = useState(1);
+    const { mutate: setCartQuantity, isPending: savingQuantity } = useSetCartQuantity();
     const { data: wishlist = {} } = useWishlist({ enabled: signedIn, select: flagsFor });
 
     const { mutateAsync: toggleCartMutation } = useToggleCart();
@@ -118,8 +129,16 @@ export default function BookView() {
         try {
             // The mutation invalidates the cart, so every page showing it - the
             // badge here included - updates without this one tracking a copy.
-            await toggleCartMutation({ bookId, inCart: isInCart });
-            toast.success(isInCart ? 'Removed from your cart.' : 'Added to your cart.');
+            const quantity = Math.min(copies, book.stock);
+            await toggleCartMutation({ bookId, inCart: isInCart, quantity });
+            toast.success(
+                isInCart
+                    ? 'Removed from your cart.'
+                    : quantity > 1
+                      ? `${quantity} copies added to your cart.`
+                      : 'Added to your cart.'
+            );
+            if (isInCart) setCopies(1);
         } catch (error) {
             reportError('Cart error:', error);
             toast.error(messageOf(error) || 'Could not update your cart.');
@@ -312,16 +331,7 @@ export default function BookView() {
                         </Link>
                     )}
 
-                    <button
-                        type="button"
-                        className="notification-icon icon-button"
-                        style={{ color: '#6d28d9' }}
-                        title="Notifications"
-                        onClick={() => toast.info('No new notifications.')}
-                        aria-label="Notifications"
-                    >
-                        <FaBell />
-                    </button>
+                    <NotificationBell />
 
                     <Link to="/wishlist"
                         className="wishlist-icon icon-button"
@@ -450,11 +460,37 @@ export default function BookView() {
                                             : { background: '#fef2f2', color: '#b91c1c' }
                                     }
                                 >
-                                    {book.stock > 0
-                                        ? `${book.stock} copies available`
-                                        : 'Out of Stock'}
+                                    {book.stock <= 0
+                                        ? 'Out of Stock'
+                                        : book.stock <= 5
+                                          ? `Only ${book.stock} left`
+                                          : `${book.stock} copies available`}
                                 </span>
                             </div>
+
+                            {/* How many: before it is in the cart, what to add;
+                                after, what the cart holds - changed in place. */}
+                            {book.stock > 1 && (
+                                <div className="book-qty">
+                                    <span className="book-qty-label">{inCart ? 'In your cart' : 'Quantity'}</span>
+                                    <QuantityStepper
+                                        value={inCart ? Math.min(cartCopies[book._id] ?? 1, book.stock) : Math.min(copies, book.stock)}
+                                        max={book.stock}
+                                        disabled={savingQuantity}
+                                        label={`Copies of ${book.title}`}
+                                        onChange={(value) => {
+                                            if (!inCart) {
+                                                setCopies(value);
+                                                return;
+                                            }
+                                            setCartQuantity(
+                                                { bookId: book._id, quantity: value },
+                                                { onError: (err) => toast.error(messageOf(err) || 'Could not change the quantity.') }
+                                            );
+                                        }}
+                                    />
+                                </div>
+                            )}
 
                             {/* Cart and Wishlist Buttons */}
                             <div className="book-actions">
@@ -504,8 +540,19 @@ export default function BookView() {
                             </span>
                             <div className="book-seller-who">
                                 <p className="book-seller-label">Seller:</p>
-                                <p className="book-seller-name">{sellerName}</p>
+                                <p className="book-seller-name">
+                                    {sellerInfo?.username ? (
+                                        <Link to={`/shop/${encodeURIComponent(sellerInfo.username)}`}>{sellerName}</Link>
+                                    ) : (
+                                        sellerName
+                                    )}
+                                </p>
                             </div>
+                            {sellerInfo?.username && (
+                                <Link to={`/shop/${encodeURIComponent(sellerInfo.username)}`} className="btn btn-ghost">
+                                    <FaStore aria-hidden="true" /> Visit shop
+                                </Link>
+                            )}
                             {userEmail !== book?.sellerEmail && (
                                 <button
                                     type="button"
