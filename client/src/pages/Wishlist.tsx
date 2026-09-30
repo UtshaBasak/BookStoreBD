@@ -9,6 +9,7 @@ import { API_BASE_URL } from '../config/api.js';
 import { useCart, useToggleCart, useToggleWishlist, useWishlist } from '../hooks/queries.js';
 import { promptSignIn, useToast } from '../hooks/useToast.js';
 import Logo from '../components/Logo.js';
+import PriceTag from '../components/PriceTag.js';
 import { getUserEmail } from '../utils/auth.js';
 import { flagsFor } from '../utils/bookFlags.js';
 import { PLACEHOLDER_IMAGE } from '../utils/safeImageSrc.js';
@@ -67,16 +68,14 @@ export default function Wishlist() {
       </div>
       <div className="user-options">
         {/* Home */}
-        <button
-          type="button"
+        <Link to="/"
           className="icon-button"
           style={{ color: '#6d28d9' }}
-          onClick={() => navigate('/')}
           title="Go to Homepage"
           aria-label="Go to Homepage"
         >
           <FaHome />
-        </button>
+        </Link>
         {/* Cart */}
         <Link
           to="/cart"
@@ -201,7 +200,9 @@ export default function Wishlist() {
                     <div className="wishlist-meta">
                       {Array.isArray(book.category) ? book.category.join(', ') : (book.category || 'N/A')}
                     </div>
-                    <div className="wishlist-price">৳{book.price}</div>
+                    <div className="wishlist-price">
+                      <PriceTag book={book} size="md" />
+                    </div>
 
                     <div className="wishlist-actions">
                       {/* Cart button only if book is in stock */}

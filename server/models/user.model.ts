@@ -49,6 +49,13 @@ const UserSchema = new Schema(
         profilePicture: {
             type: String,
         },
+        // The banners across the top of the profile: one for buying, one for
+        // selling, so the two can look different. A Cloudinary address when
+        // image hosting is configured, otherwise base64, as the avatar is.
+        buyerBanner: { type: String },
+        buyerBannerPublicId: { type: String },
+        sellerBanner: { type: String },
+        sellerBannerPublicId: { type: String },
         wishlist: [{
             type: Schema.Types.ObjectId,
             ref: 'AddBook'

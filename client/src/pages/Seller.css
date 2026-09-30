@@ -1143,3 +1143,52 @@ button.sl-link-danger:hover {
     flex-wrap: nowrap;
   }
 }
+
+/* A listing's discount, in the seller's table. */
+.sl-discount {
+  display: grid;
+  gap: 0.35rem;
+  min-width: 190px;
+}
+.sl-discount-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem;
+}
+.sl-discount-row select.sl-edit {
+  width: auto;
+  padding-right: 0.5rem;
+}
+.sl-discount-save.btn {
+  min-height: 36px;
+  padding: 0 0.8rem;
+  font-size: 0.82rem;
+}
+.sl-discount-hint {
+  margin: 0;
+  color: var(--color-success-dark);
+  font-size: 0.78rem;
+  font-weight: 600;
+}
+.sl-discount-hint.is-bad {
+  color: var(--color-danger-dark);
+}
+
+/* The listing form: a discount under the price, and categories by group. */
+.sl-discount-new {
+  display: grid;
+  gap: 0.4rem;
+  margin-top: 1rem;
+}
+.sl-choice-group + .sl-choice-group {
+  margin-top: 0.9rem;
+}
+.sl-choice-group-name {
+  margin: 0 0 0.45rem;
+  color: var(--color-ink);
+  font-size: 0.78rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}

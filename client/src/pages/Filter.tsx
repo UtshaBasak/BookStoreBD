@@ -3,8 +3,6 @@ import {
   FaSearch,
   FaHome,
   FaHeart,
-  FaRegHeart,
-  FaShoppingCart,
   FaShoppingBag,
   FaSlidersH,
   FaChevronDown,
@@ -28,9 +26,9 @@ import { promptSignIn, useToast } from '../hooks/useToast.js';
 import { useSeo } from '../hooks/useSeo.js';
 import { getUserEmail } from '../utils/auth.js';
 import { flagsFor } from '../utils/bookFlags.js';
-import { PLACEHOLDER_IMAGE } from '../utils/safeImageSrc.js';
-import { sized, IMAGE_WIDTHS } from '../utils/imageUrl.js';
 import { Stars } from '../components/Stars.js';
+import BookCard from '../components/BookCard.js';
+import { CATEGORY_GROUPS } from '../config/categories.js';
 import Logo from '../components/Logo.js';
 
 interface FilterState {
@@ -46,6 +44,7 @@ interface FilterEdits {
   searchInput?: string;
   searchTerm?: string;
   inStockOnly?: boolean;
+  dealsOnly?: boolean;
   filters?: FilterState;
   page?: number;
 }
@@ -60,25 +59,26 @@ const PAGE_SIZE = 12;
 
 const capitalise = (value: string): string => value.charAt(0).toUpperCase() + value.slice(1);
 
-const categories = [
-  'Fiction',
-  'Non-Fiction',
-  'Science & Technology',
-  'Self-Help & Personal Development',
-  'Romance',
-  'Mystery & Thriller',
-  'Fantasy & Sci-Fi',
-  'History & Politics',
-  "Children's & Young Adult",
-  'Health, Wellness & Spirituality',
-  'Graphic Novels & Comics',
-  'Business & Finance',
-  'Travel & Culture',
-  'Others'
+/** The orders the catalogue offers, and what each is called. */
+const SORTS: readonly { value: CatalogueSort; label: string }[] = [
+  { value: 'relevant', label: 'Relevant - deals first' },
+  { value: 'dealPercent', label: 'Deals - biggest % off' },
+  { value: 'dealAmount', label: 'Deals - biggest ৳ saving' },
+  { value: 'newest', label: 'Newest first' },
+  { value: 'rated', label: 'Highest rated' },
+  { value: 'priceLowHigh', label: 'Price - Low to High' },
+  { value: 'priceHighLow', label: 'Price - High to Low' },
 ];
+const isSort = (value: string | null): value is CatalogueSort => SORTS.some((sort) => sort.value === value);
 
 export default function BookFilter() {
-  const [priceFilter, setPriceFilter] = useState({ from: '', to: '' });
+  const location = useLocation();
+  // The price range, the order and the deals switch can arrive in the address
+  // - the homepage's "Under ৳300" and "Quick deals" link straight here.
+  const [priceFilter, setPriceFilter] = useState(() => {
+    const params = new URLSearchParams(location.search);
+    return { from: params.get('minPrice') ?? '', to: params.get('maxPrice') ?? '' };
+  });
   /**
    * The filter panel is fourteen category buttons deep. Beside the results on a
    * desktop that is fine; above them on a phone it means scrolling past all of
@@ -86,10 +86,13 @@ export default function BookFilter() {
    */
   const [showFilters, setShowFilters] = useState(false);
 
-  const [sortOption, setSortOption] = useState<CatalogueSort>('newest');
+  // Relevant by default: the deals first, then the newest.
+  const [sortOption, setSortOption] = useState<CatalogueSort>(() => {
+    const wanted = new URLSearchParams(location.search).get('sort');
+    return isSort(wanted) ? wanted : 'relevant';
+  });
   const userEmail = getUserEmail();
   const signedIn = Boolean(userEmail);
-  const location = useLocation();
   const navigate = useNavigate();
   const toast = useToast();
 
@@ -110,6 +113,7 @@ export default function BookFilter() {
       searchInput: query,
       searchTerm: query,
       inStockOnly: params.get('inStock') === '1',
+      dealsOnly: params.get('deals') === '1',
       filters: {
         bookType: bookType ? bookType.toLowerCase() : '',
         condition: '',
@@ -146,6 +150,7 @@ export default function BookFilter() {
       : 'Browse every book on sale: new and second-hand, filtered by category, condition and price.',
   });
   const inStockOnly = active.inStockOnly ?? fromUrl.inStockOnly;
+  const dealsOnly = active.dealsOnly ?? fromUrl.dealsOnly;
   const filters = active.filters ?? fromUrl.filters;
 
   /** How many filters are on, for the collapsed panel's label. */
@@ -155,6 +160,7 @@ export default function BookFilter() {
     filters.category.length +
     (filters.rating > 0 ? 1 : 0) +
     (inStockOnly ? 1 : 0) +
+    (dealsOnly ? 1 : 0) +
     (priceFilter.from || priceFilter.to ? 1 : 0);
 
   const page = active.page ?? 1;
@@ -205,6 +211,7 @@ export default function BookFilter() {
     maxPrice: amount(settledPrice.to),
     rating: filters.rating || undefined,
     inStock: inStockOnly || undefined,
+    deals: dealsOnly || undefined,
     sort: sortOption,
     page,
     pageSize: PAGE_SIZE,
@@ -299,26 +306,22 @@ export default function BookFilter() {
         </div>
 
         <div className="user-options">
-          <button
-            type="button"
+          <Link to="/"
             className="icon-button browse-home"
             style={{ color: '#6d28d9' }}
-            onClick={() => navigate('/')}
             title="Go to Homepage"
             aria-label="Go to Homepage"
           >
             <FaHome />
-          </button>
-          <button
-            type="button"
+          </Link>
+          <Link to="/wishlist"
             className="icon-button"
             style={{ color: '#ff5c35' }}
-            onClick={() => navigate('/wishlist')}
             title="Wishlist"
             aria-label="Wishlist"
           >
             <FaHeart />
-          </button>
+          </Link>
           <Link to="/cart" className="icon-link" style={{ color: '#6d28d9' }} title="Cart" aria-label="Cart">
             <FaShoppingBag />
           </Link>
@@ -361,6 +364,21 @@ export default function BookFilter() {
           className={`${showFilters ? 'flex' : 'hidden'} card filter-panel z-30 lg:flex`}
           aria-label="Filters"
         >
+          {/* Deals: books a seller has discounted. */}
+          <div className="filter-group">
+            <h2>Deals</h2>
+            <div className="filter-chips">
+              <button
+                type="button"
+                className={`${chipClass(dealsOnly)} chip-deals`}
+                aria-pressed={dealsOnly}
+                onClick={() => update({ dealsOnly: !dealsOnly })}
+              >
+                <span aria-hidden="true">⚡</span>
+                Quick deals only
+              </button>
+            </div>
+          </div>
           {/* Book Type */}
           <div className="filter-group">
             <h2>Book Type</h2>
@@ -399,26 +417,39 @@ export default function BookFilter() {
               </div>
             </div>
           )}
-          {/* Category (multi-select) */}
+          {/* Category (multi-select), a group at a time. A group opens by
+              itself when one of its categories is on, so a filter cannot be
+              hidden inside a closed group. */}
           <div className="filter-group">
             <h2>Category</h2>
-            <div className="filter-chips">
-              {categories.map((cat) => {
-                const catKey = cat.toLowerCase();
-                const selected = filters.category.includes(catKey);
-                return (
-                  <button
-                    key={cat}
-                    type="button"
-                    className={chipClass(selected)}
-                    aria-pressed={selected}
-                    onClick={() => handleCategoryToggle(catKey)}
-                  >
-                    {cat}
-                  </button>
-                );
-              })}
-            </div>
+            {CATEGORY_GROUPS.map((group) => {
+              const onHere = group.items.filter((cat) => filters.category.includes(cat.toLowerCase())).length;
+              return (
+                <details key={group.name} className="filter-cat-group" open={onHere > 0 || undefined}>
+                  <summary>
+                    <span aria-hidden="true">{group.emoji}</span> {group.name}
+                    {onHere > 0 && <span className="filter-cat-count">{onHere}</span>}
+                  </summary>
+                  <div className="filter-chips">
+                    {group.items.map((cat) => {
+                      const catKey = cat.toLowerCase();
+                      const selected = filters.category.includes(catKey);
+                      return (
+                        <button
+                          key={cat}
+                          type="button"
+                          className={chipClass(selected)}
+                          aria-pressed={selected}
+                          onClick={() => handleCategoryToggle(catKey)}
+                        >
+                          {cat}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </details>
+              );
+            })}
           </div>
           {/* Price Range */}
           <div className="filter-group">
@@ -536,10 +567,11 @@ export default function BookFilter() {
               }}
               title="Sort books"
             >
-              <option value="newest">Newest first</option>
-              <option value="rated">Highest rated</option>
-              <option value="priceHighLow">Price - High to Low</option>
-              <option value="priceLowHigh">Price - Low to High</option>
+              {SORTS.map((sort) => (
+                <option key={sort.value} value={sort.value}>
+                  {sort.label}
+                </option>
+              ))}
             </select>
           </div>
 
@@ -571,96 +603,18 @@ export default function BookFilter() {
                 <p style={{ marginTop: 6 }}>Try a shorter search, or turn a filter or two off.</p>
               </div>
             ) : (
-              booksOnThisPage.map((book) => {
-                const isOld = (book.bookType || '').toLowerCase() === 'old';
-                const isInWishlist = !!wishlist[book._id];
-                const isInCart = !!cart[book._id];
-                const category = Array.isArray(book.category) ? book.category.join(', ') : (book.category || '');
-                return (
-                  <article
-                    key={book._id}
-                    className="book-card"
-                    onClick={() => navigate(`/book/${book._id}`)}
-                  >
-                    {/* Cover, with its sticker and the heart */}
-                    <div className="book-image">
-                      <img
-                        loading="lazy"
-                        decoding="async"
-                        src={sized(book.images?.[0] ?? PLACEHOLDER_IMAGE, IMAGE_WIDTHS.card)}
-                        alt={book.title}
-                      />
-                      {/* Book type sticker, and a used book's condition
-                          under it rather than on a line of its own. */}
-                      <div className="card-badges">
-                        <span
-                          className="badge"
-                          style={{
-                            background: isOld ? '#ffffff' : '#facc15',
-                            color: isOld ? '#5b21b6' : '#111827',
-                          }}
-                        >
-                          {isOld ? 'Used' : 'New'}
-                        </span>
-                        {isOld && book.condition && (
-                          <span className="badge" style={{ background: '#1e1b4b', color: '#fff' }}>
-                            {capitalise(book.condition)}
-                          </span>
-                        )}
-                      </div>
-                      {/* Wishlist toggle */}
-                      <button
-                        type="button"
-                        className="card-heart"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleToggleWishlist(book._id);
-                        }}
-                        title={isInWishlist ? 'Remove from Wishlist' : 'Add to Wishlist'}
-                        aria-label={isInWishlist ? 'Remove from Wishlist' : 'Add to Wishlist'}
-                        aria-pressed={isInWishlist}
-                      >
-                        {isInWishlist ? <FaHeart /> : <FaRegHeart />}
-                      </button>
-                    </div>
-                    {/* Book Info */}
-                    <div className="book-info">
-                      <h3>{book.title}</h3>
-                      <div className="card-author">{book.author}</div>
-                      {category && <div className="card-meta">{category}</div>}
-                      <div className="card-price">৳{book.price}</div>
-                      {(book.ratingCount ?? 0) > 0 ? (
-                        <div className="card-rating">
-                          <Stars value={book.ratingAverage ?? 0} size={12} />
-                          <span>
-                            {(book.ratingAverage ?? 0).toFixed(1)} ({book.ratingCount})
-                          </span>
-                        </div>
-                      ) : (
-                        <div className="card-rating">No reviews yet</div>
-                      )}
-                      {/* Cart toggle or Out of Stock */}
-                      <div className="card-actions">
-                        {book.stock === 0 ? (
-                          <div className="card-sold-out">Out of Stock</div>
-                        ) : (
-                          <button
-                            type="button"
-                            className={isInCart ? 'btn btn-danger' : 'btn btn-primary'}
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleToggleCart(book._id);
-                            }}
-                          >
-                            <FaShoppingCart aria-hidden="true" />
-                            {isInCart ? 'Remove from Cart' : 'Add to Cart'}
-                          </button>
-                        )}
-                      </div>
-                    </div>
-                  </article>
-                );
-              })
+              booksOnThisPage.map((book) => (
+                <BookCard
+                  key={book._id}
+                  book={book}
+                  // The heart is shown signed out too, where it asks to sign in.
+                  signedIn
+                  inWishlist={Boolean(wishlist[book._id])}
+                  inCart={Boolean(cart[book._id])}
+                  onToggleWishlist={handleToggleWishlist}
+                  onToggleCart={handleToggleCart}
+                />
+              ))
             )}
           </div>
 

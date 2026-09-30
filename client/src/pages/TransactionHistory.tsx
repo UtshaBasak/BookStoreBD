@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { FaReceipt, FaSearch, FaSyncAlt, FaTruck } from 'react-icons/fa';
 
 import type { OrderLine } from '@shared/api.js';
@@ -156,14 +157,12 @@ export default function TransactionHistory() {
                     </p>
                   </div>
                   {/* Track The Order button */}
-                  <button
-                    type="button"
+                  <Link to={`/admin/order-tracking/${order.orderNumber ? order.orderNumber : order._id}`}
                     className="btn btn-primary admin-btn-sm"
-                    onClick={() => window.location.href = `/admin/order-tracking/${order.orderNumber ? order.orderNumber : order._id}`}
                   >
                     <FaTruck aria-hidden="true" />
                     Track The Order
-                  </button>
+                  </Link>
                 </div>
                 <div className="table-scroll">
                 <table className="styled-table">

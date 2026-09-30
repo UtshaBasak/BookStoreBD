@@ -2,6 +2,7 @@ import { Suspense, lazy, type ReactNode } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 
 import HomePage from './pages/Homepage';
+import BackToTop from './components/BackToTop.js';
 
 /*
  * Every page is its own chunk.
@@ -263,6 +264,7 @@ export default function App() {
         <Route path="*" element={<NotFound />} />
         </Routes>
       </Suspense>
+      <BackToTop />
     </BrowserRouter>
   );
 }

@@ -85,6 +85,14 @@ export const bookSchemas = {
   bySeller: { params: emailParam },
   updateStock: { params: objectIdParam, body: z.object({ stock: nonNegativeInt }) },
   updatePrice: { params: objectIdParam, body: z.object({ price: nonNegativeInt }) },
+  /** A seller's discount: a percentage or an amount of taka off, or none. */
+  updateDiscount: {
+    params: objectIdParam,
+    body: z.discriminatedUnion('type', [
+      z.object({ type: z.literal('none') }),
+      z.object({ type: z.enum(['percent', 'amount']), value: z.coerce.number().int().min(1).max(100000) }),
+    ]),
+  },
 };
 
 // ------------------------------------------------------- cart / wishlist
@@ -122,10 +130,44 @@ export const filterSchemas = {
         .union([z.literal('1'), z.literal('0'), z.boolean()])
         .transform((value) => value === true || value === '1')
         .optional(),
-      sort: z.enum(['newest', 'rated', 'priceLowHigh', 'priceHighLow']).default('newest'),
+      // Only books a seller has discounted: the catalogue's Quick deals.
+      deals: z
+        .union([z.literal('1'), z.literal('0'), z.boolean()])
+        .transform((value) => value === true || value === '1')
+        .optional(),
+      // 'relevant' puts the biggest deals first, then the newest.
+      sort: z
+        .enum(['relevant', 'newest', 'rated', 'priceLowHigh', 'priceHighLow', 'dealPercent', 'dealAmount'])
+        .default('relevant'),
       page: positiveInt.default(1),
       // Bounded, so one request cannot ask for the whole database.
       pageSize: boundedInt(1, 48).default(12),
+    }),
+  },
+  /**
+   * Books by id, in the order given, for a visitor's Recently viewed - kept in
+   * their browser - and the Top picks worked out from it.
+   */
+  byIds: {
+    query: z.object({
+      ids: z
+        .string()
+        .trim()
+        .max(25 * 25)
+        .transform((value) => value.split(',').filter(Boolean))
+        .pipe(z.array(objectId).max(24)),
+    }),
+  },
+  forYou: {
+    query: z.object({
+      // What the visitor has been looking at, from the same browser list.
+      seen: z
+        .string()
+        .trim()
+        .max(25 * 25)
+        .transform((value) => value.split(',').filter(Boolean))
+        .pipe(z.array(objectId).max(24))
+        .optional(),
     }),
   },
   /** The homepage strip: the newest few, one per title. */
@@ -283,6 +325,10 @@ export const userSchemas = {
       // Cloudinary itself and reports back what it got.
       images: repeatable(urlText).optional(),
       imagePublicIds: repeatable(shortText).optional(),
+      // An optional discount from the start. Checked against the price by the
+      // handler, which is the only place both are known.
+      discountType: z.enum(['percent', 'amount', '']).optional(),
+      discountValue: nonNegativeInt.optional(),
     }),
   },
   updateProfile: {
@@ -298,12 +344,16 @@ export const userSchemas = {
       // and the form sends every field - so anyone who had never set a gender
       // could not save their profile at all.
       gender: z.union([z.literal(''), z.enum(['male', 'female'])]).optional(),
+      // Sent empty to remove a banner; a new one arrives as a file.
+      buyerBanner: z.literal('').optional(),
+      sellerBanner: z.literal('').optional(),
       profilePicture: z.string().optional(),
     }),
   },
   byId: { params: objectIdParam },
   /** Somebody's profile picture, by address rather than inline. */
   avatar: { params: emailParam },
+  banner: { params: emailParam.extend({ role: z.enum(['buyer', 'seller']) }) },
   /**
    * Deleting your own account asks for the password again.
    *
@@ -414,6 +464,7 @@ export type IdParams = z.infer<typeof objectIdParam>;
 export type EmailParams = z.infer<typeof emailParam>;
 export type UpdateStockBody = z.infer<typeof bookSchemas.updateStock.body>;
 export type UpdatePriceBody = z.infer<typeof bookSchemas.updatePrice.body>;
+export type UpdateDiscountBody = z.infer<typeof bookSchemas.updateDiscount.body>;
 
 export type AdminBookQuery = z.infer<typeof bookSchemas.adminList.query>;
 export type AdminUserQuery = z.infer<typeof userSchemas.adminList.query>;
@@ -423,6 +474,8 @@ export type ReviewListQuery = z.infer<typeof reviewSchemas.flagged.query>;
 export type ClientErrorBody = z.infer<typeof clientErrorSchemas.report.body>;
 export type CatalogueQuery = z.infer<typeof filterSchemas.catalogue.query>;
 export type FeaturedQuery = z.infer<typeof filterSchemas.featured.query>;
+export type ByIdsQuery = z.infer<typeof filterSchemas.byIds.query>;
+export type ForYouQuery = z.infer<typeof filterSchemas.forYou.query>;
 
 export type CreateOrderBody = z.infer<typeof orderSchemas.create.body>;
 export type OrderNumberParams = z.infer<typeof orderSchemas.byOrderNumber.params>;

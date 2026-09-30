@@ -39,7 +39,7 @@ const fillAndSubmit = async () => {
   await user.type(screen.getByLabelText('Title *'), 'Pather Panchali');
   await user.type(screen.getByLabelText('Author *'), 'Bibhutibhushan Bandyopadhyay');
   await user.type(screen.getByLabelText('Price (Taka) *'), '450');
-  await user.click(screen.getByLabelText('Fiction'));
+  await user.click(screen.getByLabelText('Novels'));
   await user.upload(
     screen.getByLabelText(/book images/i),
     new File(['x'], 'cover.png', { type: 'image/png' })

@@ -1,5 +1,5 @@
 import { useEffect, useState, type ChangeEvent } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, Link } from 'react-router-dom';
 import {
   FaBook,
   FaCheck,
@@ -67,13 +67,11 @@ export default function AdminOrderTrackingPage() {
     <header className="aurora admin-order-bar">
       <Logo inverted size={32} />
       <div className="admin-order-bar-actions">
-        <button
-          type="button"
+        <Link to="/admin/users"
           className="admin-side-button keep-text"
-          onClick={() => navigate('/admin/users')}
         >
           ← Back to Admin Panel
-        </button>
+        </Link>
         <button type="button" className="btn btn-primary" onClick={() => window.location.reload()}>
           ⟳ Refresh
         </button>

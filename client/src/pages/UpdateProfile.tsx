@@ -1,5 +1,6 @@
 import { useState, type ChangeEvent, type FormEvent } from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
+import { useQueryClient } from '@tanstack/react-query';
+import { useLocation, useNavigate, useSearchParams, Link } from 'react-router-dom';
 
 import Logo from '../components/Logo.js';
 import { API_BASE_URL, apiFetch } from '../config/api.js';
@@ -10,6 +11,8 @@ import { isOwnProfile } from '../utils/profile.js';
 import { safeImageSrc } from '../utils/safeImageSrc.js';
 import FilePreview from '../components/FilePreview.js';
 import { reportError } from '../utils/report.js';
+import { resizeImage } from '../utils/resizeImage.js';
+import { readProfileMode } from '../utils/profileMode.js';
 import type { ApiError } from '@shared/api.js';
 
 // The homepage's header bar, and the cards shared with the profile page.
@@ -17,6 +20,8 @@ import './Homepage.css';
 import './Profile.css';
 
 /** The editable profile. Every field a string, because every field is an input. */
+type BannerRole = 'buyer' | 'seller';
+
 interface ProfileForm {
     email: string;
     username: string;
@@ -31,9 +36,15 @@ interface ProfileForm {
 export default function UpdateProfile() {
     const [profilePicture, setProfilePicture] = useState<File | null>(null);
     const [removeProfilePicture, setRemoveProfilePicture] = useState(false);
+    /** A new banner for each side, or 'remove', or nothing changed. */
+    const [banners, setBanners] = useState<Record<BannerRole, File | 'remove' | null>>({ buyer: null, seller: null });
+    // Back to whichever side of the profile this was opened from.
+    const [searchParams] = useSearchParams();
+    const mode = readProfileMode(searchParams.get('mode'));
     const [errorMsg, setErrorMsg] = useState('');
     const navigate = useNavigate();
     const toast = useToast();
+    const queryClient = useQueryClient();
     const userEmail = getUserEmail();
     // Arriving from "add your bKash number first", straight to that field.
     const payoutFirst = useLocation().hash === '#bkash';
@@ -109,6 +120,14 @@ export default function UpdateProfile() {
                 // Signal backend to remove profile picture
                 formDataToSend.append('profilePicture', '');
             }
+            // Banners are scaled down first: a phone photograph is megabytes,
+            // for a strip two hundred pixels tall.
+            for (const role of ['buyer', 'seller'] as const) {
+                const banner = banners[role];
+                const field = role === 'buyer' ? 'buyerBanner' : 'sellerBanner';
+                if (banner === 'remove') formDataToSend.append(field, '');
+                else if (banner) formDataToSend.append(field, await resizeImage(banner), 'banner.jpg');
+            }
 
             const res = await apiFetch(`${API_BASE_URL}/user/profile`, {
                 method: 'PUT',
@@ -122,8 +141,11 @@ export default function UpdateProfile() {
                 setErrorMsg(errorData.errors?.[0]?.message || errorData.message || 'Failed to update profile.');
                 return;
             }
+            // The profile is cached for half a minute; without this the page
+            // it goes back to showed the details from before the save.
+            await queryClient.invalidateQueries({ queryKey: ['profile'] });
             toast.success('Profile updated.');
-            navigate('/profile');
+            navigate(`/profile?mode=${mode}`);
         } catch (err) {
             reportError('Error updating profile:', err);
             setErrorMsg('Failed to update profile.');
@@ -133,18 +155,16 @@ export default function UpdateProfile() {
     return (
         <div className="pf-page">
             <header className="header">
-                <button
-                    type="button"
+                <Link to="/"
                     className="logo-button"
-                    onClick={() => navigate('/')}
                     aria-label="BookStoreBD home"
                 >
                     <Logo size={38} />
-                </button>
+                </Link>
                 <div className="user-options">
-                    <button type="button" className="btn btn-ghost" onClick={() => navigate('/profile')}>
+                    <Link to={`/profile?mode=${mode}`} className="btn btn-ghost">
                         &#8592; Back to Profile
-                    </button>
+                    </Link>
                 </div>
             </header>
 
@@ -194,6 +214,61 @@ export default function UpdateProfile() {
                                     </button>
                                 )}
                             </div>
+                        </div>
+                    </section>
+
+                    {/* Banners: one for each side of the shop. */}
+                    <section className="pf-form-section" id="banners">
+                        <h2>Banners</h2>
+                        <p className="pf-help">
+                            The picture across the top of your profile. Use a different one for buying and for
+                            selling, so each side looks like itself.
+                        </p>
+                        <div className="pf-banner-pickers">
+                            {(['buyer', 'seller'] as const).map((role) => {
+                                const picked = banners[role];
+                                const saved = role === 'buyer' ? profile?.buyerBanner : profile?.sellerBanner;
+                                const showing = picked instanceof File ? picked : picked === 'remove' ? null : saved ?? null;
+                                const inputId = `up-banner-${role}`;
+                                return (
+                                    <div key={role} className="pf-banner-picker">
+                                        <p className="pf-label">{role === 'buyer' ? 'Buyer banner' : 'Seller banner'}</p>
+                                        {showing instanceof File ? (
+                                            <FilePreview file={showing} alt={`New ${role} banner`} className="pf-banner-thumb" max={800} />
+                                        ) : showing ? (
+                                            <img src={safeImageSrc(showing)} alt={`Your ${role} banner`} className="pf-banner-thumb" />
+                                        ) : (
+                                            <div className={`pf-banner-thumb pf-banner ${role === 'seller' ? 'pf-banner-seller' : ''}`} aria-hidden="true" />
+                                        )}
+                                        <div className="pf-banner-actions">
+                                            <label htmlFor={inputId} className="btn btn-ghost">
+                                                {showing ? 'Change' : 'Choose picture'}
+                                            </label>
+                                            <input
+                                                id={inputId}
+                                                name={role === 'buyer' ? 'buyerBanner' : 'sellerBanner'}
+                                                type="file"
+                                                accept="image/png,image/jpeg,image/webp"
+                                                className="sr-only"
+                                                aria-label={role === 'buyer' ? 'Buyer banner picture' : 'Seller banner picture'}
+                                                onChange={(e) => {
+                                                    const file = e.target.files?.[0] ?? null;
+                                                    if (file) setBanners((prev) => ({ ...prev, [role]: file }));
+                                                }}
+                                            />
+                                            {showing && (
+                                                <button
+                                                    type="button"
+                                                    className="btn btn-danger"
+                                                    onClick={() => setBanners((prev) => ({ ...prev, [role]: saved ? 'remove' : null }))}
+                                                >
+                                                    Remove
+                                                </button>
+                                            )}
+                                        </div>
+                                    </div>
+                                );
+                            })}
                         </div>
                     </section>
 

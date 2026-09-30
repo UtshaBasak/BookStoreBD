@@ -39,6 +39,19 @@ export const connectDatabase = async (): Promise<Connection> => {
     log.error({ err: error }, 'Could not synchronise indexes');
   }
 
+  // Listings from before discounts existed have no sale price, and the
+  // catalogue now filters and sorts by it: without one they would sort last
+  // and fall outside every price range. Their sale price is their price.
+  try {
+    const { default: AddBook } = await import('../models/AddBook.model.js');
+    const { modifiedCount } = await AddBook.updateMany({ salePrice: { $exists: false } }, [
+      { $set: { salePrice: '$price', discountPercent: 0, discountAmount: 0, discountType: null, discountValue: 0 } },
+    ]);
+    if (modifiedCount) log.info({ modifiedCount }, 'Gave older listings a sale price');
+  } catch (error) {
+    log.error({ err: error }, 'Could not backfill sale prices');
+  }
+
   mongoose.connection.on('error', (error: unknown) => {
     log.error({ err: error }, 'MongoDB connection error');
   });

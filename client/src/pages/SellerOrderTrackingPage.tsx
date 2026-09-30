@@ -46,9 +46,9 @@ export default function SellerOrderTrackingPage() {
         <Logo size={34} />
       </Link>
       <div className="sl-topbar-actions">
-        <button type="button" onClick={() => window.location.href='/profile'} className="btn btn-ghost">
+        <Link to="/profile?mode=seller" className="btn btn-ghost">
           ← Back to Profile
-        </button>
+        </Link>
         <button type="button" onClick={() => window.location.reload()} className="btn btn-primary">
           ⟳ Refresh
         </button>

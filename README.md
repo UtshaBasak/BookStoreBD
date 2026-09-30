@@ -72,13 +72,33 @@ It ships three distinct experiences from one codebase:
 ### Catalogue
 
 - Full book listings with author, publisher, ISBN, language, page count and condition
-- Category filtering and case-insensitive title search
+- About a hundred single-subject categories in six groups - Academic, Fiction,
+  Non-fiction, Kids & teens, Lifestyle & hobbies, Other - from one list,
+  [`client/src/config/categories.ts`](client/src/config/categories.ts)
+- Case-insensitive title and author search, filters for type, condition,
+  category, price, rating, stock and deals, and seven orders: Relevant (deals
+  first, the default), biggest % off, biggest ৳ saving, newest, highest rated,
+  and price either way
 - Multi-image upload straight from the browser to Cloudinary, or stored inline
   as base64 when image hosting is not configured
 - Stock tracking, with out-of-stock titles automatically dropped from every cart
 
+### Homepage shelves
+
+- Quick deals, Latest books, Trending now, Top picks for you, Shop by category,
+  Bestsellers, Most popular, Popular writers, Top rated, Under ৳300, Discover
+  something new, and Recently viewed - all but the last two from one request,
+  `GET /filter/sections`, kept for a minute
+- Top picks come from what the person bought, saved, put in their cart or
+  looked at; Recently viewed is kept in the browser only
+- Every card is a real link, so it opens in a new tab or copies like any other
+
 ### Commerce
 
+- Quick deals: a seller gives a discount on their own book as a percentage or
+  an amount of taka off (at most 90%). The book carries its sale price, which
+  the catalogue filters and sorts by and checkout charges; the listed price is
+  shown struck through. Rules in [`server/config/pricing.ts`](server/config/pricing.ts)
 - Wishlist and cart, both scoped per user
 - Checkout capturing delivery division, district, address, contact and payment method
 - Delivery charges worked out by the server from the district: 70 Tk in Dhaka, 120 Tk elsewhere
@@ -87,6 +107,14 @@ It ships three distinct experiences from one codebase:
 - Order tracking for buyers, sellers and admins, each with its own view
 - Returns within 7 days of delivery, with a defect description, photos and a bKash number for the refund
 - Seller payouts by bKash to the seller's merchant number once an order's return window closes, less a 5% fee, recorded with the bKash transaction ID
+
+### Profiles
+
+- One profile picture, and two banners: one for the buyer side and one for the
+  seller side, scaled down in the browser before upload and stored on
+  Cloudinary when it is configured
+- The buyer or seller view is kept in the address (`/profile?mode=seller`), so
+  coming back from the seller's pages returns to it
 
 ### Real-time chat
 
@@ -697,6 +725,7 @@ administrator without a migration.
 | `PUT` | `/user/profile` | Update a profile (multipart, optional avatar) |
 | `POST` | `/user/add-book` | Create a listing with up to 10 images |
 | `GET` | `/user/:email/avatar` | A profile picture, as an image |
+| `GET` | `/user/:email/banner/:role` | A buyer or seller banner kept inline, as an image |
 | `POST` | `/user/signup` | Alias of `/auth/signup`, kept for older callers |
 | `POST` | `/user/signin` | Alias of `/auth/signin`, kept for older callers |
 | `DELETE` | `/user/:id` | Delete a user (admin) |
@@ -709,14 +738,21 @@ administrator without a migration.
 | `GET` | `/book/:id` | Book detail plus related titles |
 | `GET` | `/book/seller/:email` | Every listing by one seller |
 | `PUT` | `/book/update-stock/:id` | Set stock; clears carts when it hits 0 |
-| `PUT` | `/book/update-price/:id` | Set price |
+| `PUT` | `/book/update-price/:id` | Set price; drops a taka discount that no longer fits |
+| `PUT` | `/book/discount/:id` | The seller's discount: `{ type: 'percent' \| 'amount', value }` or `{ type: 'none' }` |
 | `DELETE` | `/book/:id` | Delete a listing |
 | `GET` | `/filter/booklist` | One page of the catalogue, filtered |
 | `GET` | `/filter/featured` | The newest few, one per title |
+| `GET` | `/filter/sections` | Every homepage shelf, writers and category counts |
+| `GET` | `/filter/by-ids?ids=` | Books in the order asked (Recently viewed) |
+| `GET` | `/filter/for-you?seen=` | Top picks, personal when signed in |
 
 The catalogue takes its filters as named query parameters — `search`,
-`bookType`, `condition`, `category` (repeatable), `minPrice`, `maxPrice`,
-`rating`, `inStock`, `sort`, `page`, `pageSize` — and answers with
+`bookType`, `condition`, `category` (repeatable), `minPrice`, `maxPrice`
+(both on the sale price), `rating`, `inStock`, `deals`, `sort` (`relevant`,
+the default, `dealPercent`, `dealAmount`, `newest`, `rated`, `priceLowHigh`,
+`priceHighLow`; the two deal orders show discounted books only), `page`,
+`pageSize` — and answers with
 `{ items, total, page, pageSize, pageCount }`. `pageSize` is capped, so no
 request can ask for the whole database.
 

@@ -1,11 +1,12 @@
 import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { FaPlus, FaSave, FaSearch, FaSyncAlt, FaTrashAlt } from 'react-icons/fa';
 
 import type { Id } from '@shared/api.js';
 
 import './Seller.css';
 import Logo from '../components/Logo.js';
+import DiscountEditor from '../components/DiscountEditor.js';
 import { API_BASE_URL, apiFetch } from '../config/api.js';
 import { site } from '../config/site.js';
 import { useSellerBooks } from '../hooks/queries.js';
@@ -19,7 +20,6 @@ export default function SellerBookList() {
   const [search, setSearch] = useState('');
 
   const sellerEmail = getUserEmail();
-  const navigate = useNavigate();
   const toast = useToast();
 
   const booksQuery = useSellerBooks(sellerEmail);
@@ -102,9 +102,9 @@ export default function SellerBookList() {
         <Link to="/" className="sl-logo-link" aria-label={`${site.name} home`}>
           <Logo size={34} />
         </Link>
-        <button type="button" onClick={() => navigate('/profile')} className="btn btn-ghost">
+        <Link to="/profile?mode=seller" className="btn btn-ghost">
           ← Return to Profile
-        </button>
+        </Link>
       </header>
 
       <div className="sl-wrap sl-wrap-wide">
@@ -114,7 +114,7 @@ export default function SellerBookList() {
               <span className="sl-kicker">📚 Seller shelf</span>
               <h2>Your Books</h2>
               <p className="sl-hero-sub">
-                Change a price or the stock in the table, then save them all at once.
+                Change a price or the stock, then save them all at once. A discount is applied straight away, and puts the book in Quick deals.
               </p>
             </div>
             <div className="sl-hero-stats">
@@ -189,6 +189,7 @@ export default function SellerBookList() {
                   <th>Condition</th>
                   <th>No. of Pages</th>
                   <th>Price (Tk.)</th>
+                  <th>Discount</th>
                   <th>Update Price</th>
                   <th>Stock</th>
                   <th>Update Stock</th>
@@ -212,6 +213,10 @@ export default function SellerBookList() {
                       <td data-label="Condition">{book.condition}</td>
                       <td data-label="No. of Pages">{book.pages}</td>
                       <td data-label="Price (Tk.)" className="sl-price">৳{book.price}</td>
+                      <td data-label="Discount">
+                        {/* Keyed on what is saved, so a saved discount resets the editor. */}
+                        <DiscountEditor key={`${book.discountType ?? 'none'}-${book.discountValue ?? 0}-${book.price}`} book={book} />
+                      </td>
                       <td data-label="Update Price">
                         <input name="price"
                           type="number"

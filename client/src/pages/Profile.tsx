@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, useSearchParams, Link } from 'react-router-dom';
 import {
     FaBirthdayCake,
     FaBook,
@@ -26,13 +26,29 @@ import Logo from '../components/Logo.js';
 import { signOut } from '../config/api.js';
 import { useProfile } from '../hooks/queries.js';
 import { getUserEmail, isAdmin } from '../utils/auth.js';
+import { readProfileMode, rememberProfileMode, type ProfileMode } from '../utils/profileMode.js';
 
 // The homepage's header bar, then this page's own cards.
 import './Homepage.css';
 import './Profile.css';
 
 export default function Profile() {
-    const [profileMode, setProfileMode] = useState('buyer'); // 'buyer' or 'seller'
+    /*
+     * Buyer or seller, kept in the address and on this device.
+     *
+     * It was plain state, starting at 'buyer' on every visit - so going from
+     * the seller profile to the book list or the order list and back landed on
+     * the buyer profile. The address says which one this is, so the back
+     * button returns to it; the device remembers the last one chosen, for
+     * anything that links to /profile without saying.
+     */
+    const [searchParams, setSearchParams] = useSearchParams();
+    const [profileMode, setMode] = useState<ProfileMode>(() => readProfileMode(searchParams.get('mode')));
+    const setProfileMode = (mode: ProfileMode) => {
+        setMode(mode);
+        rememberProfileMode(mode);
+        setSearchParams({ mode }, { replace: true });
+    };
     const navigate = useNavigate();
     const userEmail = getUserEmail();
 
@@ -75,7 +91,7 @@ export default function Profile() {
             title: 'Update Profile',
             desc: 'Photo, contact details and password',
             icon: <FaUserEdit />,
-            onClick: () => navigate('/update-profile'),
+            onClick: () => navigate(`/update-profile?mode=${profileMode}`),
         },
         ...(isSeller
             ? [{
@@ -118,25 +134,21 @@ export default function Profile() {
     return (
         <div className="pf-page">
             <header className="header">
-                <button
-                    type="button"
+                <Link to="/"
                     className="logo-button"
-                    onClick={() => navigate('/')}
                     aria-label="BookStoreBD home"
                 >
                     <Logo size={38} />
-                </button>
+                </Link>
                 <div className="user-options">
                     {/* Home icon button */}
-                    <button
-                        type="button"
+                    <Link to="/"
                         className="icon-button"
                         style={{ color: '#6d28d9' }}
-                        onClick={() => navigate('/')}
                         title="Go to Homepage"
                     >
                         <FaHome />
-                    </button>
+                    </Link>
                     {/* Cart and Wishlist buttons for buyer profile */}
                     {profileMode === 'buyer' && (
                         <>
@@ -153,7 +165,21 @@ export default function Profile() {
 
             <main className="pf-main">
                 <section className="card pf-hero">
-                    <div className="pf-banner" aria-hidden="true" />
+                    {/* The banner for the side of the shop on show: the
+                        person's own picture when they have set one. */}
+                    {(isSeller ? profileData.sellerBanner : profileData.buyerBanner) ? (
+                        <img
+                            className="pf-banner pf-banner-photo"
+                            src={(isSeller ? profileData.sellerBanner : profileData.buyerBanner) ?? undefined}
+                            alt=""
+                        />
+                    ) : (
+                        <div className={`pf-banner ${isSeller ? 'pf-banner-seller' : ''}`} aria-hidden="true">
+                            <Link to={`/update-profile?mode=${profileMode}#banners`} className="pf-banner-add">
+                                Add a {isSeller ? 'seller' : 'buyer'} banner
+                            </Link>
+                        </div>
+                    )}
                     <div className="pf-hero-body">
                         {/* Profile Picture Segment */}
                         {showIfFilled(profileData.profilePicture) ? (
@@ -234,7 +260,7 @@ export default function Profile() {
                             <p>
                                 <strong>To sell, add your bKash merchant number</strong> so we can pay you.{' '}
                             </p>
-                            <Link to="/update-profile#bkash" className="btn btn-accent">Add it now</Link>
+                            <Link to="/update-profile?mode=seller#bkash" className="btn btn-accent">Add it now</Link>
                         </div>
                     )
                 )}

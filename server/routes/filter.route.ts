@@ -1,6 +1,7 @@
 import express from 'express';
 
-import { Booklist, Featured } from '../controllers/filter.controller.js';
+import { Booklist, ByIds, Featured, ForYou, Sections } from '../controllers/filter.controller.js';
+import { optionalAuth } from '../middleware/auth.js';
 import { validate } from '../middleware/validate.js';
 import { filterSchemas } from '../schemas/index.js';
 
@@ -17,5 +18,12 @@ const router = express.Router();
  */
 router.get('/booklist', validate(filterSchemas.catalogue), Booklist);
 router.get('/featured', validate(filterSchemas.featured), Featured);
+
+// The homepage's shelves, in one request.
+router.get('/sections', Sections);
+// A visitor's Recently viewed, kept in their browser.
+router.get('/by-ids', validate(filterSchemas.byIds), ByIds);
+// Top picks: personal when signed in, from what was viewed either way.
+router.get('/for-you', optionalAuth, validate(filterSchemas.forYou), ForYou);
 
 export default router;

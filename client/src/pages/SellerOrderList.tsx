@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { FaCheckCircle, FaClock, FaSearch, FaSyncAlt, FaTruck, FaWallet } from 'react-icons/fa';
 
 import type { OrderLine, SellerOrderLine } from '@shared/api.js';
@@ -64,7 +64,6 @@ const statusTone = (status: string) => {
 
 export default function SellerOrderList() {
   const [search, setSearch] = useState('');
-  const navigate = useNavigate();
 
   const [page, setPage] = useState(1);
 
@@ -107,9 +106,9 @@ export default function SellerOrderList() {
         <Link to="/" className="sl-logo-link" aria-label={`${site.name} home`}>
           <Logo size={34} />
         </Link>
-        <button type="button" onClick={() => navigate('/profile')} className="btn btn-ghost">
+        <Link to="/profile?mode=seller" className="btn btn-ghost">
           ← Return to Profile
-        </button>
+        </Link>
       </header>
 
       <div className="sl-wrap">
@@ -187,13 +186,11 @@ export default function SellerOrderList() {
                       </p>
                     </div>
                     {/* Track Your Order button */}
-                    <button
-                      type="button"
-                      onClick={() => navigate(`/seller/order-tracking/${order.orderNumber ? order.orderNumber : order._id}`)}
+                    <Link to={`/seller/order-tracking/${order.orderNumber ? order.orderNumber : order._id}`}
                       className="btn btn-primary"
                     >
                       <FaTruck aria-hidden="true" /> Track Your Order
-                    </button>
+                    </Link>
                   </div>
                   <div className="table-scroll">
                     <table className="styled-table sl-table sl-stack">

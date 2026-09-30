@@ -1,14 +1,12 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { FaChevronLeft, FaChevronRight, FaHeart, FaRegHeart, FaBell, FaComments, FaShoppingBag, FaSearch } from 'react-icons/fa';
+import { FaHeart, FaBell, FaComments, FaShoppingBag, FaSearch } from 'react-icons/fa';
 import './Homepage.css';
 
 import type { ChatMessage } from '@shared/api.js';
 
-import { signOut } from '../config/api.js';
 import {
   useProfile,
-  useFeatured,
   useWishlist,
   useCart,
   useUnreadChatCount,
@@ -17,69 +15,18 @@ import {
 } from '../hooks/queries.js';
 import { promptSignIn, useToast } from '../hooks/useToast.js';
 import { useSeo } from '../hooks/useSeo.js';
-import { Stars } from '../components/Stars.js';
 import { site } from '../config/site.js';
 import Footer from '../components/Footer.js';
+import HomeShelves from '../components/HomeShelves.js';
 import Logo from '../components/Logo.js';
 import { getUserEmail } from '../utils/auth.js';
 import { subscribeToMessages } from '../utils/socket.js';
 import { flagsFor } from '../utils/bookFlags.js';
-import { PLACEHOLDER_IMAGE } from '../utils/safeImageSrc.js';
-import { sized, IMAGE_WIDTHS } from '../utils/imageUrl.js';
-
-const genres = [
-  'Fiction',
-  'Non-Fiction',
-  'Science & Technology',
-  'Self-Help & Personal Development',
-  'Romance',
-  'Mystery & Thriller',
-  'Fantasy & Sci-Fi',
-  'History & Politics',
-  "Children's & Young Adult",
-  'Health, Wellness & Spirituality',
-  'Graphic Novels & Comics',
-  'Business & Finance',
-  'Travel & Culture',
-  'Others'
-];
+import { CATEGORY_GROUPS, categoryLink } from '../config/categories.js';
 
 export default function Homepage() {
-  // One dropdown at a time: which one, or none.
-  const [showDropdown, setShowDropdown] = useState<'profile' | 'category' | false>(false);
+  const [showDropdown, setShowDropdown] = useState<'category' | false>(false);
   const [searchInput, setSearchInput] = useState('');
-  const scrollRef = useRef<HTMLDivElement | null>(null);
-
-  /*
-   * Turning a vertical wheel into a horizontal scroll of the strip.
-   *
-   * As an `onWheel` prop this logged "Unable to preventDefault inside passive
-   * event listener invocation" on every single wheel event - sixty of them in
-   * a few seconds - because React registers `wheel` as passive, so the
-   * preventDefault did nothing and the page scrolled underneath at the same
-   * time. Registered here with `passive: false`, it works.
-   *
-   * It also stops hijacking once the strip has nowhere left to go, so the
-   * cursor resting over it cannot trap the page.
-   */
-  useEffect(() => {
-    const strip = scrollRef.current;
-    if (!strip) return;
-
-    const onWheel = (event: WheelEvent) => {
-      if (event.deltaY === 0) return;
-
-      const atStart = strip.scrollLeft <= 0;
-      const atEnd = strip.scrollLeft + strip.clientWidth >= strip.scrollWidth - 1;
-      if ((event.deltaY < 0 && atStart) || (event.deltaY > 0 && atEnd)) return;
-
-      strip.scrollLeft += event.deltaY;
-      event.preventDefault();
-    };
-
-    strip.addEventListener('wheel', onWheel, { passive: false });
-    return () => strip.removeEventListener('wheel', onWheel);
-  }, []);
   const navigate = useNavigate();
   const toast = useToast();
   const userEmail = getUserEmail();
@@ -116,19 +63,6 @@ export default function Homepage() {
   const username = profile?.username ?? '';
   const user = userEmail ? { email: userEmail } : null;
 
-  /*
-   * The newest ten, one per title.
-   *
-   * This strip used to fetch every listing in the database and do the
-   * de-duplicating and sorting here, to show ten of them. The API does it now
-   * and sends ten.
-   */
-  const featuredQuery = useFeatured(10);
-  const popularBooks = featuredQuery.data ?? [];
-  // Loaded and nothing there: a new shop, or everything sold. Said in words,
-  // with somewhere to go - the strip on its own was two arrows and no books.
-  const shelfEmpty = featuredQuery.isSuccess && popularBooks.length === 0;
-
   // Only the ids are needed here, so the response is mapped into a lookup as
   // it arrives rather than searched on every render.
   const { data: wishlist = {} } = useWishlist({ enabled: Boolean(userEmail), select: flagsFor });
@@ -152,17 +86,6 @@ export default function Homepage() {
     });
   }, [userEmail]);
 
-  const handleSignOut = async () => {
-    await signOut();
-    setShowDropdown(false);
-    navigate('/sign-in');
-  };
-
-  const handleViewProfile = () => {
-    setShowDropdown(false);
-    navigate('/profile');
-  };
-
   const toggleWishlist = (bookId: string) => {
     if (!userEmail) {
       promptSignIn(toast, () => navigate('/sign-in'), 'wishlist');
@@ -183,18 +106,6 @@ export default function Homepage() {
     );
   };
 
-  const scrollAmount = 320;
-  const handleScrollLeft = () => {
-    if (scrollRef.current) {
-      scrollRef.current.scrollBy({ left: -scrollAmount, behavior: 'smooth' });
-    }
-  };
-  const handleScrollRight = () => {
-    if (scrollRef.current) {
-      scrollRef.current.scrollBy({ left: scrollAmount, behavior: 'smooth' });
-    }
-  };
-
   const handleHomepageSearch = () => {
     if (searchInput.trim()) {
       navigate(`/filter?search=${encodeURIComponent(searchInput.trim())}`);
@@ -209,14 +120,12 @@ export default function Homepage() {
               The reload has gone with it: the queries refetch on their own, and
               throwing away the whole page to get back to it was a second of
               white screen every time somebody tapped the name of the shop. */}
-          <button
-            type="button"
+          <Link to="/"
             className="logo-button"
-            onClick={() => navigate('/')}
             aria-label="BookStoreBD home"
           >
             <Logo size={38} />
-          </button>
+          </Link>
         </div>
         <div className="search-bar">
           <FaSearch className="search-icon" aria-hidden="true" />
@@ -236,11 +145,9 @@ export default function Homepage() {
         <div className="user-options" style={{ position: 'relative' }}>
 
         {user && (
-            <button
-              type="button"
+            <Link to="/chat"
               className="chat-icon icon-button"
               style={{ color: '#6d28d9' }}
-              onClick={() => navigate('/chat')}
               title="Chat"
               aria-label="Chat"
             >
@@ -264,7 +171,7 @@ export default function Homepage() {
                   {unreadCount > 99 ? '99+' : unreadCount}
                 </span>
               )}
-            </button>
+            </Link>
           )}
 
           <button
@@ -278,34 +185,29 @@ export default function Homepage() {
             <FaBell />
           </button>
 
-          <button
-            type="button"
+          <Link to="/wishlist"
             className="wishlist-icon icon-button"
             style={{ color: '#ff5c35' }}
-            onClick={() => navigate('/wishlist')}
             title="Wishlist"
             aria-label="Wishlist"
           >
             <FaHeart />
-          </button>
+          </Link>
           <Link to="/cart" className="icon-link" style={{ color: '#6d28d9' }} title="Cart" aria-label="Cart">
             <FaShoppingBag />
           </Link>
           {user ? (
-            <div
-              style={{ display: 'inline-block', marginLeft: '0.25rem', cursor: 'pointer', position: 'relative' }}
-              tabIndex={0}
-              onMouseEnter={() => setShowDropdown('profile')}
-              onMouseLeave={() => setShowDropdown(false)}
-              onFocus={() => setShowDropdown('profile')}
-              onBlur={() => setShowDropdown(false)}
-            >
+            // A link to the profile, and nothing on hover. It opened a menu of
+            // "View Profile" and "Sign Out" on hover, which a touch screen
+            // cannot do, which covered the page whenever the pointer passed
+            // over it, and which duplicated the Sign Out on the profile page.
+            <Link to="/profile" className="profile-link" title="Your profile" aria-label="Your profile">
               <img
                 src={
                   profilePic ||
                   `https://ui-avatars.com/api/?name=${encodeURIComponent(username ? username[0] : 'U')}&background=6d28d9&color=fff&bold=true`
                 }
-                alt="Profile"
+                alt=""
                 style={{
                   width: 36,
                   height: 36,
@@ -315,63 +217,7 @@ export default function Homepage() {
                   verticalAlign: 'middle',
                 }}
               />
-              {showDropdown === 'profile' && (
-                <div
-                  style={{
-                    position: 'absolute',
-                    top: '100%',
-                    right: 0,
-                    background: '#fff',
-                    color: '#333',
-                    border: '1px solid #ddd',
-                    borderRadius: 6,
-                    boxShadow: '0 2px 8px rgba(0,0,0,0.12)',
-                    minWidth: 140,
-                    zIndex: 10,
-                    display: 'flex',
-                    flexDirection: 'column',
-                    padding: 0,
-                    pointerEvents: 'auto',
-                  }}
-                >
-                  <button
-                    style={{
-                      width: '100%',
-                      background: 'none',
-                      border: 'none',
-                      padding: '0.75rem 1rem',
-                      textAlign: 'left',
-                      cursor: 'pointer',
-                      color: '#333',
-                      fontWeight: 500,
-                      borderRadius: '6px 6px 0 0',
-                      borderBottom: '1px solid #eee'
-                    }}
-                    onClick={handleViewProfile}
-                    tabIndex={0}
-                  >
-                    View Profile
-                  </button>
-                  <button
-                    style={{
-                      width: '100%',
-                      background: 'none',
-                      border: 'none',
-                      padding: '0.75rem 1rem',
-                      textAlign: 'left',
-                      cursor: 'pointer',
-                      color: '#ef4444',
-                      fontWeight: 500,
-                      borderRadius: '0 0 6px 6px'
-                    }}
-                    onClick={handleSignOut}
-                    tabIndex={0}
-                  >
-                    Sign Out
-                  </button>
-                </div>
-              )}
-            </div>
+            </Link>
           ) : (
             <Link
               to="/sign-in"
@@ -392,8 +238,7 @@ export default function Homepage() {
       */}
       <nav className="nav-bar" aria-label="Browse books">
         <div
-          className="dropdown"
-          style={{ zIndex: 20, position: 'relative' }}
+          className="dropdown dropdown-categories"
           onMouseEnter={() => setShowDropdown('category')}
           onMouseLeave={() => setShowDropdown(false)}
           // Closed once focus leaves the chip and its menu altogether, not when
@@ -417,29 +262,25 @@ export default function Homepage() {
             Categories <span aria-hidden="true">▾</span>
           </button>
           {showDropdown === 'category' && (
-            <ul
-              id="categories-menu"
-              className="dropdown-content categories-menu"
-              style={{
-                display: 'grid',
-                gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
-                gap: '0.25rem 1rem',
-                listStyle: 'none',
-                margin: 0,
-              }}
-            >
-              {genres.map((genre) => (
-                <li key={genre}>
-                  <Link
-                    to={`/filter?category=${encodeURIComponent(genre)}`}
-                    style={{ padding: '0.5rem 0.75rem' }}
-                    onClick={() => setShowDropdown(false)}
-                  >
-                    {genre}
-                  </Link>
-                </li>
+            // Grouped: a hundred subjects in one list would be a wall.
+            <div id="categories-menu" className="dropdown-content categories-menu">
+              {CATEGORY_GROUPS.map((group) => (
+                <div key={group.name} className={`categories-group${group.items.length > 12 ? ' is-wide' : ''}`}>
+                  <p className="categories-group-name">
+                    <span aria-hidden="true">{group.emoji}</span> {group.name}
+                  </p>
+                  <ul>
+                    {group.items.map((category) => (
+                      <li key={category}>
+                        <Link to={categoryLink(category)} onClick={() => setShowDropdown(false)}>
+                          {category}
+                        </Link>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
               ))}
-            </ul>
+            </div>
           )}
         </div>
         <Link className="chip" to="/filter?bookType=new">
@@ -447,6 +288,9 @@ export default function Homepage() {
         </Link>
         <Link className="chip" to="/filter?bookType=old">
           <span aria-hidden="true">♻️</span>&nbsp;Second-hand
+        </Link>
+        <Link className="chip chip-deals" to="/filter?deals=1&sort=dealPercent">
+          <span aria-hidden="true">⚡</span>&nbsp;Quick deals
         </Link>
         <Link className="chip" to="/filter?inStock=1">
           In stock now
@@ -510,226 +354,13 @@ export default function Homepage() {
         </div>
       </section>
 
-      <section className="popular-section">
-        <h2>Latest Books</h2>
-        {shelfEmpty ? (
-          <div
-            role="status"
-            style={{
-              margin: '8px auto 0',
-              maxWidth: 520,
-              padding: '28px 20px',
-              textAlign: 'center',
-              background: '#f3efff',
-              border: '1px dashed #d6ccf7',
-              borderRadius: 12,
-              color: '#374151',
-              lineHeight: 1.5,
-            }}
-          >
-            <p style={{ margin: '0 0 6px', fontSize: 18, fontWeight: 600 }}>No books on the shelf yet.</p>
-            <p style={{ margin: '0 0 16px' }}>
-              Have books you have finished with? Listing is free - be the first to sell one.
-            </p>
-            <Link
-              to="/add-book"
-              className="inline-flex min-h-11 items-center rounded-lg px-5 font-semibold text-white no-underline"
-              style={{ background: '#6d28d9' }}
-            >
-              List a book
-            </Link>
-          </div>
-        ) : (
-        <div style={{ position: 'relative', width: '100%', zIndex: 0 }}>
-          <button
-            onClick={handleScrollLeft}
-            style={{
-              position: 'absolute',
-              left: 0,
-              top: '50%',
-              color: 'black',
-              transform: 'translateY(-50%)',
-              zIndex: 2,
-              background: '#fff',
-              border: 'none',
-              borderRadius: '50%',
-              boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
-              width: 44,
-              height: 44,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              cursor: 'pointer'
-            }}
-            aria-label="Scroll left"
-          >
-            <FaChevronLeft />
-          </button>
-          <div
-            ref={scrollRef}
-            style={{
-              overflowX: 'auto',
-              whiteSpace: 'nowrap',
-              padding: '0 48px',
-              scrollBehavior: 'smooth',
-              position: 'relative',
-              zIndex: 0,
-              scrollbarWidth: 'none',
-              msOverflowStyle: 'none',
-            }}
-            className="popular-books-horizontal-scroll"
-          >
-            <style>
-              {`
-                .popular-books-horizontal-scroll::-webkit-scrollbar {
-                  display: none;
-                }
-              `}
-            </style>
-            {popularBooks.map((book, index) => (
-              <div
-                key={book._id || index}
-                className="book-card"
-                style={{
-                  display: 'inline-block',
-                  verticalAlign: 'top',
-                  width: 220,
-                  marginRight: 20,
-                  position: 'relative',
-                  zIndex: 0,
-                  cursor: 'pointer',
-                  whiteSpace: 'normal',
-                }}
-                onClick={() => navigate(`/book/${book._id}`)}
-              >
-                <div className="book-image" style={{ position: 'relative', width: '100%', height: 200, zIndex: 0 }}>
-                  <img
-                    src={sized(
-                      // Was '/books/default-book.jpg', which is not in public/
-                      // - so a book with no cover rendered as a broken image on
-                      // the busiest page on the site.
-                      book.images?.[0] || PLACEHOLDER_IMAGE,
-                      IMAGE_WIDTHS.card
-                    )}
-                    alt={book.title}
-                    // The covers sit below the fold in a horizontal strip, so
-                    // the browser should not decode every one of them before
-                    // the page is usable. The hero banner above is deliberately
-                    // left eager: it is what the browser measures as the load.
-                    loading="lazy"
-                    decoding="async"
-                    style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: 14 }}
-                  />
-                  <div
-                    className="badge"
-                    style={{
-                      position: 'absolute',
-                      top: 10,
-                      left: 10,
-                      background: book.bookType === 'old' ? '#ffffff' : '#facc15',
-                      color: book.bookType === 'old' ? '#5b21b6' : '#111827',
-                      boxShadow: '0 2px 8px rgba(30,27,75,0.18)',
-                      zIndex: 1,
-                    }}
-                  >
-                    {book.bookType === 'old' ? 'Used' : 'New'}
-                  </div>
-                  {user && (
-                    <span
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        toggleWishlist(book._id);
-                      }}
-                      style={{
-                        position: 'absolute',
-                        top: 8,
-                        right: 8,
-                        cursor: 'pointer',
-                        fontSize: 22,
-                        color: wishlist[book._id] ? '#ff5c35' : '#fff',
-                        textShadow: '0 1px 4px rgba(0,0,0,0.18)',
-                        zIndex: 2
-                      }}
-                      title={wishlist[book._id] ? 'Remove from wishlist' : 'Add to wishlist'}
-                    >
-                      {wishlist[book._id] ? <FaHeart /> : <FaRegHeart />}
-                    </span>
-                  )}
-                </div>
-                <div className="book-info">
-                  <h3 style={{ marginBottom: 4 }}>{book.title}</h3>
-                  <div style={{ color: '#666', fontSize: 13, marginBottom: 4 }}>
-                    {book.author}
-                  </div>
-                  <div style={{ color: '#ff5c35', fontWeight: 800, fontSize: 18, marginBottom: 4 }}>
-                    ৳{book.price}
-                  </div>
-                  {(book.ratingCount ?? 0) > 0 && (
-                    <div className="mb-2 flex items-center justify-center gap-1">
-                      <Stars value={book.ratingAverage ?? 0} size={13} />
-                      <span style={{ color: '#666', fontSize: 12 }}>({book.ratingCount})</span>
-                    </div>
-                  )}
-                  <div style={{ display: 'flex', gap: '0.5rem', marginTop: 10 }}>
-                    {book.stock === 0 ? (
-                      <div
-                        style={{
-                          background: '#f3f4f6',
-                          color: '#6b7280',
-                          fontWeight: 700,
-                          fontSize: 13,
-                          padding: '8px 14px',
-                          borderRadius: 999,
-                          minWidth: 90,
-                          textAlign: 'center'
-                        }}
-                      >
-                        Out of Stock
-                      </div>
-                    ) : (
-                      <button
-                        className={cart[book._id] ? 'btn btn-danger' : 'btn btn-primary'}
-                        style={{ minHeight: 40, padding: '0 1rem', fontSize: 14, width: '100%' }}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          toggleCart(book._id);
-                        }}
-                      >
-                        {cart[book._id] ? 'Remove from Cart' : 'Add to Cart'}
-                      </button>
-                    )}
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-          <button
-            onClick={handleScrollRight}
-            style={{
-              position: 'absolute',
-              right: 0,
-              top: '50%',
-              transform: 'translateY(-50%)',
-              zIndex: 2,
-              background: '#fff',
-              border: 'none',
-              borderRadius: '50%',
-              boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
-              width: 44,
-              height: 44,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              cursor: 'pointer',
-              color:'black'
-            }}
-            aria-label="Scroll right"
-          >
-            <FaChevronRight />
-          </button>
-        </div>
-        )}
-      </section>
+      <HomeShelves
+        signedIn={Boolean(user)}
+        wishlist={wishlist}
+        cart={cart}
+        onToggleWishlist={toggleWishlist}
+        onToggleCart={toggleCart}
+      />
       </main>
 
       {/* The footer carries the copyright line; a second, older one under it

@@ -243,9 +243,9 @@ export default function SignUp() {
                     </Link>
                 </p>
                 {/* Go To Home Button */}
-                <button type="button" className="btn btn-ghost auth-wide" onClick={() => navigate('/')}>
+                <Link to="/" className="btn btn-ghost auth-wide">
                     Go To Home
-                </button>
+                </Link>
             </main>
         </div>
     );

@@ -5,6 +5,7 @@ import Cart from '../models/Cart.model.js';
 import { adminBookList, getBookById, getBookCover } from '../controllers/book.controller.js';
 import { actingUser, requireAdmin, requireAuth } from '../middleware/auth.js';
 import { destroyAssets } from '../config/cloudinary.js';
+import { discountProblem } from '../config/pricing.js';
 import { errorMessage } from '../utils/error.js';
 import { LIST_IMAGE_PROJECTION, withCoverUrls } from '../utils/projections.js';
 import { validate } from '../middleware/validate.js';
@@ -12,6 +13,7 @@ import {
   bookSchemas,
   type EmailParams,
   type IdParams,
+  type UpdateDiscountBody,
   type UpdatePriceBody,
   type UpdateStockBody,
 } from '../schemas/index.js';
@@ -120,6 +122,38 @@ router.put(
       await book.save();
 
       res.status(200).json({ message: 'Price updated', book });
+    } catch (error) {
+      res.status(500).json({ message: errorMessage(error) });
+    }
+  }
+);
+
+/**
+ * The seller's discount on one of their listings: a percentage or an amount of
+ * taka off, or none. The sale price is worked out on save (config/pricing.ts),
+ * and the listing appears in Quick deals for as long as it has one.
+ */
+router.put(
+  '/discount/:id',
+  requireAuth,
+  validate(bookSchemas.updateDiscount),
+  async (req: Request<IdParams, unknown, UpdateDiscountBody>, res: Response) => {
+    try {
+      const book = await loadOwnedBook(req, res);
+      if (!book) return;
+
+      const discount = req.body.type === 'none' ? { type: null, value: 0 } : { type: req.body.type, value: req.body.value };
+      const problem = discountProblem(Number(book.price), discount);
+      if (problem) {
+        res.status(400).json({ message: problem });
+        return;
+      }
+
+      book.discountType = discount.type;
+      book.discountValue = discount.value;
+      await book.save();
+
+      res.status(200).json({ message: discount.type ? 'Discount saved' : 'Discount removed', book });
     } catch (error) {
       res.status(500).json({ message: errorMessage(error) });
     }

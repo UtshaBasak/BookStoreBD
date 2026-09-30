@@ -7,6 +7,7 @@ import type { Id } from '@shared/api.js';
 import './AdminPanel.css';
 import { useAdminBooks, apiRequest } from '../hooks/queries.js';
 import { useDebounced } from '../hooks/useDebounced.js';
+import PriceTag from '../components/PriceTag.js';
 import Pager from '../components/Pager.js';
 
 /** Rows per page. Enough to scan, few enough to draw. */
@@ -107,7 +108,7 @@ export default function BookList() {
                   <td style={{ textTransform: 'capitalize' }}>{book.bookType}</td>
                   <td style={{ textTransform: 'capitalize' }}>{book.condition}</td>
                   <td className="admin-num">{book.pages}</td>
-                  <td className="admin-price">{book.price}</td>
+                  <td className="admin-price"><PriceTag book={book} size="sm" /></td>
                   <td>
                     {/* Sold out stands out; the number itself is unchanged. */}
                     <span

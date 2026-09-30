@@ -3,7 +3,9 @@ import type { Request, Response } from 'express';
 
 import type { OwnProfile, ProfileResponse, PublicProfile } from '@shared/api.js';
 
-import User from '../models/user.model.js';
+import User, { type UserDocument } from '../models/user.model.js';
+import { API_PREFIX } from '../config/apiPaths.js';
+import { destroyAssets, isCloudinaryConfigured, uploadImage } from '../config/cloudinary.js';
 import type { ProfileQuery, UpdateProfileBody } from '../schemas/index.js';
 import { createLogger } from '../config/logger.js';
 import { errorMessage, isDuplicateKeyError } from '../utils/error.js';
@@ -41,6 +43,8 @@ export const getUserProfile = async (
             username: user.username,
             email: user.email,
             profilePicture: user.profilePicture || null,
+            buyerBanner: bannerUrl(user, 'buyer'),
+            sellerBanner: bannerUrl(user, 'seller'),
         };
 
         const ownProfile: OwnProfile = {
@@ -59,6 +63,34 @@ export const getUserProfile = async (
         log.error({ err: error }, 'Error fetching profile');
         res.status(500).json({ message: 'Server error' });
     }
+};
+
+type BannerRole = 'buyer' | 'seller';
+const BANNER_FIELDS = { buyer: 'buyerBanner', seller: 'sellerBanner' } as const;
+
+/** A banner's address: hosted as it is, or the endpoint that serves it. */
+const bannerUrl = (user: UserDocument, role: BannerRole): string | null => {
+    const stored = user[BANNER_FIELDS[role]];
+    if (!stored) return null;
+    if (/^https?:\/\//.test(stored)) return stored;
+    // The version makes a replaced banner a new address, so a browser holding
+    // the old one for its day of cache does not keep showing it.
+    const version = user.updatedAt ? user.updatedAt.getTime() : 0;
+    return `${API_PREFIX}/user/${encodeURIComponent(user.email)}/banner/${role}?v=${version}`;
+};
+
+/**
+ * Banners are wide photographs, and bigger than an avatar. The page scales
+ * them down before sending; this is the ceiling for anything that did not.
+ */
+const MAX_BANNER_BYTES = 3 * 1024 * 1024;
+
+/** Stores a banner: on Cloudinary when it is configured, inline otherwise. */
+const storeBanner = async (file: Express.Multer.File): Promise<{ url: string; publicId: string | null }> => {
+    const dataUri = `data:${file.mimetype};base64,${file.buffer.toString('base64')}`;
+    if (!isCloudinaryConfigured()) return { url: dataUri, publicId: null };
+    const uploaded = await uploadImage(dataUri, { folder: 'bookstorebd/banners' });
+    return { url: uploaded.secure_url, publicId: uploaded.public_id };
 };
 
 /** Fields a profile update may clear outright, rather than only replace. */
@@ -112,11 +144,27 @@ export const updateUserProfile = async (
             updateFields.password = bcryptjs.hashSync(req.body.password, 10);
         }
 
+        // Pictures arrive as named files: the one profile picture, and a
+        // banner for each role.
+        const files = (req.files ?? {}) as Record<string, Express.Multer.File[] | undefined>;
+
         // Handle profile picture as base64
-        if (req.file) {
-            updateFields.profilePicture = `data:${req.file.mimetype};base64,${req.file.buffer.toString('base64')}`;
+        const picture = files.profilePicture?.[0];
+        if (picture) {
+            updateFields.profilePicture = `data:${picture.mimetype};base64,${picture.buffer.toString('base64')}`;
         } else if (Object.prototype.hasOwnProperty.call(body, 'profilePicture') && req.body.profilePicture === '') {
             unsetFields.profilePicture = '';
+        }
+
+        const bannerChanges: BannerRole[] = [];
+        for (const role of ['buyer', 'seller'] as const) {
+            const field = BANNER_FIELDS[role];
+            const upload = files[field]?.[0];
+            if (upload && upload.size > MAX_BANNER_BYTES) {
+                res.status(413).json({ message: 'A banner can be at most 3 MB' });
+                return;
+            }
+            if (upload || body[field] === '') bannerChanges.push(role);
         }
 
         // Check for unique username/email if changed
@@ -130,6 +178,24 @@ export const updateUserProfile = async (
             if (usernameExists) {
                 res.status(409).json({ message: 'Username already exists' });
                 return;
+            }
+        }
+
+        // Only now, once the update is known to be going ahead: an upload
+        // for a request that is then refused would be an orphan on Cloudinary.
+        const replacedAssets: (string | undefined)[] = [];
+        for (const role of bannerChanges) {
+            const field = BANNER_FIELDS[role];
+            const upload = files[field]?.[0];
+            replacedAssets.push(currentUser[`${field}PublicId`] ?? undefined);
+            if (upload) {
+                const stored = await storeBanner(upload);
+                updateFields[field] = stored.url;
+                if (stored.publicId) updateFields[`${field}PublicId`] = stored.publicId;
+                else unsetFields[`${field}PublicId`] = '';
+            } else {
+                unsetFields[field] = '';
+                unsetFields[`${field}PublicId`] = '';
             }
         }
 
@@ -148,6 +214,8 @@ export const updateUserProfile = async (
             res.status(404).json({ message: 'User not found' });
             return;
         }
+        // The pictures they replace, once the new ones are saved.
+        await destroyAssets(replacedAssets);
         res.status(200).json({ message: 'Profile updated successfully', user });
     } catch (error) {
         // Handle duplicate key error (in case of race condition)

@@ -44,6 +44,9 @@ interface SeedBook {
   desc: string;
   condition?: string;
   conditionDetails?: string;
+  /** A seller's discount, so the demo shop has Quick deals. */
+  discountType?: 'percent' | 'amount';
+  discountValue?: number;
 }
 
 const ACCOUNTS: SeedAccount[] = [
@@ -75,7 +78,9 @@ const BOOKS: SeedBook[] = [
     isbn: '9780131103627',
     pages: 272,
     price: 850,
-    category: ['programming'],
+    category: ['Programming', 'Computer Science'],
+    discountType: 'percent',
+    discountValue: 15,
     bookType: 'new',
     stock: 7,
     desc: 'The original reference for C, still the shortest route to understanding the language.',
@@ -87,7 +92,9 @@ const BOOKS: SeedBook[] = [
     isbn: '9780132350884',
     pages: 464,
     price: 1250,
-    category: ['programming', 'craft'],
+    category: ['Programming', 'Productivity'],
+    discountType: 'amount',
+    discountValue: 200,
     bookType: 'new',
     stock: 4,
     desc: 'A handbook of agile software craftsmanship.',
@@ -99,7 +106,7 @@ const BOOKS: SeedBook[] = [
     isbn: '9781449373320',
     pages: 616,
     price: 2100,
-    category: ['databases', 'architecture'],
+    category: ['Computer Science', 'Engineering'],
     bookType: 'new',
     stock: 3,
     desc: 'How modern data systems actually behave under load and failure.',
@@ -111,7 +118,7 @@ const BOOKS: SeedBook[] = [
     isbn: '9780553380163',
     pages: 212,
     price: 600,
-    category: ['science'],
+    category: ['Popular Science', 'Physics'],
     bookType: 'old',
     condition: 'Good',
     conditionDetails: 'Slight shelf wear, pages clean.',
@@ -125,7 +132,7 @@ const BOOKS: SeedBook[] = [
     isbn: '9788172930295',
     pages: 352,
     price: 450,
-    category: ['fiction', 'bangla'],
+    category: ['Novels', 'Bangla Literature', 'Classics'],
     bookType: 'old',
     condition: 'Fair',
     conditionDetails: 'Spine creased, previous owner name inside cover.',
@@ -139,7 +146,7 @@ const BOOKS: SeedBook[] = [
     isbn: '0000000000000',
     pages: 100,
     price: 300,
-    category: ['fiction'],
+    category: ['Novels'],
     bookType: 'new',
     stock: 0,
     desc: 'Present so the out-of-stock path is visible without editing data by hand.',
