@@ -82,7 +82,7 @@ export const Cart_add: RequestHandler = async (req, res) => {
       return;
     }
 
-    const book = await AddBook.findById(bookId, { stock: 1 }).lean();
+    const book = await AddBook.findById(bookId, { stock: 1, price: 1, salePrice: 1 }).lean();
     const existing = await Cart.findOne({ user: user._id, book: bookId }, { quantity: 1 }).lean();
     const quantity = asked ?? existing?.quantity ?? 1;
     const problem = quantityProblem(book, quantity);
@@ -93,7 +93,8 @@ export const Cart_add: RequestHandler = async (req, res) => {
 
     await Cart.findOneAndUpdate(
       { user: user._id, book: bookId },
-      { $set: { quantity }, $setOnInsert: { user: user._id, book: bookId } },
+      // The price it went in at, so a later drop below it can be told.
+      { $set: { quantity }, $setOnInsert: { user: user._id, book: bookId, priceWhenAdded: Number(book?.salePrice ?? book?.price) || null } },
       { upsert: true }
     );
 

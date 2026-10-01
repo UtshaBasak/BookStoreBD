@@ -9,10 +9,12 @@ import ReturnManagement from './admin/ReturnManagement';
 import ReviewModeration from './admin/ReviewModeration';
 import SellerPayouts from './admin/SellerPayouts';
 import AllReviews from './admin/AllReviews';
+import AdminMessages from './admin/AdminMessages';
 import {
   FaBook,
   FaFlag,
   FaMoneyBillWave,
+  FaPaperPlane,
   FaStar,
   FaReceipt,
   FaSignOutAlt,
@@ -39,6 +41,7 @@ const SECTIONS: Section[] = [
   { to: '/admin/payouts', label: 'Seller Payouts', icon: FaMoneyBillWave, blurb: 'What sellers are owed, and paid.' },
   { to: '/admin/all-reviews', label: 'Reviews', icon: FaStar, blurb: 'Every review in the shop.' },
   { to: '/admin/reviews', label: 'Reported Reviews', icon: FaFlag, blurb: 'Reviews somebody has reported.' },
+  { to: '/admin/messages', label: 'Messages', icon: FaPaperPlane, blurb: 'Notify or e-mail buyers and sellers.' },
 ];
 
 /** /admin on its own used to be a blank page beside the menu. */
@@ -146,6 +149,7 @@ export default function AdminPanel() {
           <Route path="/payouts" element={<SellerPayouts />} />
           <Route path="/all-reviews" element={<AllReviews />} />
           <Route path="/reviews" element={<ReviewModeration />} />
+          <Route path="/messages" element={<AdminMessages />} />
         </Routes>
       </main>
     </div>

@@ -19,6 +19,11 @@ const WishlistSchema = new Schema(
     createdAt: {
       type: Date,
       default: Date.now,
+    },
+    /** What it cost when it was saved, to tell the person of a drop below it. */
+    priceWhenAdded: {
+      type: Number,
+      default: null,
     }
   },
   { timestamps: true }

@@ -33,6 +33,8 @@ const OrderSchema = new Schema({
   deliveryDivision: { type: String, default: '' },
   deliveryDistrict: { type: String, default: '' },
   deliveryAddress: { type: String, default: '' },
+  /** A short note from the buyer to the seller, given at checkout. */
+  buyerNote: { type: String, default: '' },
   // ---
   shippingCharge: { type: Number, default: 0 },
   discount: { type: Number, default: 0 },

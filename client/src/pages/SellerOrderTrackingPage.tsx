@@ -5,6 +5,8 @@ import { FaCheck } from 'react-icons/fa';
 import './Seller.css';
 import Logo from '../components/Logo.js';
 import CancelOrder, { CancelledNote } from '../components/CancelOrder.js';
+import CopyButton from '../components/CopyButton.js';
+import OrderPdfButton from '../components/OrderPdfButton.js';
 import NotificationBell from '../components/NotificationBell.js';
 import { site } from '../config/site.js';
 import { useOrder, useUpdateOrderStatus } from '../hooks/queries.js';
@@ -176,7 +178,7 @@ export default function SellerOrderTrackingPage() {
             <dl className="sl-info">
               <div style={{ gridColumn: '1 / -1' }}>
                 <dt>Order Number</dt>
-                <dd className="sl-order-no-value">{order.orderNumber}</dd>
+                <dd className="sl-order-no-value">{order.orderNumber}<CopyButton text={order.orderNumber} /></dd>
               </div>
               <div>
                 <dt>Placed On</dt>
@@ -187,6 +189,9 @@ export default function SellerOrderTrackingPage() {
                 <dd>{order.paymentMethod || 'Cash on Delivery'}</dd>
               </div>
             </dl>
+            <div style={{ marginTop: '1rem' }}>
+              <OrderPdfButton order={order} role="seller" />
+            </div>
             <h3 className="sl-card-title" style={{ margin: '1.5rem 0 0.9rem' }}>Buyer Information</h3>
             <dl className="sl-info">
               <div>
@@ -197,6 +202,12 @@ export default function SellerOrderTrackingPage() {
                 <dt>Email</dt>
                 <dd>{order.buyerEmail}</dd>
               </div>
+              {order.buyerNote && (
+                <div style={{ gridColumn: '1 / -1' }}>
+                  <dt>Note from the buyer</dt>
+                  <dd className="sl-buyer-note">{order.buyerNote}</dd>
+                </div>
+              )}
             </dl>
           </section>
         </div>

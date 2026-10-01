@@ -16,6 +16,7 @@ import type { BookType, CatalogueParams, CatalogueSort } from '@shared/api.js';
 import {
   useCart,
   useCatalogue,
+  useSellerSearch,
   useToggleCart,
   useToggleWishlist,
   useWishlist,
@@ -29,6 +30,7 @@ import { Stars } from '../components/Stars.js';
 import BookCard from '../components/BookCard.js';
 import { CATEGORY_GROUPS } from '../config/categories.js';
 import Logo from '../components/Logo.js';
+import SearchField from '../components/SearchField.js';
 import NotificationBell from '../components/NotificationBell.js';
 
 interface FilterState {
@@ -233,6 +235,10 @@ export default function BookFilter() {
   };
 
   const { data: catalogue, isFetching } = useCatalogue(params);
+  // Sellers whose name matches the search, above the books: a name typed
+  // into the box may be a shop rather than a title.
+  const { data: sellerResults } = useSellerSearch(searchTerm);
+  const sellers = searchTerm ? (sellerResults?.sellers ?? []) : [];
 
   const booksOnThisPage = catalogue?.items ?? [];
   const total = catalogue?.total ?? 0;
@@ -321,16 +327,15 @@ export default function BookFilter() {
 
         <div className="search-bar" role="search">
           <FaSearch className="search-icon" aria-hidden="true" />
-          <input
-            type="search"
-            id="catalogue-search"
-            name="search"
-            aria-label="Search books or authors"
-            placeholder="Search books or authors..."
+          <SearchField
             value={searchInput}
-            onChange={(e) => setSearchInput(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter') handleSearch();
+            onChange={setSearchInput}
+            onSubmit={handleSearch}
+            inputProps={{
+              id: 'catalogue-search',
+              name: 'search',
+              'aria-label': 'Search books, authors or sellers',
+              placeholder: 'Search books, authors or sellers...',
             }}
           />
           <button type="button" onClick={handleSearch} aria-label="Search">
@@ -601,6 +606,33 @@ export default function BookFilter() {
               ))}
             </select>
           </div>
+
+          {sellers.length > 0 && (
+            <div className="seller-hits" aria-label="Sellers">
+              <h2>Sellers</h2>
+              <ul>
+                {sellers.map((seller) => (
+                  <li key={seller.username}>
+                    <Link to={`/shop/${encodeURIComponent(seller.username)}`} className="seller-hit">
+                      {seller.avatar ? (
+                        <img src={seller.avatar} alt="" loading="lazy" />
+                      ) : (
+                        <span className="seller-hit-letter" aria-hidden="true">
+                          {seller.username.charAt(0).toUpperCase()}
+                        </span>
+                      )}
+                      <span>
+                        <span className="seller-hit-name">{seller.username}</span>
+                        <span className="seller-hit-books">
+                          {seller.books} {seller.books === 1 ? 'book' : 'books'} · Visit shop
+                        </span>
+                      </span>
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
 
           {/* Book List: two to a row on a phone, as many as fit above that. */}
           <div

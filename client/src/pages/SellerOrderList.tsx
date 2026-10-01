@@ -7,6 +7,7 @@ import type { OrderLine, SellerOrderLine } from '@shared/api.js';
 import './Seller.css';
 import Logo from '../components/Logo.js';
 import NotificationBell from '../components/NotificationBell.js';
+import CopyButton from '../components/CopyButton.js';
 import { ORDER_SORTS, ORDER_STATUS_FILTER } from './admin/orderFilters.js';
 import { CANCELLED } from '../utils/orderTotals.js';
 import { useSellerOrders } from '../hooks/queries.js';
@@ -220,6 +221,7 @@ export default function SellerOrderList() {
                       <p className="sl-order-no">
                         <span className="sl-muted" style={{ fontSize: '0.85rem', fontWeight: 700 }}>Order Number:</span>
                         <span className="sl-order-no-value">{displayOrderNumber}</span>
+                        <CopyButton text={displayOrderNumber} />
                         <span className={`sl-pill ${statusTone(status)}`}>
                           <span className="sr-only">Status: </span>{status}
                         </span>
@@ -228,6 +230,7 @@ export default function SellerOrderList() {
                         <span><b>Order Placed On:</b> {order.createdAt ? new Date(order.createdAt).toLocaleDateString() : ''}</span>
                         <span><b>Buyer:</b> {order.buyerEmail}</span>
                       </p>
+                      {order.buyerNote && <p className="sl-buyer-note sl-list-note">Note from the buyer: {order.buyerNote}</p>}
                     </div>
                     {/* Track Your Order button */}
                     <Link to={`/seller/order-tracking/${order.orderNumber ? order.orderNumber : order._id}`}

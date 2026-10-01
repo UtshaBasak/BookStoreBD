@@ -30,6 +30,8 @@ import type {
   VerifyOtpBody,
 } from '../schemas/index.js';
 import { createLogger } from '../config/logger.js';
+import { newPasswordProblem } from '../utils/breachedPassword.js';
+import { passwordProblems } from '../utils/passwordPolicy.js';
 import { alreadyRegisteredEmail, codeEmail, type Email } from '../utils/emailTemplates.js';
 import { mailConfigured, sendMail } from '../utils/mailer.js';
 import {
@@ -254,6 +256,11 @@ export const signup = async (
     const email = req.body.email;
     const password = req.body.password;
     try {
+        const weak = await newPasswordProblem(password, { email, username });
+        if (weak) {
+            res.status(400).json({ message: weak });
+            return;
+        }
         // Check OTP
         if (!(await hasVerifiedCode(email))) {
             res.status(400).json({ message: "Email not verified. Please verify OTP." });
@@ -342,6 +349,20 @@ export const signin = async (
     }
 }
 
+/**
+ * Whether a password would be accepted, so the sign-up form can say so before
+ * a code is sent - rather than after the person has fetched it from their
+ * inbox. The same check the handlers that set a password make.
+ */
+export const passwordCheck = async (
+    req: Request<unknown, unknown, { password: string; email?: string; username?: string }>,
+    res: Response
+): Promise<void> => {
+    const { password, email, username } = req.body;
+    const message = await newPasswordProblem(password, { email, username });
+    res.json({ ok: !message, problems: passwordProblems(password, { email, username }), message });
+};
+
 // Forgot password: send OTP (reuse sendOtp), verify OTP (reuse verifyOtp), then reset password
 export const resetPassword = async (
     req: Request<unknown, unknown, ResetPasswordBody>,
@@ -352,6 +373,12 @@ export const resetPassword = async (
     const newPassword = req.body.newPassword;
     if (!email || !otp || !newPassword) {
         res.status(400).json({ message: "All fields required" });
+        return;
+    }
+    // Before the code is spent: a refused password should not cost an attempt.
+    const weak = await newPasswordProblem(newPassword, { email });
+    if (weak) {
+        res.status(400).json({ message: weak });
         return;
     }
     // Counted against the same record as `verifyOtp`: the two endpoints check

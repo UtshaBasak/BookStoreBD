@@ -215,10 +215,10 @@ describe('verifying a code', () => {
 
     const wrongCode = await request
       .post('/auth/reset-password')
-      .send({ email: KNOWN, otp: '000000', newPassword: 'a-new-password' });
+      .send({ email: KNOWN, otp: '000000', newPassword: 'Quiet-Meadow-Lamp-58' });
     const noAccount = await request
       .post('/auth/reset-password')
-      .send({ email: UNKNOWN, otp: '000000', newPassword: 'a-new-password' });
+      .send({ email: UNKNOWN, otp: '000000', newPassword: 'Quiet-Meadow-Lamp-58' });
 
     expect(wrongCode.status).toBe(400);
     expect(noAccount.status).toBe(wrongCode.status);
@@ -257,12 +257,12 @@ describe('the flows still work end to end', () => {
 
     const reset = await request
       .post('/auth/reset-password')
-      .send({ email: KNOWN, otp: code, newPassword: 'a-brand-new-password' });
+      .send({ email: KNOWN, otp: code, newPassword: 'Fresh-Harbour-Kite-73' });
     expect(reset.status).toBe(200);
 
     const withNew = await request
       .post('/auth/signin')
-      .send({ email: KNOWN, password: 'a-brand-new-password' });
+      .send({ email: KNOWN, password: 'Fresh-Harbour-Kite-73' });
     const withOld = await request.post('/auth/signin').send({ email: KNOWN, password: PASSWORD });
 
     expect(withNew.status).toBe(200);

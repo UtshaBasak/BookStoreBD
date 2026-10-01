@@ -104,12 +104,12 @@ describe('guessing a one-time code', () => {
     for (let attempt = 0; attempt < 2; attempt += 1) {
       await request
         .post('/auth/reset-password')
-        .send({ email: EMAIL, otp: wrongCode(code), newPassword: 'a-new-password' });
+        .send({ email: EMAIL, otp: wrongCode(code), newPassword: 'Quiet-Meadow-Lamp-58' });
     }
 
     const res = await request
       .post('/auth/reset-password')
-      .send({ email: EMAIL, otp: code, newPassword: 'a-new-password' });
+      .send({ email: EMAIL, otp: code, newPassword: 'Quiet-Meadow-Lamp-58' });
 
     expect(res.status).toBe(400);
   });
@@ -130,13 +130,13 @@ describe('guessing a one-time code', () => {
 
     const reset = await request
       .post('/auth/reset-password')
-      .send({ email: EMAIL, otp: code, newPassword: 'a-brand-new-password' });
+      .send({ email: EMAIL, otp: code, newPassword: 'Fresh-Harbour-Kite-73' });
 
     expect(reset.status).toBe(200);
 
     const signIn = await request
       .post('/auth/signin')
-      .send({ email: EMAIL, password: 'a-brand-new-password' });
+      .send({ email: EMAIL, password: 'Fresh-Harbour-Kite-73' });
     expect(signIn.status).toBe(200);
 
     const oldPassword = await request.post('/auth/signin').send({ email: EMAIL, password: PASSWORD });

@@ -35,6 +35,9 @@ import { Stars } from '../components/Stars.js';
 import { messageOf } from '../utils/apiError.js';
 import { site } from '../config/site.js';
 import Logo from '../components/Logo.js';
+import SearchField from '../components/SearchField.js';
+import RequestBookButton from '../components/RequestBookButton.js';
+import ShareBook from '../components/ShareBook.js';
 import NotificationBell from '../components/NotificationBell.js';
 import QuantityStepper from '../components/QuantityStepper.js';
 import { getUserEmail } from '../utils/auth.js';
@@ -299,17 +302,11 @@ export default function BookView() {
 
                 <div className="search-bar" role="search">
                     <FaSearch className="search-icon" aria-hidden="true" />
-                    <input name="q"
-                        type="search"
-                        aria-label="Search books"
-                        placeholder="Search books..."
+                    <SearchField
                         value={searchQuery}
-                        onChange={e => setSearchQuery(e.target.value)}
-                        onKeyDown={e => {
-                            if (e.key === 'Enter') {
-                                navigate(`/filter?search=${encodeURIComponent(searchQuery.trim())}`);
-                            }
-                        }}
+                        onChange={setSearchQuery}
+                        onSubmit={(text) => navigate(`/filter?search=${encodeURIComponent(text.trim())}`)}
+                        inputProps={{ name: 'q', 'aria-label': 'Search books', placeholder: 'Search books...' }}
                     />
                     <button onClick={() => navigate(`/filter?search=${encodeURIComponent(searchQuery.trim())}`)}>Search</button>
                 </div>
@@ -494,6 +491,9 @@ export default function BookView() {
 
                             {/* Cart and Wishlist Buttons */}
                             <div className="book-actions">
+                                {book.stock <= 0 && userEmail !== book.sellerEmail ? (
+                                    <RequestBookButton bookId={book._id} sellerEmail={book.sellerEmail} className="btn btn-accent" />
+                                ) : (
                                 <button
                                     type="button"
                                     onClick={() => toggleCart(book._id)}
@@ -509,6 +509,7 @@ export default function BookView() {
                                     {book.stock > 0 && <FaShoppingBag aria-hidden="true" />}
                                     {book.stock === 0 ? 'Out of Stock' : (inCart ? 'Remove from Cart' : 'Add to Cart')}
                                 </button>
+                                )}
                                 <button
                                     type="button"
                                     onClick={() => toggleWishlist(book._id)}
@@ -524,6 +525,10 @@ export default function BookView() {
                                     )}
                                     <span className="book-wish-text">Wishlist</span>
                                 </button>
+                            </div>
+
+                            <div className="book-share-row">
+                                <ShareBook bookId={book._id} title={book.title} author={book.author} />
                             </div>
 
                             <ul className="book-perks" aria-label="Buying here">

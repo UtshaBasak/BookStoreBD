@@ -6,9 +6,9 @@ import { adminBookList, getBookById, getBookCover } from '../controllers/book.co
 import { actingUser, requireAdmin, requireAuth } from '../middleware/auth.js';
 import { destroyAssets } from '../config/cloudinary.js';
 import { discountProblem } from '../config/pricing.js';
-import Wishlist from '../models/Wishlist.model.js';
-import User from '../models/user.model.js';
+import BookRequest from '../models/BookRequest.model.js';
 import { notify } from '../utils/notify.js';
+import { priceChanged, stockChanged } from '../utils/catalogueEvents.js';
 import { errorMessage } from '../utils/error.js';
 import { LIST_IMAGE_PROJECTION, withCoverUrls } from '../utils/projections.js';
 import { validate } from '../middleware/validate.js';
@@ -64,6 +64,23 @@ router.get(
   adminBookList
 );
 
+/**
+ * How many people are waiting for each of the caller's sold-out books, for
+ * their Book List. Before `/:id`, which would read "requests" as an id.
+ */
+router.get('/requests/mine', requireAuth, async (req: Request, res: Response) => {
+  try {
+    const { email } = actingUser(req);
+    const rows = await BookRequest.aggregate<{ _id: unknown; count: number }>([
+      { $match: { sellerEmail: String(email), open: true } },
+      { $group: { _id: '$book', count: { $sum: 1 } } },
+    ]);
+    res.json(Object.fromEntries(rows.map((row) => [String(row._id), row.count])));
+  } catch (error) {
+    res.status(500).json({ message: errorMessage(error) });
+  }
+});
+
 router.get(
   '/seller/:email',
   validate(bookSchemas.bySeller),
@@ -95,11 +112,14 @@ router.put(
       const book = await loadOwnedBook(req, res);
       if (!book) return;
 
+      const before = Number(book.stock) || 0;
       book.stock = stock;
       await book.save();
 
       // A sold-out book stays in the carts it is in, marked sold out there,
-      // rather than vanishing from under the people who chose it.
+      // rather than vanishing from under the people who chose it. Who hears
+      // about the change is decided in one place.
+      await stockChanged(book, before, Number(stock), { actor: actingUser(req).email });
 
       res.status(200).json({ message: 'Stock updated', book });
     } catch (error) {
@@ -119,8 +139,10 @@ router.put(
       const book = await loadOwnedBook(req, res);
       if (!book) return;
 
+      const before = Number(book.salePrice ?? book.price);
       book.price = price;
       await book.save();
+      await priceChanged(book, before, Number(book.salePrice ?? book.price), { actor: actingUser(req).email });
 
       res.status(200).json({ message: 'Price updated', book });
     } catch (error) {
@@ -150,22 +172,14 @@ router.put(
         return;
       }
 
-      const before = Number(book.discountPercent) || 0;
+      const before = Number(book.salePrice ?? book.price);
       book.discountType = discount.type;
       book.discountValue = discount.value;
       await book.save();
 
-      // A deal, or a better one, is worth telling the people who saved the book.
-      if (Number(book.discountPercent) > before && Number(book.stock) > 0) {
-        const savers = await Wishlist.distinct('user', { book: book._id });
-        const emails = (await User.find({ _id: { $in: savers } }, { email: 1 }).lean()).map((user) => user.email);
-        await notify(emails, {
-          type: 'deal',
-          title: `"${book.title}" is now ${book.discountPercent}% off`,
-          body: `${book.salePrice} Tk instead of ${book.price} Tk - a book on your wishlist.`,
-          link: `/book/${String(book._id)}`,
-        });
-      }
+      // A deal, or a better one, is a price drop: everyone with the book in a
+      // cart or on a wishlist hears of it, if it beats what they saw.
+      await priceChanged(book, before, Number(book.salePrice ?? book.price), { actor: actingUser(req).email });
 
       res.status(200).json({ message: discount.type ? 'Discount saved' : 'Discount removed', book });
     } catch (error) {
@@ -194,6 +208,82 @@ router.delete(
     }
   }
 );
+
+// ---------------------------------------------------------------------------
+// Asking for a sold-out book
+// ---------------------------------------------------------------------------
+
+const requestStatus = async (bookId: string, email: string): Promise<{ requested: boolean; count: number }> => {
+  const [mine, count] = await Promise.all([
+    BookRequest.exists({ book: bookId, requester: email, open: true }),
+    BookRequest.countDocuments({ book: bookId, open: true }),
+  ]);
+  return { requested: Boolean(mine), count };
+};
+
+/** Whether the caller has asked for this book, and how many are waiting. */
+router.get('/:id/request', requireAuth, validate(bookSchemas.byId), async (req: Request<IdParams>, res: Response) => {
+  try {
+    res.json(await requestStatus(String(req.params.id), String(actingUser(req).email)));
+  } catch (error) {
+    res.status(500).json({ message: errorMessage(error) });
+  }
+});
+
+/**
+ * "Tell me when it is back": a sold-out book, asked for. The seller hears
+ * there is somebody waiting; the person asking hears when copies are added.
+ */
+router.post('/:id/request', requireAuth, validate(bookSchemas.byId), async (req: Request<IdParams>, res: Response) => {
+  try {
+    const email = String(actingUser(req).email);
+    const book = await AddBook.findById(String(req.params.id), { title: 1, sellerEmail: 1, stock: 1 }).lean();
+    if (!book) {
+      res.status(404).json({ message: 'Book not found' });
+      return;
+    }
+    if (book.sellerEmail === email) {
+      res.status(400).json({ message: 'This is your own book. Add copies from your Book List.' });
+      return;
+    }
+    if (Number(book.stock) > 0) {
+      res.status(409).json({ message: 'This book is in stock. You can add it to your cart.' });
+      return;
+    }
+
+    const created = await BookRequest.updateOne(
+      { book: book._id, requester: email, open: true },
+      { $setOnInsert: { book: book._id, requester: email, sellerEmail: book.sellerEmail, open: true, createdAt: new Date() } },
+      { upsert: true }
+    );
+    const status = await requestStatus(String(book._id), email);
+    if (created.upsertedCount) {
+      await notify([book.sellerEmail], {
+        type: 'book-request',
+        title: `Someone wants "${book.title}" back in stock`,
+        body: `${status.count} ${status.count === 1 ? 'person is' : 'people are'} waiting. Add copies and they will be told.`,
+        link: '/seller-books',
+      });
+    }
+    res.json(status);
+  } catch (error) {
+    res.status(500).json({ message: errorMessage(error) });
+  }
+});
+
+/** Never mind: withdraws the caller's request. */
+router.delete('/:id/request', requireAuth, validate(bookSchemas.byId), async (req: Request<IdParams>, res: Response) => {
+  try {
+    const email = String(actingUser(req).email);
+    await BookRequest.updateOne(
+      { book: String(req.params.id), requester: email, open: true },
+      { $set: { open: false, closedAt: new Date() } }
+    );
+    res.json(await requestStatus(String(req.params.id), email));
+  } catch (error) {
+    res.status(500).json({ message: errorMessage(error) });
+  }
+});
 
 // Declared last so it does not shadow the specific routes above.
 // Before `/:id`, or the cover path would be read as a book id.

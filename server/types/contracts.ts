@@ -19,12 +19,14 @@
 import type { z } from 'zod';
 
 import type {
+  AdminMessageRequest,
   CreateOrderRequest,
   CreatePurchaseRequest,
   CreateReturnRequest,
   DeleteConversationRequest,
   CatalogueParams,
   MarkReadRequest,
+  PasswordCheckRequest,
   ResetPasswordRequest,
   SendChatRequest,
   SendOtpRequest,
@@ -39,6 +41,7 @@ import type {
 } from '@shared/api.js';
 
 import {
+  adminSchemas,
   authSchemas,
   bookSchemas,
   chatSchemas,
@@ -67,6 +70,7 @@ export type ContractChecks = [
   Expect<Accepts<typeof authSchemas.sendOtp.body, SendOtpRequest>>,
   Expect<Accepts<typeof authSchemas.verifyOtp.body, VerifyOtpRequest>>,
   Expect<Accepts<typeof authSchemas.resetPassword.body, ResetPasswordRequest>>,
+  Expect<Accepts<typeof authSchemas.passwordCheck.body, PasswordCheckRequest>>,
 
   // ------------------------------------------------------------------ book
   Expect<Accepts<typeof bookSchemas.updateStock.body, UpdateStockRequest>>,
@@ -95,4 +99,7 @@ export type ContractChecks = [
 
   // ------------------------------------------------------------------ user
   Expect<Accepts<typeof userSchemas.updateProfile.body, UpdateProfileRequest>>,
+
+  // ----------------------------------------------------------------- admin
+  Expect<Accepts<typeof adminSchemas.message.body, AdminMessageRequest>>,
 ];

@@ -8,6 +8,7 @@ import './AdminPanel.css';
 import { useAllOrders } from '../hooks/queries.js';
 import { useDebounced } from '../hooks/useDebounced.js';
 import Pager from '../components/Pager.js';
+import CopyButton from '../components/CopyButton.js';
 import { orderTotals, CANCELLED } from '../utils/orderTotals.js';
 import { FilterSelect, RefreshButton } from './admin/AdminControls.js';
 import { ORDER_STATUS_FILTER, ORDER_SORTS } from './admin/orderFilters.js';
@@ -151,6 +152,7 @@ export default function TransactionHistory() {
                     <p className="admin-order-number">
                       <span>
                         Order Number: <span className="admin-mono">{displayOrderNumber}</span>
+                        <CopyButton text={displayOrderNumber} />
                       </span>
                       <span className={`badge admin-status ${statusTone(shownStatus)}`}>
                         <span className="sr-only">Status: </span>

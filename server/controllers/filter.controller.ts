@@ -2,7 +2,7 @@ import type { Request, RequestHandler, Response } from 'express';
 
 import type { Types } from 'mongoose';
 
-import type { Book, HomeSections } from '@shared/api.js';
+import type { Book, HomeSections, SellerHit, SuggestResponse } from '@shared/api.js';
 
 import AddBook, { type LeanBook } from '../models/AddBook.model.js';
 import Cart from '../models/Cart.model.js';
@@ -10,11 +10,26 @@ import Order from '../models/Order.model.js';
 import User from '../models/user.model.js';
 import Wishlist from '../models/Wishlist.model.js';
 import { config } from '../config/env.js';
-import type { ByIdsQuery, CatalogueQuery, FeaturedQuery, ForYouQuery } from '../schemas/index.js';
+import type { ByIdsQuery, CatalogueQuery, FeaturedQuery, ForYouQuery, SuggestQuery } from '../schemas/index.js';
 import { errorMessage } from '../utils/error.js';
 import { validatedQuery } from '../middleware/validate.js';
 import { contains, sameText } from '../utils/regex.js';
-import { LIST_IMAGE_PROJECTION, withCoverUrls } from '../utils/projections.js';
+import { LIST_IMAGE_PROJECTION, toListBook, withCoverUrls } from '../utils/projections.js';
+import { API_PREFIX } from '../config/apiPaths.js';
+import { phoneticPattern } from '../utils/phonetic.js';
+
+/**
+ * What a typed search matches: the title, author or ISBN as written, or - for
+ * a query long enough to mean something - a title or author that sounds the
+ * same in the other script (utils/phonetic.ts).
+ */
+export const searchClauses = (search: string): Record<string, unknown>[] => {
+  const pattern = contains(String(search));
+  const clauses: Record<string, unknown>[] = [{ title: pattern }, { author: pattern }, { isbn: pattern }];
+  const sound = phoneticPattern(String(search));
+  if (sound) clauses.push({ searchKey: sound });
+  return clauses;
+};
 
 const SORTS = {
   // The default: Quick deals first, the biggest share off leading, and the
@@ -38,9 +53,9 @@ const buildFilter = (q: CatalogueQuery): Record<string, unknown> => {
   const filter: Record<string, unknown> = {};
 
   if (q.search) {
-    const pattern = contains(q.search);
-    // Title, author or ISBN: the homepage's search box offers all three.
-    filter.$or = [{ title: pattern }, { author: pattern }, { isbn: pattern }];
+    // Title, author or ISBN: the homepage's search box offers all three -
+    // and the same in the other script, by sound.
+    filter.$or = searchClauses(q.search);
   }
 
   if (q.bookType) filter.bookType = q.bookType;
@@ -371,6 +386,100 @@ export const ForYou: RequestHandler = async (req, res) => {
     }
 
     res.status(200).json({ items: picks.map(withCoverUrls), personal: Boolean(categories.length || authors.length) });
+  } catch (error) {
+    res.status(500).json({ message: errorMessage(error) });
+  }
+};
+
+/** A person's picture as an address: a stored URL, or the avatar endpoint for an inline one. */
+const avatarUrl = (user: { email: string; profilePicture?: string | null; updatedAt?: Date | null }): string | null => {
+  if (!user.profilePicture) return null;
+  if (/^https?:\/\//.test(user.profilePicture)) return user.profilePicture;
+  const version = user.updatedAt ? new Date(user.updatedAt).getTime() : 0;
+  return `${API_PREFIX}/user/${encodeURIComponent(user.email)}/avatar?v=${version}`;
+};
+
+/**
+ * Sellers whose username matches, with how many books each has listed. An
+ * account with nothing listed has no shop to show, so it is left out.
+ */
+export const sellerHits = async (search: string, limit: number): Promise<SellerHit[]> => {
+  if (limit <= 0) return [];
+  const pattern = contains(String(search));
+  const people = await User.find(
+    { role: 'user', username: pattern },
+    { username: 1, email: 1, profilePicture: 1, updatedAt: 1 }
+  )
+    .limit(limit * 4)
+    .lean();
+  if (!people.length) return [];
+  const counts = await AddBook.aggregate<{ _id: string; books: number }>([
+    { $match: { sellerEmail: { $in: people.map((person) => person.email) } } },
+    { $group: { _id: '$sellerEmail', books: { $sum: 1 } } },
+  ]);
+  const byEmail = new Map(counts.map((row) => [row._id, row.books]));
+  const lower = search.toLowerCase();
+  return people
+    .filter((person) => (byEmail.get(person.email) ?? 0) > 0)
+    // A name starting with what was typed before one merely containing it.
+    .sort((a, b) => Number(b.username.toLowerCase().startsWith(lower)) - Number(a.username.toLowerCase().startsWith(lower)))
+    .slice(0, limit)
+    .map((person) => ({ username: person.username, avatar: avatarUrl(person), books: byEmail.get(person.email) ?? 0 }));
+};
+
+/**
+ * What the search box offers while somebody types: a few books and sellers.
+ *
+ * Books are ranked so the obvious answer comes first - a title starting with
+ * the query, then one containing it, then an author, then a sound-alike in
+ * the other script - with books in stock ahead of sold-out ones.
+ */
+export const Suggest: RequestHandler = async (req, res) => {
+  const { q, books: bookLimit, sellers: sellerLimit } = validatedQuery<SuggestQuery>(req);
+  const text = String(q);
+  try {
+    const lower = text.toLowerCase();
+    const [found, sellers] = await Promise.all([
+      bookLimit > 0
+        ? AddBook.find(
+            { $or: searchClauses(text) },
+            { title: 1, author: 1, images: { $slice: 1 }, price: 1, salePrice: 1, discountPercent: 1, stock: 1 }
+          )
+            .sort({ createdAt: -1 })
+            .limit(60)
+            .lean()
+        : Promise.resolve([]),
+      sellerHits(text, sellerLimit),
+    ]);
+
+    const rank = (book: { title?: string | null; author?: string | null; stock?: number | null }): number => {
+      const title = (book.title ?? '').toLowerCase();
+      const author = (book.author ?? '').toLowerCase();
+      const place = title.startsWith(lower) ? 0 : title.includes(lower) ? 1 : author.includes(lower) ? 2 : 3;
+      return place * 2 + (Number(book.stock) > 0 ? 0 : 1);
+    };
+
+    const body: SuggestResponse = {
+      books: found
+        .map((book) => ({ book, score: rank(book) }))
+        .sort((a, b) => a.score - b.score)
+        .slice(0, bookLimit)
+        .map(({ book }) => {
+          const listed = withCoverUrls(toListBook(book));
+          return {
+            _id: String(listed._id),
+            title: listed.title,
+            author: listed.author,
+            cover: listed.images?.[0] ?? null,
+            price: Number(listed.price),
+            salePrice: Number(listed.salePrice ?? listed.price),
+            discountPercent: Number(listed.discountPercent) || 0,
+            inStock: Number(listed.stock) > 0,
+          };
+        }),
+      sellers,
+    };
+    res.json(body);
   } catch (error) {
     res.status(500).json({ message: errorMessage(error) });
   }

@@ -1,0 +1,51 @@
+.share {
+  position: relative;
+  display: inline-flex;
+}
+
+.share-panel {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  z-index: 50;
+  width: 220px;
+  padding: 6px;
+  border: 1px solid var(--color-line);
+  border-radius: 16px;
+  background: #fff;
+  box-shadow: var(--shadow-lift);
+}
+.share-panel ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.share-panel a,
+.share-panel button {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  min-height: 42px;
+  padding: 0 12px;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  color: var(--color-ink);
+  font: inherit;
+  font-size: 0.92rem;
+  font-weight: 600;
+  text-align: left;
+  text-decoration: none;
+  cursor: pointer;
+}
+.share-panel a:hover,
+.share-panel button:hover,
+.share-panel a:focus-visible,
+.share-panel button:focus-visible {
+  background: var(--color-brand-tint);
+}
+.share-panel svg {
+  flex: none;
+  font-size: 1.05rem;
+}

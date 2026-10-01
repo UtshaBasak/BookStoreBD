@@ -20,6 +20,7 @@ import NotificationBell from '../components/NotificationBell.js';
 import Footer from '../components/Footer.js';
 import HomeShelves from '../components/HomeShelves.js';
 import Logo from '../components/Logo.js';
+import SearchField from '../components/SearchField.js';
 import { getUserEmail } from '../utils/auth.js';
 import { subscribeToMessages } from '../utils/socket.js';
 import { flagsFor } from '../utils/bookFlags.js';
@@ -148,16 +149,11 @@ export default function Homepage() {
         </div>
         <div className="search-bar">
           <FaSearch className="search-icon" aria-hidden="true" />
-          <input
-            type="search"
-            name="search"
-            aria-label="Search books"
-            placeholder="Search by title, author or ISBN"
+          <SearchField
             value={searchInput}
-            onChange={e => setSearchInput(e.target.value)}
-            onKeyDown={e => {
-              if (e.key === 'Enter') handleHomepageSearch();
-            }}
+            onChange={setSearchInput}
+            onSubmit={handleHomepageSearch}
+            inputProps={{ name: 'search', 'aria-label': 'Search books', placeholder: 'Search by title, author or ISBN' }}
           />
           <button onClick={handleHomepageSearch}>Search</button>
         </div>
@@ -334,12 +330,11 @@ export default function Homepage() {
             }}
           >
             <FaSearch aria-hidden="true" className="hero-search-icon" />
-            <input name="q"
-              type="search"
-              aria-label="Search books"
-              placeholder="Try “Humayun Ahmed” or “physics”"
+            <SearchField
               value={searchInput}
-              onChange={(e) => setSearchInput(e.target.value)}
+              onChange={setSearchInput}
+              onSubmit={handleHomepageSearch}
+              inputProps={{ name: 'q', 'aria-label': 'Search books', placeholder: 'Try “Humayun Ahmed” or “physics”' }}
             />
             <button type="submit" className="btn btn-accent">Search</button>
           </form>

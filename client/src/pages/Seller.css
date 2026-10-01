@@ -1226,3 +1226,27 @@ button.sl-link-danger:hover {
     width: 100%;
   }
 }
+
+/* Buyers who asked for a sold-out book: a reason to restock it first. */
+.sl-waiting {
+  display: block;
+  margin-top: 4px;
+  color: #c2410c;
+  font-size: 0.78rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.sl-buyer-note {
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: #fff7ed;
+  color: #9a3412;
+  font-weight: 600;
+  white-space: pre-line;
+}
+
+.sl-list-note {
+  margin: 8px 0 0;
+  font-size: 0.88rem;
+}

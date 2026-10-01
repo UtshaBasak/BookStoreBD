@@ -207,8 +207,9 @@ describe('notifications', () => {
 
     await request.put(`/book/discount/${String(book._id)}`).set('Authorization', seller.auth).send({ type: 'percent', value: 20 });
 
-    const [deal] = await Notification.find({ recipient: BUYER, type: 'deal' }).lean();
-    expect(deal?.title).toContain('20% off');
+    const [drop] = await Notification.find({ recipient: BUYER, type: 'price-drop' }).lean();
+    expect(drop?.title).toContain('now 400 Tk');
+    expect(drop?.body).toContain('500 Tk');
   });
 });
 

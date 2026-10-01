@@ -408,3 +408,9 @@
   letter-spacing: 0.05em;
   text-transform: uppercase;
 }
+
+.book-share-row {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 0.75rem;
+}

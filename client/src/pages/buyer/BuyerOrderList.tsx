@@ -8,6 +8,7 @@ import { useBuyerOrders } from '../../hooks/queries.js';
 import { useDebounced } from '../../hooks/useDebounced.js';
 import Pager from '../../components/Pager.js';
 import CancelOrder from '../../components/CancelOrder.js';
+import CopyButton from '../../components/CopyButton.js';
 import NotificationBell from '../../components/NotificationBell.js';
 import { CANCELLED, orderTotals } from '../../utils/orderTotals.js';
 import { ORDER_SORTS, ORDER_STATUS_FILTER } from '../admin/orderFilters.js';
@@ -180,6 +181,7 @@ export default function BuyerOrderList() {
                       </div>
                       <div className="mt-1 text-lg font-bold text-ink">
                         Order Number: <span className="ot-mono">{displayOrderNumber}</span>
+                        <CopyButton text={displayOrderNumber} />
                       </div>
                       <span className="ot-pill mt-2" style={statusColours(status)}>
                         Status: {status}

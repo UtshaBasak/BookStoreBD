@@ -5,6 +5,8 @@ import { FaBookOpen, FaHeart, FaKey, FaTruck } from 'react-icons/fa';
 import type { ApiError } from '@shared/api.js';
 
 import Logo from '../components/Logo.js';
+import PasswordChecklist from '../components/PasswordChecklist.js';
+import { passwordReady } from '../utils/passwordPolicy.js';
 import { API_BASE_URL, apiFetch } from '../config/api.js';
 import { site } from '../config/site.js';
 import { useToast } from '../hooks/useToast.js';
@@ -102,6 +104,10 @@ export default function SignIn() {
 
     const handleForgotResetPassword = async () => {
         setForgotMsg('');
+        if (!passwordReady(newPassword, { email: forgotEmail })) {
+            setForgotMsg('Your new password does not meet every rule yet - see the list.');
+            return;
+        }
         const res = await apiFetch(`${API_BASE_URL}/auth/reset-password`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -217,7 +223,8 @@ export default function SignIn() {
                             )}
                             {forgotStep === 'reset' && (
                                 <>
-                                    <input type="password" name="new-password" autoComplete="new-password" aria-label="New Password" placeholder="New Password" value={newPassword} onChange={e => setNewPassword(e.target.value)} className="field" />
+                                    <input type="password" name="new-password" autoComplete="new-password" aria-label="New Password" placeholder="New Password" value={newPassword} onChange={e => setNewPassword(e.target.value)} className="field" maxLength={128} aria-describedby="reset-password-rules" />
+                                    <PasswordChecklist id="reset-password-rules" password={newPassword} email={forgotEmail} />
                                     <button onClick={handleForgotResetPassword} className="btn btn-primary auth-wide">Set New Password</button>
                                 </>
                             )}

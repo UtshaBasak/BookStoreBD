@@ -108,14 +108,6 @@
   }
 }
 
-.chip.is-on,
-.chip.is-on:hover,
-.chip.is-on:focus-visible {
-  background: linear-gradient(135deg, var(--color-brand), var(--color-brand-light));
-  border-color: var(--color-brand);
-  color: #fff;
-  box-shadow: 0 4px 12px rgba(109, 40, 217, 0.25);
-}
 
 .price-fields {
   display: flex;
@@ -431,4 +423,63 @@
   padding: 0 10px;
   border-radius: 999px;
   text-align: center;
+}
+
+/* Sellers whose name matched the search, above the books. */
+.seller-hits {
+  margin: 0 0 1.25rem;
+}
+.seller-hits h2 {
+  margin: 0 0 0.5rem;
+  font-size: 1rem;
+}
+.seller-hits ul {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.seller-hit {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 52px;
+  padding: 6px 14px 6px 6px;
+  border: 1px solid var(--color-line);
+  border-radius: 999px;
+  background: #fff;
+  color: var(--color-ink);
+  text-decoration: none;
+  box-shadow: var(--shadow-card);
+}
+.seller-hit:hover,
+.seller-hit:focus-visible {
+  border-color: var(--color-brand-light);
+}
+.seller-hit img,
+.seller-hit-letter {
+  flex: none;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+.seller-hit-letter {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, var(--color-brand), #c026d3);
+  color: #fff;
+  font-weight: 800;
+}
+.seller-hit-name {
+  display: block;
+  font-weight: 700;
+}
+.seller-hit-books {
+  display: block;
+  color: var(--color-ink-muted);
+  font-size: 0.8rem;
 }
