@@ -57,7 +57,7 @@ js/missing-token-validation        1       1
 Filter by **Rule** in the Security tab and dismiss one group at a time, so each
 dismissal carries a reason that is true of it. Reason: **False positive**.
 
-Do not instead silence the rules with a `query-filters` block in `codeql.yml`.
+Do not instead silence the rules with query filters in the CodeQL configuration.
 That would hide a real injection just as effectively as a false one; the point
 of dismissing individual alerts is that the rule stays live.
 

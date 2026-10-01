@@ -137,7 +137,7 @@ updates:
         versions: ['>=7']
 
   # ---------------------------------------------------------------------------
-  # GitHub Actions used by the CI and CodeQL workflows
+  # GitHub Actions used by the CI workflow
   # ---------------------------------------------------------------------------
   - package-ecosystem: github-actions
     directory: /
