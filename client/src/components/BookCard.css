@@ -1,5 +1,5 @@
 /* One book card, shared by every shelf and the catalogue. Prefixed `bc-` so
-   the page stylesheets around it (.book-info p and friends) cannot reach in. */
+   the page stylesheets around it (such as `.book-info p`) cannot reach in. */
 .bc {
   position: relative;
   display: flex;
@@ -128,9 +128,8 @@
 .bc-title a:hover {
   color: var(--color-brand);
 }
-/* The whole card answers a click on its title, as it used to answer a click
-   anywhere: the link's hit area is stretched over the card, under the
-   buttons. The link itself is still the one thing a right-click finds. */
+/* The whole card answers a click: the title link's hit area is stretched over
+   the card, under the buttons, so a right-click still finds a real link. */
 .bc {
   position: relative;
 }

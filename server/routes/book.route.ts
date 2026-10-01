@@ -47,9 +47,7 @@ const loadOwnedBook = async (
 // ---------------------------------------------------------------------------
 // Public browsing
 //
-// There is no "every listing" endpoint any more. It answered with the whole
-// catalogue - 140 KB at 307 books, and growing - and the two pages that used
-// it now ask for the page they are drawing: `/filter/booklist` for a shopper,
+// Listings are fetched a page at a time: `/filter/booklist` for a shopper,
 // `/admin` below for an administrator.
 // ---------------------------------------------------------------------------
 
@@ -199,7 +197,7 @@ router.delete(
 
       await book.deleteOne();
       await Cart.deleteMany({ book: book._id });
-      // Otherwise the assets linger in the account, billed for, forever.
+      // Otherwise the assets would stay in the hosting account, still billed.
       await destroyAssets(book.imagePublicIds);
 
       res.status(200).json({ message: 'Book deleted successfully' });
@@ -271,7 +269,7 @@ router.post('/:id/request', requireAuth, validate(bookSchemas.byId), async (req:
   }
 });
 
-/** Never mind: withdraws the caller's request. */
+/** Withdraws the caller's request. */
 router.delete('/:id/request', requireAuth, validate(bookSchemas.byId), async (req: Request<IdParams>, res: Response) => {
   try {
     const email = String(actingUser(req).email);

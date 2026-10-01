@@ -2,9 +2,9 @@
  * The deployed site may always call its own API.
  *
  * Browsers send an Origin header on a same-origin POST as well as a
- * cross-origin one. With CORS_ORIGINS unset the only origin allowed was
- * http://localhost:5173, so a single-service deployment would have served its
- * pages and then refused every sign-in, order and form submitted from them.
+ * cross-origin one, so even with CORS_ORIGINS unset a single-service
+ * deployment must allow its own address, or it would refuse every sign-in,
+ * order and form submitted from its own pages.
  *
  * No database here; createApp() only assembles middleware.
  */

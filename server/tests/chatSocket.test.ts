@@ -1,8 +1,6 @@
 /**
- * The live chat connection. It took anyone, let them join any room by naming
- * it - and a room's name was the two e-mail addresses - and relayed whatever
- * they sent. These pin the replacement: a connection needs a valid access
- * token, and a message reaches the person it is addressed to and nobody else.
+ * The live chat connection: it needs a valid access token, and a message
+ * reaches the person it is addressed to and nobody else.
  */
 import { createServer, type Server as HttpServer } from 'http';
 import type { AddressInfo } from 'net';
@@ -80,7 +78,7 @@ describe('the chat socket', () => {
     const heard: unknown[] = [];
     seller.on('receive_message', (m: unknown) => heard.push(m));
 
-    // The old protocol: name the room, then send into it.
+    // Naming a room and sending into it reaches nobody.
     snoop.emit('join_chat', 'buyer@test.com-seller@test.com');
     snoop.emit('send_message', { ...message, sender: 'buyer@test.com', room: 'buyer@test.com-seller@test.com' });
 

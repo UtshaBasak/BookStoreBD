@@ -1,8 +1,8 @@
 # Security Policy
 
 BookStoreBD handles people's accounts, delivery addresses, phone numbers and
-bKash numbers, so a security problem matters even in a small shop. Thank you
-for reporting one responsibly.
+bKash numbers, so security reports are treated as a priority. Thank you for
+reporting responsibly.
 
 ## Supported versions
 
@@ -39,9 +39,9 @@ Include what you can of:
 - A fix with the priority its severity calls for, then a published advisory
   crediting you, unless you would rather not be named.
 
-This is a one-person project, so there is no fixed response time. Every
-private report is read, and a reminder is welcome if one seems to have been
-missed.
+The project has a single maintainer, so no fixed response time is promised.
+Every private report is read, and a follow-up is welcome if a reply seems
+overdue.
 
 ## In scope
 
@@ -54,8 +54,8 @@ missed.
 
 ## Out of scope
 
-- Denial of service and load testing. The site runs on a free hosting plan;
-  please do not try to overwhelm it.
+- Denial of service and load testing. The live site runs on a free hosting
+  plan; please do not attempt to overwhelm it.
 - Social engineering, phishing, or physical attacks on people
 - Reports from automated scanners without a demonstrated impact
 - Missing best-practice headers or settings with no exploit
@@ -64,11 +64,11 @@ missed.
 
 ## Known, accepted findings
 
-Some findings are already known and recorded, with the reasons:
+These findings are already recorded, with the reasoning:
 
-- [`docs/AUDIT.md`](docs/AUDIT.md): the production-readiness audit. It lists
-  what is still open, such as the access token being kept in `localStorage` (S3)
-  and the bcrypt cost (S7).
+- [`docs/AUDIT.md`](docs/AUDIT.md): the production-readiness audit, including
+  its planned hardening, such as moving the access token out of `localStorage`
+  (S3) and raising the bcrypt cost (S7).
 - [`docs/ROADMAP.md`](docs/ROADMAP.md#known-codeql-findings): CodeQL results
   confirmed as false positives.
 

@@ -2,10 +2,8 @@
  * The contract between the Add Book form and this endpoint.
  *
  * "No. of Pages" carries no asterisk, and the form sends nothing at all when
- * it is left blank - but the schema required it, so every listing without a
- * page count came back 400 "Validation failed". The form promised one thing
- * and the API demanded another, and the only account of the disagreement was
- * a field path in a response body nobody displayed.
+ * it is left blank, so the schema must accept a listing without a page count.
+ * These keep what the form promises and what the API demands in step.
  */
 import { describe, it, expect, beforeAll, afterAll, beforeEach } from 'vitest';
 

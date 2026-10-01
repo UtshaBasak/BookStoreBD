@@ -21,9 +21,9 @@ import type { ApiError } from '@shared/api.js';
 import './Homepage.css';
 import './Profile.css';
 
-/** The editable profile. Every field a string, because every field is an input. */
 type BannerRole = 'buyer' | 'seller';
 
+/** The editable profile. Every field a string, because every field is an input. */
 interface ProfileForm {
     email: string;
     username: string;
@@ -111,14 +111,14 @@ export default function UpdateProfile() {
         try {
             setErrorMsg('');
             const formDataToSend = new FormData();
-            // Always send all fields except password (send password only if non-empty)
+            // Every field is sent, blank included, so the server can clear one;
+            // the password only when a new one is typed.
             (Object.keys(formData) as Array<keyof ProfileForm>).forEach(key => {
                 if (key === 'password') {
                     if (formData.password && formData.password !== '') {
                         formDataToSend.append('password', formData.password);
                     }
                 } else {
-                    // Always send, even if blank, so backend can unset
                     formDataToSend.append(key, formData[key] ?? '');
                 }
             });
@@ -126,7 +126,7 @@ export default function UpdateProfile() {
                 formDataToSend.append('profilePicture', profilePicture);
             }
             if (removeProfilePicture) {
-                // Signal backend to remove profile picture
+                // An empty value asks the server to remove the picture.
                 formDataToSend.append('profilePicture', '');
             }
             // Banners are scaled down first: a phone photograph is megabytes,
@@ -150,8 +150,8 @@ export default function UpdateProfile() {
                 setErrorMsg(errorData.errors?.[0]?.message || errorData.message || 'Failed to update profile.');
                 return;
             }
-            // The profile is cached for half a minute; without this the page
-            // it goes back to showed the details from before the save.
+            // The profile is cached for half a minute, so the cache is refreshed
+            // before returning to the profile page.
             await queryClient.invalidateQueries({ queryKey: ['profile'] });
             toast.success('Profile updated.');
             navigate(`/profile?mode=${mode}`);
@@ -184,7 +184,6 @@ export default function UpdateProfile() {
                 </div>
 
                 <form onSubmit={handleSubmit} className="card pf-form">
-                    {/* Profile Picture Preview */}
                     <section className="pf-form-section">
                         <h2>Photo</h2>
                         <div className="pf-photo">
@@ -203,7 +202,6 @@ export default function UpdateProfile() {
                                       : 'U'}
                                 </div>
                             )}
-                            {/* Profile Picture Upload */}
                             <div className="pf-photo-controls">
                                 <label htmlFor="up-picture" className="pf-label">Profile Picture:</label>
                                 <input
@@ -281,7 +279,6 @@ export default function UpdateProfile() {
                         </div>
                     </section>
 
-                    {/* Username and Email fields */}
                     <section className="pf-form-section">
                         <h2>Account</h2>
                         <div className="pf-grid pf-grid-2">
@@ -309,7 +306,6 @@ export default function UpdateProfile() {
                             </div>
                         </div>
 
-                        {/* New Password field */}
                         <div style={{ marginTop: '1rem' }}>
                             <label htmlFor="up-password" className="pf-label">New Password:</label>
                             <input
@@ -334,7 +330,6 @@ export default function UpdateProfile() {
                     <section className="pf-form-section">
                         <h2>About you</h2>
                         <div className="pf-grid">
-                            {/* Date of Birth field */}
                             <div>
                                 <label htmlFor="up-dob" className="pf-label">Date of Birth:</label>
                                 <input
@@ -347,12 +342,10 @@ export default function UpdateProfile() {
                                 />
                             </div>
 
-                            {/* Gender Selection */}
                             <fieldset className="pf-fieldset">
                                 <legend className="pf-label">Gender:</legend>
-                                {/* Each option is a 44px pill: a radio is a 13px
-                                    box whatever anyone does, but the label is
-                                    what a thumb actually lands on. */}
+                                {/* Each option is a 44px pill: the label, not the
+                                    small radio, is what a thumb lands on. */}
                                 <div className="pf-pills">
                                     {[
                                         { value: 'male', label: 'Male' },
@@ -379,7 +372,6 @@ export default function UpdateProfile() {
                         </div>
                     </section>
 
-                    {/* Address and Phone fields */}
                     <section className="pf-form-section">
                         <h2>Contact</h2>
                         <div className="pf-grid pf-grid-2">
@@ -437,9 +429,8 @@ export default function UpdateProfile() {
                         </div>
                     </section>
 
-                    {/* Next to the button rather than at the top of the form: on
-                        a phone the top is a long scroll away from where the
-                        visitor pressed Save. */}
+                    {/* Next to the button rather than at the top of the form,
+                        so on a phone the error is in view where Save was pressed. */}
                     {errorMsg && (
                       <div role="alert" className="pf-error">{errorMsg}</div>
                     )}

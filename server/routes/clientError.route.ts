@@ -14,18 +14,14 @@ const router = express.Router();
 /**
  * What went wrong in somebody's browser.
  *
- * `reportError` used to write to the console in development and do nothing at
- * all in a build, so a page that broke for a real visitor broke silently: the
- * only person who ever saw it was the person it happened to, and they are not
- * the one who can fix it.
- *
  * Reports land in the same structured log as everything else, with the request
- * id, and go to Sentry when a DSN is configured. That is deliberately not the
- * Sentry browser SDK: it is about 30 KB on a site that has just spent a lot of
- * effort not sending 30 KB, it needs another origin in the Content-Security-
- * Policy, and it is inert until somebody signs up for an account. What it would
- * add - source-mapped stacks, breadcrumbs, alerting - is worth having later,
- * and this endpoint is not in the way of it.
+ * id, and go to Sentry when a DSN is configured, so a page that breaks for a
+ * visitor reaches the people who can fix it.
+ *
+ * By design this is not the Sentry browser SDK, which adds about 30 KB to the
+ * bundle and another origin to the Content-Security-Policy. What it would add
+ * - source-mapped stacks, breadcrumbs, alerting - remains an option, and this
+ * endpoint does not stand in its way.
  *
  * Open to anyone, because a page breaks for signed-out visitors too, but
  * limited hard: an endpoint that writes a log line per request is an easy way

@@ -41,12 +41,8 @@
   border-color: var(--color-brand-light);
   box-shadow: var(--shadow-lift);
 }
-/*
- * The lift moved the tile out from under a pointer resting near its bottom
- * edge; it dropped back, lifted again, and flickered - a tile that seemed to
- * dodge the cursor. This strip fills the gap the lift leaves, so the tile
- * stays hovered (and clickable) wherever the pointer was when it rose.
- */
+/* Fills the gap the lift leaves under the tile, so a pointer near its bottom
+   edge keeps it hovered rather than making it flicker. */
 .cat-tile:hover::after {
   content: '';
   position: absolute;

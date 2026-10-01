@@ -1,7 +1,6 @@
 /**
  * Profile banners: one picture for buying and one for selling, across the top
- * of the profile, where a plain gradient used to be. The profile picture stays
- * one per person.
+ * of the profile. The profile picture stays one per person.
  */
 import { describe, it, expect, beforeAll, afterAll, beforeEach } from 'vitest';
 

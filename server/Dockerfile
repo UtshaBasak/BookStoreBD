@@ -1,12 +1,10 @@
 # syntax=docker/dockerfile:1
 
-# Node 24 is the Active LTS. Node 20 reached end of life in April 2026, so
-# pinning to it meant building on a runtime with no security updates.
+# Node 24, the Active LTS, so the runtime receives security updates.
 FROM node:24-alpine AS base
 WORKDIR /app
-# NODE_ENV is deliberately not set here: it would reach the dependency stages
-# and make `npm ci` skip devDependencies, so the dev image would have no
-# nodemon or TypeScript. Each final stage sets it instead.
+# NODE_ENV is set by each final stage, not here: in the base it would reach the
+# dependency stages and make `npm ci` skip devDependencies (nodemon, TypeScript).
 
 # ---------------------------------------------------------------------------
 # Dependencies, cached independently of the source

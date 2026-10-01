@@ -24,7 +24,7 @@ const STARS: readonly string[] = ['', '★', '★★', '★★★', '★★★�
  *
  * Called after every write, because the catalogue page reads the score off the
  * listing itself - see the comment on the model. Rounded to one decimal: a
- * score of 4.333333 is not more informative than 4.3, and it looks like a bug.
+ * score of 4.333333 says no more than 4.3.
  */
 const recomputeBookRating = async (bookId: mongoose.Types.ObjectId | string): Promise<void> => {
   const [summary] = await Review.aggregate<{ average: number; count: number }>([

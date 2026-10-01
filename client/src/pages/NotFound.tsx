@@ -6,8 +6,8 @@ import { useSeo } from '../hooks/useSeo.js';
 import { site } from '../config/site.js';
 
 /**
- * Was a bare `<h1>404 Not Found</h1>`: no way back, no search, and nothing to
- * say what happened. A dead end on a shop is a lost visitor.
+ * The 404 page: says what happened and offers a way back into the shop, so an
+ * outdated link never leaves a visitor at a dead end.
  */
 export default function NotFound() {
   useSeo({

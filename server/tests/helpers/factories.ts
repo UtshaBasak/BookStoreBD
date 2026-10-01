@@ -11,7 +11,7 @@ export const PASSWORD = 'Tangerine-Lantern-42!';
 /**
  * A real 1x1 PNG.
  *
- * Uploads are checked against the file's own first bytes now, so a buffer of
+ * Uploads are checked against the file's own first bytes, so a buffer of
  * arbitrary text named `cover.png` is refused - which is the point of the
  * check, and why this constant exists.
  */

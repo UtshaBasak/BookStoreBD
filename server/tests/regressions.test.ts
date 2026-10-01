@@ -1,7 +1,6 @@
 /**
- * Every case here corresponds to a defect that actually shipped and was found
- * during the audit, not to a hypothetical. If one of these fails, a real bug
- * has come back.
+ * Each case here guards against a specific failure observed in an audit, not
+ * a hypothetical one. A failure here means a known defect has returned.
  */
 import { describe, it, expect, beforeAll, afterAll, beforeEach } from 'vitest';
 
@@ -24,8 +23,8 @@ afterAll(closeTestContext);
 beforeEach(clearDatabase);
 
 describe('POST /cart/clear', () => {
-  // The route was dropped when index.js was split into app.js and index.js.
-  // Payment.jsx calls it after checkout, so carts stayed full after paying.
+  // Payment.jsx calls this after checkout; without it a cart stays full after
+  // paying.
   it('exists and empties the cart', async () => {
     const buyer = await createSignedInUser(request);
     const book = await createBook();
@@ -56,8 +55,8 @@ describe('POST /cart/clear', () => {
 });
 
 describe('stock reservation', () => {
-  // Orders used to be written before stock was reserved, so a race on the
-  // last copy could record an order that could never be fulfilled.
+  // Stock is reserved before the order is written, so a race on the last
+  // copy cannot record an order that could never be fulfilled.
   it('decrements stock by the quantity ordered', async () => {
     const buyer = await createSignedInUser(request);
     const book = await createBook({ stock: 5 });
@@ -108,10 +107,9 @@ describe('stock reservation', () => {
 
 describe('an order with more than one book', () => {
   // Every line of an order shares its order number - that is how the tracking
-  // page finds them - but `orderNumber` carried a unique index, so the second
-  // book in a basket collided with the first. A basket with two books in it
-  // failed at checkout with a duplicate key error, after the first book's
-  // stock had already been taken.
+  // page finds them - so `orderNumber` must not be unique on its own, or the
+  // second book in a basket would fail checkout with a duplicate key error
+  // after the first book's stock had been taken.
   it('is accepted, and records one line per book', async () => {
     const buyer = await createSignedInUser(request);
     const one = await createBook({ stock: 5, title: 'One' });
@@ -161,7 +159,7 @@ describe('an order with more than one book', () => {
 });
 
 describe('profile privacy', () => {
-  // Contact details used to be returned for any e-mail, to anyone.
+  // Contact details must not be returned for any e-mail, to anyone.
   const seedVictim = () =>
     createUser({
       email: 'victim@test.com',
@@ -212,8 +210,8 @@ describe('profile privacy', () => {
 });
 
 describe('list responses carry one cover, detail carries all', () => {
-  // Base64 covers are stored inline, so a list response used to carry every
-  // image of every book and grew with the whole catalogue.
+  // Base64 covers are stored inline, so an untrimmed list response would
+  // carry every image of every book and grow with the whole catalogue.
   it('list endpoints return a single image', async () => {
     const created = await createBook({ images: ['a', 'b', 'c', 'd', 'e'] });
 
@@ -239,9 +237,8 @@ describe('list responses carry one cover, detail carries all', () => {
 
     const list = await request.get('/filter/booklist');
 
-    // It used to be the base64 itself, which is why a catalogue of 66 listings
-    // with photographed covers was a 7.4 MB JSON response - and why none of it
-    // could be cached by the browser.
+    // An address rather than the base64 itself, so the catalogue response
+    // stays small and the browser can cache each cover.
     expect(list.body.items[0].images[0]).toBe(`/api/book/${String(book._id)}/cover/0`);
 
     const cover = await request.get(`/book/${String(book._id)}/cover/0`);

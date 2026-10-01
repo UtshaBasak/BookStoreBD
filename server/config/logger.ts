@@ -49,9 +49,8 @@ export const logger = pino({
     ? {
         transport: {
           target: 'pino-pretty',
-          // SYS: local time, like Vite's. Plain 'HH:MM:ss' is UTC, which put the
-          // server six hours behind the client in the same terminal and made a
-          // start-up that took seconds read as one that took hours.
+          // SYS: local time, matching Vite. Plain 'HH:MM:ss' is UTC, which would
+          // put server and client timestamps hours apart in the same terminal.
           options: { colorize: true, translateTime: 'SYS:HH:MM:ss', ignore: 'pid,hostname,env' },
         },
       }

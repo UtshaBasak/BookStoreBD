@@ -27,11 +27,9 @@ export default function BuyerBookList() {
   const [page, setPage] = useState(1);
 
   /*
-   * This fetched every order this account has ever placed and searched them
-   * here - and, to know whether a book already had a return in progress, every
-   * return request the account had ever made. A return request carries the
-   * photographs of the defect as base64, so that second list was the expensive
-   * one. Each line now arrives with its own `returnStatus`.
+   * Searched and paged by the API. Each line carries its own `returnStatus`,
+   * so the page never loads the account's return requests, which hold the
+   * defect photographs as base64.
    */
   const settledSearch = useDebounced(search);
   const ordersQuery = useBuyerOrders({
@@ -49,10 +47,9 @@ export default function BuyerBookList() {
   const handleRefresh = () => ordersQuery.refetch();
 
   const handleReturn = (order: BuyerOrderLine) => {
-    // The optimistic local edit is gone: the return is actually submitted on
-    // the next page, and the orders query is the single source for this list.
-    // Addressed by order line, so the form still knows what it is returning
-    // after a reload has thrown the navigation state away.
+    // The return is submitted on the next page; the orders query stays the
+    // single source for this list. Addressed by order line, so the form still
+    // knows what it is returning after a reload drops the navigation state.
     navigate(`/description-form/${order._id}`, {
       state: {
         bookTitle: order.title,
@@ -62,10 +59,8 @@ export default function BuyerBookList() {
   };
 
   /*
-   * Whether a line can be returned is the server's answer, sent with it. This
-   * page used to work it out from the order date - three days from ordering,
-   * so a book still in transit could run out of time before it arrived - and
-   * the server checked nothing at all.
+   * Whether a line can be returned is the server's answer, sent with it, so
+   * the return window runs from delivery and is enforced in one place.
    */
   const returnLabel = (order: BuyerOrderLine) =>
     order.status === 'Cancelled'
@@ -74,9 +69,8 @@ export default function BuyerBookList() {
         ? 'Return period over'
         : 'Returns open on delivery';
 
-
-  // The page used to carry `overflow-x: hidden`, which cut the toolbar off
-  // rather than letting it wrap: hidden overflow does not scroll, it amputates.
+  // No `overflow-x: hidden` on the page: it would clip the toolbar rather
+  // than let it wrap.
   return (
     <div className="ot-page">
       <div className="ot-wrap" style={{ maxWidth: 1200 }}>
@@ -133,8 +127,7 @@ export default function BuyerBookList() {
               <th>Title</th>
               {/*
                 Next to the title: on a phone this table scrolls sideways, and
-                last in the row the button was off the screen for the person
-                most likely to be looking for it.
+                here the return button stays on screen.
               */}
               <th>Return</th>
               <th>Author</th>

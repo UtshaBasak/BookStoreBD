@@ -52,11 +52,8 @@ interface FilterEdits {
 }
 
 /**
- * Books per page.
- *
- * The page used to render every match at once - fine at six books, and a
- * screenful of base64 covers to decode at six hundred. Twenty to start with;
- * the shopper can ask for up to fifty, which is as many as the API sends.
+ * Books per page: twenty to start with, and up to fifty on request, which is
+ * as many as the API sends.
  */
 const PAGE_SIZES = [20, 30, 40, 50] as const;
 const PAGE_SIZE_KEY = 'browsePageSize';
@@ -94,9 +91,8 @@ export default function BookFilter() {
     return { from: params.get('minPrice') ?? '', to: params.get('maxPrice') ?? '' };
   });
   /**
-   * The filter panel is fourteen category buttons deep. Beside the results on a
-   * desktop that is fine; above them on a phone it means scrolling past all of
-   * it to reach a single book, so it starts closed on small screens.
+   * The filter panel is fourteen category buttons deep, so above the results
+   * on a phone it starts closed; beside them on a desktop it is always open.
    */
   const [showFilters, setShowFilters] = useState(false);
   const [pageSize, setPageSizeState] = useState(storedPageSize);
@@ -150,8 +146,7 @@ export default function BookFilter() {
       key: location.search,
       value: {
         ...(prev.key === location.search ? prev.value : {}),
-        // Any change other than turning a page starts again from the first
-        // one: page 4 of a search nobody is running any more is a dead end.
+        // Any change other than turning a page starts again from the first one.
         ...(Object.keys(patch).some((field) => field !== 'page') ? { page: 1 } : {}),
         ...patch,
       },
@@ -183,8 +178,7 @@ export default function BookFilter() {
   const page = active.page ?? 1;
   const setPage = (value: number) => {
     update({ page: value });
-    // The pager is at the bottom of the results. Without this, pressing Next
-    // leaves you looking at the pager with a fresh page of books above you.
+    // The pager is below the results, so a new page scrolls back to its top.
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
@@ -205,13 +199,8 @@ export default function BookFilter() {
   const { mutate: toggleCartMutation } = useToggleCart();
 
   /*
-   * What to ask the API for.
-   *
-   * All of this used to happen in the browser, over every listing in the
-   * database: the page downloaded the whole catalogue and then filtered,
-   * sorted and sliced it. That is fine at six books and a growing tax on every
-   * visitor with each one added. It is a query now, against indexes, and the
-   * answer is the twelve books on screen.
+   * What to ask the API for. Filtering, sorting and paging run as an indexed
+   * query on the server, so the browser receives only the books on screen.
    */
   const settledPrice = useDebounced(priceFilter);
   const amount = (value: string): number | undefined => {
@@ -272,7 +261,7 @@ export default function BookFilter() {
     navigate(`/filter?search=${encodeURIComponent(searchInput.trim())}`);
   };
 
-  // Toggle radio: click to select/unselect (except category)
+  // A second click on the chosen option clears it.
   const handleRadioToggle = (filterKey: 'bookType' | 'condition', value: string) => {
     setFilters((prev) => ({
       ...prev,
@@ -280,7 +269,6 @@ export default function BookFilter() {
     }));
   };
 
-  // Toggle for category (multi-select)
   const handleCategoryToggle = (cat: string) => {
     setFilters((prev) => {
       const arr = prev.category.includes(cat)
@@ -290,7 +278,6 @@ export default function BookFilter() {
     });
   };
 
-  // Wishlist toggle
   const handleToggleWishlist = (bookId: string) => {
     if (!userEmail) {
       promptSignIn(toast, () => navigate('/sign-in'), 'wishlist');
@@ -299,7 +286,6 @@ export default function BookFilter() {
     toggleWishlistMutation({ bookId, inWishlist: Boolean(wishlist[bookId]) });
   };
 
-  // Cart toggle
   const handleToggleCart = (bookId: string) => {
     if (!userEmail) {
       promptSignIn(toast, () => navigate('/sign-in'), 'cart');
@@ -313,11 +299,10 @@ export default function BookFilter() {
 
   return (
     // Layout in Tailwind classes and Filter.css from here down, rather than
-    // in inline style objects: a media query is the one thing an inline style
-    // cannot express, and this page was 682px wider than a phone because of it.
+    // in inline style objects: an inline style cannot express a media query.
     <div className="browse">
       {/* The site's own header, as on the homepage: the logo, the search and
-          the way home. The page used to sit on a photograph of a library. */}
+          the way home. */}
       <header className="header">
         <div className="logo">
           <Link to="/" className="logo-button">
@@ -387,11 +372,10 @@ export default function BookFilter() {
           </span>
         </button>
 
-        {/* Filter Section */}
         <aside
           id="filter-panel"
-          // Full width above the results on a phone; a sticky 280px column
-          // beside them on a desktop, where there is room for one.
+          // Full width above the results on a phone; a 280px column beside
+          // them on a desktop, where there is room for one.
           className={`${showFilters ? 'flex' : 'hidden'} card filter-panel z-30 lg:flex`}
           aria-label="Filters"
         >
@@ -410,7 +394,6 @@ export default function BookFilter() {
               </button>
             </div>
           </div>
-          {/* Book Type */}
           <div className="filter-group">
             <h2>Book Type</h2>
             <div className="filter-chips">
@@ -429,7 +412,7 @@ export default function BookFilter() {
               ))}
             </div>
           </div>
-          {/* Condition (only for old) */}
+          {/* Condition applies to old books only. */}
           {filters.bookType === 'old' && (
             <div className="filter-group">
               <h2>Condition</h2>
@@ -482,7 +465,6 @@ export default function BookFilter() {
               );
             })}
           </div>
-          {/* Price Range */}
           <div className="filter-group">
             <h2>Price (Taka)</h2>
             <div className="price-fields">
@@ -519,7 +501,6 @@ export default function BookFilter() {
               />
             </div>
           </div>
-          {/* Rating */}
           <div className="filter-group">
             <h2>Rating</h2>
             <div className="filter-chips">
@@ -548,7 +529,6 @@ export default function BookFilter() {
             </div>
           </div>
 
-          {/* In Stock Toggle */}
           <div className="filter-group">
             <h2>Stock</h2>
             <div className="filter-chips">
@@ -559,7 +539,7 @@ export default function BookFilter() {
                 onClick={() => {
                   setInStockOnly(v => {
                     const next = !v;
-                    // Update URL param
+                    // Kept in the address, so the choice survives a reload or a shared link.
                     const params = new URLSearchParams(location.search);
                     if (next) params.set('inStock', '1');
                     else params.delete('inStock');
@@ -574,9 +554,8 @@ export default function BookFilter() {
           </div>
         </aside>
 
-        {/* Right Side: Results. `min-width: 0` in Filter.css: without it a
-            flex child refuses to shrink below the width of its content, which
-            is how a grid of book cards pushed the page sideways. */}
+        {/* Results. `min-width: 0` in Filter.css lets this flex child shrink
+            below its content's width, so the grid never widens the page. */}
         <section className="results" aria-label="Results">
           <div className="results-bar">
             <div className="min-w-0">
@@ -585,7 +564,6 @@ export default function BookFilter() {
                 {catalogue ? `${total} ${total === 1 ? 'book' : 'books'}` : 'Finding books…'}
               </p>
             </div>
-            {/* Sort Dropdown */}
             <select
               id="catalogue-sort"
               name="sort"
@@ -594,7 +572,7 @@ export default function BookFilter() {
               value={sortOption}
               onChange={(e) => {
                 setSortOption(e.target.value as CatalogueSort);
-                // Page 3 of an order nobody is using any more is a dead end.
+                // A new order starts from its first page.
                 update({ page: 1 });
               }}
               title="Sort books"
@@ -645,8 +623,8 @@ export default function BookFilter() {
             aria-busy={isFetching}
           >
             {!catalogue && isFetching ? (
-              // The first load: the shape of the grid, rather than "nothing
-              // found" - which is what the empty answer used to say meanwhile.
+              // The first load: placeholder cards in the shape of the grid,
+              // rather than a premature "nothing found".
               Array.from({ length: 8 }, (_, i) => (
                 <div key={i} className="book-card animate-pulse" aria-hidden="true">
                   <div className="book-image rounded-[14px]" style={{ background: '#f3efff' }} />
@@ -677,8 +655,7 @@ export default function BookFilter() {
             )}
           </div>
 
-          {/* Paging. Below the results, because that is where somebody is when
-              they have run out of them. */}
+          {/* Paging, below the results, where the shopper reaches the end of them. */}
           {total > 0 && (
             <div className="pager">
               <div className="flex flex-wrap items-center gap-3">

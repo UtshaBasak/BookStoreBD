@@ -47,8 +47,8 @@ describe('POST /auth/signin', () => {
   });
 
   it('rejects an unknown account the same way it rejects a wrong password', async () => {
-    // Deliberately identical: a different status here told anyone who asked
-    // which addresses have accounts. enumeration.test.ts holds the two
+    // Deliberately identical: a different status here would tell anyone who
+    // asked which addresses have accounts. enumeration.test.ts holds the two
     // responses side by side.
     const res = await request.post('/auth/signin').send({ email: 'nobody@test.com', password: PASSWORD });
 
@@ -65,8 +65,8 @@ describe('POST /auth/signin', () => {
 });
 
 describe('authentication is required', () => {
-  // Each of these was reachable with no credentials at all before tokens
-  // existed: the API trusted whatever identity the caller supplied.
+  // Each of these needs a token: the acting identity comes from it, never
+  // from whatever the caller supplies.
   const protectedRoutes: Array<[HttpMethod, string, string]> = [
     ['get', '/user', 'list every user'],
     ['get', '/order/admin/all', 'read every order'],

@@ -10,9 +10,9 @@
 
       `useSeo` replaces these per route in the browser, which is what Google
       sees, because it renders JavaScript. The link scrapers behind Facebook,
-      WhatsApp, Slack and X do not: they read this file and nothing else. So a
-      shared link previews as the shop rather than as a blank card, which is
-      what it did before. A book's own page (/book/:id) gets that book's
+      WhatsApp, Slack and X do not: they read this file and nothing else, so
+      these make a shared link preview as the shop. A book's own page
+      (/book/:id) gets that book's
       title, price and cover written in by the server instead; see
       server/utils/sharePreview.ts.
     -->

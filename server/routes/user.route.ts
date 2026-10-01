@@ -59,10 +59,9 @@ router.get('/profile', optionalAuth, validate(userSchemas.profileQuery), getUser
 /**
  * Somebody's profile picture, as an image.
  *
- * Stored on the account as a base64 data URI, so anything that listed people
- * carried their photographs with it. Public, like the profile endpoint that
- * used to return the same bytes inline, and cacheable - which a data URI in a
- * JSON body never was.
+ * Stored on the account as a base64 data URI and served here by address, so a
+ * list of people does not carry their photographs. Public, like the profile
+ * endpoint, and cacheable, which a data URI in a JSON body is not.
  */
 router.get(
   '/:email/avatar',
@@ -193,8 +192,8 @@ router.post(
   imageUpload.array('images', config.uploads.maxFilesPerRequest),
   verifyImageBytes,
   // After multer, which is what populates req.body for a multipart form. The
-  // schema also does the shaping the handler used to do by hand: `category`
-  // arrives as an array either way, and `pages` and `price` as numbers.
+  // schema also does the shaping: `category` arrives as an array either way,
+  // and `pages` and `price` as numbers.
   validate(userSchemas.addBook),
   async (req: Request<unknown, unknown, AddBookBody>, res: Response) => {
     try {
@@ -218,7 +217,7 @@ router.post(
 
       // Two ways in. When image hosting is configured the browser has already
       // uploaded to Cloudinary and sends back the URLs; otherwise the files
-      // arrive here and are stored inline as before.
+      // arrive here and are stored inline.
       const uploaded = collectImages(req);
 
       // A discount from the start is optional, and has to fit the price.
@@ -272,14 +271,12 @@ router.delete('/me', requireAuth, validate(userSchemas.deleteMe), deleteMyAccoun
 /**
  * One page of the accounts an administrator may act on.
  *
- * This used to answer with every account, `select('-password')` - which means
- * every field except the password, and `profilePicture` is stored as a base64
- * data URI. So the response carried every photograph of every user, to draw a
- * table of three columns: name, e-mail, and the date they joined. Those three
- * are what it sends now, for the twenty-five rows on screen.
+ * Only the three columns the table draws - name, e-mail and the date joined -
+ * for the twenty-five rows on screen: `profilePicture` is a base64 data URI,
+ * so whole accounts would carry every user's photograph.
  *
- * Administrators are left out, as they always were: the table's only action is
- * Delete, and an administrator is not a row you may delete here.
+ * Administrators are left out: the table's only action is Delete, and an
+ * administrator is not a row you may delete here.
  */
 router.get(
   '/',

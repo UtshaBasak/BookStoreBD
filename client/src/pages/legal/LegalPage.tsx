@@ -18,9 +18,8 @@ interface LegalPageProps {
 /**
  * Shared shell for the policy and information pages.
  *
- * Written with Tailwind rather than the inline style objects the rest of the
- * app uses. New pages set the standard the others are being moved towards, and
- * it is what makes these readable on a phone without extra work.
+ * Written with Tailwind utility classes, the standard for new pages, which
+ * keeps these readable on a phone without extra work.
  */
 export default function LegalPage({ title, intro, updated, children }: LegalPageProps) {
   // One call covers all five pages: each already passes the title and the line
@@ -29,8 +28,7 @@ export default function LegalPage({ title, intro, updated, children }: LegalPage
 
   /*
    * Links such as /about#how-it-works name a section. A full page load scrolls
-   * to it, but moving between routes in the app does not, so the footer's link
-   * landed at the top of the page and left the reader to find it.
+   * to it, but a route change in the app does not, so this does it instead.
    */
   const { hash } = useLocation();
   useEffect(() => {

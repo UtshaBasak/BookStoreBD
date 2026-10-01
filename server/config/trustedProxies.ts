@@ -3,10 +3,10 @@
  * X-Forwarded-For are skipped to find the visitor.
  *
  * On Render a request passes through Cloudflare, then Render's own proxies on
- * private addresses. Trusting only the private ones made req.ip a Cloudflare
- * edge - the live log showed 172.71.124.150, 172.68.132.148, 162.158.88.65 -
- * so everyone reaching the site through the same edge shared a rate limit.
- * Express reads the header from the right, skipping every address listed
+ * private addresses. Both are listed: trusting only the private ones would
+ * make req.ip a Cloudflare edge, so everyone reaching the site through the
+ * same edge would share a rate limit. Express reads the header from the right,
+ * skipping every address listed
  * here, and takes the first one that is not: the visitor. Whatever a client
  * writes into the header itself sits further left and is never reached.
  *

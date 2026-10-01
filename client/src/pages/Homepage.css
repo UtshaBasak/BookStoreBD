@@ -1,8 +1,7 @@
 /*
- * The homepage's own styles. What used to be here - `html, body, #root` rules
- * setting height, colour and a grey background - applied to every page in the
- * application, because a stylesheet imported by a page is not scoped to it.
- * The layout rules that belong to everything now live in index.css.
+ * The homepage's own styles. A stylesheet imported by a page is not scoped to
+ * it, so nothing here targets `html`, `body` or `#root`; the layout rules that
+ * apply to every page live in index.css.
  *
  * The header and nav rules are shared with the book page, which renders the
  * same bar.
@@ -15,7 +14,7 @@
   background: var(--color-page);
   box-sizing: border-box;
 }
-/* Lays its sections out as they were when they sat in .homepage directly. */
+/* Stacks the page's sections in a column, filling the height left by the header. */
 .homepage-main {
   display: flex;
   flex-direction: column;
@@ -100,7 +99,7 @@
 }
 
 /* Not the buttons: this plain rule sits outside any cascade layer, so it
-   beat the white text of the "Sign in" button and left it violet on violet. */
+   would beat the white text of the "Sign in" button and leave it violet on violet. */
 .user-options a:not(.btn) {
   color: var(--color-brand);
   text-decoration: none;

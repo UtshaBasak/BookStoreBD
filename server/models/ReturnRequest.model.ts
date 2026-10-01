@@ -3,9 +3,9 @@ import { Schema, type HydratedDocument, type InferSchemaType } from 'mongoose';
 import { defineModel } from './defineModel.js';
 
 const returnRequestSchema = new Schema({
-  // The order line being returned. Requests used to name only the book, which
-  // could not tell two purchases of the same title apart - or check that the
-  // person asking had bought it at all. Absent on requests made before that.
+  // The order line being returned, rather than the book, so two purchases of
+  // the same title stay distinct and ownership can be checked. Absent on older
+  // requests that named only the book.
   orderId: { type: Schema.Types.ObjectId, ref: 'Order', default: null },
   orderNumber: { type: String, default: '' },
   bookId: { type: Schema.Types.ObjectId, ref: 'AddBook', required: true },

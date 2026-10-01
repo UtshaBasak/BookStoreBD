@@ -5,12 +5,9 @@ import { defineModel } from './defineModel.js';
 /**
  * A one-time code, while it is live.
  *
- * These used to sit in a `Map` in the process. That works until the process
- * restarts - which it does on every deploy, and which a sleeping instance does
- * on its own - and every code in flight went with it: somebody halfway through
- * signing up or resetting a password got "invalid code" and had to start
- * again. It also meant a second instance could not see codes issued by the
- * first.
+ * Stored in MongoDB rather than in process memory, so a code in flight
+ * survives a deploy or a sleeping instance's restart, and every instance sees
+ * the codes the others issued.
  */
 const OneTimeCodeSchema = new Schema({
   /*
@@ -33,8 +30,7 @@ const OneTimeCodeSchema = new Schema({
 });
 
 /*
- * MongoDB removes the document once `expiresAt` passes, which is what the
- * old `pruneExpiredOtps()` sweep was for.
+ * MongoDB removes the document once `expiresAt` passes.
  *
  * Its sweeper runs about once a minute, so a document can outlive its expiry
  * by that much. The code checks the date itself rather than trusting the

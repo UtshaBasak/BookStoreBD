@@ -21,7 +21,7 @@ export interface CollectedImages {
  *
  * Two ways in. With image hosting configured the browser uploads to Cloudinary
  * itself and sends back the URLs; without it the files arrive here and are
- * kept as base64 on the document, exactly as they were before hosting existed.
+ * kept as base64 on the document.
  *
  * A URL is only accepted when it is a delivery URL for *this* Cloudinary
  * account. The client sends back what it received, so without that check a

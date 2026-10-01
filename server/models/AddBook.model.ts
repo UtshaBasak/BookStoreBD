@@ -25,15 +25,13 @@ const AddBookSchema = new Schema({
   // remove the asset when a listing is deleted.
   imagePublicIds: [{ type: String }],
   createdAt: { type: Date, default: Date.now },
-  sellerEmail: { type: String, required: true }, // NEW: track seller
+  sellerEmail: { type: String, required: true }, // the seller's account
 
   /*
-   * The score, kept on the book rather than worked out on read.
-   *
-   * The catalogue page loads every listing and filters and sorts them in the
-   * browser, so a rating that needed a join or an aggregate per book would
-   * make that impossible. These two are rewritten whenever a review is
-   * written, edited or removed, which is rare next to how often they are read.
+   * The score, kept on the book rather than worked out on read, so the
+   * catalogue can filter and sort by it without a join or an aggregate per
+   * book. These two are rewritten whenever a review is written, edited or
+   * removed, which is rare next to how often they are read.
    */
   ratingAverage: { type: Number, default: 0, min: 0, max: 5 },
   ratingCount: { type: Number, default: 0, min: 0 },
@@ -76,24 +74,22 @@ AddBookSchema.pre('validate', function () {
 });
 
 /*
- * Indexes for the way the catalogue is actually queried.
+ * Indexes for the way the catalogue is queried.
  *
- * Filtering, sorting and paging moved from the browser into MongoDB, so these
- * are the difference between a page of results and a collection scan for every
- * visitor. Each one matches a sort the browse page offers; `bookType` and
- * `sellerEmail` are the two equality filters narrow enough to be worth
- * combining with the default order.
+ * Filtering, sorting and paging happen in MongoDB, so these are the difference
+ * between a page of results and a collection scan for every visitor. Each one
+ * matches a sort the browse page offers; `bookType` and `sellerEmail` are the
+ * two equality filters narrow enough to be worth combining with the default
+ * order.
  *
  * `category` and `condition` are deliberately absent: they are matched
  * case-insensitively, which no index can serve. Normalising the stored
- * capitalisation is what would fix that, and it is a data migration.
+ * capitalisation, a data migration, would make them indexable.
  *
- * Every one of them ends in `_id`, and that is not decoration. The catalogue
- * sorts by `{ <field>, _id }` so that books which tie cannot shuffle between
- * pages - and a sort is only served by an index when it is a prefix of that
- * index's keys. Without `_id` here, each of these queries scanned the whole
- * collection and sorted in memory, which `explain()` says plainly and no test
- * would ever have noticed.
+ * Every one ends in `_id`. The catalogue sorts by `{ <field>, _id }` so that
+ * books which tie cannot shuffle between pages, and a sort is only served by
+ * an index whose keys it prefixes; without `_id` each query would scan the
+ * collection and sort in memory.
  */
 AddBookSchema.index({ createdAt: -1, _id: -1 });
 AddBookSchema.index({ salePrice: 1, _id: -1 });

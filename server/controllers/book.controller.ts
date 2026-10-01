@@ -14,14 +14,10 @@ const log = createLogger('book');
 /**
  * Serves one cover as an image.
  *
- * Covers are stored on the document as base64, so before this they travelled
- * inside every JSON response that mentioned a book - a catalogue of 66 listings
- * was 7.4 MB, and 5.7 MB of that survived gzip because base64 of a JPEG is
- * already-compressed data. A browser cannot cache an image that arrives inside
- * a JSON body, so every visit paid for all of them again.
- *
- * As an image request it is cached, revalidated with an ETag, and fetched only
- * for the covers actually on screen.
+ * Covers are stored on the document as base64, but they are sent as image
+ * requests rather than inside JSON: a browser cannot cache an image inside a
+ * JSON body, and base64 of a JPEG barely compresses. As an image request a
+ * cover is cached, revalidated with an ETag, and fetched only when on screen.
  */
 export const getBookCover: RequestHandler<{ id: string; index?: string }> = async (
     req,
@@ -86,11 +82,8 @@ export const getBookById: RequestHandler = async (req, res) => {
 /**
  * One page of every listing, for the administrator's table.
  *
- * That table used to fetch the entire catalogue and then, to fill its "Owner"
- * column, the entire user list as well - two unbounded requests to draw
- * twenty-five rows, and a search that could only look at what had already been
- * downloaded. It is a query now, and the sellers resolved are the ones on the
- * page.
+ * Paged and searched by the API, so a search covers the whole catalogue, and
+ * only the sellers on the page are looked up.
  *
  * Separate from the shopper's catalogue because it asks a different question:
  * "who put this here" is an administrator's concern, and a search matching a
@@ -134,8 +127,7 @@ export const adminBookList: RequestHandler = async (req, res) => {
     res.status(200).json({
       items: items.map((book) => ({
         ...withCoverUrls(book),
-        // The column showed the e-mail for everyone when this was read from a
-        // field called `name`, which no account has ever had.
+        // The seller's handle, or their e-mail for an account without one.
         sellerName: names.get(book.sellerEmail) || book.sellerEmail,
       })),
       total,

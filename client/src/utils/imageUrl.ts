@@ -13,7 +13,7 @@
  * quality the eye cannot fault, and `c_limit` never scales an image *up* - a
  * small cover stays its own size rather than being stretched.
  *
- * Anything that is not one of our Cloudinary URLs is returned untouched: a
+ * Anything that is not a Cloudinary URL is returned untouched: a
  * base64 cover, a placeholder, or the API's own cover endpoint.
  */
 const CLOUDINARY_UPLOAD = '/image/upload/';
@@ -35,10 +35,8 @@ const CLOUDINARY_HOST = 'res.cloudinary.com';
  *
  * The host, compared exactly - not `url.includes('res.cloudinary.com')`, which
  * is also true of `https://evil.example/res.cloudinary.com/x.png` and of
- * `https://res.cloudinary.com.evil.example/x.png`. Here it only decides which
- * transformation to ask for, so the substring version was not a way in; it was
- * still a check that did not mean what it said, and the same shape in a place
- * that did decide something would be.
+ * `https://res.cloudinary.com.evil.example/x.png`. Here it only chooses a
+ * transformation, but an exact match keeps the check meaning what it says.
  */
 /* A plain boolean, not a `url is string` predicate: the callers already hold a
    string, and the predicate narrows their else-branch to `never`. */

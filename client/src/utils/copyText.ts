@@ -3,7 +3,7 @@
  *
  * The Clipboard API first. It needs a secure context and, in some browsers,
  * permission; where it is missing or refused, a selected off-screen textarea
- * and the old copy command still work almost everywhere.
+ * and `document.execCommand('copy')` work almost everywhere.
  */
 export const copyText = async (text: string): Promise<boolean> => {
   try {
@@ -12,7 +12,7 @@ export const copyText = async (text: string): Promise<boolean> => {
       return true;
     }
   } catch {
-    // Refused: try the old way below.
+    // Refused: fall back to the textarea below.
   }
   try {
     const area = document.createElement('textarea');

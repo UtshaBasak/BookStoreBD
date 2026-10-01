@@ -13,7 +13,7 @@ import { orderTotals, CANCELLED } from '../utils/orderTotals.js';
 import { FilterSelect, RefreshButton } from './admin/AdminControls.js';
 import { ORDER_STATUS_FILTER, ORDER_SORTS } from './admin/orderFilters.js';
 
-// Utility to format date as dd/mm/yyyy
+/** A date as dd/mm/yyyy, or '' when there is none. */
 function formatDate(dateStr: string | undefined) {
   if (!dateStr) return '';
   const d = new Date(dateStr);
@@ -49,10 +49,8 @@ export default function TransactionHistory() {
   };
 
   /*
-   * This fetched every order line ever placed and then searched and grouped
-   * them here, so the search box could only find an order that had already
-   * been downloaded. The API pages by order - never cutting between the books
-   * of one purchase - and searches the whole table.
+   * Searched and paged by the API, so a search covers every order. It pages
+   * by order, never splitting the books of one purchase across two pages.
    */
   const settledSearch = useDebounced(search);
   const ordersQuery = useAllOrders({
@@ -68,7 +66,7 @@ export default function TransactionHistory() {
   const currentPage = ordersQuery.data?.page ?? page;
   const refreshing = ordersQuery.isFetching;
 
-  // Group orders by orderNumber (if present), else fallback to _id
+  // Lines grouped by order number, or by _id where the number is missing or malformed.
   function groupOrdersByOrderNumber<T extends OrderLine>(orders: T[]): Record<string, T[]> {
     const map: Record<string, T[]> = {};
     orders.forEach(order => {
@@ -98,7 +96,6 @@ export default function TransactionHistory() {
         </div>
         <RefreshButton onClick={() => void ordersQuery.refetch()} busy={refreshing} />
       </header>
-      {/* Search bar */}
       <div className="admin-toolbar">
         <div className="admin-search">
           <FaSearch className="admin-search-icon" aria-hidden="true" />
@@ -110,7 +107,7 @@ export default function TransactionHistory() {
             value={search}
             onChange={(e) => {
               setSearch(e.target.value);
-              // Page 4 of a search nobody is running any more is a dead end.
+              // A new search starts from its first page.
               setPage(1);
             }}
           />
@@ -126,7 +123,6 @@ export default function TransactionHistory() {
           <input name="to" type="date" className="field" value={to} min={from || undefined} onChange={(e) => change(setTo)(e.target.value)} />
         </label>
       </div>
-      {/* Individual Order Cards */}
       <div className="admin-orders">
         {Object.keys(grouped).length === 0 ? (
           <div className="admin-card admin-empty">
@@ -168,7 +164,6 @@ export default function TransactionHistory() {
                       </span>
                     </p>
                   </div>
-                  {/* Track The Order button */}
                   <Link to={`/admin/order-tracking/${order.orderNumber ? order.orderNumber : order._id}`}
                     className="btn btn-primary admin-btn-sm"
                   >
@@ -216,7 +211,7 @@ export default function TransactionHistory() {
                 </table>
                 </div>
                 {/* Under the table rather than in its footer: ten columns scroll
-                    sideways, and the totals sat in the last one, off screen. */}
+                    sideways, and here the totals stay on screen. */}
                 <dl className="admin-totals">
                   <div>
                     <dt>Subtotal:</dt>

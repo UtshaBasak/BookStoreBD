@@ -51,8 +51,8 @@ updates:
       prefix-development: "chore(deps-dev)"
       include: scope
     groups:
-      # Keep React and the router in lockstep — they are released together and
-      # a partial bump is the usual cause of a broken build.
+      # React and the router are released together; updating them as one group
+      # keeps the build consistent.
       react:
         patterns:
           - react
@@ -74,8 +74,8 @@ updates:
           - eslint-plugin-*
           - typescript-eslint
           - globals
-      # The compiler and the declarations it reads move together; bumping one
-      # without the others is how a type-check breaks for no visible reason.
+      # The compiler and the declarations it reads move together, so they are
+      # updated as one group.
       typescript:
         patterns:
           - typescript
@@ -87,9 +87,8 @@ updates:
           - minor
           - patch
     ignore:
-      # typescript-eslint pins its peer range to `<6.1.0`. A TypeScript 7 bump
-      # makes `npm ci` fail outright with ERESOLVE, which took master red once
-      # already. Drop this entry the moment typescript-eslint ships support.
+      # typescript-eslint's peer range is `<6.1.0`, so a TypeScript 7 bump would
+      # fail `npm ci` with ERESOLVE. Remove once typescript-eslint supports 7.
       - dependency-name: typescript
         versions: ['>=7']
 
@@ -130,14 +129,13 @@ updates:
           - minor
           - patch
     ignore:
-      # typescript-eslint pins its peer range to `<6.1.0`. A TypeScript 7 bump
-      # makes `npm ci` fail outright with ERESOLVE, which took master red once
-      # already. Drop this entry the moment typescript-eslint ships support.
+      # typescript-eslint's peer range is `<6.1.0`, so a TypeScript 7 bump would
+      # fail `npm ci` with ERESOLVE. Remove once typescript-eslint supports 7.
       - dependency-name: typescript
         versions: ['>=7']
 
   # ---------------------------------------------------------------------------
-  # GitHub Actions used by the CI workflow
+  # GitHub Actions used by the CI and Docker workflows
   # ---------------------------------------------------------------------------
   - package-ecosystem: github-actions
     directory: /
@@ -157,3 +155,32 @@ updates:
       actions:
         patterns:
           - "*"
+
+  # ---------------------------------------------------------------------------
+  # Base images in the Dockerfiles (root, client and server)
+  # ---------------------------------------------------------------------------
+  - package-ecosystem: docker
+    directories:
+      - /
+      - /client
+      - /server
+    schedule:
+      interval: weekly
+      day: monday
+      time: "06:00"
+      timezone: Asia/Dhaka
+    open-pull-requests-limit: 5
+    labels:
+      - dependencies
+      - docker
+    commit-message:
+      prefix: "chore(docker)"
+      include: scope
+    groups:
+      base-images:
+        patterns:
+          - "*"
+    # Node stays on its LTS line; a new major is a deliberate upgrade.
+    ignore:
+      - dependency-name: node
+        update-types: ["version-update:semver-major"]

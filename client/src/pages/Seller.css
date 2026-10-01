@@ -207,7 +207,7 @@
 /* --------------------------------------------------- choice pills
    A radio or checkbox inside a pill-shaped label. The input stays in the
    page (visually hidden, still focusable and still what the label names), so
-   keyboards, screen readers and tests reach it exactly as before. */
+   keyboards, screen readers and tests reach it directly. */
 .sl-choices {
   display: flex;
   flex-wrap: wrap;

@@ -65,7 +65,7 @@
 }
 /* Beside the results on a desktop. Not sticky: with fourteen categories it is
    taller than a laptop screen, and a sticky panel that scrolls inside itself
-   hid the price and rating filters below the fold. */
+   would hide the price and rating filters below the fold. */
 @media (min-width: 1024px) {
   .filter-panel {
     width: 280px;
@@ -391,7 +391,7 @@
   color: #fff;
   font-size: 0.72rem;
 }
-/* On a phone the smaller card buttons, as the old cards had. */
+/* Smaller card buttons on a phone. */
 @media (max-width: 520px) {
   .results-grid .bc-actions .btn {
     font-size: 0.8rem;

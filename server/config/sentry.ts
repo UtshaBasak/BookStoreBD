@@ -9,9 +9,8 @@ const log = createLogger('sentry');
  * The SDK, once it has been asked for.
  *
  * Loaded on demand rather than imported at the top: `@sentry/node` takes about
- * 1.3 seconds to import, which is paid on every start and on every restart
- * nodemon does after a save - and in development, where no DSN is ever set,
- * it was paid for nothing.
+ * 1.3 seconds to import, paid on every start and every nodemon restart, and
+ * development, where no DSN is set, has no use for it.
  */
 let Sentry: typeof import('@sentry/node') | null = null;
 
@@ -20,19 +19,16 @@ let enabled = false;
 /**
  * What Sentry may collect, stated rather than inherited.
  *
- * Version 11 made "more permissive data collection the default", and every one
- * of these defaults to collecting. For this application that meant a report
- * could carry the body of a sign-in request - an e-mail address and a password
- * - a delivery address and phone number from an order, the documents written
- * to MongoDB, and the value of any local variable in the frame that threw,
- * which in the auth controller includes one called `password`. The `beforeSend`
- * below only ever scrubbed a top-level `password` and two headers.
+ * Version 11 made "more permissive data collection the default", and each of
+ * these defaults to collecting. Left on, a report could carry a sign-in body
+ * (an e-mail address and a password), an order's address and phone number,
+ * documents written to MongoDB, and local variables in the throwing frame -
+ * including one called `password` in the auth controller.
  *
- * So each is turned off explicitly, and a later release changing a default
- * cannot quietly turn one back on. What is left is what a report needs: the
- * error, its stack, the source lines around it, the route, and the request id
- * the error handler adds - enough to find the fault, and nothing about the
- * person it happened to.
+ * Each is turned off explicitly, so a later release changing a default cannot
+ * turn one back on. What is left is what a report needs: the error, its stack,
+ * the source lines around it, the route, and the request id the error handler
+ * adds - enough to find the fault, and nothing about the person it happened to.
  */
 export const DATA_COLLECTION: NonNullable<NodeOptions['dataCollection']> = {
   // Automatic `user.*` - an e-mail or an IP address - on every event.

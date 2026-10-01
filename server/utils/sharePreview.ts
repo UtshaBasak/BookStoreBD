@@ -4,10 +4,9 @@
  * Facebook, WhatsApp, Messenger, X and Slack build a link's preview card from
  * the HTML the server sends, and do not run JavaScript. The app sets each
  * book's title and picture in the browser, which Google sees, but a scraper
- * only ever saw `index.html`'s site-wide tags - so every shared book looked
- * like the homepage. For `/book/:id` the server now writes that book's title,
- * price and cover into the page before sending it. People get the same page
- * as before; only the head differs.
+ * sees only `index.html`'s site-wide tags. So for `/book/:id` the server
+ * writes that book's title, price and cover into the page before sending it.
+ * The page is otherwise unchanged; only the head differs.
  */
 import { readFileSync } from 'fs';
 
@@ -147,9 +146,9 @@ export const renderBookPage = (template: string, book: PreviewBook, origin: stri
  * `index.html` for every other page, with its picture's address made absolute.
  *
  * The build cannot know the domain, so the file says `/og-image.jpg`, and not
- * every scraper resolves that against the page: Facebook's documentation asks
- * for an absolute URL, and opengraph.xyz showed a broken image. The server
- * does know the domain, so it writes it in. Left as it is when the request's
+ * every scraper resolves that against the page; Facebook's documentation asks
+ * for an absolute URL. The server does know the domain, so it writes it in.
+ * Left as it is when the request's
  * host is not one a URL can be built from.
  */
 export const renderSitePage = (template: string, origin: string): string =>

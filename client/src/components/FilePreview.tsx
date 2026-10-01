@@ -3,13 +3,12 @@ import { useEffect, useRef } from 'react';
 /**
  * A preview of an image the visitor has just picked, before it is uploaded.
  *
- * It is painted onto a canvas rather than shown through `<img src>`. The
- * picked file never becomes a URL in the page, so there is nothing a code
- * scanner can read as text from the page being turned back into markup - and
- * no object URL to forget to revoke, which the old `src={URL.createObjectURL(f)}`
- * minted afresh on every render. It is drawn at most `max` pixels on its long
- * side, so a 4000px phone photo costs a thumbnail's memory. Browsers without
- * `createImageBitmap` (and the test environment) show the tinted tile.
+ * It is painted onto a canvas rather than shown through `<img src>`, so the
+ * picked file never becomes a URL in the page: there is no DOM text for a code
+ * scanner to flag as reinterpreted markup, and no object URL to revoke. It is
+ * drawn at most `max` pixels on its long side, so a 4000px phone photo costs a
+ * thumbnail's memory. Browsers without `createImageBitmap` (and the test
+ * environment) show the tinted tile.
  */
 interface FilePreviewProps {
   file: Blob;

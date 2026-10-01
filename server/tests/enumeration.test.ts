@@ -1,12 +1,10 @@
 /**
  * Account enumeration.
  *
- * The auth endpoints used to answer two different ways depending on whether an
- * address had an account: `404 "User not found!"` against `401 "Wrong
- * credentials!"` on sign-in, and `"No account found with this email."` on
- * reset. Anyone could feed in a list of addresses and learn which ones shop
- * here - a privacy leak on its own, and the first step of a credential
- * stuffing run.
+ * The auth endpoints answer the same whether or not an address has an
+ * account. If they did not, anyone could feed in a list of addresses and learn
+ * which ones shop here - a privacy leak on its own, and the first step of a
+ * credential stuffing run.
  *
  * Every test below compares a known address against an unknown one. What is
  * being asserted is not any particular sentence but that the two answers are
@@ -185,7 +183,7 @@ describe('requesting a code', () => {
 
   it('does not mistake a missing username for a taken one', async () => {
     // `findOne({ username: undefined })` drops the key and matches the first
-    // user in the collection, so this used to answer "Username already taken".
+    // user in the collection, which would answer "Username already taken".
     await createUser({ username: 'somebody_else' });
 
     const res = await request

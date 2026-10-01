@@ -29,10 +29,8 @@ import { CATEGORY_GROUPS, categoryLink } from '../config/categories.js';
 export default function Homepage() {
   const [showDropdown, setShowDropdown] = useState<'category' | false>(false);
   /*
-   * The menu closes a moment after the pointer leaves it, not the instant it
-   * does. Moving from the chip down into a hundred small links, a pointer that
-   * strayed a few pixels outside shut the menu, and the subject aimed at went
-   * with it.
+   * The menu closes a moment after the pointer leaves it, so a pointer that
+   * strays a few pixels on its way into a hundred small links does not shut it.
    */
   const closeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const openMenu = () => {
@@ -76,8 +74,7 @@ export default function Homepage() {
   });
 
   // Everything below is derived from queries rather than copied into state by
-  // an effect. Two pages asking for the cart now share one request and one
-  // answer, and none of them reimplements a loading flag.
+  // an effect, so pages asking for the cart share one request and one answer.
   const { data: profile } = useProfile(userEmail, { enabled: Boolean(userEmail) });
   const profilePic = profile?.profilePicture ?? null;
   const username = profile?.username ?? '';
@@ -136,10 +133,8 @@ export default function Homepage() {
     <div className="homepage" style={{ width: '100%', minHeight: '100vh' }}>
       <header className="header">
         <div className="logo">
-          {/* A button rather than a span with a hand-rolled keydown handler.
-              The reload has gone with it: the queries refetch on their own, and
-              throwing away the whole page to get back to it was a second of
-              white screen every time somebody tapped the name of the shop. */}
+          {/* A real link, with no full reload: the queries refetch on their
+              own, so going home never flashes a white screen. */}
           <Link to="/"
             className="logo-button"
             aria-label="BookStoreBD home"
@@ -203,10 +198,8 @@ export default function Homepage() {
             <FaShoppingBag />
           </Link>
           {user ? (
-            // A link to the profile, and nothing on hover. It opened a menu of
-            // "View Profile" and "Sign Out" on hover, which a touch screen
-            // cannot do, which covered the page whenever the pointer passed
-            // over it, and which duplicated the Sign Out on the profile page.
+            // A plain link to the profile, with no hover menu: hover does not
+            // exist on a touch screen, and Sign Out lives on the profile page.
             <Link to="/profile" className="profile-link" title="Your profile" aria-label="Your profile">
               <img
                 src={
@@ -237,10 +230,8 @@ export default function Homepage() {
       </header>
 
       {/*
-        Real links and a real button. These were spans with role="menuitem"
-        outside any menu, which a screen reader could not make sense of, and
-        which could not be opened in a new tab or followed by anything that
-        reads links - a crawler, or an assistant browsing on someone's behalf.
+        Real links and a real button, so a screen reader announces them
+        correctly and they can be opened in a new tab or followed by a crawler.
       */}
       <nav className="nav-bar" aria-label="Browse books">
         <div
@@ -306,10 +297,7 @@ export default function Homepage() {
       {/* One main landmark, so a screen reader can jump past the header. */}
       <main className="homepage-main">
       {/*
-        The first screen. It was two stock AI images - a pile of books, a
-        library with "BOOKSTORE" painted on its wall - which said nothing a
-        shopper could act on and looked like a site from another decade. It
-        says what the shop is, lets them search straight away, and names the
+        The first screen: what the shop is, a search straight away, and the
         three things that make buying second-hand here safe.
       */}
       <section className="hero">
@@ -368,8 +356,7 @@ export default function Homepage() {
       />
       </main>
 
-      {/* The footer carries the copyright line; a second, older one under it
-          said 2025 and "BookStore", and contradicted it. */}
+      {/* The footer carries the copyright line. */}
       <Footer />
     </div>
   );

@@ -40,8 +40,8 @@ export default function OrderTrackingPage() {
     setError('');
     try {
       // The mutation invalidates this order, so the summarised view is refetched
-      // rather than rebuilt from the PATCH response - which answers with the raw
-      // order lines and used to blank the page.
+      // rather than rebuilt from the PATCH response, which carries only the raw
+      // order lines.
       await updateStatus(e.target.value);
     } catch {
       setError('Failed to update status');
@@ -67,7 +67,7 @@ export default function OrderTrackingPage() {
       <div className="ot-page">
         <div className="ot-wrap">
           {toolbar}
-          {/* A failed lookup used to leave "Loading..." on the screen for good. */}
+          {/* A failed lookup says so, rather than leaving "Loading..." on screen. */}
           {orderQuery.isError ? (
             <div role="alert" className="card mx-auto max-w-md p-8 text-center">
               <p className="m-0 text-lg font-bold text-ink">We could not find that order.</p>
@@ -182,7 +182,6 @@ export default function OrderTrackingPage() {
           </section>
         </div>
 
-        {/* Order Details Table OUTSIDE the card, after progress bar */}
         <section className="card mt-4 min-w-0 p-4 sm:p-6">
           <h2 className="m-0 text-xl">Order Details</h2>
           <div className="table-scroll">

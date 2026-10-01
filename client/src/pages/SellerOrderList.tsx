@@ -25,9 +25,9 @@ const sellerFee = (booksTotal: number) =>
 const date = (iso: string | null | undefined) => (iso ? new Date(iso).toLocaleDateString() : '');
 
 /**
- * Where the money for one order has got to, in words. The state is the
- * server's, worked out by the same rule the payouts page uses; a seller used
- * to have no way of knowing whether, or when, they would be paid.
+ * Where the money for one order has got to, in words, so a seller knows
+ * whether and when they will be paid. The state is the server's, worked out
+ * by the same rule the payouts page uses.
  */
 const paymentFor = (lines: SellerOrderLine[]): { text: string; tone: 'good' | 'due' | 'plain' } => {
   const open = lines.filter((line) => line.payoutState !== 'returned' && line.status !== CANCELLED);
@@ -75,10 +75,7 @@ export default function SellerOrderList() {
   const [status, setStatus] = useState('');
   const [sort, setSort] = useState('newest');
 
-  /*
-   * This fetched every order this seller has ever had and searched them here,
-   * so the search box could only find one that had already been downloaded.
-   */
+  // Searched, filtered and paged by the API, so a search covers every order.
   const settledSearch = useDebounced(search);
   const ordersQuery = useSellerOrders({
     search: settledSearch || undefined,
@@ -95,7 +92,7 @@ export default function SellerOrderList() {
   const refreshing = ordersQuery.isFetching;
   const fetchOrders = () => ordersQuery.refetch();
 
-  // Group orders by orderNumber (if present), else fallback to _id
+  // Lines grouped by order number, or by _id where the number is missing or malformed.
   function groupOrdersByOrderNumber<T extends OrderLine>(orders: T[]): Record<string, T[]> {
     const map: Record<string, T[]> = {};
     orders.forEach(order => {
@@ -232,7 +229,6 @@ export default function SellerOrderList() {
                       </p>
                       {order.buyerNote && <p className="sl-buyer-note sl-list-note">Note from the buyer: {order.buyerNote}</p>}
                     </div>
-                    {/* Track Your Order button */}
                     <Link to={`/seller/order-tracking/${order.orderNumber ? order.orderNumber : order._id}`}
                       className="btn btn-primary"
                     >
@@ -283,9 +279,9 @@ export default function SellerOrderList() {
                   </div>
                   {/*
                     The terms say the seller can see this here. Outside the
-                    table, which scrolls sideways on a phone and would have put
-                    it off the screen. Delivery is not part of the book total,
-                    so it is not in the fee.
+                    table, which scrolls sideways on a phone, so it stays on
+                    screen. Delivery is not part of the book total, so it is
+                    not in the fee.
                   */}
                   <div className="sl-order-foot">
                     <dl className="sl-summary">

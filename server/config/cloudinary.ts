@@ -8,9 +8,9 @@ import { createLogger } from './logger.js';
 const log = createLogger('cloudinary');
 
 /**
- * Image hosting is optional. With no credentials configured the app keeps
- * storing covers as base64 on the document, exactly as it did before, so a
- * fresh clone runs without anyone signing up for anything.
+ * Image hosting is optional. With no credentials configured, covers are stored
+ * as base64 on the document, so a fresh clone runs without a third-party
+ * account.
  */
 export const isCloudinaryConfigured = (): boolean =>
   Boolean(config.cloudinary.cloudName && config.cloudinary.apiKey && config.cloudinary.apiSecret);
@@ -65,10 +65,9 @@ export const UPLOAD_FOLDER = 'bookstorebd/books';
  * The bytes never pass through this API: it only vouches for the request. The
  * signature covers a timestamp, so it cannot be replayed indefinitely.
  *
- * Signing is delegated to the SDK rather than hand-rolled. The documented rule
- * is "sorted params, secret appended, then hash", but the docs do not say which
- * hash — it is SHA-1 — and that is exactly the kind of detail worth not
- * guessing at.
+ * Signing is delegated to the SDK rather than hand-rolled: the documented rule
+ * ("sorted params, secret appended, then hash") leaves details such as the
+ * hash algorithm unstated.
  */
 export const createUploadSignature = ({ folder = UPLOAD_FOLDER } = {}): UploadSignature => {
   const { cloudName, apiKey, apiSecret } = ensureConfigured();

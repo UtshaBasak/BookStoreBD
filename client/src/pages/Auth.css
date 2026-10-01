@@ -216,8 +216,8 @@
   font-size: 0.92rem;
 }
 
-/* "SIGN UP" / "SIGN IN": the words are kept as they were, so the capitals are
-   set small and spaced to read as a deliberate label rather than a shout. */
+/* "SIGN UP" / "SIGN IN": the capitals are set small and spaced to read as a
+   deliberate label rather than a shout. */
 .auth-switch-link {
   display: inline-flex;
   align-items: center;

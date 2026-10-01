@@ -1,9 +1,8 @@
 /**
  * Sending through Gmail's web API.
  *
- * Render's free plan blocks the SMTP ports: on the live site every code timed
- * out ("Connection timeout", then "ENETUNREACH ...:465") and nobody could sign
- * up or reset a password. With a Gmail API token set, mail goes over HTTPS.
+ * Render's free plan blocks the SMTP ports ("Connection timeout", then
+ * "ENETUNREACH ...:465"), so with a Gmail API token set, mail goes over HTTPS.
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 

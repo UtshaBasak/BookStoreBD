@@ -1,12 +1,7 @@
 /**
- * Covers are stored on the document as base64, so they used to travel inside
- * every JSON response that mentioned a book: a catalogue of 66 listings with
- * photographed covers was a 7.4 MB response, and 5.7 MB of that survived gzip
- * because base64 of a JPEG is already-compressed data. A browser cannot cache
- * an image that arrives inside a JSON body, so every visit paid for all of
- * them again.
- *
- * They are addresses now, and these pin what is at the other end.
+ * Covers are stored on the document as base64 but served by address, so a
+ * browser can cache them and a JSON response does not carry them. These pin
+ * what is at the other end.
  */
 import { describe, it, expect, beforeAll, afterAll, beforeEach } from 'vitest';
 
@@ -71,15 +66,15 @@ describe('GET /book/:id/cover/:index', () => {
 
     const res = await request.get(`/book/${String(book._id)}/cover/0`);
 
-    // A Cloudinary URL was never the problem, and proxying it would make this
+    // A Cloudinary URL is already an address, and proxying it would make this
     // process pay for bytes a CDN is already serving.
     expect(res.status).toBe(302);
     expect(res.headers.location).toBe('https://res.cloudinary.com/demo/image/upload/x.jpg');
   });
 
   it('refuses to serve anything that is not an image', async () => {
-    // Uploads are type-checked now, but a record written before that could say
-    // anything, and this endpoint sets the Content-Type from the record.
+    // Uploads are type-checked, but an older record could say anything, and
+    // this endpoint sets the Content-Type from the record.
     const book = await createBook({ images: ['data:text/html;base64,PHNjcmlwdD5hbGVydCgxKTwvc2NyaXB0Pg=='] });
 
     const res = await request.get(`/book/${String(book._id)}/cover/0`);

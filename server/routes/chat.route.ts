@@ -56,8 +56,8 @@ router.get(
             ]
         })
         // `image` is checked for presence, never sent: an attachment is stored
-        // on the document as base64, so selecting it put every picture in the
-        // thread into every page of it.
+        // on the document as base64, and selecting it would put every picture
+        // in the thread into every page of it.
         .select('sender receiver message timestamp image')
         .sort({ timestamp: -1 })
         .skip(skip)
@@ -118,12 +118,9 @@ router.get('/history/:email', async (req, res) => {
         const { email } = actingUser(req);
 
         /*
-         * One aggregation rather than every message this account has ever sent
-         * or received.
-         *
-         * This used to load them all - bodies, and the base64 attachments with
-         * them - to work out a list of names and a last line each, then ran two
-         * more queries per conversation. The sidebar cost the whole history.
+         * One aggregation rather than loading every message this account has
+         * sent or received - bodies and base64 attachments included - and
+         * querying again per conversation.
          */
         const conversations = await ChatMessage.aggregate<{
             _id: string;
@@ -234,9 +231,7 @@ router.post(
 
         // As the thread's own endpoint describes a message, to the sender and
         // live to the receiver alike: the picture as an address to fetch, not
-        // the base64 on the record. The sender was sent the base64, which the
-        // chat window cannot show, so their own picture said "attachment
-        // unavailable" until the thread was reloaded.
+        // the base64 on the record, which the chat window cannot show.
         const wire = {
             _id: String(newMessage._id),
             sender,

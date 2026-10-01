@@ -13,8 +13,8 @@ interface ErrorBoundaryState {
 /**
  * Catches a render error anywhere below it and shows a recovery screen.
  *
- * Without this, one thrown error in any component unmounts the whole tree and
- * the user is left staring at a blank white page with no way forward.
+ * Without it, one thrown error in any component unmounts the whole tree and
+ * leaves a blank page with no way forward.
  */
 export default class ErrorBoundary extends React.Component<
   ErrorBoundaryProps,
@@ -30,8 +30,8 @@ export default class ErrorBoundary extends React.Component<
   }
 
   override componentDidCatch(error: Error, info: ErrorInfo) {
-    // In development this reaches the console; in a build it is a no-op until
-    // a browser error reporter is wired into `reportError`.
+    // In development this reaches the console; in a build `reportError` sends
+    // it to the API.
     reportError('Unhandled render error:', { error, componentStack: info?.componentStack });
     this.props.onError?.(error, info);
   }
@@ -74,8 +74,8 @@ export default class ErrorBoundary extends React.Component<
   }
 }
 
-// Inline, not Tailwind or a stylesheet of its own: this screen is shown when
-// something has already gone wrong, so it leans on as little as possible. The
+// Inline, not Tailwind or a stylesheet of its own: this screen is shown after
+// a failure, so it depends on as little as possible. The
 // buttons use the shared `btn` classes from index.css, which is always loaded.
 const styles: Record<string, CSSProperties> = {
   wrap: {

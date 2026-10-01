@@ -1,8 +1,8 @@
 # Render Blueprint: one Web Service that serves the API and the built site.
 #
-# One service rather than an API and a static site: same-origin is what keeps
-# the refresh cookie first-party, so a session survives its 15-minute access
-# token. Two services would sign everyone out every quarter of an hour.
+# One service rather than an API and a static site: same-origin keeps the
+# refresh cookie first-party, so a session renews past each 15-minute access
+# token. Separate origins would end sessions when the access token expires.
 #
 # Create it with Render -> New -> Blueprint -> this repository. Values marked
 # `sync: false` are asked for in the dashboard at that point and never live in
@@ -14,7 +14,7 @@ services:
     runtime: node
     plan: free
     # The nearest region to Bangladesh. Put the MongoDB Atlas cluster in
-    # Singapore too, so every query is not a round trip to another continent.
+    # Singapore too, so queries stay within the region.
     region: singapore
     branch: master
     autoDeploy: true
@@ -28,7 +28,7 @@ services:
     healthCheckPath: /health
     envVars:
       - key: NODE_VERSION
-        value: "22"
+        value: "24"
       - key: NODE_ENV
         value: production
       # The API serves client/dist itself (see above).
@@ -65,10 +65,9 @@ services:
         sync: false
 
       # --- Image hosting ------------------------------------------------------
-      # The cloud name and API key are not secret; the API secret is.
       - key: CLOUDINARY_CLOUD_NAME
-        value: ***REMOVED***
+        sync: false
       - key: CLOUDINARY_API_KEY
-        value: "***REMOVED***"
+        sync: false
       - key: CLOUDINARY_API_SECRET
         sync: false

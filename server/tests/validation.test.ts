@@ -122,7 +122,7 @@ describe('type narrowing blocks injection', () => {
     const seller = await createSignedInUser(request, { email: 'seller@test.com' });
     const book = await createBook({ sellerEmail: 'seller@test.com' });
 
-    // Number([]) is 0, so a bare coercion would have quietly zeroed the stock.
+    // Number([]) is 0, so a bare coercion would quietly zero the stock.
     const res = await request
       .put(`/book/update-stock/${book._id}`)
       .set('Authorization', seller.auth)

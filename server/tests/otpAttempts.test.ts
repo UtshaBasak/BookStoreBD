@@ -1,7 +1,7 @@
 /**
  * A six-digit code lives for ten minutes. The rate limiter caps an IP at 50
- * requests per 15 minutes, but nothing counted failures against the *code*, so
- * guesses coming from several addresses were never pooled.
+ * requests per 15 minutes; failures are also counted against the *code*, so
+ * guesses coming from several addresses are pooled.
  */
 import { describe, it, expect, beforeAll, afterAll, beforeEach, vi } from 'vitest';
 

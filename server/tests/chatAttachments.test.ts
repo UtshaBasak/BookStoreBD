@@ -1,12 +1,7 @@
 /**
- * A chat attachment is stored on the message as base64.
- *
- * So the thread carried every picture in it, in every page of it - and the
- * conversation list was worse: it loaded every message this account had ever
- * sent or received, attachments included, to work out a list of names and a
- * last line each.
- *
- * They are addresses now, behind the check that the asker is in the thread.
+ * A chat attachment is stored on the message as base64 but served by address,
+ * behind the check that the asker is in the thread, so neither a thread nor
+ * the conversation list carries the pictures.
  */
 import { describe, it, expect, beforeAll, afterAll, beforeEach } from 'vitest';
 
@@ -101,8 +96,7 @@ describe('one attachment', () => {
     const stranger = await createSignedInUser(request, { email: 'stranger@test.com' });
 
     // A conversation is private to its two participants, and so is what is in
-    // it. This was never an issue while the bytes rode along inside a response
-    // only they could read - it is one the moment there is a URL.
+    // it: an attachment with its own URL needs the same check.
     expect(
       (
         await request
@@ -214,8 +208,8 @@ describe('a profile picture', () => {
 
     const res = await request.get(`/user/${encodeURIComponent(BOB)}/avatar`);
 
-    // Public, like the profile endpoint that used to return the same bytes
-    // inline - and cacheable, which a data URI in a JSON body never was.
+    // Public, like the profile endpoint, and cacheable, which a data URI in a
+    // JSON body is not.
     expect(res.status).toBe(200);
     expect(res.headers['content-type']).toMatch(/image\/png/);
     expect(res.headers['cache-control']).toMatch(/public, max-age=\d+/);
@@ -253,9 +247,8 @@ describe('sending one', () => {
       .field('message', '')
       .attach('image', PNG_PIXEL, 'photo.png');
 
-    // `message` was `required`, and Mongoose's required check rejects an empty
-    // string - so the attachment button answered 500 unless you also typed
-    // something.
+    // Mongoose's required check rejects an empty string, so `message` is not
+    // `required`: a picture on its own is a message.
     expect(res.status).toBe(201);
   });
 

@@ -36,14 +36,9 @@ export default function UserManagement() {
   };
 
   /*
-   * This table used to fetch every account with every field except the
-   * password - including `profilePicture`, a base64 data URI - to draw three
-   * columns, and then search what it had in the browser. Both are the API's
-   * job now, and administrators are left out there rather than here, so the
-   * count below is the count of what matched.
-   *
-   * Loading, error and refetch state come from the query rather than being
-   * reimplemented with four useState flags per page.
+   * Searched and paged by the API, which also leaves administrators out, so
+   * the count below is the count of what matched. Loading, error and refetch
+   * state come from the query.
    */
   const settledSearch = useDebounced(search);
   const { data, isPending, isFetching, error, refetch } = useUsers({
@@ -81,7 +76,6 @@ export default function UserManagement() {
         </div>
         <RefreshButton onClick={() => void refetch()} busy={isFetching} />
       </header>
-      {/* Search input */}
       <div className="admin-toolbar">
         <div className="admin-search">
           <FaSearch className="admin-search-icon" aria-hidden="true" />
@@ -93,7 +87,7 @@ export default function UserManagement() {
             value={search}
             onChange={(e) => {
               setSearch(e.target.value);
-              // Page 4 of a search nobody is running any more is a dead end.
+              // A new search starts from its first page.
               setPage(1);
             }}
           />

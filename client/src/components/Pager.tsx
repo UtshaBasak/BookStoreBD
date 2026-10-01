@@ -15,8 +15,8 @@ interface PagerProps {
 /**
  * "Showing 1–25 of 307", and the two buttons.
  *
- * Every table that moved its paging to the API needs the same three numbers
- * and the same two buttons, and four copies of them would drift.
+ * Shared by every table paged by the API, so they all show the same numbers
+ * and buttons.
  */
 export default function Pager({
   page,

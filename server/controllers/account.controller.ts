@@ -99,8 +99,8 @@ export const deleteMyAccount: RequestHandler = async (req, res, next) => {
 
     if (!bcryptjs.compareSync(password, user.password)) {
       // 403, not 401. The client treats a 401 as an expired session: it tries a
-      // refresh and then signs the caller out, so a typo here would have logged
-      // somebody out of the page they were standing on. They are authenticated;
+      // refresh and then signs the caller out, so a mistyped password would
+      // sign somebody out of the page they were on. They are authenticated;
       // what failed is the re-check this one action asks for.
       res.status(403).json({ message: 'That password is not correct' });
       return;

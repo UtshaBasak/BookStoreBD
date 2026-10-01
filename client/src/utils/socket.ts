@@ -8,9 +8,8 @@ import { getToken } from './auth.js';
  * person, for as long as some page wants them.
  *
  * Pointed at the API's origin, never at `API_BASE_URL` itself: Socket.IO reads
- * the path of the address it is given as a *namespace*, so `io('/api')` asked
- * the server for a namespace called "/api", was refused, and tore the
- * connection down straight away.
+ * the path of the address it is given as a *namespace*, so `io('/api')` would
+ * request a namespace called "/api", which the server refuses.
  *
  * The server only takes a connection with a valid access token, and delivers
  * to each person what is addressed to them. `auth` is a function so a

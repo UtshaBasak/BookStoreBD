@@ -8,9 +8,8 @@ import './BookShelf.css';
  * A titled, sideways-scrolling row: every shelf on the homepage.
  *
  * Scrolls with a finger, a trackpad, shift and the wheel, or the two arrow
- * buttons, and snaps to a card. It no longer turns an ordinary vertical wheel
- * into a sideways scroll: with a dozen shelves on the page, that trapped the
- * cursor on whichever one it came to rest over.
+ * buttons, and snaps to a card. A plain vertical wheel scrolls the page, not
+ * the shelf, so a pointer resting over a shelf never traps the page scroll.
  */
 export default function BookShelf({
   id,

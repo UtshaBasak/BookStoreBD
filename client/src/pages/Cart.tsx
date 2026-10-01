@@ -69,7 +69,6 @@ export default function Cart() {
     toggleWishlist({ bookId: id, inWishlist: Boolean(wishlist[id]) });
   };
 
-  // Helper to resolve image src
   const getBookImageSrc = (book: Book): string => {
     const img = book.images?.[0];
     if (!img) return PLACEHOLDER_IMAGE;
@@ -182,7 +181,6 @@ export default function Cart() {
                         <p className="m-0 mt-0.5 text-sm text-ink-muted">by {book.author}</p>
                       </div>
 
-                      {/* Wishlist icon */}
                       <button
                         type="button"
                         className="icon-button shrink-0"
@@ -236,7 +234,6 @@ export default function Cart() {
                         />
                       )}
 
-                      {/* Remove from cart */}
                       <button
                         type="button"
                         className="btn btn-danger"
@@ -273,7 +270,6 @@ export default function Cart() {
                 <span>৳{subtotal.toFixed(2)}</span>
               </div>
 
-              {/* Proceed to Checkout Button */}
               {buyable.length > 0 ? (
                 <Link to="/payment"
                   className="btn btn-accent mt-5 w-full"

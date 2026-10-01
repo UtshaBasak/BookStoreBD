@@ -1,9 +1,6 @@
 /**
- * The e-mails the shop sends.
- *
- * They were one plain-text line from a bare address - "Your OTP Code" - which
- * looks like the phishing it exists to guard against. They are branded HTML
- * now, with a plain-text twin that says the same.
+ * The e-mails the shop sends: branded HTML with a plain-text twin that says
+ * the same, so a code arrives looking like the shop and not like phishing.
  */
 import { afterEach, describe, expect, it } from 'vitest';
 

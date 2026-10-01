@@ -117,7 +117,7 @@ export const useSeo = ({
     }
 
     // Replaced rather than appended: a route change must not leave the previous
-    // page's structured data behind, describing a book nobody is looking at.
+    // page's structured data behind, describing a different book.
     document.head.querySelector('script[data-seo-jsonld]')?.remove();
     if (jsonLdText) {
       const script = document.createElement('script');

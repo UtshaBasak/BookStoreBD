@@ -39,7 +39,7 @@ export default function BuyerOrderList() {
   const [status, setStatus] = useState('');
   const [sort, setSort] = useState('newest');
 
-  // Fetched every order this account has ever placed, and searched them here.
+  // Searched, filtered and paged by the API, so a search covers every order.
   const settledSearch = useDebounced(search);
   const ordersQuery = useBuyerOrders({
     search: settledSearch || undefined,
@@ -56,7 +56,7 @@ export default function BuyerOrderList() {
   const refreshing = ordersQuery.isFetching;
   const fetchOrders = () => ordersQuery.refetch();
 
-  // Group orders by orderNumber (if present), else fallback to _id
+  // Lines grouped by order number, or by _id where the number is missing or malformed.
   function groupOrdersByOrderNumber<T extends OrderLine>(orders: T[]): Record<string, T[]> {
     const map: Record<string, T[]> = {};
     orders.forEach(order => {
@@ -72,8 +72,8 @@ export default function BuyerOrderList() {
 
   const grouped = groupOrdersByOrderNumber(orders);
 
-  // Was a `position: fixed` layer over the whole window with its own scroll,
-  // which a phone's browser bar and pull-to-refresh do not expect. A page.
+  // An ordinary scrolling page rather than a fixed full-window layer, so a
+  // phone's browser bar and pull-to-refresh behave as expected.
   return (
     <div className="ot-page">
       <div className="ot-wrap" style={{ maxWidth: 1200 }}>
@@ -271,8 +271,8 @@ export default function BuyerOrderList() {
                     </tbody>
                   </table>
                   </div>
-                  {/* Under the table rather than in its footer, which sat off
-                      the right-hand edge of a phone. */}
+                  {/* Under the table rather than in its footer, so the totals
+                      stay on screen when the table scrolls sideways on a phone. */}
                   <div className="ot-totals">
                     <div><span>Subtotal:</span><span>৳{booksTotal.toFixed(2)}</span></div>
                     <div><span>Shipping Cost:</span><span>৳{Number(shippingCost).toFixed(2)}</span></div>

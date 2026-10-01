@@ -38,18 +38,13 @@ export const toListBook = <T extends HasImages>(book: T): T => {
 /**
  * Replaces a base64 cover with the address it can be fetched from.
  *
- * A catalogue of 66 listings with photographed covers was a 7.4 MB JSON
- * response - and base64 of an already-compressed JPEG barely gzips, so it was
- * still 5.7 MB on the wire. Every visit paid it again, because a JSON body is
- * not something a browser caches per image.
+ * Base64 of an already-compressed JPEG barely gzips, and a browser cannot
+ * cache an image inside a JSON body. Sent as a URL, each cover becomes an
+ * ordinary image request: fetched only for the cards on screen, cached across
+ * navigations, and revalidated with an ETag, while the catalogue JSON stays
+ * text.
  *
- * Sent as a URL instead, each cover becomes an ordinary image request: fetched
- * only for the cards actually on screen, cached by the browser across
- * navigations, and revalidated with an ETag. The catalogue JSON drops to the
- * text it should always have been.
- *
- * A cover already hosted elsewhere - a Cloudinary URL - is left exactly as it
- * is: it was never the problem.
+ * A cover already hosted elsewhere - a Cloudinary URL - is left as it is.
  */
 export const coverUrl = (bookId: unknown, index: number): string =>
   `${API_PREFIX}/book/${String(bookId)}/cover/${index}`;

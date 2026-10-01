@@ -37,15 +37,14 @@ const DURATION: Record<VariantType, number> = {
 };
 
 /**
- * Toasts, in the four kinds the pages actually need.
+ * Toasts, in four kinds.
  *
  * A wrapper over notistack rather than `useSnackbar` at every call site: how
  * long a message stays and where it appears are decided here and in
  * `main.tsx`, so a page says what happened rather than how to display it.
  *
- * It replaces `alert()`, which blocked the whole tab until it was dismissed,
- * could not be styled, could not carry an action, and announced a successful
- * add-to-cart with the same modal interruption as a failure.
+ * Used instead of `alert()`, which blocks the tab, cannot be styled or carry
+ * an action, and interrupts a success as forcefully as a failure.
  */
 export const useToast = (): Toast => {
   const { enqueueSnackbar, closeSnackbar } = useSnackbar();
@@ -87,9 +86,8 @@ export const useToast = (): Toast => {
  * What an anonymous visitor is told when they try to use the cart or the
  * wishlist.
  *
- * One place, because it happens on five pages - and it carries a way to act on
- * it. "Please sign in to use cart." with no sign-in link is a dead end, and a
- * dead end at the exact moment somebody wanted to buy something.
+ * One place, because five pages use it, and it carries a sign-in link so the
+ * visitor can act on it at the moment they want to buy.
  */
 export const promptSignIn = (
   toast: Toast,

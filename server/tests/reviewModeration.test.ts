@@ -1,10 +1,10 @@
 /**
- * Two things a review section needs and this one did not have: a seller who can
- * answer, and a reader who can report.
+ * Two things a review section needs: a seller who can answer, and a reader who
+ * can report.
  *
- * Without a reply, a seller's only response to an unfair review is to delete
- * it - which they cannot do, and should not be able to. Without a report,
- * nothing routes abuse to anybody.
+ * Without a reply, a seller's only response to an unfair review would be to
+ * delete it - which they cannot do, and should not be able to. Without a
+ * report, nothing routes abuse to anybody.
  */
 import { describe, it, expect, beforeAll, afterAll, beforeEach } from 'vitest';
 

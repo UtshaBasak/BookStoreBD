@@ -1,7 +1,5 @@
-/* Moved out of Homepage.css so the footer travels with its own component and
-   can be used on any page rather than only the homepage.
-
-   Deep indigo with a glow of the brand colours, where it was flat grey. */
+/* Kept with its own component, so the footer can be used on any page.
+   Deep indigo with a glow of the brand colours. */
 .footer {
   margin-top: 0;
   padding: clamp(2rem, 5vw, 3.5rem) clamp(1.25rem, 4vw, 3rem) 1.5rem;
@@ -26,8 +24,8 @@
   color: rgba(255, 255, 255, 0.7);
 }
 
-/* h2, not h4: the footer came straight after the page's own h2, and a skipped
-   level leaves a screen reader's outline with gaps in it. */
+/* h2, so the footer follows the page's own h2 without skipping a level in a
+   screen reader's outline. */
 .footer-section h2 {
   margin: 0 0 0.75rem;
   color: #fff;
@@ -48,8 +46,7 @@
   margin: 0.45rem 0;
 }
 
-/* These are real links now, so they are styled as links and reachable by
-   keyboard, rather than list items wearing a pointer cursor. */
+/* Real links, styled as links and reachable by keyboard. */
 .footer-section a {
   color: rgba(255, 255, 255, 0.78);
   text-decoration: none;
@@ -61,8 +58,8 @@
   color: #facc15;
 }
 
-/* Room for a thumb, on the devices that use one. A link sized to its text is
-   fine to read and hard to hit. */
+/* A larger target on touch screens, where a link sized to its text is hard to
+   hit. */
 @media (pointer: coarse) {
   .footer-section a {
     display: inline-flex;

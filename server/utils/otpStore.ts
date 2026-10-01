@@ -12,10 +12,10 @@ export const OTP_TTL_MS = 10 * 60 * 1000;
 /**
  * Wrong guesses before a code is thrown away.
  *
- * The rate limiter caps an IP at 50 requests per 15 minutes, but nothing was
- * counting failures against the *code*, so guesses from a handful of addresses
- * were never pooled. Six digits is a million possibilities; five tries makes
- * the arithmetic hopeless rather than merely slow.
+ * The rate limiter caps an IP at 50 requests per 15 minutes; counting failures
+ * against the *code* as well pools guesses from every address. Six digits is a
+ * million possibilities; five tries makes the arithmetic hopeless rather than
+ * merely slow.
  */
 export const MAX_OTP_ATTEMPTS = 5;
 
@@ -24,9 +24,8 @@ export const MAX_OTP_ATTEMPTS = 5;
  *
  * Not the code. Six digits is a million possibilities, so a plain hash of one
  * is recovered instantly from a table; an HMAC under the server's secret is
- * not, and the secret is not in the database. This matters now in a way it did
- * not when these lived in memory: a record that survives a restart is a record
- * that can be read out of a backup.
+ * not, and the secret is not in the database. That matters because a stored
+ * record can be read out of a backup.
  */
 const digest = (code: string): string =>
   createHmac('sha256', jwtSecret()).update(code).digest('hex');

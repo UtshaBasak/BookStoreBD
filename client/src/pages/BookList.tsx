@@ -52,12 +52,8 @@ export default function BookList() {
     setPage(1);
   };
 
-  /*
-   * This table used to fetch every listing in the database and every user
-   * account - two unbounded requests to draw twenty-five rows - and then
-   * search what it had in the browser. Both are the API's job now, and the
-   * seller names that come back are the ones on this page.
-   */
+  // Searched, filtered and paged by the API, which also returns the seller
+  // names for the rows on this page, so the table never loads the whole catalogue.
   const settledSearch = useDebounced(search);
   const booksQuery = useAdminBooks({
     search: settledSearch || undefined,
@@ -94,7 +90,6 @@ export default function BookList() {
         </div>
         <RefreshButton onClick={() => void booksQuery.refetch()} busy={loading} />
       </header>
-      {/* Search input */}
       <div className="admin-toolbar">
         <div className="admin-search">
           <FaSearch className="admin-search-icon" aria-hidden="true" />
@@ -106,7 +101,7 @@ export default function BookList() {
             value={search}
             onChange={(e) => {
               setSearch(e.target.value);
-              // Page 4 of a search nobody is running any more is a dead end.
+              // A new search starts from its first page.
               setPage(1);
             }}
           />

@@ -4,22 +4,14 @@ import { getToken } from './auth.js';
 /**
  * Where a caught error goes.
  *
- * `console.error` at fifteen call sites meant fifteen messages in a visitor's
- * devtools on the live site - noise to them, and a few of them describing the
- * shape of a failed request. In development the console is exactly the right
- * place, so this keeps it there.
+ * In development, the console. In a build, the API, which writes the report
+ * into the same structured log as everything else and forwards it to Sentry
+ * when a DSN is configured. A visitor's devtools stay quiet either way, and
+ * no request details are printed on the live site.
  *
- * In a build it used to do nothing at all, which meant a page that broke for a
- * real visitor broke silently: the only person who ever saw it was the person
- * it happened to, and they are not the one who can fix it. Reports now go to
- * the API, which writes them into the same structured log as everything else
- * and forwards them to Sentry when a DSN is configured.
- *
- * Deliberately not the Sentry browser SDK. That is about 30 KB on a site that
- * has spent a lot of effort not sending 30 KB, it needs another origin in the
- * Content-Security-Policy, and it does nothing until somebody signs up for an
- * account. What it would add - source-mapped stacks, breadcrumbs, alerting -
- * is worth having later, and nothing here is in the way of it.
+ * By design, not the Sentry browser SDK: it adds about 30 KB to the bundle and
+ * another origin to the Content-Security-Policy. Source-mapped stacks and
+ * breadcrumbs could be added later without changing the call sites.
  */
 
 /** Enough to see a pattern; not enough to fill a log from one broken page. */
@@ -72,8 +64,8 @@ const send = (context: string, error: unknown): void => {
         url: window.location.href.slice(0, 2048),
         userAgent: navigator.userAgent.slice(0, 200),
       }),
-      // A plain fetch, not apiFetch: a 401 here must not start a refresh, and
-      // certainly must not sign somebody out because a report failed.
+      // A plain fetch, not apiFetch: a 401 here must not start a refresh or
+      // sign anyone out because a report failed.
     }).catch(() => {
       /* reporting failed; there is nowhere left to report that to */
     });
@@ -93,12 +85,8 @@ export const reportError = (context: string, error: unknown): void => {
 };
 
 /**
- * Catches what no `try` ever sees.
- *
- * Every call site of `reportError` is inside a `catch`, so the errors that
- * were reaching it were the ones somebody had already thought about. A render
- * that throws, or a promise nobody awaited, went nowhere at all - and those
- * are the ones that white-screen a page.
+ * Catches what no `try` ever sees: an uncaught error or an unhandled promise
+ * rejection, the failures most likely to leave a page blank.
  */
 let installed = false;
 

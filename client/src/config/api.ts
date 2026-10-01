@@ -32,9 +32,8 @@ const REFRESH_PATH = '/auth/refresh';
  * Endpoints where a 401 means "those credentials are wrong", not "your session
  * has expired".
  *
- * Without this, a mistyped password on the sign-in page fired a pointless
- * refresh, cleared the session and redirected to sign-in - two console errors
- * and a page change to say what the form was about to say anyway.
+ * These skip the refresh-and-retry below, so a mistyped password shows the
+ * form's own error rather than clearing the session and redirecting.
  */
 const CREDENTIAL_PATHS = ['/auth/signin', '/auth/signup', '/user/signin', '/user/signup'];
 
@@ -55,7 +54,7 @@ const handleUnauthorized = (): void => {
  * Without this, a page that fires several requests at once would trigger one
  * refresh each. Because refresh tokens rotate, the second would present an
  * already-exchanged token, which the server treats as replay and answers by
- * revoking the whole family — signing the user out for being busy.
+ * revoking the whole family, signing the user out.
  */
 let refreshInFlight: Promise<boolean> | null = null;
 
@@ -104,11 +103,10 @@ export const apiFetch = async (input: RequestInfo | URL, init: RequestInit = {})
       response = await send();
     } else if (getToken()) {
       /*
-       * The session is gone for good. A page that works signed out - a book's
-       * reviews, a seller's name - answers a stale token with 401 so that a
-       * live session refreshes; here there is nothing to refresh, so it is
-       * asked again as the visitor they now are, instead of throwing them onto
-       * the sign-in page for looking at a book.
+       * The session has ended. A public endpoint - a book's reviews, a
+       * seller's name - answers a stale token with 401 so that a live session
+       * can refresh; with nothing to refresh, the request is repeated signed
+       * out rather than sending the visitor to sign-in for viewing a book.
        */
       clearSession();
       response = await send();

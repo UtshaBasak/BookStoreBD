@@ -5,8 +5,8 @@ import { copyText } from '../utils/copyText.js';
 import './CopyButton.css';
 
 /**
- * A small button that copies some text - an order number, which people are
- * asked for on the phone and in chat, and which nobody wants to retype.
+ * A small button that copies some text, such as an order number to quote on
+ * the phone or in chat.
  */
 export default function CopyButton({ text, label = 'Copy' }: { text: string; label?: string }) {
   const [copied, setCopied] = useState(false);

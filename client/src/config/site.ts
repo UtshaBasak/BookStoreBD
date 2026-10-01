@@ -2,9 +2,8 @@
  * The business details that appear in the footer, the policy pages, the
  * contact page and checkout.
  *
- * One place on purpose: these used to be typed out in the homepage footer and
- * nowhere else, which is how they drifted into being placeholders nobody
- * noticed. Change them here and every page follows.
+ * One place on purpose, so the details cannot drift apart: change them here
+ * and every page follows.
  *
  * The money rules - delivery charges, the return window - are enforced by the
  * API in `server/config/commerce.ts`. The figures here are what people are

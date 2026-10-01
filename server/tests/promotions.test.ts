@@ -1,11 +1,7 @@
 /**
- * Promo codes are priced by the server.
- *
- * The first code there was lived in the checkout page, which worked out the
- * discount and sent it; the server stored whatever it was given. Codes live
- * in server/config/promotions.ts now: "BookStoreBD", 50 Tk off a first order,
- * and "FreeDelivery", which waives delivery on 1000 Tk of books - automatic
- * before, a code now.
+ * Promo codes are priced by the server, never by the checkout page. Codes live
+ * in server/config/promotions.ts: "BookStoreBD", 50 Tk off a first order, and
+ * "FreeDelivery", which waives delivery on 1000 Tk of books.
  */
 import { describe, it, expect, beforeAll, afterAll, beforeEach } from 'vitest';
 
@@ -93,7 +89,7 @@ describe('BookStoreBD: 50 Tk off a first order', () => {
   });
 
   it('knows a first order from the server, not from the browser', async () => {
-    // It used to be a flag in localStorage, so clearing it made any order a first order.
+    // Worked out from the account's orders, so clearing browser storage changes nothing.
     const { auth } = await signedInBuyer();
     await checkout(auth, {});
 

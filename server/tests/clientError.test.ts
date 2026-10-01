@@ -1,10 +1,6 @@
 /**
- * What went wrong in somebody's browser.
- *
- * `reportError` wrote to the console in development and did nothing at all in
- * a build, so a page that broke for a real visitor broke silently: the only
- * person who ever saw it was the person it happened to, and they are not the
- * one who can fix it.
+ * What went wrong in somebody's browser. Reports reach the server's log, so a
+ * page that breaks for a visitor is visible to the people who can fix it.
  */
 import { describe, it, expect, beforeAll, afterAll, beforeEach } from 'vitest';
 

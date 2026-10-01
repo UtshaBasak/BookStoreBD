@@ -10,9 +10,8 @@ concurrency:
   group: ci-${{ github.ref }}
   cancel-in-progress: true
 
-# Without this, the workflow inherits the repository default, which is usually
-# write access to every scope. These jobs only check out the code and run npm,
-# so read access to the contents is all they need.
+# Least privilege: the jobs only check out the code and run npm, so read access
+# to the contents replaces the repository default (often write to every scope).
 permissions:
   contents: read
 
@@ -40,9 +39,8 @@ jobs:
       - name: Lint
         run: npm run lint
 
-      # Vite strips types rather than checking them, so the build on its own
-      # would not catch a type error. This is the step that does. It reads the
-      # shared API contract from server/shared, which the checkout provides.
+      # Vite strips types without checking them, so this step is what catches a
+      # type error. It reads the shared API contract from server/shared.
       - name: Type-check
         run: npm run typecheck
 

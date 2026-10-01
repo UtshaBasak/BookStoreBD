@@ -74,8 +74,8 @@ export const bookSchemas = {
   /**
    * The cover endpoint needs its index declared here, not only in the path.
    * `validate` replaces `req.params` with what the schema parsed, so a key the
-   * schema does not mention is stripped - which silently turned every
-   * `/cover/3` into `/cover/0`.
+   * schema does not mention is stripped and `/cover/3` would read as
+   * `/cover/0`.
    */
   cover: { params: z.object({ id: objectId, index: nonNegativeInt.optional() }) },
   /**
@@ -122,10 +122,8 @@ export const wishlistSchemas = cartSchemas;
 /**
  * The catalogue, as the browse page asks for it.
  *
- * Every filter is a named parameter with its own type, rather than the
- * `filter_key` + `filter_input` pair this used to take. That pair put a
- * document path in the caller's hands, which needed a whitelist to stop it
- * becoming a query operator; naming the fields removes the question.
+ * Every filter is a named parameter with its own type, so the caller never
+ * supplies a document path that could become a query operator.
  */
 export const filterSchemas = {
   catalogue: {
@@ -392,9 +390,9 @@ export const userSchemas = {
       // Empty clears it; anything else must be a real number.
       bkashMerchant: z.union([z.literal(''), bdMobile]).optional(),
       dateOfBirth: z.string().trim().max(40).optional(),
-      // Empty clears it, as for every optional field. It was refused instead,
-      // and the form sends every field - so anyone who had never set a gender
-      // could not save their profile at all.
+      // Empty clears it, as for every optional field. The form sends every
+      // field, so refusing an empty value would stop anyone without a gender
+      // set from saving their profile.
       gender: z.union([z.literal(''), z.enum(['male', 'female'])]).optional(),
       // Sent empty to remove a banner; a new one arrives as a file.
       buyerBanner: z.literal('').optional(),

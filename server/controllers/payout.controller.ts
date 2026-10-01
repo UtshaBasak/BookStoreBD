@@ -32,9 +32,8 @@ export const getPayouts: RequestHandler = async (req, res, next) => {
     const due = query.state === 'due';
     /*
      * Three states. "Due": delivered, the return window closed, not yet paid.
-     * "Upcoming": delivered but still inside the window - a sale the page used
-     * to leave out entirely, so that an order delivered today made the page
-     * look empty, and broken, for a week. "Paid": paid.
+     * "Upcoming": delivered but still inside the window, so a recent sale is
+     * visible before it falls due. "Paid": paid.
      */
     const pattern = query.search ? contains(query.search) : null;
     const match = {

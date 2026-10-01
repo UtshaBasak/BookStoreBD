@@ -30,13 +30,6 @@ export const returnBook = async (
     const { defectDescription, refundBkash } = req.body;
 
     /*
-     * The buyer's own order line, delivered, and inside the window.
-     *
-     * This took a book id and nothing else: it did not check that the person
-     * asking had bought the book, and the three-day limit lived only in the
-     * browser, so a request for any book at any time was accepted.
-     */
-    /*
      * One book, or a whole order: every line has to be the buyer's own,
      * delivered, inside its window and not already on its way back. If any
      * one is not, nothing is requested - half an order returned by accident
@@ -76,13 +69,8 @@ export const returnBook = async (
     }
 
     /*
-     * The photographs of the defect.
-     *
-     * They were being thrown away: the form uploaded them to
-     * /user/upload-images, which handed back base64 and stored nothing, and
-     * the request was then created without them. A buyer was asked to
-     * photograph the damage and an administrator decided the return with no
-     * evidence.
+     * The photographs of the defect, stored with the request so that an
+     * administrator decides the return on the evidence.
      */
     const uploaded = collectImages(req);
     // At least one: a return is decided on the photographs, and a request
@@ -153,11 +141,8 @@ export const returnBook = async (
 /**
  * One page of return requests, newest first.
  *
- * This answered with every request, and a request carries the photographs of
- * the defect as base64 on the document - so the administrator's table of seven
- * columns downloaded every picture anybody had ever uploaded, to draw a button
- * that said "View Images". The pictures are addresses now, fetched only when
- * one is actually looked at.
+ * A request carries its defect photographs as base64 on the document, so the
+ * list sends addresses for them instead, fetched only when one is looked at.
  */
 export const getReturnRequests: RequestHandler = async (req, res) => {
   try {

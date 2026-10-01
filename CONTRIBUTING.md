@@ -1,7 +1,7 @@
 # Contributing to BookStoreBD
 
-Thanks for taking the time to contribute. This guide covers everything you need
-to get a change merged.
+Thank you for contributing. This guide covers what you need to get a change
+merged.
 
 ## Table of contents
 
@@ -76,8 +76,8 @@ Prefixes that map onto the branch table above (`feat:`, `fix:`, `refactor:`,
 
 ## Before you open a pull request
 
-Run both checks locally — CI runs the same ones and will block the merge
-otherwise:
+Run these checks locally. CI runs the same ones and blocks the merge if any
+fails:
 
 ```bash
 npm run lint       # ESLint across client/ and server/
@@ -86,9 +86,9 @@ npm test           # server + client suites
 npm run build      # compiles the API and bundles the client
 ```
 
-`npm run typecheck` is the one that actually checks types. `tsx` and Vite both
-strip them without looking, so a type error will not show up in `npm run dev`
-or in the client bundle.
+Only `npm run typecheck` checks types. `tsx` and Vite strip them without
+checking, so a type error does not surface in `npm run dev` or the client
+bundle.
 
 Then confirm:
 
@@ -116,13 +116,13 @@ Open the PR against `master` and fill in the template.
 - **Linting:** ESLint 10 flat config, one per package. Fix warnings rather than
   disabling rules; if a disable is genuinely needed, add a comment explaining why.
 - **Tests:** Vitest in both packages. Import `describe`/`it`/`expect` from
-  `vitest` explicitly rather than relying on globals, so ESLint stays happy.
+  `vitest` explicitly rather than relying on globals, so ESLint can resolve them.
   Server tests use the helpers in `server/tests/helpers/`; do not start your
   own MongoDB instance, one is shared across the run.
 - **Tests are hermetic.** `server/.env` is not read under Vitest, and the
-  optional integration variables are cleared in every worker, so a suite cannot
-  pass or fail based on which services a given developer happens to have
-  configured. A test that needs one sets it itself.
+  optional integration variables are cleared in every worker, so results do not
+  depend on which services a developer has configured. A test that needs one
+  sets it itself.
 
 ---
 

@@ -5,8 +5,8 @@ import './BackToTop.css';
 
 /**
  * A round button in the bottom right that scrolls back to the top, shown once
- * the page has been scrolled a screen or so down. On every page, from the app
- * shell: the homepage alone is a dozen shelves long now.
+ * the page has been scrolled a screen or so down. Rendered by the app shell, so
+ * it is on every page.
  */
 export default function BackToTop() {
   const [shown, setShown] = useState(false);

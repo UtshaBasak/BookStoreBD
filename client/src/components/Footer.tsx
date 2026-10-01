@@ -5,13 +5,9 @@ import Logo from './Logo.js';
 import './Footer.css';
 
 /**
- * The site footer.
- *
- * Every entry here used to be a plain `<li>` with `cursor: pointer` and nothing
- * behind it - the page advertised a privacy policy, a returns policy and
- * contact details that did not exist. For a shop handling delivery addresses
- * and phone numbers that is worse than having no footer, so each one is now a
- * real route with real content.
+ * The site footer. Every entry is a real link to a page with real content: a
+ * shop that handles delivery addresses and phone numbers publishes its
+ * privacy policy, returns policy and contact details.
  */
 export default function Footer() {
   return (

@@ -10,12 +10,9 @@ const DATA_URI = /^data:([\w/+.-]+);base64,(.*)$/s;
 /**
  * Serves one stored image as an image.
  *
- * Images uploaded before hosting was configured are kept on the document as
- * base64, so without this they travel inside every JSON response that mentions
- * the record - and a browser cannot cache an image that arrives inside a JSON
- * body, so every visit pays for all of them again. Sent as its own request it
- * is cached, revalidated with an ETag, and fetched only when actually looked
- * at.
+ * Images uploaded without image hosting are kept on the document as base64.
+ * Served as their own request rather than inside JSON, they are cached,
+ * revalidated with an ETag, and fetched only when looked at.
  *
  * Returns false when there is nothing to serve, so the caller can 404 in
  * whatever words suit it.

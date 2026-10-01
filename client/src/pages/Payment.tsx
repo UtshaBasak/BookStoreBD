@@ -39,7 +39,7 @@ interface ConfirmedOrder {
   district: string;
   address: string;
   discount: number;
-  /** What the server charged for delivery. Absent on confirmations stored before it was kept. */
+  /** What the server charged for delivery. Optional, so an older stored confirmation still restores. */
   shippingCharge?: number;
   promo: string;
   promoApplied: boolean;
@@ -59,8 +59,7 @@ const getUserProfile = (): Buyer => {
  * Reads a previously confirmed order back out of storage.
  *
  * Used as a lazy initialiser so the restored values are present on the very
- * first render. Pushing them in from an effect meant rendering an empty page
- * and then immediately re-rendering a full one.
+ * first render, rather than arriving from an effect after an empty one.
  */
 const restoreConfirmedOrder = (): ConfirmedOrder | null => {
   try {
@@ -226,20 +225,18 @@ export default function Payment() {
   const subtotal = cartBooks.reduce((sum, book) => sum + priceOf(book) * (quantities[book._id] || 1), 0);
 
   /*
-   * A code's preview belongs to the basket it was checked against. Change a
-   * quantity and it is no longer the price the server will charge - a
-   * FreeDelivery basket taken under 1000 Tk would be refused - so it stops
-   * counting until it is applied again, rather than showing a total that is
-   * not true.
+   * A code's preview belongs to the basket it was checked against. Once a
+   * quantity changes it may no longer match what the server will charge (a
+   * FreeDelivery basket taken under 1000 Tk would be refused), so it stops
+   * counting until it is applied again.
    */
   const promoCurrent = promoApplied && appliedFor === subtotal;
   const previewFree = promoCurrent && freeDelivery;
 
   /*
-   * A preview of what the API will charge, by the same rule. It used to price
-   * the whole Dhaka division as inside Dhaka - Tangail and Faridpur included -
-   * and to send its figure to the server, which stored it as given. Once the
-   * order is placed, what the server actually charged is shown instead.
+   * A preview of what the API will charge, by the same rule (priced by
+   * district, not division). The server works out the real charge itself;
+   * once the order is placed, that figure is shown instead.
    */
   const shipping =
     confirmedCharges?.shipping ?? (district ? (previewFree ? 0 : deliveryChargeFor(district)) : 0);
@@ -254,10 +251,8 @@ export default function Payment() {
       : `${shipping.toFixed(2)} Tk.`;
 
   /*
-   * The server says what a code is worth. The code and its discount used to
-   * be written into this page, and the discount it worked out was sent with
-   * the order and stored as given. The order prices the code again, so this
-   * is only a preview.
+   * The server says what a code is worth. The order prices the code again
+   * when it is placed, so this is only a preview.
    */
   const handleApplyPromo = async () => {
     if (promoCurrent || !promo.trim()) return;
@@ -346,7 +341,7 @@ export default function Payment() {
     setCartBooks(latestCartBooks);
     freezeQuantities(latestQuantities);
 
-    // Decrease stock in backend and clear cart
+    // Places the order; the server takes the copies out of stock.
     apiFetch(`${API_BASE_URL}/order/decrease-stock`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -357,7 +352,7 @@ export default function Payment() {
         })),
         // The code only: what it is worth is the server's to work out.
         ...(promoCurrent ? { promo } : {}),
-        paymentMethod: 'Cash on Delivery', // or get from state if you support more methods
+        paymentMethod: 'Cash on Delivery', // The one method offered.
         contactName: user.name,
         contactPhone: user.phone,
         deliveryDivision: division,
@@ -384,12 +379,10 @@ export default function Payment() {
         // if a book sold out in the meantime.
         setConfirmedCharges({ shipping: data.shippingCharge ?? 0, discount: data.discount ?? 0 });
         if (data.promoMessage) setPromoMsg(data.promoMessage);
-        // Only now: the cart used to be cleared whether or not the order went
-        // through, so a failed checkout threw the basket away. Through the
-        // mutation rather than a bare fetch, so every header's cart badge
-        // drops to zero.
+        // Cleared only once the order is in, so a failed checkout keeps the
+        // basket. Through the mutation, so every header's cart badge updates.
         clearCart();
-        // Save order info to localStorage only after receiving orderNumber
+        // Stored only once there is an order number.
         localStorage.setItem(
           'confirmedOrder',
           JSON.stringify({
@@ -632,8 +625,7 @@ export default function Payment() {
       <CheckoutTopBar step={2} linkHome />
       <main className="shop-main">
         <div className="mb-5 flex items-center gap-2">
-          {/* A span with a tabIndex could be focused and then did nothing
-              on Enter. A button is focusable and works. */}
+          {/* A real link, so it is focusable and follows on Enter. */}
           <Link to="/cart"
             className="icon-button"
             style={{ fontSize: 18, color: '#6d28d9', background: '#fff', border: '1px solid #e4dcfb', borderRadius: 999 }}
@@ -646,11 +638,10 @@ export default function Payment() {
           </div>
         </div>
 
-        {/* Checkout is two columns beside each other on a desktop and one
-            column on a phone. It was two at every width: 56% of a 360px screen,
-            less 96px of padding, is about 106px to fill in an address in.
-            The summary comes first in the page, so a phone shows the basket
-            and its total before the form; on a desktop it moves to the right. */}
+        {/* Two columns on a desktop, one on a phone, so the address form keeps
+            a usable width. The summary comes first in the page, so a phone
+            shows the basket and its total before the form; on a desktop it
+            moves to the right. */}
         <div className="grid items-start gap-5 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,1fr)]">
           <aside
             className="card min-w-0 p-5 sm:p-7 lg:sticky lg:top-24 lg:col-start-2 lg:row-start-1"
@@ -681,9 +672,8 @@ export default function Payment() {
                 <ul className="m-0 list-none p-0">
                   {cartBooks.map(book => (
                     <li key={book._id} className="flex gap-3 border-b border-line py-3">
-                      {/* `shrink-0`: in a flex row on a 360px screen the cover was
-                          squeezed to nothing and its NEW badge, positioned against
-                          it, landed on top of the book's title. */}
+                      {/* `shrink-0` keeps the cover its size in a narrow flex row,
+                          so the badge positioned against it stays clear of the title. */}
                       <div className="relative shrink-0">
                         <img
                           loading="lazy"

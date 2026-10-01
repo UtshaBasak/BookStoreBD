@@ -34,8 +34,8 @@ export default function SellerOrderTrackingPage() {
     setError('');
     try {
       // The mutation invalidates this order, so the summarised view is refetched
-      // rather than rebuilt from the PATCH response - which answers with the raw
-      // order lines and used to blank the page.
+      // rather than rebuilt from the PATCH response, which carries only the raw
+      // order lines.
       await updateStatus(e.target.value);
     } catch {
       setError('Failed to update status');
@@ -64,7 +64,7 @@ export default function SellerOrderTrackingPage() {
       <div className="sl-page">
         {topbar}
         <div className="sl-wrap" style={{ paddingTop: '1.5rem' }}>
-          {/* A failed lookup used to leave "Loading..." on the screen for good. */}
+          {/* A failed lookup says so, rather than leaving "Loading..." on screen. */}
           {orderQuery.isError ? (
             <div className="card sl-empty">
               <span className="sl-empty-emoji" aria-hidden="true">🔎</span>
@@ -80,7 +80,7 @@ export default function SellerOrderTrackingPage() {
     );
   }
 
-  // Filter books for this seller
+  // Only this seller's books in the order.
   const sellerBooks = (order.books ?? []).filter(book => book.sellerEmail === userEmail);
 
   // Where this seller's books stand, which is what they move - another
@@ -212,7 +212,6 @@ export default function SellerOrderTrackingPage() {
           </section>
         </div>
 
-        {/* Seller Order Details Table OUTSIDE the card */}
         <section className="card sl-card" style={{ marginTop: '1.25rem' }}>
           <h3 className="sl-card-title">Order Details</h3>
           <div className="table-scroll">

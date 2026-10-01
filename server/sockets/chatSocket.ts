@@ -18,12 +18,10 @@ export const userRoom = (email: string): string => `user:${email.trim().toLowerC
  * Live delivery for the buyer/seller chat.
  *
  * A connection has to carry a valid access token, and is put in its owner's
- * room and nowhere else. It used to take anyone, and let them join whatever
- * room they named and relay whatever they sent - and a room's name was the
- * two e-mail addresses, so listening in on a conversation took knowing who
- * was in it. Nothing is sent over the socket by a browser now: a message is
+ * room and nowhere else. A browser sends nothing over the socket: a message is
  * saved through the API, and the server delivers the saved message to the
- * person it is for (`deliverChatMessage`).
+ * person it is for (`deliverChatMessage`), so nobody can listen in on a
+ * conversation by naming a room.
  */
 export const registerChatSocket = (httpServer: HttpServer): Server => {
   io = new Server(httpServer, { cors: socketCorsOptions });
