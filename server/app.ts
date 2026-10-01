@@ -102,8 +102,11 @@ export const createApp = ({
   // filename, so the directory stays served.
   app.use(`${API_PREFIX}/uploads`, express.static(UPLOADS_DIR));
 
+  // `commit` is the deployed revision (Render sets RENDER_GIT_COMMIT), so a
+  // workflow can confirm when a push is live.
+  const commit = (process.env.RENDER_GIT_COMMIT || process.env.GIT_COMMIT || '').slice(0, 40) || null;
   app.get('/health', (req, res) => {
-    res.status(200).json({ status: 'ok', uptime: process.uptime() });
+    res.status(200).json({ status: 'ok', uptime: process.uptime(), commit });
   });
 
   // Crawler endpoints. At the root because that is the only place a crawler

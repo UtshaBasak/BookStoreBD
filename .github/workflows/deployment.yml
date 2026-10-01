@@ -1,0 +1,75 @@
+name: Deployment
+
+# Records each release of the live site as a GitHub deployment in the
+# "production" environment. Render builds every push to master; this waits
+# until the site's /health reports that commit, then marks the deployment
+# successful - or failed, if the new version is not live within the timeout.
+
+on:
+  push:
+    branches: [master]
+  workflow_dispatch:
+
+concurrency:
+  group: deployment
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  SITE_URL: https://bookstorebd-loum.onrender.com
+
+jobs:
+  production:
+    name: Confirm the live site
+    runs-on: ubuntu-latest
+    permissions:
+      deployments: write
+    timeout-minutes: 35
+    steps:
+      - name: Open a deployment
+        id: open
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+        run: |
+          # No required status checks: CI runs alongside the deploy, not before it.
+          id=$(jq -n --arg ref "$GITHUB_SHA" --arg desc "Render deploy of ${GITHUB_SHA::7}" \
+            '{ref: $ref, environment: "production", auto_merge: false, required_contexts: [], description: $desc}' \
+            | gh api "repos/$REPO/deployments" --input - --jq .id)
+          echo "id=$id" >> "$GITHUB_OUTPUT"
+          gh api "repos/$REPO/deployments/$id/statuses" \
+            -f state=in_progress -f environment_url="$SITE_URL" >/dev/null
+
+      - name: Wait for the new version
+        id: wait
+        run: |
+          for attempt in $(seq 1 60); do
+            live=$(curl -fsS --max-time 30 "$SITE_URL/health" | jq -r '.commit // empty' || true)
+            if [ "$live" = "$GITHUB_SHA" ]; then
+              echo "Live after $attempt checks."
+              exit 0
+            fi
+            sleep 30
+          done
+          echo "::error::The site did not report ${GITHUB_SHA::7} within 30 minutes."
+          exit 1
+
+      - name: Record the result
+        if: always() && steps.open.outputs.id
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          OUTCOME: ${{ steps.wait.outcome }}
+          DEPLOYMENT: ${{ steps.open.outputs.id }}
+        run: |
+          # Superseded by a newer push: neither a success nor a failure.
+          case "$OUTCOME" in
+            success) state=success ;;
+            cancelled) state=inactive ;;
+            *) state=failure ;;
+          esac
+          gh api "repos/$REPO/deployments/$DEPLOYMENT/statuses" \
+            -f state="$state" -f environment_url="$SITE_URL" -F auto_inactive=true >/dev/null
+          echo "Deployment marked $state."
