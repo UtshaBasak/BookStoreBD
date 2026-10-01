@@ -12,7 +12,7 @@
   list-style: none;
   border: 1px solid var(--color-line);
   border-radius: 16px;
-  background: #fff;
+  background: var(--color-surface);
   box-shadow: var(--shadow-lift);
   text-align: left;
 }
@@ -95,6 +95,6 @@
   font-weight: 800;
 }
 .sg-price.is-out {
-  color: #b91c1c;
+  color: var(--color-danger-ink);
   font-size: 0.75rem;
 }

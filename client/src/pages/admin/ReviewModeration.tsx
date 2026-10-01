@@ -155,7 +155,7 @@ export default function ReviewModeration() {
                     {review.reviewerName ? review.reviewerName.charAt(0) : '?'}
                   </span>
                   <div style={{ minWidth: 0, flex: '1 1 180px' }}>
-                    <strong style={{ color: '#111827' }}>{review.reviewerName}</strong>
+                    <strong style={{ color: 'var(--color-ink)' }}>{review.reviewerName}</strong>
                     <div className="admin-cell-muted" style={{ overflowWrap: 'anywhere' }}>
                       <span>{review.reviewerEmail}</span>
                       {' · '}
@@ -173,8 +173,8 @@ export default function ReviewModeration() {
                   <p className="admin-cell-muted" style={{ margin: '0 0 4px' }}>
                     {subject.prefix} <Link to={subject.to}>{subject.label}</Link>
                   </p>
-                  {review.title && <p style={{ margin: '0 0 4px', fontWeight: 700, color: '#111827' }}>{review.title}</p>}
-                  {review.body && <p style={{ margin: 0, whiteSpace: 'pre-line', color: '#374151' }}>{review.body}</p>}
+                  {review.title && <p style={{ margin: '0 0 4px', fontWeight: 700, color: 'var(--color-ink)' }}>{review.title}</p>}
+                  {review.body && <p style={{ margin: 0, whiteSpace: 'pre-line', color: 'var(--color-ink-soft)' }}>{review.body}</p>}
                 </div>
 
                 {review.reasons.length > 0 && (

@@ -32,6 +32,7 @@ import { CATEGORY_GROUPS } from '../config/categories.js';
 import Logo from '../components/Logo.js';
 import SearchField from '../components/SearchField.js';
 import NotificationBell from '../components/NotificationBell.js';
+import { ThemeToggle } from '../components/ThemeToggle.js';
 
 interface FilterState {
   bookType: string;
@@ -329,16 +330,17 @@ export default function BookFilter() {
         </div>
 
         <div className="user-options">
+          <ThemeToggle className="icon-button theme-toggle header-theme-toggle" />
           <NotificationBell />
           <Link to="/wishlist"
             className="icon-button"
-            style={{ color: '#ff5c35' }}
+            style={{ color: 'var(--color-accent)' }}
             title="Wishlist"
             aria-label="Wishlist"
           >
             <FaHeart />
           </Link>
-          <Link to="/cart" className="icon-link" style={{ color: '#6d28d9' }} title="Cart" aria-label="Cart">
+          <Link to="/cart" className="icon-link" style={{ color: 'var(--color-brand)' }} title="Cart" aria-label="Cart">
             <FaShoppingBag />
           </Link>
           {!signedIn && (
@@ -361,13 +363,13 @@ export default function BookFilter() {
           aria-controls="filter-panel"
         >
           <span className="inline-flex items-center gap-2">
-            <FaSlidersH aria-hidden="true" style={{ color: '#6d28d9' }} />
+            <FaSlidersH aria-hidden="true" style={{ color: 'var(--color-brand)' }} />
             <span>
               Filters
               {activeFilterCount > 0 ? ` · ${activeFilterCount} on` : ''}
             </span>
           </span>
-          <span aria-hidden="true" style={{ color: '#6d28d9' }}>
+          <span aria-hidden="true" style={{ color: 'var(--color-brand)' }}>
             {showFilters ? <FaChevronUp /> : <FaChevronDown />}
           </span>
         </button>
@@ -518,7 +520,7 @@ export default function BookFilter() {
                       violet of a chosen chip. */}
                   <span
                     className="inline-flex rounded-full px-1.5 py-0.5"
-                    style={{ background: filters.rating === floor ? '#fff' : 'transparent' }}
+                    style={{ background: filters.rating === floor ? 'var(--color-surface)' : 'transparent' }}
                   >
                     <Stars value={floor} size={13} />
                   </span>
@@ -627,16 +629,16 @@ export default function BookFilter() {
               // rather than a premature "nothing found".
               Array.from({ length: 8 }, (_, i) => (
                 <div key={i} className="book-card animate-pulse" aria-hidden="true">
-                  <div className="book-image rounded-[14px]" style={{ background: '#f3efff' }} />
-                  <div className="mb-2 h-4 w-4/5 rounded-full" style={{ background: '#ece8f7' }} />
-                  <div className="mb-3 h-3 w-1/2 rounded-full" style={{ background: '#f3efff' }} />
-                  <div className="h-10 rounded-full" style={{ background: '#f3efff' }} />
+                  <div className="book-image rounded-[14px]" style={{ background: 'var(--color-brand-tint)' }} />
+                  <div className="mb-2 h-4 w-4/5 rounded-full" style={{ background: 'var(--color-line)' }} />
+                  <div className="mb-3 h-3 w-1/2 rounded-full" style={{ background: 'var(--color-brand-tint)' }} />
+                  <div className="h-10 rounded-full" style={{ background: 'var(--color-brand-tint)' }} />
                 </div>
               ))
             ) : total === 0 ? (
               <div className="empty-results">
                 <p style={{ fontSize: 34, marginBottom: 6 }} aria-hidden="true">🔎</p>
-                <p style={{ fontSize: 18, fontWeight: 700, color: '#111827' }}>No book or author found</p>
+                <p style={{ fontSize: 18, fontWeight: 700, color: 'var(--color-ink)' }}>No book or author found</p>
                 <p style={{ marginTop: 6 }}>Try a shorter search, or turn a filter or two off.</p>
               </div>
             ) : (
@@ -659,7 +661,7 @@ export default function BookFilter() {
           {total > 0 && (
             <div className="pager">
               <div className="flex flex-wrap items-center gap-3">
-                <p className="m-0 text-sm" style={{ color: '#6b7280' }}>
+                <p className="m-0 text-sm" style={{ color: 'var(--color-ink-muted)' }}>
                   Showing {firstOnPage}&ndash;{lastOnPage} of {total}
                 </p>
                 <label className="pager-size">
@@ -690,7 +692,7 @@ export default function BookFilter() {
                     Previous
                   </button>
 
-                  <span className="px-1 text-sm font-semibold" style={{ color: '#374151' }}>
+                  <span className="px-1 text-sm font-semibold" style={{ color: 'var(--color-ink-soft)' }}>
                     Page {currentPage} of {pageCount}
                   </span>
 

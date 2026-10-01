@@ -189,7 +189,7 @@ export default function AdminOrderTrackingPage() {
             <dl className="admin-facts">
               <div>
                 <dt>Order Number:</dt>
-                <dd className="admin-mono" style={{ color: '#ff5c35' }}>{order.orderNumber}<CopyButton text={order.orderNumber} /></dd>
+                <dd className="admin-mono" style={{ color: 'var(--color-accent)' }}>{order.orderNumber}<CopyButton text={order.orderNumber} /></dd>
               </div>
               <div>
                 <dt>Placed On:</dt>

@@ -95,7 +95,7 @@
   transition: background-color 0.2s;
 }
 .chat-row:hover {
-  background: #faf9fe;
+  background: var(--color-surface-alt);
 }
 .chat-row.is-active {
   background: var(--color-brand-tint);
@@ -202,7 +202,7 @@
 }
 .chat-delete:hover,
 .chat-delete:focus-visible {
-  background: #fef2f2;
+  background: var(--color-danger-tint);
   color: var(--color-danger-dark);
   opacity: 1;
 }
@@ -244,7 +244,7 @@
   gap: 12px;
   padding: 12px 16px;
   border-bottom: 1px solid var(--color-line);
-  background: #fff;
+  background: var(--color-surface);
 }
 .chat-thread-head h2 {
   margin: 0;
@@ -280,7 +280,7 @@
   gap: 4px;
   background:
     radial-gradient(420px 220px at 100% 0%, rgba(139, 92, 246, 0.06), transparent 70%),
-    linear-gradient(180deg, #faf9fe 0%, #f6f3ff 100%);
+    linear-gradient(180deg, var(--color-surface-alt) 0%, var(--color-surface-alt) 100%);
 }
 
 .chat-loading {
@@ -288,7 +288,7 @@
   margin-bottom: 8px;
   padding: 4px 12px;
   border-radius: 999px;
-  background: #fff;
+  background: var(--color-surface);
   border: 1px solid var(--color-line);
   color: var(--color-ink-muted);
   font-size: 0.8rem;
@@ -317,7 +317,7 @@
   padding: 10px 14px;
   border-radius: 18px;
   border-bottom-left-radius: 6px;
-  background: #fff;
+  background: var(--color-surface);
   border: 1px solid var(--color-line);
   color: var(--color-ink);
   line-height: 1.45;
@@ -360,7 +360,7 @@
   gap: 8px;
   padding: 12px;
   border-top: 1px solid var(--color-line);
-  background: #fff;
+  background: var(--color-surface);
 }
 
 .chat-attach {
@@ -407,7 +407,7 @@
   height: 22px;
   min-height: 0;
   padding: 0;
-  border: 2px solid #fff;
+  border: 2px solid var(--color-surface);
   border-radius: 50%;
   background: var(--color-ink);
   color: #fff;
@@ -422,10 +422,10 @@
   width: auto;
   border-radius: 999px;
   padding: 0 18px;
-  background: #faf9fe;
+  background: var(--color-surface-alt);
 }
 .chat-input.field:focus {
-  background: #fff;
+  background: var(--color-surface);
 }
 
 .chat-send.btn {
@@ -538,7 +538,7 @@
   width: 370px;
   height: min(520px, calc(100dvh - 40px));
   overflow: hidden;
-  background: #fff;
+  background: var(--color-surface);
   border: 1px solid var(--color-line);
   border-radius: 22px;
   box-shadow: var(--shadow-lift), 0 24px 60px rgba(30, 27, 75, 0.22);

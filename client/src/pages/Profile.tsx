@@ -24,6 +24,7 @@ import AccountData from '../components/AccountData.js';
 import TwoStepSetting from '../components/TwoStepSetting.js';
 import Logo from '../components/Logo.js';
 import NotificationBell from '../components/NotificationBell.js';
+import { ThemeSetting, ThemeToggle } from '../components/ThemeToggle.js';
 import { signOut } from '../config/api.js';
 import { useProfile } from '../hooks/queries.js';
 import { getUserEmail, isAdmin } from '../utils/auth.js';
@@ -138,14 +139,15 @@ export default function Profile() {
                     <Logo size={38} />
                 </Link>
                 <div className="user-options">
+                    <ThemeToggle className="icon-button theme-toggle header-theme-toggle" />
                     <NotificationBell />
                     {/* Cart and wishlist on the buyer side only. */}
                     {profileMode === 'buyer' && (
                         <>
-                            <Link to="/wishlist" className="icon-link" style={{ color: '#ff5c35' }} title="Go to Wishlist" aria-label="Go to Wishlist">
+                            <Link to="/wishlist" className="icon-link" style={{ color: 'var(--color-accent)' }} title="Go to Wishlist" aria-label="Go to Wishlist">
                                 <FaHeart />
                             </Link>
-                            <Link to="/cart" className="icon-link" style={{ color: '#6d28d9' }} title="Go to Cart" aria-label="Go to Cart">
+                            <Link to="/cart" className="icon-link" style={{ color: 'var(--color-brand)' }} title="Go to Cart" aria-label="Go to Cart">
                                 <FaShoppingCart />
                             </Link>
                         </>
@@ -285,6 +287,7 @@ export default function Profile() {
                 </div>
 
                 <TwoStepSetting />
+                <ThemeSetting />
                 <AccountData />
             </main>
         </div>

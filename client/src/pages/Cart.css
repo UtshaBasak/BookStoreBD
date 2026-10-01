@@ -151,12 +151,12 @@
 /* Stock news about one line: running low, lowered, or gone. */
 .cart-note {
   margin: 8px 0 0;
-  color: #c2410c;
+  color: var(--color-warn-ink);
   font-size: 0.85rem;
   font-weight: 600;
 }
 .cart-note.is-out {
-  color: #b91c1c;
+  color: var(--color-danger-ink);
 }
 .cart-item.is-sold-out .cart-cover {
   filter: grayscale(1);

@@ -42,7 +42,7 @@
   width: 100%;
   min-height: 48px;
   padding: 0 1rem;
-  background: #fff;
+  background: var(--color-surface);
   border: 1px solid var(--color-line);
   border-radius: 14px;
   box-shadow: var(--shadow-card);
@@ -261,7 +261,7 @@
   justify-content: center;
   min-height: 42px;
   border-radius: 999px;
-  background: #f3f4f6;
+  background: var(--color-surface-muted);
   color: var(--color-ink-muted);
   font-weight: 700;
   font-size: 0.85rem;
@@ -281,13 +281,13 @@
   padding: 0;
   border: none;
   border-radius: 50%;
-  background: rgba(255, 255, 255, 0.92);
+  background: var(--color-glass);
   box-shadow: 0 2px 8px rgba(30, 27, 75, 0.18);
   color: var(--color-accent);
   font-size: 18px;
 }
 .card-heart:hover {
-  background: #fff;
+  background: var(--color-surface);
   transform: scale(1.06);
 }
 
@@ -313,7 +313,7 @@
   padding: 2.5rem 1.25rem;
   text-align: center;
   background: var(--color-brand-tint);
-  border: 1px dashed #d6ccf7;
+  border: 1px dashed var(--color-brand-line);
   border-radius: var(--radius-card);
   color: var(--color-ink-soft);
 }
@@ -403,7 +403,7 @@
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  color: #6b7280;
+  color: var(--color-ink-muted);
   font-size: 0.875rem;
 }
 .pager-size .field {
@@ -449,7 +449,7 @@
   padding: 6px 14px 6px 6px;
   border: 1px solid var(--color-line);
   border-radius: 999px;
-  background: #fff;
+  background: var(--color-surface);
   color: var(--color-ink);
   text-decoration: none;
   box-shadow: var(--shadow-card);

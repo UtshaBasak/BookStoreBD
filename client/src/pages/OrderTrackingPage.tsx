@@ -21,12 +21,12 @@ const ORDER_STAGES = [
 /** The pill colours for a status: delivered green, on its way violet. */
 const statusColours = (status: string) =>
   status === 'Delivered'
-    ? { background: '#ecfdf5', color: '#047857' }
+    ? { background: 'var(--color-success-tint)', color: 'var(--color-success-dark)' }
     : status === CANCELLED
-      ? { background: '#fef2f2', color: '#b91c1c' }
+      ? { background: 'var(--color-danger-tint)', color: 'var(--color-danger-ink)' }
       : ORDER_STAGES.includes(status)
-      ? { background: '#f3efff', color: '#5b21b6' }
-      : { background: '#fff7ed', color: '#c2410c' };
+      ? { background: 'var(--color-brand-tint)', color: 'var(--color-brand-dark)' }
+      : { background: 'var(--color-warn-tint)', color: 'var(--color-warn-ink)' };
 
 export default function OrderTrackingPage() {
   const { orderNumber } = useParams();
@@ -157,7 +157,7 @@ export default function OrderTrackingPage() {
                   ))}
                 </select>
               </label>
-              {error && <span style={{ color: '#b91c1c', fontWeight: 600 }}>{error}</span>}
+              {error && <span style={{ color: 'var(--color-danger-ink)', fontWeight: 600 }}>{error}</span>}
             </div>
           )}
         </section>
@@ -165,7 +165,7 @@ export default function OrderTrackingPage() {
         <div className="mt-4 grid gap-4 sm:grid-cols-3">
           <section className="card p-5">
             <h2 className="ot-info-title"><FaMoneyBillWave aria-hidden="true" /> Payment Method</h2>
-            <p className="m-0 font-bold" style={{ color: '#ff5c35' }}>{order.paymentMethod || 'Cash on Delivery'}</p>
+            <p className="m-0 font-bold" style={{ color: 'var(--color-accent)' }}>{order.paymentMethod || 'Cash on Delivery'}</p>
           </section>
           <section className="card p-5">
             <h2 className="ot-info-title"><FaUser aria-hidden="true" /> Contact Information</h2>
@@ -215,7 +215,7 @@ export default function OrderTrackingPage() {
                     <td>{ob.price}</td>
                     <td>{ob.quantity}</td>
                     <td>{ob.sellerEmail}</td>
-                    <td className="font-bold" style={{ color: '#ff5c35' }}>
+                    <td className="font-bold" style={{ color: 'var(--color-accent)' }}>
                       {(Number(ob.price) * Number(ob.quantity)).toFixed(2)}
                     </td>
                   </tr>

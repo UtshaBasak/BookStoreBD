@@ -12,7 +12,7 @@
   padding: 6px;
   border: 1px solid var(--color-line);
   border-radius: 16px;
-  background: #fff;
+  background: var(--color-surface);
   box-shadow: var(--shadow-lift);
 }
 .share-panel ul {

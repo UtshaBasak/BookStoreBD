@@ -11,6 +11,7 @@ import { useCart, useToggleCart, useToggleWishlist, useWishlist } from '../hooks
 import { promptSignIn, useToast } from '../hooks/useToast.js';
 import Logo from '../components/Logo.js';
 import NotificationBell from '../components/NotificationBell.js';
+import { ThemeToggle } from '../components/ThemeToggle.js';
 import RequestBookButton from '../components/RequestBookButton.js';
 import PriceTag from '../components/PriceTag.js';
 import { getUserEmail } from '../utils/auth.js';
@@ -115,11 +116,12 @@ export default function Wishlist() {
         </Link>
       </div>
       <div className="user-options">
+        <ThemeToggle className="icon-button theme-toggle header-theme-toggle" />
         <NotificationBell />
         <Link
           to="/cart"
           className="icon-link"
-          style={{ color: '#6d28d9' }}
+          style={{ color: 'var(--color-brand)' }}
           title="Go to Cart"
           aria-label="Go to Cart"
         >
@@ -147,7 +149,7 @@ export default function Wishlist() {
       <div className="wishlist-page">
         {topBar}
         <div className="wishlist-empty card" role="alert">
-          <p className="wishlist-empty-title" style={{ color: '#b91c1c' }}>{error}</p>
+          <p className="wishlist-empty-title" style={{ color: 'var(--color-danger-ink)' }}>{error}</p>
           <button type="button" className="btn btn-ghost" onClick={() => void wishlistQuery.refetch()}>
             Try again
           </button>
@@ -219,15 +221,15 @@ export default function Wishlist() {
                         <span
                           className="badge"
                           style={{
-                            background: isOld ? '#ffffff' : '#facc15',
-                            color: isOld ? '#5b21b6' : '#111827',
+                            background: isOld ? 'var(--color-surface)' : '#facc15',
+                            color: isOld ? 'var(--color-brand-dark)' : '#111827',
                           }}
                         >
                           {isOld ? 'Used' : 'New'}
                         </span>
                       )}
                       {book.stock === 0 && (
-                        <span className="badge wishlist-stock-badge" style={{ background: '#fef2f2', color: '#b91c1c' }}>
+                        <span className="badge wishlist-stock-badge" style={{ background: 'var(--color-danger-tint)', color: 'var(--color-danger-ink)' }}>
                           Out Of Stock
                         </span>
                       )}

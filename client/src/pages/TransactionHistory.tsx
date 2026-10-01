@@ -224,7 +224,7 @@ export default function TransactionHistory() {
                   {discount > 0 && (
                     <div>
                       <dt>Discount{promoApplied && promo ? ` (${promo})` : ''}:</dt>
-                      <dd style={{ color: '#047857' }}>- {discount.toFixed(2)}</dd>
+                      <dd style={{ color: 'var(--color-success-dark)' }}>- {discount.toFixed(2)}</dd>
                     </div>
                   )}
                   <div className="admin-grand">

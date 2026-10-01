@@ -53,7 +53,7 @@ export function StarInput({ value, onChange, disabled = false }: StarInputProps)
           aria-label={`${star} ${star === 1 ? 'star' : 'stars'}`}
           aria-pressed={value === star}
           className="icon-button"
-          style={{ color: star <= value ? '#ff8a3d' : '#d6ccf7', fontSize: 26 }}
+          style={{ color: star <= value ? '#ff8a3d' : 'var(--color-brand-line)', fontSize: 26 }}
         >
           {star <= value ? <FaStar /> : <FaRegStar />}
         </button>

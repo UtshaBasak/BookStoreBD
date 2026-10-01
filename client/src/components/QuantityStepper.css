@@ -4,7 +4,7 @@
   align-items: center;
   border: 1.5px solid var(--color-line);
   border-radius: 999px;
-  background: #fff;
+  background: var(--color-surface);
 }
 .qty-btn {
   display: inline-flex;
@@ -24,7 +24,7 @@
   border-color: transparent;
 }
 .qty-btn:disabled {
-  color: #c4bde0;
+  color: var(--color-brand-line);
   cursor: not-allowed;
 }
 .qty-num {

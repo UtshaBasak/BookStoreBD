@@ -6,7 +6,7 @@
   flex-direction: column;
   height: 100%;
   padding: 10px;
-  background: #fff;
+  background: var(--color-surface);
   border: 1px solid var(--color-line);
   border-radius: var(--radius-card);
   box-shadow: var(--shadow-card);
@@ -71,7 +71,7 @@
   color: var(--color-ink);
 }
 .bc-type.is-used {
-  background: #fff;
+  background: var(--color-surface);
   color: var(--color-brand-dark);
 }
 .bc-deal {
@@ -92,7 +92,7 @@
   padding: 0;
   border: 0;
   border-radius: 50%;
-  background: rgba(255, 255, 255, 0.92);
+  background: var(--color-glass);
   color: var(--color-ink-soft);
   font-size: 1.05rem;
   box-shadow: 0 2px 8px rgba(30, 27, 75, 0.15);
@@ -178,7 +178,7 @@
   display: block;
   padding: 9px 12px;
   border-radius: 999px;
-  background: #f3f4f6;
+  background: var(--color-surface-muted);
   color: var(--color-ink-muted);
   font-size: 0.82rem;
   font-weight: 700;

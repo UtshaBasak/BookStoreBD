@@ -137,7 +137,7 @@ export default function Reviews({ kind, id }: { kind: ReviewKind; id: Id | undef
   const setBody = (value: string) => setDraft({ ...form, body: value });
 
   if (isPending || !data) {
-    return <p style={{ color: '#666' }}>Loading {copy.many}…</p>;
+    return <p style={{ color: 'var(--color-ink-muted)' }}>Loading {copy.many}…</p>;
   }
 
   const submit = async () => {
@@ -173,26 +173,26 @@ export default function Reviews({ kind, id }: { kind: ReviewKind; id: Id | undef
   return (
     // A card of its own, like the details above it.
     <section className="card p-5 sm:p-6">
-      <h2 className="mb-4 text-xl font-extrabold" style={{ color: '#111827' }}>
+      <h2 className="mb-4 text-xl font-extrabold" style={{ color: 'var(--color-ink)' }}>
         {copy.heading}
       </h2>
 
       {total === 0 ? (
-        <p className="mb-4" style={{ color: '#6b7280' }}>
+        <p className="mb-4" style={{ color: 'var(--color-ink-muted)' }}>
           {copy.none} {data.canReview ? 'Yours would be the first.' : ''}
         </p>
       ) : (
         <div
           className="mb-6 flex flex-wrap items-center gap-6 rounded-2xl p-4"
-          style={{ background: '#f8f7fc', border: '1px solid #ece8f7' }}
+          style={{ background: 'var(--color-page)', border: '1px solid var(--color-line)' }}
         >
           <div className="flex items-center gap-3">
-            <span className="text-4xl font-extrabold" style={{ color: '#111827', letterSpacing: '-0.03em' }}>
+            <span className="text-4xl font-extrabold" style={{ color: 'var(--color-ink)', letterSpacing: '-0.03em' }}>
               {data.average.toFixed(1)}
             </span>
             <div>
               <Stars value={data.average} size={18} />
-              <p className="m-0 text-sm" style={{ color: '#6b7280' }}>
+              <p className="m-0 text-sm" style={{ color: 'var(--color-ink-muted)' }}>
                 {total} {total === 1 ? copy.one : copy.many}
               </p>
             </div>
@@ -206,14 +206,14 @@ export default function Reviews({ kind, id }: { kind: ReviewKind; id: Id | undef
               const share = total === 0 ? 0 : Math.round((count / total) * 100);
               return (
                 <div key={star} className="flex items-center gap-2 text-sm">
-                  <span className="w-8 shrink-0 text-right font-semibold" style={{ color: '#374151' }}>{star}★</span>
-                  <span className="h-2 flex-1 rounded-full" style={{ background: '#e4dcfb' }}>
+                  <span className="w-8 shrink-0 text-right font-semibold" style={{ color: 'var(--color-ink-soft)' }}>{star}★</span>
+                  <span className="h-2 flex-1 rounded-full" style={{ background: 'var(--color-brand-line)' }}>
                     <span
                       className="block h-2 rounded-full"
                       style={{ width: `${share}%`, background: 'linear-gradient(90deg, #ff8a3d, #ff5c35)' }}
                     />
                   </span>
-                  <span className="w-8 shrink-0" style={{ color: '#6b7280' }}>{count}</span>
+                  <span className="w-8 shrink-0" style={{ color: 'var(--color-ink-muted)' }}>{count}</span>
                 </div>
               );
             })}
@@ -225,7 +225,7 @@ export default function Reviews({ kind, id }: { kind: ReviewKind; id: Id | undef
       {!data.canReview && data.reason && (
         <p
           className="mb-6 rounded-xl px-4 py-3 text-sm"
-          style={{ background: '#f3efff', color: '#374151' }}
+          style={{ background: 'var(--color-brand-tint)', color: 'var(--color-ink-soft)' }}
         >
           {data.reason === 'sign-in' ? (
             <>
@@ -254,13 +254,13 @@ export default function Reviews({ kind, id }: { kind: ReviewKind; id: Id | undef
       )}
 
       {showForm && (
-        <div className={`${data.reviews.length > 0 ? 'mb-4 ' : ''}rounded-2xl p-4 sm:p-5`} style={{ background: '#f8f7fc', border: '1px solid #ece8f7' }}>
-          <p className="mb-2 font-bold" style={{ color: '#111827' }}>
+        <div className={`${data.reviews.length > 0 ? 'mb-4 ' : ''}rounded-2xl p-4 sm:p-5`} style={{ background: 'var(--color-page)', border: '1px solid var(--color-line)' }}>
+          <p className="mb-2 font-bold" style={{ color: 'var(--color-ink)' }}>
             {data.mine ? copy.edit : copy.write}
           </p>
           <StarInput value={rating} onChange={setRating} disabled={saving} />
 
-          <label className="mb-1 mt-3 block text-sm font-semibold" htmlFor={`${field}-title`} style={{ color: '#374151' }}>
+          <label className="mb-1 mt-3 block text-sm font-semibold" htmlFor={`${field}-title`} style={{ color: 'var(--color-ink-soft)' }}>
             Headline (optional)
           </label>
           <input
@@ -271,7 +271,7 @@ export default function Reviews({ kind, id }: { kind: ReviewKind; id: Id | undef
             className="field"
           />
 
-          <label className="mb-1 mt-3 block text-sm font-semibold" htmlFor={`${field}-body`} style={{ color: '#374151' }}>
+          <label className="mb-1 mt-3 block text-sm font-semibold" htmlFor={`${field}-body`} style={{ color: 'var(--color-ink-soft)' }}>
             {copy.bodyLabel}
           </label>
           <textarea
@@ -313,7 +313,7 @@ export default function Reviews({ kind, id }: { kind: ReviewKind; id: Id | undef
       {data.reviews.length > 0 && (
       <ul className="m-0 list-none p-0">
         {data.reviews.map((review) => (
-          <li key={review._id} className="py-4" style={{ borderTop: '1px solid #ece8f7' }}>
+          <li key={review._id} className="py-4" style={{ borderTop: '1px solid var(--color-line)' }}>
             <div className="flex flex-wrap items-center gap-2">
               <span
                 aria-hidden="true"
@@ -322,34 +322,34 @@ export default function Reviews({ kind, id }: { kind: ReviewKind; id: Id | undef
               >
                 {(review.reviewerName || '?').charAt(0).toUpperCase()}
               </span>
-              <strong style={{ color: '#111827' }}>{review.reviewerName}</strong>
+              <strong style={{ color: 'var(--color-ink)' }}>{review.reviewerName}</strong>
               {/* Only buyers may write one, and the badge says so: it is what
                   makes the score trustworthy. */}
-              <span className="badge" style={{ background: '#ecfdf5', color: '#047857' }}>
+              <span className="badge" style={{ background: 'var(--color-success-tint)', color: 'var(--color-success-dark)' }}>
                 {copy.badge}
               </span>
-              <span className="text-sm" style={{ color: '#6b7280' }}>{when(review.createdAt)}</span>
+              <span className="text-sm" style={{ color: 'var(--color-ink-muted)' }}>{when(review.createdAt)}</span>
             </div>
             <div className="mt-2">
               <Stars value={review.rating} size={14} />
             </div>
-            {review.title && <p className="mb-1 mt-1 font-bold" style={{ color: '#111827' }}>{review.title}</p>}
-            {review.body && <p className="m-0 whitespace-pre-line" style={{ color: '#374151' }}>{review.body}</p>}
+            {review.title && <p className="mb-1 mt-1 font-bold" style={{ color: 'var(--color-ink)' }}>{review.title}</p>}
+            {review.body && <p className="m-0 whitespace-pre-line" style={{ color: 'var(--color-ink-soft)' }}>{review.body}</p>}
 
             {/* The seller's answer, indented under what it answers. */}
             {review.reply && (
               <div
                 className="mt-3 rounded-xl border-l-4 p-3"
-                style={{ borderColor: '#8b5cf6', background: '#f3efff' }}
+                style={{ borderColor: 'var(--color-brand-light)', background: 'var(--color-brand-tint)' }}
               >
                 <div className="flex flex-wrap items-center gap-2">
-                  <strong style={{ color: '#111827' }}>{review.reply.byName}</strong>
-                  <span className="badge" style={{ background: '#fff', color: '#5b21b6' }}>
+                  <strong style={{ color: 'var(--color-ink)' }}>{review.reply.byName}</strong>
+                  <span className="badge" style={{ background: 'var(--color-surface)', color: 'var(--color-brand-dark)' }}>
                     Seller
                   </span>
-                  <span className="text-sm" style={{ color: '#6b7280' }}>{when(review.reply.at)}</span>
+                  <span className="text-sm" style={{ color: 'var(--color-ink-muted)' }}>{when(review.reply.at)}</span>
                 </div>
-                <p className="m-0 mt-1 whitespace-pre-line" style={{ color: '#374151' }}>{review.reply.body}</p>
+                <p className="m-0 mt-1 whitespace-pre-line" style={{ color: 'var(--color-ink-soft)' }}>{review.reply.body}</p>
               </div>
             )}
 
@@ -360,7 +360,7 @@ export default function Reviews({ kind, id }: { kind: ReviewKind; id: Id | undef
                   <button
                     type="button"
                     className={TEXT_BUTTON}
-                    style={{ color: '#5b21b6' }}
+                    style={{ color: 'var(--color-brand-dark)' }}
                     onClick={() =>
                       setReplyTo({ id: String(review._id), body: review.reply?.body ?? '' })
                     }
@@ -373,7 +373,7 @@ export default function Reviews({ kind, id }: { kind: ReviewKind; id: Id | undef
                 <button
                   type="button"
                   className={TEXT_BUTTON}
-                  style={{ color: '#dc2626' }}
+                  style={{ color: 'var(--color-danger-dark)' }}
                   onClick={() => void removeReply(String(review._id))}
                 >
                   Remove reply
@@ -386,7 +386,7 @@ export default function Reviews({ kind, id }: { kind: ReviewKind; id: Id | undef
                 <button
                   type="button"
                   className={TEXT_BUTTON}
-                  style={{ color: '#6b7280' }}
+                  style={{ color: 'var(--color-ink-muted)' }}
                   disabled={reported.includes(String(review._id))}
                   onClick={() => void report(String(review._id))}
                 >
@@ -400,7 +400,7 @@ export default function Reviews({ kind, id }: { kind: ReviewKind; id: Id | undef
                 <label
                   htmlFor={`reply-${String(review._id)}`}
                   className="mb-1 block text-sm font-semibold"
-                  style={{ color: '#374151' }}
+                  style={{ color: 'var(--color-ink-soft)' }}
                 >
                   Your reply, as the seller
                 </label>

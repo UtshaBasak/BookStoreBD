@@ -67,12 +67,85 @@
   --color-ink: #111827;
   --color-ink-soft: #374151;
   --color-ink-muted: #6b7280;
+  --color-ink-faint: #9ca3af;
   --color-line: #ece8f7;
   --color-page: #f8f7fc;
+
+  /* Surfaces: cards and fields, a slightly tinted panel, and a grey one. */
+  --color-surface: #ffffff;
+  --color-surface-alt: #faf9fe;
+  --color-surface-muted: #f3f4f6;
+  /* Frosted glass: the sticky header, and badges laid over a cover. */
+  --color-glass: rgba(255, 255, 255, 0.88);
+
+  /* Status colours: a tint to sit on, a line around it, and text for it. */
+  --color-danger-tint: #fef2f2;
+  --color-danger-line: #fecaca;
+  --color-danger-ink: #b91c1c;
+  --color-success-tint: #ecfdf5;
+  --color-success-line: #a7f3d0;
+  --color-warn-tint: #fff7ed;
+  --color-warn-line: #fed7aa;
+  --color-warn-ink: #c2410c;
+  --color-accent-line: #ffd6c9;
+  --color-sun-tint: #fefce8;
+  --color-sun-line: #fde68a;
+  --color-sun-ink: #a16207;
+  --color-info-tint: #e0f2fe;
+  --color-pink-tint: #fce7f3;
 
   --radius-card: 18px;
   --shadow-card: 0 1px 2px rgba(30, 27, 75, 0.06), 0 8px 24px rgba(76, 29, 149, 0.08);
   --shadow-lift: 0 4px 10px rgba(30, 27, 75, 0.08), 0 18px 40px rgba(76, 29, 149, 0.16);
+}
+
+/* ------------------------------------------------------------- dark theme
+   The same names with night-time values, applied when the visitor chooses
+   dark or their device asks for it (utils/theme.ts sets `data-theme`). Brand
+   colours are lifted a little so violet text stays readable on a dark page. */
+:root[data-theme='dark'] {
+  color-scheme: dark;
+
+  --color-brand: #8b5cf6;
+  --color-brand-light: #a78bfa;
+  --color-brand-dark: #c4b5fd;
+  --color-brand-deep: #120f24;
+  --color-brand-tint: #241d3d;
+  --color-brand-line: #3a3160;
+  --color-accent: #ff6b47;
+  --color-accent-dark: #ff8a6b;
+  --color-accent-tint: #3a1e17;
+  --color-success-dark: #34d399;
+  --color-danger-dark: #f87171;
+  --color-ink: #f2f0fa;
+  --color-ink-soft: #d4d1e6;
+  --color-ink-muted: #a4a0bd;
+  --color-ink-faint: #77738f;
+  --color-line: #2d2843;
+  --color-page: #0f0d18;
+
+  --color-surface: #19162a;
+  --color-surface-alt: #1e1a31;
+  --color-surface-muted: #24203a;
+  --color-glass: rgba(22, 19, 37, 0.86);
+
+  --color-danger-tint: #3b1619;
+  --color-danger-line: #6b2a30;
+  --color-danger-ink: #fca5a5;
+  --color-success-tint: #0f2b23;
+  --color-success-line: #1f5a46;
+  --color-warn-tint: #3a2312;
+  --color-warn-line: #6b4320;
+  --color-warn-ink: #fdba74;
+  --color-accent-line: #6b3324;
+  --color-sun-tint: #332c10;
+  --color-sun-line: #6b5a1c;
+  --color-sun-ink: #fde047;
+  --color-info-tint: #102a3b;
+  --color-pink-tint: #3a1830;
+
+  --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.4), 0 8px 24px rgba(0, 0, 0, 0.35);
+  --shadow-lift: 0 4px 10px rgba(0, 0, 0, 0.45), 0 18px 40px rgba(0, 0, 0, 0.5);
 }
 
 :root {
@@ -80,11 +153,11 @@
   line-height: 1.5;
   font-weight: 400;
 
-  /* The site has a light theme only, so form controls and scrollbars stay
-     light even when the system is in dark mode. */
+  /* Light unless the dark theme is on (above), so form controls and
+     scrollbars match the page rather than the device. */
   color-scheme: light;
   color: var(--color-ink);
-  background-color: #ffffff;
+  background-color: var(--color-surface);
 
   font-synthesis: none;
   text-rendering: optimizeLegibility;
@@ -233,7 +306,7 @@ button:focus-visible {
   height: 44px;
   padding: 0;
   transform: translateY(-50%);
-  background: #fff;
+  background: var(--color-surface);
   border: 1px solid var(--color-line);
   border-radius: 50%;
   box-shadow: var(--shadow-card);
@@ -257,7 +330,7 @@ button:focus-visible {
   border-collapse: separate;
   border-spacing: 0;
   margin-top: 20px;
-  background-color: #fff;
+  background-color: var(--color-surface);
   border: 1px solid var(--color-line);
   border-radius: 14px;
   overflow: hidden;
@@ -281,11 +354,11 @@ button:focus-visible {
 }
 
 .styled-table tbody tr {
-  background-color: #fff;
+  background-color: var(--color-surface);
 }
 
 .styled-table tbody tr:nth-child(even) {
-  background-color: #faf9fe;
+  background-color: var(--color-surface-alt);
 }
 
 .styled-table tbody tr:hover {
@@ -352,7 +425,7 @@ button:focus-visible {
     box-shadow: 0 8px 24px rgba(255, 92, 53, 0.4);
   }
   .btn-ghost {
-    background: #fff;
+    background: var(--color-surface);
     color: var(--color-brand);
     border-color: var(--color-brand-line);
   }
@@ -362,12 +435,12 @@ button:focus-visible {
     color: var(--color-brand-dark);
   }
   .btn-danger {
-    background: #fff;
+    background: var(--color-surface);
     color: var(--color-danger-dark);
-    border-color: #fecaca;
+    border-color: var(--color-danger-line);
   }
   .btn-danger:hover {
-    background: #fef2f2;
+    background: var(--color-danger-tint);
     border-color: var(--color-danger);
   }
   /* For the last, irreversible confirm: red all over rather than outlined. */
@@ -389,7 +462,7 @@ button:focus-visible {
   }
 
   .card {
-    background: #fff;
+    background: var(--color-surface);
     border: 1px solid var(--color-line);
     border-radius: var(--radius-card);
     box-shadow: var(--shadow-card);
@@ -401,7 +474,7 @@ button:focus-visible {
     padding: 0 14px;
     border: 1.5px solid var(--color-line);
     border-radius: 12px;
-    background: #fff;
+    background: var(--color-surface);
     color: var(--color-ink);
     font: inherit;
     font-size: 1rem;
@@ -440,7 +513,7 @@ button:focus-visible {
   position: sticky;
   top: 0;
   z-index: 100;
-  background: #fff;
+  background: var(--color-surface);
 }
 
 /* ------------------------------------------------------------------ toasts
@@ -477,7 +550,7 @@ div.notistack-MuiContent-default { background-color: #1e1b4b; }
 }
 .toast-action:hover {
   background: rgba(255, 255, 255, 0.3);
-  border-color: #fff;
+  border-color: var(--color-surface);
 }
 
 @media (max-width: 600px) {

@@ -341,7 +341,7 @@
 
 /* The white surface a table or list sits on. */
 .admin-card {
-  background: #fff;
+  background: var(--color-surface);
   border: 1px solid var(--color-line);
   border-radius: var(--radius-card);
   box-shadow: var(--shadow-card);
@@ -390,7 +390,7 @@
 }
 .admin-price,
 .admin-page .styled-table .admin-price {
-  color: #ff5c35;
+  color: var(--color-accent);
   font-weight: 800;
   white-space: nowrap;
   font-variant-numeric: tabular-nums;
@@ -482,20 +482,20 @@
   white-space: nowrap;
 }
 .admin-status.is-pending {
-  background: #fff7ed;
-  color: #c2410c;
+  background: var(--color-warn-tint);
+  color: var(--color-warn-ink);
 }
 .admin-status.is-good {
-  background: #ecfdf5;
-  color: #047857;
+  background: var(--color-success-tint);
+  color: var(--color-success-dark);
 }
 .admin-status.is-bad {
-  background: #fef2f2;
-  color: #b91c1c;
+  background: var(--color-danger-tint);
+  color: var(--color-danger-ink);
 }
 .admin-status.is-progress {
-  background: #f3efff;
-  color: #5b21b6;
+  background: var(--color-brand-tint);
+  color: var(--color-brand-dark);
 }
 
 .admin-empty {
@@ -522,10 +522,10 @@
 .admin-alert {
   margin: 0 0 14px;
   padding: 12px 16px;
-  border: 1px solid #fecaca;
+  border: 1px solid var(--color-danger-line);
   border-radius: 12px;
-  background: #fef2f2;
-  color: #b91c1c;
+  background: var(--color-danger-tint);
+  color: var(--color-danger-ink);
   font-weight: 600;
 }
 
@@ -549,7 +549,7 @@
   padding: 4px;
   border: 1px solid var(--color-line);
   border-radius: 999px;
-  background: #fff;
+  background: var(--color-surface);
   box-shadow: var(--shadow-card);
 }
 .admin-tab {
@@ -613,7 +613,7 @@
   font-weight: 800;
 }
 .admin-order-number .admin-mono {
-  color: #ff5c35;
+  color: var(--color-accent);
   font-size: 1rem;
 }
 
@@ -678,7 +678,7 @@
   font-weight: 800;
 }
 .admin-totals .admin-grand dd.admin-price {
-  color: #ff5c35;
+  color: var(--color-accent);
   font-size: 1.15rem;
   font-weight: 800;
 }
@@ -720,10 +720,10 @@
 .admin-reasons {
   margin-top: 14px;
   padding: 12px 16px;
-  border: 1px solid #fed7aa;
+  border: 1px solid var(--color-warn-line);
   border-radius: 12px;
-  background: #fff7ed;
-  color: #7c2d12;
+  background: var(--color-warn-tint);
+  color: var(--color-warn-ink);
   font-size: 0.9rem;
 }
 .admin-reasons ul {
@@ -907,7 +907,7 @@
   height: 38px;
   border-radius: 50%;
   border: 2px solid var(--color-line);
-  background: #fff;
+  background: var(--color-surface);
   color: var(--color-ink-muted);
   font-size: 0.9rem;
   font-weight: 800;
@@ -1100,8 +1100,8 @@
   margin: 0 0 14px;
   padding: 12px 16px;
   border-radius: 14px;
-  background: #fff7ed;
-  color: #9a3412;
+  background: var(--color-warn-tint);
+  color: var(--color-warn-ink);
   font-size: 0.92rem;
 }
 .admin-note svg {
@@ -1196,7 +1196,7 @@
   resize: vertical;
 }
 .am-error {
-  color: #b91c1c;
+  color: var(--color-danger-ink);
   font-weight: 600;
 }
 .am-preview {
@@ -1205,7 +1205,7 @@
   padding: 12px 14px;
   border: 1px dashed var(--color-brand-line);
   border-radius: 14px;
-  background: #faf9fe;
+  background: var(--color-surface-alt);
 }
 .am-preview-icon {
   font-size: 1.3rem;

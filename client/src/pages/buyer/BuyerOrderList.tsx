@@ -20,12 +20,12 @@ const PAGE_SIZE = 25;
 /** A status's pill: delivered green, on its way violet, anything else amber. */
 const statusColours = (status: string) =>
   status === 'Delivered'
-    ? { background: '#ecfdf5', color: '#047857' }
+    ? { background: 'var(--color-success-tint)', color: 'var(--color-success-dark)' }
     : status === CANCELLED
-      ? { background: '#fef2f2', color: '#b91c1c' }
+      ? { background: 'var(--color-danger-tint)', color: 'var(--color-danger-ink)' }
       : ['Order Confirmed', 'Processing', 'Shipped', 'Out for Delivery'].includes(status)
-      ? { background: '#f3efff', color: '#5b21b6' }
-      : { background: '#fff7ed', color: '#c2410c' };
+      ? { background: 'var(--color-brand-tint)', color: 'var(--color-brand-dark)' }
+      : { background: 'var(--color-warn-tint)', color: 'var(--color-warn-ink)' };
 
 /** The lines of one order that can still be sent back. */
 const returnable = (lines: BuyerOrderLine[]) =>
@@ -263,7 +263,7 @@ export default function BuyerOrderList() {
                           <td>{ob.price}</td>
                           <td>{ob.quantity}</td>
                           <td>{ob.sellerEmail}</td>
-                          <td className="font-bold" style={{ color: '#ff5c35' }}>
+                          <td className="font-bold" style={{ color: 'var(--color-accent)' }}>
                             {(Number(ob.price) * Number(ob.quantity)).toFixed(2)}
                           </td>
                         </tr>

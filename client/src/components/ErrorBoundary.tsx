@@ -88,7 +88,7 @@ const styles: Record<string, CSSProperties> = {
     background:
       'radial-gradient(560px 320px at 10% 0%, rgba(139, 92, 246, 0.2), transparent 70%),' +
       'radial-gradient(520px 320px at 95% 100%, rgba(255, 92, 53, 0.14), transparent 70%),' +
-      '#f8f7fc',
+      'var(--color-page)',
   },
   card: {
     maxWidth: 480,
@@ -106,15 +106,15 @@ const styles: Record<string, CSSProperties> = {
     justifyContent: 'center',
     borderRadius: 22,
     fontSize: 34,
-    background: 'linear-gradient(135deg, #f3efff 0%, #fff1ec 100%)',
-    border: '1px solid #e4dcfb',
+    background: 'linear-gradient(135deg, var(--color-brand-tint) 0%, var(--color-accent-tint) 100%)',
+    border: '1px solid var(--color-brand-line)',
   },
-  heading: { margin: '0 0 0.6rem', fontSize: '1.5rem', color: '#111827' },
-  body: { margin: '0 0 1.5rem', color: '#374151', lineHeight: 1.6 },
+  heading: { margin: '0 0 0.6rem', fontSize: '1.5rem', color: 'var(--color-ink)' },
+  body: { margin: '0 0 1.5rem', color: 'var(--color-ink-soft)', lineHeight: 1.6 },
   details: {
     textAlign: 'left',
-    background: '#f3efff',
-    border: '1px solid #e4dcfb',
+    background: 'var(--color-brand-tint)',
+    border: '1px solid var(--color-brand-line)',
     borderRadius: 12,
     padding: '0.75rem 0.9rem',
     fontSize: '0.8rem',
@@ -122,7 +122,7 @@ const styles: Record<string, CSSProperties> = {
     whiteSpace: 'pre-wrap',
     wordBreak: 'break-word',
     margin: '0 0 1.5rem',
-    color: '#5b21b6',
+    color: 'var(--color-brand-dark)',
   },
   actions: { display: 'flex', gap: '0.75rem', justifyContent: 'center', flexWrap: 'wrap' },
 };

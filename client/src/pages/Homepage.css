@@ -29,7 +29,7 @@
   align-items: center;
   gap: 1rem;
   padding: 0.75rem clamp(1rem, 3vw, 2.5rem);
-  background: rgba(255, 255, 255, 0.82);
+  background: var(--color-glass);
   backdrop-filter: saturate(160%) blur(14px);
   -webkit-backdrop-filter: saturate(160%) blur(14px);
   border-bottom: 1px solid var(--color-line);
@@ -70,7 +70,7 @@
   padding: 0 1rem 0 2.6rem;
   border: 1.5px solid var(--color-line);
   border-radius: 999px;
-  background: #fff;
+  background: var(--color-surface);
   font: inherit;
   font-size: 0.95rem;
   transition: border-color 0.2s, box-shadow 0.2s;
@@ -130,7 +130,7 @@
   min-height: 38px;
   padding: 0 1rem;
   border-radius: 999px;
-  background: #fff;
+  background: var(--color-surface);
   border: 1px solid var(--color-line);
   color: var(--color-ink-soft);
   font-weight: 600;
@@ -232,7 +232,7 @@
   max-width: 34rem;
   padding: 6px;
   border-radius: 999px;
-  background: #fff;
+  background: var(--color-surface);
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
 }
 .hero-search input {
@@ -351,7 +351,7 @@
   flex-direction: column;
   align-items: stretch;
   padding: 12px;
-  background: #fff;
+  background: var(--color-surface);
   border: 1px solid var(--color-line);
   border-radius: var(--radius-card);
   box-shadow: var(--shadow-card);
@@ -413,7 +413,7 @@
   position: absolute;
   top: 100%;
   left: 0;
-  background-color: #fff;
+  background-color: var(--color-surface);
   min-width: 200px;
   box-shadow: var(--shadow-lift);
   border: 1px solid var(--color-line);
@@ -475,6 +475,11 @@
   .user-options .icon-button,
   .user-options .icon-link {
     min-width: 40px;
+  }
+  /* On a phone the theme switch lives in the footer and on the profile page,
+     so the five icons keep one row. */
+  .user-options .header-theme-toggle {
+    display: none;
   }
   .user-options .btn {
     min-height: 38px;
@@ -606,9 +611,9 @@
 
 /* The deals chip stands out from the rest of the row. */
 .chip.chip-deals {
-  border-color: #ffd6c9;
-  background: linear-gradient(135deg, #fff1ec, #fff);
-  color: #c2410c;
+  border-color: var(--color-accent-line);
+  background: linear-gradient(135deg, var(--color-accent-tint), var(--color-surface));
+  color: var(--color-warn-ink);
 }
 .chip.chip-deals:hover,
 .chip.chip-deals:focus-visible {

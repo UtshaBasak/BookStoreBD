@@ -39,6 +39,7 @@ import SearchField from '../components/SearchField.js';
 import RequestBookButton from '../components/RequestBookButton.js';
 import ShareBook from '../components/ShareBook.js';
 import NotificationBell from '../components/NotificationBell.js';
+import { ThemeToggle } from '../components/ThemeToggle.js';
 import QuantityStepper from '../components/QuantityStepper.js';
 import { getUserEmail } from '../utils/auth.js';
 import { flagsFor } from '../utils/bookFlags.js';
@@ -260,7 +261,7 @@ export default function BookView() {
 
     if (error) {
         return (
-            <div className="book-page-state" role="alert" style={{ color: '#b91c1c' }}>
+            <div className="book-page-state" role="alert" style={{ color: 'var(--color-danger-ink)' }}>
                 Error: {error}
                 <Link to="/filter" className="btn btn-ghost">Browse books</Link>
             </div>
@@ -314,7 +315,7 @@ export default function BookView() {
                     {user && (
                         <Link to="/chat"
                             className="chat-icon icon-button"
-                            style={{ color: '#6d28d9' }}
+                            style={{ color: 'var(--color-brand)' }}
                             title="Chat"
                             aria-label="Chat"
                         >
@@ -327,18 +328,20 @@ export default function BookView() {
                         </Link>
                     )}
 
+                    <ThemeToggle className="icon-button theme-toggle header-theme-toggle" />
+
                     <NotificationBell />
 
                     <Link to="/wishlist"
                         className="wishlist-icon icon-button"
-                        style={{ color: '#ff5c35' }}
+                        style={{ color: 'var(--color-accent)' }}
                         title="Wishlist"
                         aria-label="Wishlist"
                     >
                         <FaHeart />
                     </Link>
 
-                    <Link to="/cart" className="icon-link" style={{ color: '#6d28d9' }} title="Cart" aria-label="Cart">
+                    <Link to="/cart" className="icon-link" style={{ color: 'var(--color-brand)' }} title="Cart" aria-label="Cart">
                         <FaShoppingBag />
                     </Link>
 
@@ -388,8 +391,8 @@ export default function BookView() {
                                     left: 14,
                                     fontSize: '0.8rem',
                                     padding: '5px 12px',
-                                    background: isOld ? '#ffffff' : '#facc15',
-                                    color: isOld ? '#5b21b6' : '#111827',
+                                    background: isOld ? 'var(--color-surface)' : '#facc15',
+                                    color: isOld ? 'var(--color-brand-dark)' : '#111827',
                                     boxShadow: '0 2px 8px rgba(30,27,75,0.18)',
                                 }}
                             >
@@ -427,15 +430,15 @@ export default function BookView() {
                             {(book.ratingCount ?? 0) > 0 ? (
                                 <a href="#reviews" className="book-rating">
                                     <Stars value={book.ratingAverage ?? 0} size={18} />
-                                    <span style={{ fontWeight: 700, color: '#111827' }}>
+                                    <span style={{ fontWeight: 700, color: 'var(--color-ink)' }}>
                                         {(book.ratingAverage ?? 0).toFixed(1)}
                                     </span>
-                                    <span style={{ color: '#6b7280' }}>
+                                    <span style={{ color: 'var(--color-ink-muted)' }}>
                                         ({book.ratingCount} {book.ratingCount === 1 ? 'review' : 'reviews'})
                                     </span>
                                 </a>
                             ) : (
-                                <p className="book-rating" style={{ color: '#6b7280' }}>No reviews yet</p>
+                                <p className="book-rating" style={{ color: 'var(--color-ink-muted)' }}>No reviews yet</p>
                             )}
 
                             <div className="book-price-row">
@@ -446,8 +449,8 @@ export default function BookView() {
                                     className="badge"
                                     style={
                                         book.stock > 0
-                                            ? { background: '#ecfdf5', color: '#047857' }
-                                            : { background: '#fef2f2', color: '#b91c1c' }
+                                            ? { background: 'var(--color-success-tint)', color: 'var(--color-success-dark)' }
+                                            : { background: 'var(--color-danger-tint)', color: 'var(--color-danger-ink)' }
                                     }
                                 >
                                     {book.stock <= 0
@@ -511,7 +514,7 @@ export default function BookView() {
                                     title={inWishlist ? 'Remove from wishlist' : 'Add to wishlist'}
                                 >
                                     {inWishlist ? (
-                                        <FaHeart aria-hidden="true" style={{ color: '#ff5c35' }} />
+                                        <FaHeart aria-hidden="true" style={{ color: 'var(--color-accent)' }} />
                                     ) : (
                                         <FaRegHeart aria-hidden="true" />
                                     )}
@@ -550,7 +553,7 @@ export default function BookView() {
                                         className="book-seller-rating"
                                     >
                                         <Stars value={sellerInfo.sellerRating?.average ?? 0} size={13} />
-                                        <span style={{ color: '#111827' }}>{(sellerInfo.sellerRating?.average ?? 0).toFixed(1)}</span>
+                                        <span style={{ color: 'var(--color-ink)' }}>{(sellerInfo.sellerRating?.average ?? 0).toFixed(1)}</span>
                                         <span>
                                             ({sellerInfo.sellerRating?.count}{' '}
                                             {sellerInfo.sellerRating?.count === 1 ? 'rating' : 'ratings'})
@@ -654,8 +657,8 @@ export default function BookView() {
                                                     position: 'absolute',
                                                     top: 10,
                                                     left: 10,
-                                                    background: relatedBook.bookType === 'old' ? '#ffffff' : '#facc15',
-                                                    color: relatedBook.bookType === 'old' ? '#5b21b6' : '#111827',
+                                                    background: relatedBook.bookType === 'old' ? 'var(--color-surface)' : '#facc15',
+                                                    color: relatedBook.bookType === 'old' ? 'var(--color-brand-dark)' : '#111827',
                                                     boxShadow: '0 2px 8px rgba(30,27,75,0.18)',
                                                 }}
                                             >

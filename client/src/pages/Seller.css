@@ -28,7 +28,7 @@
   justify-content: space-between;
   gap: 0.75rem;
   padding: 0.6rem clamp(1rem, 3vw, 2.5rem);
-  background: rgba(255, 255, 255, 0.85);
+  background: var(--color-glass);
   backdrop-filter: saturate(160%) blur(14px);
   -webkit-backdrop-filter: saturate(160%) blur(14px);
   border-bottom: 1px solid var(--color-line);
@@ -221,7 +221,7 @@
   min-height: 44px;
   padding: 0 1rem;
   border-radius: 999px;
-  background: #fff;
+  background: var(--color-surface);
   border: 1.5px solid var(--color-line);
   color: var(--color-ink-soft);
   font-weight: 600;
@@ -388,13 +388,13 @@ button.sl-thumb-remove {
   padding: 0;
   border-radius: 50%;
   border: none;
-  background: rgba(255, 255, 255, 0.92);
+  background: var(--color-glass);
   color: var(--color-danger-dark);
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
   font-size: 0.8rem;
 }
 button.sl-thumb-remove:hover {
-  background: #fef2f2;
+  background: var(--color-danger-tint);
 }
 button.sl-link-danger {
   min-height: 36px;
@@ -407,7 +407,7 @@ button.sl-link-danger {
   font-size: 0.85rem;
 }
 button.sl-link-danger:hover {
-  background: #fef2f2;
+  background: var(--color-danger-tint);
 }
 
 /* ---------------------------------------------------------------- price */
@@ -457,9 +457,9 @@ button.sl-link-danger:hover {
   margin: 0 0 1.5rem;
   padding: 1rem 1.1rem;
   border-radius: var(--radius-card);
-  background: #fff7ed;
-  border: 1.5px solid #fdba74;
-  color: #7c2d12;
+  background: var(--color-warn-tint);
+  border: 1.5px solid var(--color-warn-line);
+  color: var(--color-warn-ink);
   box-shadow: var(--shadow-card);
 }
 .sl-alert-icon {
@@ -470,8 +470,8 @@ button.sl-link-danger:hover {
   width: 40px;
   height: 40px;
   border-radius: 12px;
-  background: #ffedd5;
-  color: #c2410c;
+  background: var(--color-warn-tint);
+  color: var(--color-warn-ink);
   font-size: 1.1rem;
 }
 .sl-alert-body {
@@ -482,7 +482,7 @@ button.sl-link-danger:hover {
   margin: 0 0 0.6rem;
 }
 .sl-alert-body strong {
-  color: #9a3412;
+  color: var(--color-warn-ink);
 }
 
 .sl-feedback {
@@ -494,12 +494,12 @@ button.sl-link-danger:hover {
   font-weight: 600;
 }
 .sl-feedback.is-good {
-  background: #ecfdf5;
-  color: #047857;
+  background: var(--color-success-tint);
+  color: var(--color-success-dark);
 }
 .sl-feedback.is-bad {
-  background: #fef2f2;
-  color: #b91c1c;
+  background: var(--color-danger-tint);
+  color: var(--color-danger-ink);
 }
 
 /* The submit button is disabled while a seller cannot list. */
@@ -612,7 +612,7 @@ button.sl-link-danger:hover {
 }
 .sl-table .sl-price {
   font-weight: 800;
-  color: #ff5c35;
+  color: var(--color-accent);
   white-space: nowrap;
 }
 .sl-table .sl-num {
@@ -629,15 +629,15 @@ button.sl-link-danger:hover {
   gap: 6px;
   min-height: 38px;
   padding: 0 14px;
-  background: #fff;
+  background: var(--color-surface);
   color: var(--color-danger-dark);
-  border: 1px solid #fecaca;
+  border: 1px solid var(--color-danger-line);
   border-radius: 999px;
   font-weight: 700;
   white-space: nowrap;
 }
 .sl-table button.sl-row-delete:hover {
-  background: #fef2f2;
+  background: var(--color-danger-tint);
   border-color: var(--color-danger);
 }
 .sl-table button.sl-row-delete:disabled {
@@ -649,7 +649,7 @@ button.sl-link-danger:hover {
   padding: 0 10px;
   border: 1.5px dashed var(--color-brand-line);
   border-radius: 10px;
-  background: #fcfbff;
+  background: var(--color-surface-alt);
   color: var(--color-brand-dark);
   font: inherit;
   font-weight: 700;
@@ -659,14 +659,14 @@ button.sl-link-danger:hover {
   outline: none;
   border-style: solid;
   border-color: var(--color-brand-light);
-  background: #fff;
+  background: var(--color-surface);
   box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.18);
 }
 .sl-edit.is-dirty {
   border-style: solid;
   border-color: var(--color-success);
-  background: #ecfdf5;
-  color: #047857;
+  background: var(--color-success-tint);
+  color: var(--color-success-dark);
 }
 
 /* ---------------------------------------------------------------- pills */
@@ -688,24 +688,24 @@ button.sl-link-danger:hover {
   background: currentColor;
 }
 .sl-pill.is-pending {
-  background: #fff7ed;
-  color: #c2410c;
+  background: var(--color-warn-tint);
+  color: var(--color-warn-ink);
 }
 .sl-pill.is-progress {
-  background: #f3efff;
-  color: #5b21b6;
+  background: var(--color-brand-tint);
+  color: var(--color-brand-dark);
 }
 .sl-pill.is-done {
-  background: #ecfdf5;
-  color: #047857;
+  background: var(--color-success-tint);
+  color: var(--color-success-dark);
 }
 .sl-pill.is-bad {
-  background: #fef2f2;
-  color: #b91c1c;
+  background: var(--color-danger-tint);
+  color: var(--color-danger-ink);
 }
 .sl-pill.is-neutral {
-  background: #f3f4f6;
-  color: #4b5563;
+  background: var(--color-surface-muted);
+  color: var(--color-ink-soft);
 }
 
 /* --------------------------------------------------------------- orders */
@@ -769,7 +769,7 @@ button.sl-link-danger:hover {
   margin: 0 0 0 auto;
   padding: 0.9rem 1.1rem;
   border-radius: 14px;
-  background: #faf9fe;
+  background: var(--color-surface-alt);
   border: 1px solid var(--color-line);
   font-size: 0.95rem;
   box-sizing: border-box;
@@ -790,7 +790,7 @@ button.sl-link-danger:hover {
   color: var(--color-ink);
 }
 .sl-summary dd.sl-receive {
-  color: #ff5c35;
+  color: var(--color-accent);
   font-size: 1.1rem;
 }
 .sl-payout {
@@ -811,16 +811,16 @@ button.sl-link-danger:hover {
   margin-top: 3px;
 }
 .sl-payout.is-good {
-  background: #ecfdf5;
-  color: #047857;
+  background: var(--color-success-tint);
+  color: var(--color-success-dark);
 }
 .sl-payout.is-due {
-  background: #f3efff;
-  color: #5b21b6;
+  background: var(--color-brand-tint);
+  color: var(--color-brand-dark);
 }
 .sl-payout.is-plain {
-  background: #f3f4f6;
-  color: #4b5563;
+  background: var(--color-surface-muted);
+  color: var(--color-ink-soft);
 }
 .sl-payout-row {
   display: flex;
@@ -887,7 +887,7 @@ button.sl-link-danger:hover {
   width: 40px;
   height: 40px;
   border-radius: 50%;
-  background: #fff;
+  background: var(--color-surface);
   border: 2px solid var(--color-line);
   color: var(--color-ink-muted);
   font-weight: 800;
@@ -1005,7 +1005,7 @@ button.sl-link-danger:hover {
 .sl-error {
   display: block;
   margin-top: 8px;
-  color: #b91c1c;
+  color: var(--color-danger-ink);
   font-weight: 700;
   font-size: 0.9rem;
 }
@@ -1063,7 +1063,7 @@ button.sl-link-danger:hover {
   .sl-stack.styled-table tbody tr:nth-child(n) {
     margin-bottom: 10px;
     padding: 4px 14px;
-    background: #fff;
+    background: var(--color-surface);
     border: 1px solid var(--color-line);
     border-radius: 14px;
     box-shadow: 0 1px 2px rgba(30, 27, 75, 0.05);
@@ -1231,7 +1231,7 @@ button.sl-link-danger:hover {
 .sl-waiting {
   display: block;
   margin-top: 4px;
-  color: #c2410c;
+  color: var(--color-warn-ink);
   font-size: 0.78rem;
   font-weight: 700;
   white-space: nowrap;
@@ -1240,8 +1240,8 @@ button.sl-link-danger:hover {
 .sl-buyer-note {
   padding: 10px 12px;
   border-radius: 12px;
-  background: #fff7ed;
-  color: #9a3412;
+  background: var(--color-warn-tint);
+  color: var(--color-warn-ink);
   font-weight: 600;
   white-space: pre-line;
 }

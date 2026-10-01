@@ -28,7 +28,7 @@
   max-width: 480px;
   width: 100%;
   box-sizing: border-box;
-  background: #fff;
+  background: var(--color-surface);
   border: 1px solid var(--color-line);
   border-radius: var(--radius-card);
   box-shadow: var(--shadow-card);
@@ -65,7 +65,7 @@
 .order-tracking-container {
     max-width: 600px;
     margin: 2rem auto;
-    background: #fff;
+    background: var(--color-surface);
     border-radius: 12px;
     box-shadow: 0 2px 16px rgba(0,0,0,0.08);
     padding: 2rem 2.5rem;
@@ -139,13 +139,13 @@
   }
 
   .order-card {
-    background: #f9f9f9;
+    background: var(--color-surface-alt);
     border-radius: 8px;
     box-shadow: 0 1px 6px rgba(0,0,0,0.06);
     margin: 1rem 0;
     padding: 1.2rem 1.5rem;
     font-size: 1.05rem;
-    color: #222;
+    color: var(--color-ink);
     display: flex;
     flex-direction: column;
     gap: 0.5rem;
@@ -269,7 +269,7 @@
   height: 40px;
   border-radius: 50%;
   border: 2px solid var(--color-brand-line);
-  background: #fff;
+  background: var(--color-surface);
   color: var(--color-ink-muted);
   font-weight: 800;
   font-size: 0.95rem;
@@ -404,8 +404,8 @@
   margin-left: 8px;
   padding: 1px 8px;
   border-radius: 999px;
-  background: #fef2f2;
-  color: #b91c1c;
+  background: var(--color-danger-tint);
+  color: var(--color-danger-ink);
   font-size: 0.75rem;
   font-weight: 700;
   text-decoration: none;
@@ -414,8 +414,8 @@
   margin-top: 1.25rem;
 }
 .ot-line-pill.is-return {
-  background: #fff7ed;
-  color: #c2410c;
+  background: var(--color-warn-tint);
+  color: var(--color-warn-ink);
 }
 
 /* Status and sort on the orders list, pill-shaped like the search. */

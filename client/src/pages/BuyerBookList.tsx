@@ -15,10 +15,10 @@ const PAGE_SIZE = 25;
 /** A return's pill: pending amber, approved green, anything else red. */
 const returnColours = (status: string) =>
   status === 'pending'
-    ? { background: '#fff7ed', color: '#c2410c' }
+    ? { background: 'var(--color-warn-tint)', color: 'var(--color-warn-ink)' }
     : status === 'approved'
-      ? { background: '#ecfdf5', color: '#047857' }
-      : { background: '#fef2f2', color: '#b91c1c' };
+      ? { background: 'var(--color-success-tint)', color: 'var(--color-success-dark)' }
+      : { background: 'var(--color-danger-tint)', color: 'var(--color-danger-ink)' };
 
 export default function BuyerBookList() {
   const [search, setSearch] = useState('');
@@ -185,7 +185,7 @@ export default function BuyerBookList() {
                   <td>{order.bookType}</td>
                   <td>{order.condition}</td>
                   <td>{order.pages}</td>
-                  <td className="font-bold" style={{ color: '#ff5c35' }}>{order.price}</td>
+                  <td className="font-bold" style={{ color: 'var(--color-accent)' }}>{order.price}</td>
                   <td>{order.quantity}</td>
                   <td>{order.sellerEmail}</td>
                   <td>{order.createdAt ? new Date(order.createdAt).toLocaleDateString() : ''}</td>

@@ -39,7 +39,7 @@ export default function LegalPage({ title, intro, updated, children }: LegalPage
   return (
     <div className="flex min-h-screen flex-col bg-page text-ink">
       {/* Frosted and sticky, like the homepage's bar. */}
-      <header className="sticky top-0 z-50 border-b border-line bg-white/85 backdrop-blur-md">
+      <header className="sticky top-0 z-50 border-b border-line bg-surface/85 backdrop-blur-md">
         <div className="mx-auto flex max-w-5xl items-center justify-between gap-3 px-4 py-2.5 sm:px-6">
           <Link to="/" className="inline-flex min-h-11 items-center no-underline [--logo-size:30px] sm:[--logo-size:34px]">
             <Logo />
@@ -59,14 +59,14 @@ export default function LegalPage({ title, intro, updated, children }: LegalPage
             background:
               'radial-gradient(520px 260px at 0% 0%, rgba(139, 92, 246, 0.22), transparent 70%),' +
               'radial-gradient(480px 260px at 100% 100%, rgba(255, 92, 53, 0.16), transparent 70%),' +
-              'linear-gradient(180deg, #f3efff 0%, #fbfaff 100%)',
+              'linear-gradient(180deg, var(--color-brand-tint) 0%, var(--color-surface-alt) 100%)',
           }}
         >
           <div className="mx-auto max-w-190">
             <h1 className="mb-3">{title}</h1>
             <p className="m-0 max-w-160 text-lg text-ink-soft">{intro}</p>
             {updated && (
-              <p className="mt-4 mb-0 inline-flex items-center rounded-full border border-brand-line bg-white/80 px-3 py-1 text-sm font-semibold text-brand-dark">
+              <p className="mt-4 mb-0 inline-flex items-center rounded-full border border-brand-line bg-surface/80 px-3 py-1 text-sm font-semibold text-brand-dark">
                 Last updated {updated}
               </p>
             )}

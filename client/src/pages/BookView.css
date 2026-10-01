@@ -71,7 +71,7 @@
   border: 2px solid var(--color-line);
   border-radius: 12px;
   overflow: hidden;
-  background: #fff;
+  background: var(--color-surface);
 }
 .book-thumb img {
   width: 100%;
@@ -157,7 +157,7 @@
   font-size: 1.15rem;
 }
 .book-sold-out {
-  background: #f3f4f6;
+  background: var(--color-surface-muted);
   color: var(--color-ink-muted);
   cursor: not-allowed;
 }
@@ -338,7 +338,7 @@
   flex-direction: column;
   min-width: 160px;
   padding: 6px;
-  background: #fff;
+  background: var(--color-surface);
   border: 1px solid var(--color-line);
   border-radius: 14px;
   box-shadow: var(--shadow-lift);

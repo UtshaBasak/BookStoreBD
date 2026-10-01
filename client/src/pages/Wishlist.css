@@ -122,7 +122,7 @@
   justify-content: center;
   min-height: 42px;
   border-radius: 999px;
-  background: #f3f4f6;
+  background: var(--color-surface-muted);
   color: var(--color-ink-muted);
   font-weight: 700;
   font-size: 0.85rem;
@@ -157,13 +157,13 @@
   padding: 0;
   border: none;
   border-radius: 50%;
-  background: rgba(255, 255, 255, 0.94);
+  background: var(--color-glass);
   box-shadow: 0 2px 8px rgba(30, 27, 75, 0.18);
   color: var(--color-accent);
   font-size: 18px;
 }
 .wishlist-remove:hover {
-  background: #fff;
+  background: var(--color-surface);
   transform: scale(1.06);
 }
 

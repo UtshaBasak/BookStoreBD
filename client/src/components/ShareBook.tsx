@@ -58,9 +58,9 @@ export default function ShareBook({ bookId, title, author }: { bookId: string; t
   const targets = [
     { label: 'Facebook', icon: FaFacebook, href: `https://www.facebook.com/sharer/sharer.php?u=${encodedUrl}`, tone: '#1877f2' },
     { label: 'WhatsApp', icon: FaWhatsapp, href: `https://wa.me/?text=${encodeURIComponent(`${text} ${url}`)}`, tone: '#25d366' },
-    { label: 'X', icon: FaXTwitter, href: `https://twitter.com/intent/tweet?url=${encodedUrl}&text=${encodedText}`, tone: '#111827' },
+    { label: 'X', icon: FaXTwitter, href: `https://twitter.com/intent/tweet?url=${encodedUrl}&text=${encodedText}`, tone: 'var(--color-ink)' },
     { label: 'Telegram', icon: FaTelegram, href: `https://t.me/share/url?url=${encodedUrl}&text=${encodedText}`, tone: '#229ed9' },
-    { label: 'E-mail', icon: FaEnvelope, href: `mailto:?subject=${encodedText}&body=${encodeURIComponent(`${text}\n${url}`)}`, tone: '#6d28d9' },
+    { label: 'E-mail', icon: FaEnvelope, href: `mailto:?subject=${encodedText}&body=${encodeURIComponent(`${text}\n${url}`)}`, tone: 'var(--color-brand)' },
   ];
 
   return (

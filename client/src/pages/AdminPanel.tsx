@@ -22,6 +22,7 @@ import {
   FaUsers,
 } from 'react-icons/fa';
 import Logo from '../components/Logo.js';
+import { ThemeToggle } from '../components/ThemeToggle.js';
 import { isAdmin } from '../utils/auth.js';
 import { signOut } from '../config/api.js';
 
@@ -110,6 +111,7 @@ export default function AdminPanel() {
             <h2>Admin Panel</h2>
           </div>
           <div className="admin-sidebar-actions">
+            <ThemeToggle className="admin-side-button admin-theme-toggle" withLabel />
             <button type="button" className="admin-side-button is-danger" onClick={handleSignOut}>
               <FaSignOutAlt aria-hidden="true" />
               Sign Out
@@ -131,6 +133,7 @@ export default function AdminPanel() {
         </nav>
 
         <div className="admin-sidebar-foot">
+          <ThemeToggle className="admin-side-button admin-theme-toggle" withLabel />
           <button type="button" className="admin-side-button is-danger" onClick={handleSignOut}>
             <FaSignOutAlt aria-hidden="true" />
             Sign Out

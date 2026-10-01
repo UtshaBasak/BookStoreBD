@@ -2,6 +2,7 @@ import { Link } from 'react-router-dom';
 
 import { site } from '../config/site.js';
 import Logo from './Logo.js';
+import { useTheme } from '../utils/theme.js';
 import './Footer.css';
 
 /**
@@ -10,11 +11,23 @@ import './Footer.css';
  * privacy policy, returns policy and contact details.
  */
 export default function Footer() {
+  const { resolved, setTheme } = useTheme();
   return (
     <footer className="footer">
       <div className="footer-brand">
         <Logo size={34} inverted />
         <p>{site.tagline}</p>
+        <div className="footer-controls">
+          <button
+            type="button"
+            className="footer-pill"
+            onClick={() => setTheme(resolved === 'dark' ? 'light' : 'dark')}
+            aria-label={`Switch to ${resolved === 'dark' ? 'light' : 'dark'} mode`}
+          >
+            <span aria-hidden="true">{resolved === 'dark' ? '☀️' : '🌙'}</span>
+            {resolved === 'dark' ? 'Light mode' : 'Dark mode'}
+          </button>
+        </div>
       </div>
 
       <div className="footer-section">
@@ -24,7 +37,7 @@ export default function Footer() {
             <Link to="/about">Who we are</Link>
           </li>
           <li>
-            <Link to="/about#how-it-works">How buying and selling works</Link>
+            <Link to="/how-it-works">How BookStoreBD works</Link>
           </li>
           <li>
             <Link to="/contact">Contact us</Link>

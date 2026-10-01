@@ -149,7 +149,7 @@ export default function DescriptionForm() {
             <div
               aria-hidden="true"
               className="mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-full text-xl"
-              style={{ background: '#f3efff', color: '#6d28d9' }}
+              style={{ background: 'var(--color-brand-tint)', color: 'var(--color-brand)' }}
             >
               <FaUndoAlt />
             </div>
@@ -162,7 +162,7 @@ export default function DescriptionForm() {
                   <span
                     key={`${title}-${index}`}
                     className="inline-block rounded-full px-4 py-1 font-bold"
-                    style={{ background: '#f3efff', color: '#5b21b6', overflowWrap: 'anywhere' }}
+                    style={{ background: 'var(--color-brand-tint)', color: 'var(--color-brand-dark)', overflowWrap: 'anywhere' }}
                   >
                     {title}
                   </span>
@@ -179,7 +179,7 @@ export default function DescriptionForm() {
               icon instead. */}
           <ul
             className="mt-6 mb-6 grid gap-3 rounded-2xl p-4 text-sm leading-relaxed text-ink-soft"
-            style={{ listStyle: 'none', background: '#faf9fe', border: '1px solid #ece8f7' }}
+            style={{ listStyle: 'none', background: 'var(--color-surface-alt)', border: '1px solid var(--color-line)' }}
           >
             {returnableUntil && (
               <li className="flex gap-3">
@@ -239,10 +239,10 @@ export default function DescriptionForm() {
               accept="image/png,image/jpeg,image/webp,image/gif"
               multiple
               onChange={handleImageUpload}
-              className="mb-4 block w-full cursor-pointer rounded-xl border border-dashed border-brand-line bg-brand-tint p-3 text-sm text-ink-soft file:mr-3 file:min-h-10 file:cursor-pointer file:rounded-full file:border-0 file:bg-white file:px-4 file:font-bold file:text-brand"
+              className="mb-4 block w-full cursor-pointer rounded-xl border border-dashed border-brand-line bg-brand-tint p-3 text-sm text-ink-soft file:mr-3 file:min-h-10 file:cursor-pointer file:rounded-full file:border-0 file:bg-surface file:px-4 file:font-bold file:text-brand"
             />
             {images.length > 0 && (
-              <p className="mt-0 mb-4 text-sm font-semibold" style={{ color: '#047857' }}>
+              <p className="mt-0 mb-4 text-sm font-semibold" style={{ color: 'var(--color-success-dark)' }}>
                 {images.length} image{images.length === 1 ? '' : 's'} will be sent with this request.
               </p>
             )}

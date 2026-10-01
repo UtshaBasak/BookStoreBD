@@ -29,7 +29,7 @@ function CartTopBar() {
       </Link>
       <div className="user-options">
         <NotificationBell />
-        <Link to="/wishlist" className="icon-link" title="Go to Wishlist" aria-label="Go to Wishlist" style={{ color: '#ff5c35' }}>
+        <Link to="/wishlist" className="icon-link" title="Go to Wishlist" aria-label="Go to Wishlist" style={{ color: 'var(--color-accent)' }}>
           <FaHeart size={20} />
         </Link>
       </div>
@@ -109,7 +109,7 @@ export default function Cart() {
       <div className="shop-page">
         <CartTopBar />
         <main className="shop-main">
-          <div role="alert" className="card mx-auto max-w-md p-8 text-center font-semibold" style={{ color: '#b91c1c' }}>
+          <div role="alert" className="card mx-auto max-w-md p-8 text-center font-semibold" style={{ color: 'var(--color-danger-ink)' }}>
             {error}
           </div>
         </main>
@@ -138,7 +138,7 @@ export default function Cart() {
             <div
               aria-hidden="true"
               className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full text-2xl"
-              style={{ background: '#f3efff', color: '#6d28d9' }}
+              style={{ background: 'var(--color-brand-tint)', color: 'var(--color-brand)' }}
             >
               <FaShoppingBag />
             </div>
@@ -168,8 +168,8 @@ export default function Cart() {
                           <span
                             className="badge mb-1"
                             style={{
-                              background: book.bookType === 'old' ? '#f3efff' : '#facc15',
-                              color: book.bookType === 'old' ? '#5b21b6' : '#111827',
+                              background: book.bookType === 'old' ? 'var(--color-brand-tint)' : '#facc15',
+                              color: book.bookType === 'old' ? 'var(--color-brand-dark)' : '#111827',
                             }}
                           >
                             {book.bookType === 'old' ? 'Used' : book.bookType.toUpperCase()}
@@ -184,7 +184,7 @@ export default function Cart() {
                       <button
                         type="button"
                         className="icon-button shrink-0"
-                        style={{ color: wishlist[book._id] ? '#ff5c35' : '#9ca3af', fontSize: 20 }}
+                        style={{ color: wishlist[book._id] ? 'var(--color-accent)' : 'var(--color-ink-faint)', fontSize: 20 }}
                         onClick={() => handleToggleWishlist(book._id)}
                         title={wishlist[book._id] ? 'Remove from wishlist' : 'Add to wishlist'}
                         aria-label="Toggle wishlist"

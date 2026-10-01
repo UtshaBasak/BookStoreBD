@@ -13,6 +13,7 @@ import AuthImage from '../components/AuthImage.js';
 import FilePreview from '../components/FilePreview.js';
 import Logo from '../components/Logo.js';
 import NotificationBell from '../components/NotificationBell.js';
+import { ThemeToggle } from '../components/ThemeToggle.js';
 import './Homepage.css';
 import '../components/Chat.css';
 
@@ -242,6 +243,7 @@ export default function ChatPage() {
                     <h1>Messages</h1>
                 </div>
                 <div className="user-options">
+                    <ThemeToggle className="icon-button theme-toggle header-theme-toggle" />
                     <NotificationBell />
                 </div>
             </header>
@@ -264,7 +266,7 @@ export default function ChatPage() {
                                 <span className="chat-empty-icon is-small" aria-hidden="true">
                                     <FaComments size={26} />
                                 </span>
-                                <p style={{ margin: '0.75rem 0 0.25rem', fontWeight: 700, color: '#111827' }}>No conversations yet.</p>
+                                <p style={{ margin: '0.75rem 0 0.25rem', fontWeight: 700, color: 'var(--color-ink)' }}>No conversations yet.</p>
                                 <p style={{ fontSize: '0.9rem' }}>
                                     Open any book and use <strong>Chat with Seller</strong> to start one.
                                 </p>

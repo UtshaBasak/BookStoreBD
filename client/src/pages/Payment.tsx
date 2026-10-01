@@ -449,8 +449,8 @@ export default function Payment() {
         className="badge pay-cover-badge"
         style={{
           position: 'absolute',
-          background: book.bookType.toLowerCase() === 'new' ? '#facc15' : '#ffffff',
-          color: book.bookType.toLowerCase() === 'new' ? '#111827' : '#5b21b6',
+          background: book.bookType.toLowerCase() === 'new' ? '#facc15' : 'var(--color-surface)',
+          color: book.bookType.toLowerCase() === 'new' ? '#111827' : 'var(--color-brand-dark)',
         }}
       >
         {book.bookType.toLowerCase() === 'new' ? 'NEW' : 'OLD'}
@@ -589,7 +589,7 @@ export default function Payment() {
                 {shownDiscount > 0 && (
                   <div className="sum-row">
                     <span>Discount{promo ? ` (${promo})` : ''}</span>
-                    <span style={{ color: '#047857' }}>-{money(shownDiscount)}</span>
+                    <span style={{ color: 'var(--color-success-dark)' }}>-{money(shownDiscount)}</span>
                   </div>
                 )}
               </div>
@@ -628,7 +628,7 @@ export default function Payment() {
           {/* A real link, so it is focusable and follows on Enter. */}
           <Link to="/cart"
             className="icon-button"
-            style={{ fontSize: 18, color: '#6d28d9', background: '#fff', border: '1px solid #e4dcfb', borderRadius: 999 }}
+            style={{ fontSize: 18, color: 'var(--color-brand)', background: 'var(--color-surface)', border: '1px solid var(--color-brand-line)', borderRadius: 999 }}
             title="Go back to cart"
             aria-label="Go back to cart"
           ><FaArrowLeft /></Link>
@@ -693,7 +693,7 @@ export default function Payment() {
                           <button
                             type="button"
                             className="icon-button shrink-0"
-                            style={{ color: '#dc2626', fontSize: 15, marginTop: -8, marginRight: -8 }}
+                            style={{ color: 'var(--color-danger-dark)', fontSize: 15, marginTop: -8, marginRight: -8 }}
                             onClick={() => handleRemoveBook(book._id)}
                             title="Remove from cart"
                             aria-label="Remove from cart"
@@ -709,7 +709,7 @@ export default function Payment() {
                               label={`Copies of ${book.title}`}
                             />
                             {Number(book.stock) <= 5 && (
-                              <span className="text-xs font-semibold" style={{ color: '#c2410c' }}>
+                              <span className="text-xs font-semibold" style={{ color: 'var(--color-warn-ink)' }}>
                                 Only {book.stock} left
                               </span>
                             )}
@@ -746,7 +746,7 @@ export default function Payment() {
               {shownDiscount > 0 && (
                 <div className="sum-row">
                   <span>Discount</span>
-                  <span style={{ color: '#047857' }}>-{money(shownDiscount)}</span>
+                  <span style={{ color: 'var(--color-success-dark)' }}>-{money(shownDiscount)}</span>
                 </div>
               )}
               {/*
@@ -800,14 +800,14 @@ export default function Payment() {
                   )}
                 </div>
                 {promoApplied && !promoCurrent ? (
-                  <div role="status" className="mt-2 text-sm font-semibold" style={{ color: '#c2410c' }}>
+                  <div role="status" className="mt-2 text-sm font-semibold" style={{ color: 'var(--color-warn-ink)' }}>
                     Your basket changed. Apply the code again to use it.
                   </div>
                 ) : promoMsg && (
                   <div
                     role="status"
                     className="mt-2 text-sm font-semibold"
-                    style={{ color: promoCurrent ? '#047857' : '#b91c1c' }}
+                    style={{ color: promoCurrent ? 'var(--color-success-dark)' : 'var(--color-danger-ink)' }}
                   >{promoMsg}</div>
                 )}
                 <p className="m-0 mt-2 flex items-center gap-2 text-xs text-ink-muted">
@@ -956,7 +956,7 @@ export default function Payment() {
               Confirm Order
             </button>
             {confirmError && (
-              <div className="mt-3 text-center font-semibold" style={{ color: '#b91c1c' }}>
+              <div className="mt-3 text-center font-semibold" style={{ color: 'var(--color-danger-ink)' }}>
                 {confirmError}
               </div>
             )}

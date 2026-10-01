@@ -54,7 +54,7 @@
   height: 104px;
   /* Half over the banner: the body's 1rem top padding plus half the avatar. */
   margin-top: calc(-52px - 1rem);
-  border: 4px solid #fff;
+  border: 4px solid var(--color-surface);
   border-radius: 50%;
   box-shadow: var(--shadow-card);
   object-fit: cover;
@@ -203,17 +203,17 @@
   font-size: 1.35rem;
 }
 .pf-note-ok {
-  background: #ecfdf5;
-  border-color: #a7f3d0;
-  color: #065f46;
+  background: var(--color-success-tint);
+  border-color: var(--color-success-line);
+  color: var(--color-success-dark);
 }
 .pf-note-warn {
-  background: #fefce8;
-  border-color: #fde68a;
-  color: #713f12;
+  background: var(--color-sun-tint);
+  border-color: var(--color-sun-line);
+  color: var(--color-sun-ink);
 }
 .pf-note-warn .pf-note-icon {
-  color: #ca8a04;
+  color: var(--color-sun-ink);
 }
 
 /* ------------------------------------------------------------------ tiles */
@@ -275,8 +275,8 @@
 
 /* The one action a seller is here for, in the sunset accent. */
 .pf-tile-accent {
-  border-color: #ffd5c7;
-  background: linear-gradient(160deg, #fff 40%, var(--color-accent-tint) 100%);
+  border-color: var(--color-accent-line);
+  background: linear-gradient(160deg, var(--color-surface) 40%, var(--color-accent-tint) 100%);
 }
 .pf-tile-accent .pf-tile-icon {
   background: linear-gradient(135deg, var(--color-accent) 0%, #ff8a3d 100%);
@@ -447,7 +447,7 @@
   padding: 0 1.1rem;
   border: 1.5px solid var(--color-line);
   border-radius: 999px;
-  background: #fff;
+  background: var(--color-surface);
   color: var(--color-ink-soft);
   font-weight: 600;
   cursor: pointer;
@@ -476,8 +476,8 @@
 }
 /* Arrived from "add your bKash number first": the box they came for stands out. */
 .pf-payout-first {
-  border-color: #fde68a;
-  background: #fefce8;
+  border-color: var(--color-sun-line);
+  background: var(--color-sun-tint);
   box-shadow: 0 0 0 4px rgba(250, 204, 21, 0.25);
 }
 
@@ -485,8 +485,8 @@
   margin: 1.25rem 0 0;
   padding: 10px 14px;
   border-radius: 12px;
-  background: #fef2f2;
-  color: #b91c1c;
+  background: var(--color-danger-tint);
+  color: var(--color-danger-ink);
   font-weight: 600;
 }
 

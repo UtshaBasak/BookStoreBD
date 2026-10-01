@@ -59,7 +59,7 @@ export default function Logo({ size = 36, markOnly = false, inverted = false }: 
             fontWeight: 800,
             fontSize: '0.62em',
             letterSpacing: '-0.035em',
-            color: inverted ? '#fff' : '#111827',
+            color: inverted ? '#fff' : 'var(--color-ink)',
             whiteSpace: 'nowrap',
           }}
         >

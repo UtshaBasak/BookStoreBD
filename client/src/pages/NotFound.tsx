@@ -23,7 +23,7 @@ export default function NotFound() {
         background:
           'radial-gradient(620px 360px at 10% 0%, rgba(139, 92, 246, 0.2), transparent 70%),' +
           'radial-gradient(560px 340px at 95% 100%, rgba(255, 92, 53, 0.16), transparent 70%),' +
-          '#f8f7fc',
+          'var(--color-page)',
       }}
     >
       <Link to="/" className="mb-8 inline-flex min-h-11 items-center no-underline" aria-label={`${site.name} home`}>

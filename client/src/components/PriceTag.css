@@ -19,8 +19,8 @@
   white-space: nowrap;
   padding: 1px 8px;
   border-radius: 999px;
-  background: #fff1ec;
-  color: #c2410c;
+  background: var(--color-accent-tint);
+  color: var(--color-warn-ink);
   font-size: 0.75em;
   font-weight: 800;
 }

@@ -4,15 +4,15 @@
   width: 100%;
   max-width: 520px;
   padding: 14px 16px;
-  border: 1px solid #fecaca;
+  border: 1px solid var(--color-danger-line);
   border-radius: 14px;
-  background: #fef2f2;
+  background: var(--color-danger-tint);
   text-align: left;
 }
 
 .co-note {
   margin: 0;
-  color: #7f1d1d;
+  color: var(--color-danger-ink);
   font-size: 0.9rem;
 }
 
@@ -44,8 +44,8 @@
   gap: 4px;
   padding: 12px 16px;
   border-radius: 14px;
-  background: #fef2f2;
-  color: #991b1b;
+  background: var(--color-danger-tint);
+  color: var(--color-danger-ink);
 }
 
 .co-cancelled p {
