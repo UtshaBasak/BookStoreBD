@@ -24,12 +24,22 @@ describe('the theme', () => {
 
   it('remembers a choice, and forgets it when set back to the device', () => {
     prefersDark(true);
+    localStorage.setItem('consent', JSON.stringify({ version: 1, at: '', preferences: true, personalisation: false, diagnostics: false }));
     setTheme('light');
     expect(localStorage.getItem('theme')).toBe('light');
     expect(document.documentElement.dataset.theme).toBe('light');
 
     setTheme('system');
     expect(localStorage.getItem('theme')).toBeNull();
+    expect(document.documentElement.dataset.theme).toBe('dark');
+  });
+
+  it('keeps a choice for the visit only, until preferences may be stored', () => {
+    localStorage.removeItem('consent');
+    prefersDark(false);
+    setTheme('dark');
+    expect(localStorage.getItem('theme')).toBeNull();
+    expect(readTheme()).toBe('dark');
     expect(document.documentElement.dataset.theme).toBe('dark');
   });
 });

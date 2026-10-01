@@ -33,6 +33,7 @@ import Logo from '../components/Logo.js';
 import SearchField from '../components/SearchField.js';
 import NotificationBell from '../components/NotificationBell.js';
 import { ThemeToggle } from '../components/ThemeToggle.js';
+import { allowed } from '../utils/consent.js';
 
 interface FilterState {
   bookType: string;
@@ -242,7 +243,7 @@ export default function BookFilter() {
   const setPageSize = (value: number) => {
     setPageSizeState(value);
     try {
-      localStorage.setItem(PAGE_SIZE_KEY, String(value));
+      if (allowed('preferences')) localStorage.setItem(PAGE_SIZE_KEY, String(value));
     } catch {
       // Private browsing: it lasts for this visit only.
     }

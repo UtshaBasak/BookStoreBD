@@ -78,7 +78,7 @@ export const site = {
   },
 
   /** The date the policy pages were last reviewed. */
-  policiesUpdated: '29 September 2026',
+  policiesUpdated: '2 October 2026',
 } as const;
 
 /**

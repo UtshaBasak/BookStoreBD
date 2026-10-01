@@ -1,3 +1,5 @@
+import { allowed } from './consent.js';
+
 /**
  * What this visitor searched for lately, on this device only, for the search
  * box to offer again. Kept to the last six.
@@ -16,7 +18,8 @@ export const readRecentSearches = (): string[] => {
 
 const write = (terms: string[]): void => {
   try {
-    if (terms.length) localStorage.setItem(KEY, JSON.stringify(terms.slice(0, MAX)));
+    // Kept only with the visitor's say-so; forgetting always works.
+    if (terms.length && allowed('preferences')) localStorage.setItem(KEY, JSON.stringify(terms.slice(0, MAX)));
     else localStorage.removeItem(KEY);
   } catch {
     /* storage unavailable: nothing is remembered */

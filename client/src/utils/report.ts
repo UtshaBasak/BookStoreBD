@@ -1,5 +1,6 @@
 import { API_BASE_URL } from '../config/api.js';
 import { getToken } from './auth.js';
+import { allowed } from './consent.js';
 
 /**
  * Where a caught error goes.
@@ -37,7 +38,8 @@ const describe = (error: unknown): { message: string; stack?: string } => {
 };
 
 const send = (context: string, error: unknown): void => {
-  if (reporting || sentCount >= MAX_REPORTS) return;
+  // Only with the visitor's say-so.
+  if (reporting || sentCount >= MAX_REPORTS || !allowed('diagnostics')) return;
 
   const { message, stack } = describe(error);
   const key = `${context}|${message}`;

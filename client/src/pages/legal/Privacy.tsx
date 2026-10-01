@@ -1,9 +1,11 @@
 import { site } from '../../config/site.js';
+import { openConsentSettings } from '../../utils/consent.js';
 import LegalPage from './LegalPage.js';
 
 /**
  * Describes what the application actually does with personal data - the fields
- * the models store, the one cookie that is set, and the third parties involved.
+ * the models store, the cookie and browser storage used, and the third parties
+ * involved.
  * Written from the code rather than from a template, so it can be checked.
  */
 export default function Privacy() {
@@ -44,19 +46,46 @@ export default function Privacy() {
         <li>Standard technical data in our server logs: the request path, status,
           timestamp and IP address. Authorisation headers, cookies, passwords and
           one-time codes are removed before anything is written to a log.</li>
-        <li>If a page breaks in your browser, a short error report: what failed,
-          the page address and your browser's name. It does not include what you
-          typed or anything you were shown.</li>
+        <li>If a page breaks in your browser, and you allow error reports, a short
+          report: what failed, the page address and your browser's name. It does
+          not include what you typed or anything you were shown.</li>
+        <li>Books you ask for on the Wanted board. Others see the book and how
+          many people want it, never who.</li>
+        <li>The e-mail addresses of friends you invite, so we can tell you when
+          they join and do not invite the same person over and over.</li>
+        <li>Which notifications and e-mails you have chosen to receive.</li>
+        <li>What is searched for in the catalogue and how many books each search
+          found, without who searched, for 90 days - to show popular searches
+          and learn which books people cannot find.</li>
+        <li>That a book was viewed, as a code that cannot be traced back to you,
+          for a day, so each person counts once in the book's view count.</li>
       </ul>
 
-      <h2>Cookies</h2>
-      <p>We set exactly one cookie, and it is not for tracking. It holds your
-        session so you stay signed in, is marked <code>httpOnly</code> so page
-        scripts cannot read it, is limited to the sign-in routes, and expires
-        after 30 days. We use no advertising or analytics cookies.</p>
-      <p>Your browser also keeps a short-lived access token in local storage so
-        the app can identify you between page loads. Clearing your browser data
-        signs you out.</p>
+      <h2 id="cookies">Cookies and storage</h2>
+      <p>We use no advertising or analytics cookies, and we do not track you
+        across other sites. What we keep in your browser is in four groups, and
+        only the first is kept without your say-so:</p>
+      <ul>
+        <li><strong>Necessary</strong> (always on): one cookie holding your
+          session, so you stay signed in - marked <code>httpOnly</code> so page
+          scripts cannot read it, limited to the sign-in routes, and expiring
+          after 30 days; a short-lived access token in local storage; the
+          security check on sign-in and sign-up; and your choice about the rest.</li>
+        <li><strong>Preferences</strong>: light or dark mode, your voice search
+          language, how lists are sorted and sized, and your recent searches.</li>
+        <li><strong>Personalisation</strong>: the books you viewed lately, for
+          "Recently viewed" and "Top picks for you".</li>
+        <li><strong>Error reports</strong>: a report sent to us when a page
+          breaks, as described above.</li>
+      </ul>
+      <p>When you first visit, you choose: accept all, necessary only, or each
+        group on its own. Turning a group off deletes what it kept. You can
+        change your mind at any time.</p>
+      <p>
+        <button type="button" className="btn btn-ghost" onClick={openConsentSettings}>
+          Change cookie settings
+        </button>
+      </p>
 
       <h2>Who else sees it</h2>
       <ul>

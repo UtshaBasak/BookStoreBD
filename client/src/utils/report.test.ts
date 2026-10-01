@@ -32,12 +32,23 @@ beforeEach(() => {
     })
   );
   localStorage.clear();
+  // Reports are sent only with the visitor's say-so.
+  localStorage.setItem('consent', JSON.stringify({ version: 1, at: '', preferences: false, personalisation: false, diagnostics: true }));
 });
 
 afterEach(() => {
   vi.unstubAllGlobals();
   vi.unstubAllEnvs();
   localStorage.clear();
+});
+
+describe('without the visitor’s say-so', () => {
+  it('sends nothing', async () => {
+    localStorage.removeItem('consent');
+    const { reportError } = await load(false);
+    reportError('Something broke', new Error('the thing'));
+    expect(sent).toHaveLength(0);
+  });
 });
 
 describe('in development', () => {

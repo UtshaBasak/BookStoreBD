@@ -1,3 +1,5 @@
+import { allowed } from './consent.js';
+
 /**
  * The books this browser has looked at, most recent first.
  *
@@ -21,7 +23,8 @@ export const getRecentlyViewed = (): string[] => {
 };
 
 export const recordView = (bookId: string): void => {
-  if (!OBJECT_ID.test(bookId)) return;
+  // Only with the visitor's say-so: it is what personalises their shelves.
+  if (!OBJECT_ID.test(bookId) || !allowed('personalisation')) return;
   try {
     const next = [bookId, ...getRecentlyViewed().filter((id) => id !== bookId)].slice(0, MAX);
     localStorage.setItem(KEY, JSON.stringify(next));

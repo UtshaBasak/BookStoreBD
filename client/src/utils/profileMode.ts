@@ -1,3 +1,5 @@
+import { allowed } from './consent.js';
+
 /**
  * Which side of the profile somebody was on: buying or selling.
  *
@@ -24,6 +26,7 @@ export const readProfileMode = (fromUrl: string | null): ProfileMode => {
 };
 
 export const rememberProfileMode = (mode: ProfileMode): void => {
+  if (!allowed('preferences')) return;
   try {
     localStorage.setItem(KEY, mode);
   } catch {

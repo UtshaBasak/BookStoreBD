@@ -1,3 +1,5 @@
+import { allowed } from './consent.js';
+
 /**
  * Speech to text for the search box, through the browser's own speech
  * recognition (Chrome, Edge, Safari and Samsung Internet; not Firefox).
@@ -39,6 +41,7 @@ export const readVoiceLanguage = (): VoiceLanguage => {
 };
 
 export const rememberVoiceLanguage = (language: VoiceLanguage): void => {
+  if (!allowed('preferences')) return;
   try {
     localStorage.setItem(LANG_KEY, language);
   } catch {

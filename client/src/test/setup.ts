@@ -11,6 +11,9 @@ globalThis.URL.revokeObjectURL = vi.fn();
 
 beforeEach(() => {
   localStorage.clear();
+  // Most tests are about something other than the storage consent, so the
+  // visitor has accepted it; the consent tests clear this themselves.
+  localStorage.setItem('consent', JSON.stringify({ version: 1, at: '', preferences: true, personalisation: true, diagnostics: true }));
 });
 
 afterEach(() => {

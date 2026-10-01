@@ -19,6 +19,7 @@ import { flagsFor } from '../utils/bookFlags.js';
 import { PLACEHOLDER_IMAGE } from '../utils/safeImageSrc.js';
 import { isCloudinary, sized, IMAGE_WIDTHS } from '../utils/imageUrl.js';
 import { priceOf } from '../utils/pricing.js';
+import { allowed } from '../utils/consent.js';
 
 /**
  * The orders a wishlist can be put in. The list arrives in the order the books
@@ -65,7 +66,7 @@ export default function Wishlist() {
   const setSort = (value: WishlistSort) => {
     setSortState(value);
     try {
-      localStorage.setItem(SORT_KEY, value);
+      if (allowed('preferences')) localStorage.setItem(SORT_KEY, value);
     } catch {
       // Private browsing: it lasts for this visit only.
     }

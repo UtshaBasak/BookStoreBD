@@ -3,6 +3,7 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 
 import HomePage from './pages/Homepage';
 import BackToTop from './components/BackToTop.js';
+import ConsentBanner from './components/ConsentBanner.js';
 
 /*
  * Every page is its own chunk, so a visitor on the homepage does not download
@@ -275,6 +276,7 @@ export default function App() {
         </Routes>
       </Suspense>
       <BackToTop />
+      <ConsentBanner />
     </BrowserRouter>
   );
 }

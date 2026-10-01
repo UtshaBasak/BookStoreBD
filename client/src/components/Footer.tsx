@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { site } from '../config/site.js';
 import Logo from './Logo.js';
 import { useTheme } from '../utils/theme.js';
+import { openConsentSettings } from '../utils/consent.js';
 import './Footer.css';
 
 /**
@@ -26,6 +27,10 @@ export default function Footer() {
           >
             <span aria-hidden="true">{resolved === 'dark' ? '☀️' : '🌙'}</span>
             {resolved === 'dark' ? 'Light mode' : 'Dark mode'}
+          </button>
+          <button type="button" className="footer-pill" onClick={openConsentSettings}>
+            <span aria-hidden="true">🍪</span>
+            Cookie settings
           </button>
         </div>
       </div>

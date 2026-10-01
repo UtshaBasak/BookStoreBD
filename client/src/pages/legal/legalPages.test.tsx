@@ -50,11 +50,12 @@ describe('policy and information pages', () => {
     }
   });
 
-  it('the privacy policy is honest about the one cookie that is set', () => {
+  it('the privacy policy says what is kept in the browser, and offers the choice again', () => {
     renderPage(<Privacy />);
 
-    expect(screen.getByText(/exactly one cookie/i)).toBeInTheDocument();
     expect(screen.getByText(/no advertising or analytics cookies/i)).toBeInTheDocument();
+    expect(screen.getByText(/one cookie holding your\s+session/i)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /change cookie settings/i })).toBeInTheDocument();
   });
 
   it('the returns policy states the window the API enforces', () => {
