@@ -3,6 +3,9 @@ contact_links:
   - name: Report a security vulnerability
     url: https://github.com/UtshaBasak/BookStoreBD/security/advisories/new
     about: Please report security problems privately here, not in a public issue.
+  - name: Share an idea
+    url: https://github.com/UtshaBasak/BookStoreBD/discussions/new?category=ideas
+    about: New features, upgrades, or a better way to do something, for everyone to discuss and upvote.
   - name: Questions about using the shop
     url: https://github.com/UtshaBasak/BookStoreBD/wiki/Troubleshooting-and-FAQ
     about: Common questions from buyers, sellers and developers.

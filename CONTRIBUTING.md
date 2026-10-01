@@ -12,6 +12,7 @@ merged.
 - [Code style](#code-style)
 - [Project conventions](#project-conventions)
 - [Reporting bugs](#reporting-bugs)
+- [Sharing ideas](#sharing-ideas)
 
 ---
 
@@ -175,6 +176,16 @@ Open an issue using the [bug report template](.github/ISSUE_TEMPLATE/bug_report.
 and include reproduction steps, what you expected, and what actually happened.
 For anything security-sensitive, do not file a public issue: report it privately
 as [SECURITY.md](SECURITY.md) describes.
+
+---
+
+## Sharing ideas
+
+New features, upgrades and better ways of doing things are welcome in
+[Ideas](https://github.com/UtshaBasak/BookStoreBD/discussions/categories/ideas).
+A short form asks what the idea is, who it helps and why it matters, and
+everyone can discuss and upvote it. The most wanted ideas join the
+[roadmap](README.md#coming-soon).
 
 ---
 

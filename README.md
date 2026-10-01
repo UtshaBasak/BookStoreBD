@@ -42,7 +42,7 @@
 [![Render](https://img.shields.io/badge/deployed%20on-Render-46E3B7?logo=render&logoColor=white)](https://render.com)
 [![Cloudinary](https://img.shields.io/badge/images-Cloudinary-3448C5?logo=cloudinary&logoColor=white)](https://cloudinary.com)
 
-[Visit the shop](https://bookstorebd-loum.onrender.com) · [Read the wiki](https://github.com/UtshaBasak/BookStoreBD/wiki) · [Report a bug](https://github.com/UtshaBasak/BookStoreBD/issues/new?template=bug_report.md) · [Request a feature](https://github.com/UtshaBasak/BookStoreBD/issues/new?template=feature_request.md)
+[Visit the shop](https://bookstorebd-loum.onrender.com) · [Read the wiki](https://github.com/UtshaBasak/BookStoreBD/wiki) · [Report a bug](https://github.com/UtshaBasak/BookStoreBD/issues/new?template=bug_report.md) · [Request a feature](https://github.com/UtshaBasak/BookStoreBD/issues/new?template=feature_request.md) · [Share an idea](https://github.com/UtshaBasak/BookStoreBD/discussions/categories/ideas)
 
 </div>
 
@@ -861,9 +861,18 @@ the hardening planned next.
 | 🚚 **Live courier tracking** | Delivery status straight from the courier |
 | 🔔 **SMS alerts** | Order and price alerts by SMS, with per-person preferences for alerts and e-mails |
 | 📲 **Mobile app** | The shop as an installable app for Android and iOS |
+| 🤖 **Interactive chatbot** | A book assistant in Bangla and English: finds books from a description, answers delivery and return questions, tracks orders, and hands over to the seller's chat |
+| 🌐 **Bangla interface** | The whole site in Bangla or English, switched with one tap and remembered |
+| 📅 **Pre-orders** | Reserve new releases before they arrive, especially around the Ekushey Boi Mela |
+| ⚡ **Quick listing by ISBN** | Type or scan an ISBN, and the title, author, publisher and cover fill in by themselves |
+| 💡 **Suggested prices** | A fair price for a used book from its condition and similar listings, shown while it is listed |
+| 🏷️ **Seller coupons and bundles** | Shop coupons, short sales and bundle deals such as "buy 3, get 10% off" |
+| 🧹 **Automatic moderation** | Spam, abuse and misleading listings or reviews flagged for an administrator before anyone has to report them |
+| 🎁 **Reward points and referrals** | Points for buying, reviewing and inviting friends, spent as credit at checkout |
+| 💝 **Gift orders** | Send a book to someone else, with a personal note and gift wrapping |
 
 Track these on the [roadmap issues](https://github.com/UtshaBasak/BookStoreBD/issues?q=label%3Aroadmap),
-and share ideas through a [feature request](https://github.com/UtshaBasak/BookStoreBD/issues/new?template=feature_request.md).
+and share your own in [Ideas](https://github.com/UtshaBasak/BookStoreBD/discussions/categories/ideas), where everyone can discuss and upvote them.
 
 ---
 

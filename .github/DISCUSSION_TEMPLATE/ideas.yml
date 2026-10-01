@@ -1,0 +1,50 @@
+title: "[Idea] "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you for helping shape BookStoreBD. Share a new feature, an upgrade,
+        or a better way to do something the shop already does.
+
+        Before posting, have a look at the [roadmap](https://github.com/UtshaBasak/BookStoreBD#coming-soon)
+        and the ideas already shared. If yours is there, upvote it and add your
+        thoughts, so the most wanted ideas rise to the top.
+  - type: dropdown
+    id: kind
+    attributes:
+      label: What kind of idea is it?
+      options:
+        - A new feature
+        - An upgrade to an existing feature
+        - A better way to do something (easier, faster or clearer)
+    validations:
+      required: true
+  - type: checkboxes
+    id: who
+    attributes:
+      label: Who would it help?
+      options:
+        - label: Buyers
+        - label: Sellers
+        - label: Administrators
+  - type: textarea
+    id: idea
+    attributes:
+      label: Your idea
+      description: What should BookStoreBD do, or do differently?
+      placeholder: Let buyers save several delivery addresses and choose one at checkout.
+    validations:
+      required: true
+  - type: textarea
+    id: why
+    attributes:
+      label: Why it matters
+      description: What is missing, slow or confusing today, and how this would make it better.
+      placeholder: I order for my family at two addresses and retype one every time.
+    validations:
+      required: true
+  - type: textarea
+    id: example
+    attributes:
+      label: An example (optional)
+      description: A situation where it would help, a sketch, or a screenshot of the page it is about.
