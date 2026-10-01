@@ -77,6 +77,19 @@ const hasRun = (value: string): boolean => {
 const lettersOf = (value: string): string =>
   [...value.toLowerCase()].map((c) => UNLEET[c] ?? c).join('').replace(/[^a-z]/g, '');
 
+/**
+ * The part from the first letter (or the @ and $ that stand for letters) to
+ * the last letter: "welcome12345!" is "welcome". A scan rather than a regex
+ * trimming both ends, which backtracks badly on a long run of symbols.
+ */
+const middleWord = (lower: string): string => {
+  let start = 0;
+  while (start < lower.length && !/[a-z@$]/.test(lower.charAt(start))) start += 1;
+  let end = lower.length;
+  while (end > start && !/[a-z]/.test(lower.charAt(end - 1))) end -= 1;
+  return lower.slice(start, end);
+};
+
 const isCommon = (value: string): boolean => {
   const lower = value.toLowerCase();
   // Read three ways: the letters alone ("Welcome12345!" is "welcome"), the
@@ -86,7 +99,7 @@ const isCommon = (value: string): boolean => {
   const readings = [
     lower.replace(/[^a-z]/g, ''),
     lettersOf(value),
-    lettersOf(lower.replace(/^[^a-z@$]+|[^a-z]+$/g, '')),
+    lettersOf(middleWord(lower)),
   ];
   if (!readings[0] && !readings[1]) return true; // all digits and symbols: a PIN, not a password
   return readings.some((letters) => {
