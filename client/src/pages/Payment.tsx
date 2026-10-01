@@ -7,8 +7,10 @@ import {
 import type { ApiError, Book, CheckPromoResponse, CreateOrderResponse, Id, UnavailableItem } from '@shared/api.js';
 
 import { API_BASE_URL, apiFetch } from '../config/api.js';
-import { useCart, useClearCart, useProfile, useSetCartQuantity, useToggleCart } from '../hooks/queries.js';
+import { useCart, useClearCart, useOrder, useProfile, useSetCartQuantity, useToggleCart } from '../hooks/queries.js';
+import OrderPdfButton from '../components/OrderPdfButton.js';
 import QuantityStepper from '../components/QuantityStepper.js';
+import CopyButton from '../components/CopyButton.js';
 import { isOwnProfile } from '../utils/profile.js';
 import { safeImageSrc, PLACEHOLDER_IMAGE } from '../utils/safeImageSrc.js';
 import { sized, IMAGE_WIDTHS } from '../utils/imageUrl.js';
@@ -113,6 +115,8 @@ export default function Payment() {
   const [division, setDivision] = useState(restored?.division ?? '');
   const [district, setDistrict] = useState(restored?.district ?? '');
   const [address, setAddress] = useState(restored?.address ?? '');
+  // A few words to the seller: "please call before you come".
+  const [buyerNote, setBuyerNote] = useState('');
   const [promo, setPromo] = useState(restored?.promo ?? '');
   const [promoMsg, setPromoMsg] = useState('');
   const [promoApplied, setPromoApplied] = useState(restored?.promoApplied ?? false);
@@ -134,6 +138,8 @@ export default function Payment() {
   const freezeQuantities = setConfirmedQuantities;
   const [orderConfirmed, setOrderConfirmed] = useState(Boolean(restored));
   const [confirmError, setConfirmError] = useState('');
+  // The order as the server has it, once placed: what the PDF receipt is drawn from.
+  const { data: placedOrder } = useOrder(orderConfirmed && orderNumber ? orderNumber : undefined);
 
   // The live cart only matters until an order is confirmed; after that the
   // page shows what was actually bought.
@@ -356,7 +362,8 @@ export default function Payment() {
         contactPhone: user.phone,
         deliveryDivision: division,
         deliveryDistrict: district,
-        deliveryAddress: address
+        deliveryAddress: address,
+        ...(buyerNote.trim() ? { buyerNote: buyerNote.trim() } : {}),
       })
     })
     .then(async res => ({ ok: res.ok, data: (await res.json()) as CreateOrderResponse & ApiError & { unavailable?: UnavailableItem[] } }))
@@ -506,7 +513,7 @@ export default function Payment() {
 
               <div className="relative mt-6">
                 <div className="text-xs font-bold tracking-wider text-ink-muted uppercase">Order number</div>
-                <div className="order-no">#{orderNumber}</div>
+                <div className="order-no">#{orderNumber}<CopyButton text={orderNumber} /></div>
               </div>
 
               <p className="relative mx-auto mt-5 mb-0 max-w-sm text-sm leading-relaxed text-ink-muted">
@@ -515,6 +522,7 @@ export default function Payment() {
               </p>
 
               <div className="relative mt-7 flex flex-col items-stretch justify-center gap-3 sm:flex-row sm:items-center">
+                {placedOrder && <OrderPdfButton order={placedOrder} role="buyer" />}
                 <button
                   type="button"
                   className="btn btn-accent"
@@ -548,6 +556,7 @@ export default function Payment() {
               <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
                 <h2 className="m-0 text-lg">Order Summary</h2>
                 <span className="font-mono text-sm font-bold text-brand-dark">#{orderNumber}</span>
+                <CopyButton text={orderNumber} />
               </div>
               <ul className="m-0 list-none p-0">
                 {cartBooks.map(book => (
@@ -920,6 +929,24 @@ export default function Payment() {
                   onChange={e => setAddress(e.target.value)}
                   style={{ minHeight: 96, padding: '12px 14px', resize: 'none' }}
                 />
+              </div>
+              <div className="sm:col-span-2">
+                <label htmlFor="checkout-note" className="pay-label">
+                  Note to the seller <span className="font-normal text-ink-muted">(optional)</span>
+                </label>
+                <textarea
+                  id="checkout-note"
+                  name="buyerNote"
+                  className="field"
+                  placeholder="For example: please call before delivery, or a gift - no price inside"
+                  rows={2}
+                  maxLength={300}
+                  value={buyerNote}
+                  onChange={e => setBuyerNote(e.target.value)}
+                  disabled={orderConfirmed}
+                  style={{ minHeight: 64, padding: '12px 14px', resize: 'vertical' }}
+                />
+                <p className="m-0 mt-1 text-right text-xs text-ink-muted">{buyerNote.length}/300</p>
               </div>
             </div>
 

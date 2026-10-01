@@ -77,6 +77,11 @@ export default function DescriptionForm() {
       return;
     }
 
+    if (images.length === 0) {
+      toast.warning('Please add at least one photo showing what is wrong - returns are decided on them.');
+      return;
+    }
+
     if (images.length > MAX_IMAGES) {
       toast.warning(`${MAX_IMAGES} images at most, please.`);
       return;
@@ -229,7 +234,7 @@ export default function DescriptionForm() {
             />
 
             <label htmlFor="defect-images" className="mb-1.5 block text-sm font-semibold text-ink-soft">
-              Photographs of the damage (up to {MAX_IMAGES}, optional)
+              Photographs of the damage (at least 1, up to {MAX_IMAGES})
             </label>
             {/* The browser's own file control, with its button made to match. */}
             <input

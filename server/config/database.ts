@@ -52,6 +52,28 @@ export const connectDatabase = async (): Promise<Connection> => {
     log.error({ err: error }, 'Could not backfill sale prices');
   }
 
+  // And a sound-alike search key (utils/phonetic.ts), which listings from
+  // before it existed do not have. Worked out in code, so one at a time.
+  try {
+    const { default: AddBook } = await import('../models/AddBook.model.js');
+    const { bookSearchKey } = await import('../utils/phonetic.js');
+    const missing = await AddBook.find(
+      // Missing, or from before keys carried their word-by-word half.
+      { $or: [{ searchKey: { $exists: false } }, { searchKey: { $not: /\|/ } }] },
+      { title: 1, author: 1 }
+    ).lean();
+    if (missing.length) {
+      await AddBook.bulkWrite(
+        missing.map((book) => ({
+          updateOne: { filter: { _id: book._id }, update: { $set: { searchKey: bookSearchKey(book) } } },
+        }))
+      );
+      log.info({ count: missing.length }, 'Gave older listings a search key');
+    }
+  } catch (error) {
+    log.error({ err: error }, 'Could not backfill search keys');
+  }
+
   mongoose.connection.on('error', (error: unknown) => {
     log.error({ err: error }, 'MongoDB connection error');
   });

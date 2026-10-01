@@ -1,6 +1,6 @@
 import express from 'express';
 
-import { Booklist, ByIds, Featured, ForYou, Sections } from '../controllers/filter.controller.js';
+import { Booklist, ByIds, Featured, ForYou, Sections, Suggest } from '../controllers/filter.controller.js';
 import { optionalAuth } from '../middleware/auth.js';
 import { validate } from '../middleware/validate.js';
 import { filterSchemas } from '../schemas/index.js';
@@ -17,6 +17,8 @@ const router = express.Router();
  * becoming a query operator.
  */
 router.get('/booklist', validate(filterSchemas.catalogue), Booklist);
+// The search box's suggestions as somebody types: a few books and sellers.
+router.get('/suggest', validate(filterSchemas.suggest), Suggest);
 router.get('/featured', validate(filterSchemas.featured), Featured);
 
 // The homepage's shelves, in one request.

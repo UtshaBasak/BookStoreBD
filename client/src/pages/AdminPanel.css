@@ -1108,3 +1108,129 @@
   flex: none;
   margin-top: 3px;
 }
+
+/* ---------------------------------------------------------------- messages */
+.am-form {
+  display: grid;
+  gap: 18px;
+  max-width: 760px;
+  padding: clamp(16px, 3vw, 24px);
+}
+.am-group {
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+.am-group legend,
+.am-field > span {
+  margin-bottom: 6px;
+  color: var(--color-ink);
+  font-weight: 800;
+}
+.am-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.am-chips .chip {
+  gap: 6px;
+  cursor: pointer;
+}
+/* The chosen option, spelled out here as well so the panel never depends on
+   another page's stylesheet having been loaded first. */
+.am-chips .chip.is-on {
+  background: linear-gradient(135deg, var(--color-brand), var(--color-brand-light));
+  border-color: var(--color-brand);
+  color: #fff;
+  box-shadow: 0 4px 12px rgba(109, 40, 217, 0.25);
+}
+/* The radio inside each chip is hidden, so the chip shows its focus. */
+.am-chips .chip:has(input:focus-visible) {
+  outline: 2px solid var(--color-brand);
+  outline-offset: 2px;
+}
+.am-note {
+  margin: 6px 0 0;
+  color: var(--color-ink-muted);
+  font-size: 0.85rem;
+}
+.am-people {
+  display: grid;
+  gap: 10px;
+  margin-top: 12px;
+}
+.am-chosen,
+.am-found {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.am-chosen li,
+.am-found li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 6px 10px;
+  border: 1px solid var(--color-line);
+  border-radius: 12px;
+  overflow-wrap: anywhere;
+}
+.am-chosen li {
+  background: var(--color-brand-tint);
+}
+.am-chosen button {
+  min-height: 32px;
+  padding: 0 8px;
+  border: 0;
+  background: transparent;
+  color: var(--color-ink-muted);
+}
+.am-field {
+  display: grid;
+  gap: 2px;
+}
+.am-field textarea {
+  resize: vertical;
+}
+.am-error {
+  color: #b91c1c;
+  font-weight: 600;
+}
+.am-preview {
+  display: flex;
+  gap: 12px;
+  padding: 12px 14px;
+  border: 1px dashed var(--color-brand-line);
+  border-radius: 14px;
+  background: #faf9fe;
+}
+.am-preview-icon {
+  font-size: 1.3rem;
+}
+.am-preview-body {
+  display: block;
+  color: var(--color-ink-soft);
+  font-size: 0.9rem;
+  white-space: pre-line;
+}
+.am-send {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+}
+.am-reach {
+  margin: 0 auto 0 0;
+  color: var(--color-ink-muted);
+}
+
+.admin-head-tools {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}

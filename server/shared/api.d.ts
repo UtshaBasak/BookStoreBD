@@ -205,6 +205,40 @@ export interface PopularWriter {
   sold: number;
 }
 
+/** A seller found by name: in the search box's suggestions and on the browse page. */
+export interface SellerHit {
+  username: string;
+  avatar: string | null;
+  /** How many books they have listed. */
+  books: number;
+}
+
+/** One book the search box suggests. */
+export interface SuggestBook {
+  _id: Id;
+  title: string;
+  author: string;
+  cover: string | null;
+  price: number;
+  salePrice: number;
+  discountPercent: number;
+  inStock: boolean;
+}
+
+/** GET /filter/suggest?q= */
+export interface SuggestResponse {
+  books: SuggestBook[];
+  sellers: SellerHit[];
+}
+
+/** GET and POST /book/:id/request - asking for a sold-out book to come back. */
+export interface BookRequestStatus {
+  /** Whether the person asking has an open request for it. */
+  requested: boolean;
+  /** Open requests from everyone, for the seller. */
+  count: number;
+}
+
 /** GET /user/shop/:username - a seller's shop front. */
 export interface SellerShop {
   username: string;
@@ -430,6 +464,8 @@ export interface OrderLine {
   promo?: string;
   promoApplied?: boolean;
   isReturned?: number;
+  /** The buyer's note to the seller, given at checkout. */
+  buyerNote?: string;
   /** When, by whom and why a cancelled line was called off. */
   cancelledAt?: IsoDate | null;
   cancelledBy?: 'buyer' | 'seller' | 'admin' | '';
@@ -493,6 +529,8 @@ export interface CreateOrderRequest {
   deliveryDivision?: string;
   deliveryDistrict?: string;
   deliveryAddress?: string;
+  /** A short note from the buyer to the seller, such as a delivery time. */
+  buyerNote?: string;
 }
 
 /** A line that could not be fulfilled because stock ran out first. */
@@ -816,7 +854,57 @@ export type NotificationType =
   | 'review'
   | 'review-reply'
   | 'review-reported'
-  | 'deal';
+  | 'deal'
+  | 'price-drop'
+  | 'book-request'
+  | 'back-in-stock'
+  | 'announcement';
+
+/** POST /auth/password-check */
+export interface PasswordCheckRequest {
+  password: string;
+  email?: string;
+  username?: string;
+}
+
+export interface PasswordCheckResponse {
+  ok: boolean;
+  /** The rules it breaks, by id (client/src/utils/passwordPolicy.ts). */
+  problems: string[];
+  /** Why it would be refused, including a known breach; '' when it is fine. */
+  message: string;
+}
+
+/** Who an administrator's message goes to. */
+export type MessageAudience = 'users' | 'buyers' | 'sellers' | 'all';
+export type MessageChannel = 'notification' | 'email' | 'both';
+
+/** POST /admin/message */
+export interface AdminMessageRequest {
+  channel: MessageChannel;
+  audience: MessageAudience;
+  /** With audience 'users': who, by e-mail address. */
+  emails?: string[];
+  title: string;
+  body: string;
+  /** A page inside the site to open, such as /filter?deals=1. */
+  link?: string;
+}
+
+export interface AdminMessageResponse {
+  message: string;
+  recipients: number;
+  notified: number;
+  emailed: number;
+  /** E-mails that could not be sent. */
+  failed: number;
+}
+
+/** GET /admin/message/audience - how many a message would reach. */
+export interface AudienceCount {
+  audience: MessageAudience;
+  recipients: number;
+}
 
 /** One thing somebody was told about, for the bell. */
 export interface NotificationItem {

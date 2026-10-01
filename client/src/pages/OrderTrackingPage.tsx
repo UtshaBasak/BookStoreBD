@@ -4,6 +4,8 @@ import { FaCheck, FaMapMarkerAlt, FaMoneyBillWave, FaTimesCircle, FaTruck, FaUse
 
 import '../styles/orderTracking.css';
 import CancelOrder, { CancelledNote } from '../components/CancelOrder.js';
+import CopyButton from '../components/CopyButton.js';
+import OrderPdfButton from '../components/OrderPdfButton.js';
 import NotificationBell from '../components/NotificationBell.js';
 import { useOrder, useUpdateOrderStatus } from '../hooks/queries.js';
 import { CANCELLED } from '../utils/orderTotals.js';
@@ -103,9 +105,12 @@ export default function OrderTrackingPage() {
             </span>
           </div>
           <ul className="ot-meta">
-            <li><b>Order Number:</b> <span className="ot-mono">{order.orderNumber}</span></li>
+            <li><b>Order Number:</b> <span className="ot-mono">{order.orderNumber}</span><CopyButton text={order.orderNumber} /></li>
             <li><b>Placed On:</b> {order.createdAt ? new Date(order.createdAt).toLocaleString() : ''}</li>
           </ul>
+          <div className="ot-doc-row">
+            <OrderPdfButton order={order} role="buyer" />
+          </div>
 
           <CancelledNote lines={order.books ?? []} />
 
@@ -173,6 +178,7 @@ export default function OrderTrackingPage() {
             <p className="ot-row">Division: <b>{order.deliveryDivision}</b></p>
             <p className="ot-row">District: <b>{order.deliveryDistrict}</b></p>
             <p className="ot-row">Address: <b>{order.deliveryAddress}</b></p>
+            {order.buyerNote && <p className="ot-row ot-note">Your note to the seller: <b>{order.buyerNote}</b></p>}
           </section>
         </div>
 

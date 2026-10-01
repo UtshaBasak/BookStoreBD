@@ -12,6 +12,8 @@ import {
 import './AdminPanel.css';
 import Logo from '../components/Logo.js';
 import CancelOrder, { CancelledNote } from '../components/CancelOrder.js';
+import CopyButton from '../components/CopyButton.js';
+import OrderPdfButton from '../components/OrderPdfButton.js';
 import { useOrder, useUpdateOrderStatus } from '../hooks/queries.js';
 import { messageOf } from '../utils/apiError.js';
 import { isAdmin } from '../utils/auth.js';
@@ -130,8 +132,11 @@ export default function AdminOrderTrackingPage() {
               Move the order along as it happens; the buyer sees each step on their own tracking page.
             </p>
           </div>
-          <span className={`badge admin-status admin-status-lg ${statusTone(currentStatus)}`}>
-            {currentStatus}
+          <span className="admin-head-tools">
+            <OrderPdfButton order={order} role="admin" className="btn btn-ghost admin-btn-sm" />
+            <span className={`badge admin-status admin-status-lg ${statusTone(currentStatus)}`}>
+              {currentStatus}
+            </span>
           </span>
         </header>
 
@@ -184,7 +189,7 @@ export default function AdminOrderTrackingPage() {
             <dl className="admin-facts">
               <div>
                 <dt>Order Number:</dt>
-                <dd className="admin-mono" style={{ color: '#ff5c35' }}>{order.orderNumber}</dd>
+                <dd className="admin-mono" style={{ color: '#ff5c35' }}>{order.orderNumber}<CopyButton text={order.orderNumber} /></dd>
               </div>
               <div>
                 <dt>Placed On:</dt>
@@ -238,6 +243,12 @@ export default function AdminOrderTrackingPage() {
                 <dt>Address:</dt>
                 <dd>{order.deliveryAddress || ''}</dd>
               </div>
+              {order.buyerNote && (
+                <div>
+                  <dt>Buyer&apos;s note:</dt>
+                  <dd style={{ whiteSpace: 'pre-line' }}>{order.buyerNote}</dd>
+                </div>
+              )}
             </dl>
           </section>
         </div>

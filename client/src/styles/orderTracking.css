@@ -436,3 +436,10 @@
     width: 100%;
   }
 }
+
+.ot-doc-row {
+  margin-top: 0.75rem;
+}
+.ot-note b {
+  white-space: pre-line;
+}

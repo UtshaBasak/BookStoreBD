@@ -2,6 +2,7 @@ import { Schema, type HydratedDocument, type InferSchemaType, type Types } from 
 
 import { defineModel } from './defineModel.js';
 import { priceWith } from '../config/pricing.js';
+import { bookSearchKey } from '../utils/phonetic.js';
 
 const AddBookSchema = new Schema({
   title: { type: String, required: true },
@@ -48,6 +49,11 @@ const AddBookSchema = new Schema({
   salePrice: { type: Number, min: 0 },
   discountPercent: { type: Number, default: 0, min: 0 },
   discountAmount: { type: Number, default: 0, min: 0 },
+  /*
+   * Title and author as sound-alike keys (utils/phonetic.ts), so a search in
+   * English finds a Bangla title and the other way round. Worked out on save.
+   */
+  searchKey: { type: String, default: '' },
 });
 
 AddBookSchema.pre('validate', function () {
@@ -64,6 +70,9 @@ AddBookSchema.pre('validate', function () {
   this.salePrice = priced.salePrice;
   this.discountPercent = priced.discountPercent;
   this.discountAmount = priced.discountAmount;
+  if (this.isNew || this.isModified('title') || this.isModified('author') || !this.searchKey?.includes('|')) {
+    this.searchKey = bookSearchKey(this);
+  }
 });
 
 /*

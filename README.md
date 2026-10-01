@@ -64,6 +64,12 @@ It ships three distinct experiences from one codebase:
 ### Authentication and access control
 
 - Email/password sign-up and sign-in, with passwords hashed using `bcryptjs`
+- A new password must be 12 to 128 characters with a lowercase and an uppercase
+  letter, a number and a symbol; not contain the person's name or e-mail; not
+  be a common password or a run like "aaaa" or "1234"; and not appear in a known
+  data breach (Have I Been Pwned, by k-anonymity). The form ticks each rule off
+  as it is typed. Passwords set before the rules keep working - only a password
+  being set is checked. Rules in [`server/utils/passwordPolicy.ts`](server/utils/passwordPolicy.ts)
 - Stateless JWT sessions; every protected endpoint verifies the token server-side
 - Role-based authorisation (`user` / `admin`) plus per-resource ownership checks
 - Email verification and password reset via one-time codes, sent as branded HTML
@@ -76,6 +82,11 @@ It ships three distinct experiences from one codebase:
 - About a hundred single-subject categories in six groups - Academic, Fiction,
   Non-fiction, Kids & teens, Lifestyle & hobbies, Other - from one list,
   [`client/src/config/categories.ts`](client/src/config/categories.ts)
+- Suggestions under every search box as you type: books, sellers, and "search for"
+- Search across Bangla and English: "pather panchali" finds পথের পাঁচালী and
+  "হ্যারি পটার" finds Harry Potter, by a sound-alike key of the consonants
+  ([`server/utils/phonetic.ts`](server/utils/phonetic.ts))
+- Sellers found by name on the browse page, each linking to their shop
 - Case-insensitive search by title, author or ISBN, filters for type, condition,
   category, price, rating, stock and deals, and seven orders: Relevant (deals
   first, the default), biggest % off, biggest ৳ saving, newest, highest rated,
@@ -108,7 +119,15 @@ It ships three distinct experiences from one codebase:
   shown struck through. Rules in [`server/config/pricing.ts`](server/config/pricing.ts)
 - Wishlist and cart, both scoped per user; the wishlist sorts seven ways, and
   the cart holds several copies of a book, chosen on the book page or in the cart
-- Checkout capturing delivery division, district, address, contact and payment method
+- Checkout capturing delivery division, district, address, contact, payment
+  method, and an optional note to the seller
+- A sold-out book can be asked for: the seller hears someone is waiting, and
+  the person asking hears when it is back
+- A share button on every book: Facebook, WhatsApp, X, Telegram, e-mail, the
+  phone's own share sheet, or copy the link
+- Every order number has a copy button, and every order downloads as a PDF laid
+  out for its reader: a receipt for the buyer, a slip with the payout for the
+  seller, the full record for an administrator
 - Delivery charges worked out by the server from the district: 70 Tk in Dhaka, 120 Tk elsewhere
 - Promo codes priced by the server from one list, `server/config/promotions.ts`: `BookStoreBD` (50 Tk off a first order) and `FreeDelivery` (free delivery on 1000 Tk of books), one per order
 - A 16-character order number shared by every line item in a single order
@@ -119,7 +138,7 @@ It ships three distinct experiences from one codebase:
   books) until they ship, an administrator until delivery. The stock goes back
   on sale, cancelled books are left out of every total, and the others in the
   order are told why. Rules in [`server/config/commerce.ts`](server/config/commerce.ts)
-- Returns within 7 days of delivery, with a defect description, photos and a bKash number for the refund - one book, or a whole order in one request
+- Returns within 7 days of delivery, with a defect description, at least one photo and a bKash number for the refund - one book, or a whole order in one request
 - Seller payouts by bKash to the seller's merchant number once an order's return window closes, less a 5% fee, recorded with the bKash transaction ID. Orders still inside the window are listed too, with the date each becomes payable
 
 ### Notifications
@@ -129,15 +148,28 @@ It ships three distinct experiences from one codebase:
 - Everyone in an order hears what concerns them: the buyer, each seller and
   the administrators are told of a new order, a status change, a cancellation,
   a book selling out, a return asked for or decided, a payout, a review, a
-  seller's reply, a reported review, and a deal on a wishlisted book
+  seller's reply, and a reported review
+- Stock and price: a seller hears when a book drops to five or fewer and when
+  it sells out; buyers with it in their cart or on their wishlist hear when it
+  drops to five or fewer, and when its price falls below what it was when they
+  added it; whoever asked for a sold-out book hears when it is back
 - Delivered live over the chat's Socket.IO connection, with a short toast;
   kept for 90 days
+
+### E-mails
+
+- In the shop's branded design, beside the bell: order confirmed, delivered and
+  cancelled to the buyer and each seller; a return decided to the buyer; a
+  return requested to the seller
+- Sent in the background, so an order never waits on a mail server
 
 ### Administration
 
 - Users, transactions, books, returns, payouts, every review and reported
   reviews, each searchable, filterable, sortable and refreshable
 - The administrator can move an order through every stage, and cancel it
+- Messages: a notification, a branded e-mail or both, to chosen people or to
+  every buyer, every seller or everyone - never to administrators
 
 ### Profiles
 
@@ -458,6 +490,8 @@ check. `JWT_SECRET` is required; Compose refuses to start without it.
 | `SEED_PASSWORD` | | `***REMOVED***` | Password given to the seeded demo accounts |
 | `MAX_UPLOAD_BYTES` | | `5242880` | Per-file upload ceiling (5 MB) |
 | `MAX_UPLOAD_FILES` | | `10` | Files accepted per multi-upload request |
+| `RETURN_ADDRESS` | | — | Where approved returns are sent, quoted in the approval e-mail; blank asks the buyer to reply |
+| `PASSWORD_BREACH_CHECK` | | on | `off` skips the check of new passwords against known breaches (always off under test) |
 
 ¹ Required only for the OTP flows (sign-up verification and password reset):
 `SMTP_USER` always (it is the sender), plus either `SMTP_PASS` or the three
@@ -743,6 +777,7 @@ administrator without a migration.
 | `POST` | `/auth/send-otp` | Send a one-time code (`purpose`: `register` or `reset`) |
 | `POST` | `/auth/verify-otp` | Verify a one-time code |
 | `POST` | `/auth/reset-password` | Reset a password using a valid OTP; ends every session |
+| `POST` | `/auth/password-check` | Whether a password would be accepted, breach check included: `{ ok, problems, message }` |
 | `POST` | `/auth/refresh` | Rotate the refresh cookie, return a new access token |
 | `POST` | `/auth/logout` | Revoke the session and clear the cookie |
 
@@ -768,12 +803,17 @@ administrator without a migration.
 | --- | --- | --- |
 | `GET` | `/book/admin` | One page of every listing (admin) |
 | `GET` | `/book/:id` | Book detail plus related titles |
+| `GET` | `/book/:id/request` | Whether you asked for this sold-out book, and how many have |
+| `POST` | `/book/:id/request` | Ask for a sold-out book to come back; `409` while it is in stock |
+| `DELETE` | `/book/:id/request` | Withdraw that request |
+| `GET` | `/book/requests/mine` | Open requests for each of your books, by id |
 | `GET` | `/book/seller/:email` | Every listing by one seller |
 | `PUT` | `/book/update-stock/:id` | Set stock; carts keep the book, marked sold out at 0 |
 | `PUT` | `/book/update-price/:id` | Set price; drops a taka discount that no longer fits |
 | `PUT` | `/book/discount/:id` | The seller's discount: `{ type: 'percent' \| 'amount', value }` or `{ type: 'none' }` |
 | `DELETE` | `/book/:id` | Delete a listing |
 | `GET` | `/filter/booklist` | One page of the catalogue, filtered |
+| `GET` | `/filter/suggest?q=` | Suggestions while typing: `{ books, sellers }`, with `books` and `sellers` limits |
 | `GET` | `/filter/featured` | The newest few, one per title |
 | `GET` | `/filter/sections` | Every homepage shelf, writers and category counts |
 | `GET` | `/filter/by-ids?ids=` | Books in the order asked (Recently viewed) |
@@ -871,6 +911,13 @@ is and keeps counting towards the score until an administrator decides
 otherwise, because anything else makes "report" a button for removing an
 inconvenient review.
 
+### Messages — `/admin`
+
+| Method | Endpoint | Description |
+| --- | --- | --- |
+| `GET` | `/admin/message/audience?audience=` | How many a message would reach |
+| `POST` | `/admin/message` | `{ channel: notification \| email \| both, audience: users \| buyers \| sellers \| all, emails?, title, body, link? }` |
+
 ### Notifications — `/notification`
 
 | Method | Endpoint | Description |
@@ -959,6 +1006,7 @@ not its bytes.
 | `ReturnRequest` | `returnrequests` | Return requests with defect details and status |
 | `ChatMessage` | `chatmessages` | Messages with read state, indexed by sender/receiver/time |
 | `Notification` | `notifications` | What the bell shows, per person; removed after 90 days |
+| `BookRequest` | `bookrequests` | Somebody waiting for a sold-out book; closed when it is back |
 
 ---
 
@@ -1028,7 +1076,7 @@ What is planned for the near future, beyond the shop as it stands.
 | 🔄 **Book exchange** | Swap finished books with other readers instead of selling them: list what you have and what you want, get matched with a reader who has it, and trade through the same courier and chat the shop already runs. Exchange credit for a book given, to spend on a book received, so a swap does not need both sides at once. |
 | 💳 **Online payment** | bKash, Nagad and card payments at checkout, next to cash on delivery, with refunds back to the same account. |
 | 🚚 **Live courier tracking** | Delivery status straight from the courier, so an order's progress updates on its own rather than when the seller moves it on. |
-| 🔔 **E-mail and SMS alerts** | The bell's news by e-mail and SMS too - an order shipped, a return decided, a deal on a wishlisted book - for anyone not on the site. |
+| 🔔 **SMS alerts** | The bell's news by SMS too - an order shipped, a return decided, a price drop on a saved book - and a choice of which alerts and e-mails each person gets. |
 | ⭐ **Seller ratings** | A score for each seller from their buyers, shown on every listing, for trust between people who have never met. |
 | 📲 **Mobile app** | The shop as an installable app for Android and iOS, with the cart, wishlist and chat always to hand. |
 

@@ -147,6 +147,16 @@
   border-color: var(--color-brand-line);
   color: var(--color-brand-dark);
 }
+/* A chip that is switched on: a filter, a choice. With .chip, so every page
+   that draws chips draws the chosen one too. */
+.chip.is-on,
+.chip.is-on:hover,
+.chip.is-on:focus-visible {
+  background: linear-gradient(135deg, var(--color-brand), var(--color-brand-light));
+  border-color: var(--color-brand);
+  color: #fff;
+  box-shadow: 0 4px 12px rgba(109, 40, 217, 0.25);
+}
 .chip-strong {
   background: var(--color-brand-deep);
   border-color: var(--color-brand-deep);

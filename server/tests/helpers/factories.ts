@@ -6,7 +6,7 @@ import type { BookAttributes, BookDocument } from '../../models/AddBook.model.js
 import type { UserAttributes, UserDocument } from '../../models/user.model.js';
 import type { PrefixedRequest } from './testApp.js';
 
-export const PASSWORD = 'correct-horse-battery';
+export const PASSWORD = 'Tangerine-Lantern-42!';
 
 /**
  * A real 1x1 PNG.

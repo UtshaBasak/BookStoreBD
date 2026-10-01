@@ -2,9 +2,11 @@ import { useState, useEffect, type ChangeEvent, type FormEvent } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { FaBookOpen, FaHeart, FaStore } from 'react-icons/fa';
 
-import type { ApiError, SessionResponse } from '@shared/api.js';
+import type { ApiError, PasswordCheckResponse, SessionResponse } from '@shared/api.js';
 
 import Logo from '../components/Logo.js';
+import PasswordChecklist from '../components/PasswordChecklist.js';
+import { passwordReady } from '../utils/passwordPolicy.js';
 import { API_BASE_URL, apiFetch } from '../config/api.js';
 import { site } from '../config/site.js';
 import { useToast } from '../hooks/useToast.js';
@@ -26,6 +28,8 @@ export default function SignUp() {
     const [otp, setOtp] = useState('');
     const [otpMsg, setOtpMsg] = useState('');
     const [emailForOtp, setEmailForOtp] = useState('');
+    const [showPassword, setShowPassword] = useState(false);
+    const [checking, setChecking] = useState(false);
     const navigate = useNavigate();
     const toast = useToast();
 
@@ -84,6 +88,28 @@ export default function SignUp() {
         }
         // Prevent sending OTP if already in OTP step
         if (step === 'otp') return;
+        const context = { email: formData.email, username: formData.username };
+        if (!passwordReady(formData.password, context)) {
+            toast.warning('Your password does not meet every rule yet - see the list under it.');
+            return;
+        }
+        // The server's word, before a code is sent: it also knows passwords
+        // that have leaked elsewhere, which the list above cannot.
+        setChecking(true);
+        try {
+            const res = await apiFetch(`${API_BASE_URL}/auth/password-check`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ password: formData.password, ...context }),
+            });
+            const verdict = (await res.json()) as PasswordCheckResponse & ApiError;
+            if (!res.ok || !verdict.ok) {
+                toast.error(verdict.message || 'Please choose a different password.');
+                return;
+            }
+        } finally {
+            setChecking(false);
+        }
         await handleSendOtp(formData.email);
     };
 
@@ -165,9 +191,19 @@ export default function SignUp() {
                             />
                         </div>
                         <div>
-                            <label htmlFor="password" className="auth-label">Password</label>
+                            <div className="auth-label-row">
+                                <label htmlFor="password" className="auth-label">Password</label>
+                                <button
+                                    type="button"
+                                    className="auth-show"
+                                    onClick={() => setShowPassword((shown) => !shown)}
+                                    aria-pressed={showPassword}
+                                >
+                                    {showPassword ? 'Hide' : 'Show'}
+                                </button>
+                            </div>
                             <input
-                                type="password"
+                                type={showPassword ? 'text' : 'password'}
                                 placeholder="Password"
                                 id="password"
                                 name="password"
@@ -176,10 +212,18 @@ export default function SignUp() {
                                 autoComplete="new-password"
                                 onChange={handleChange}
                                 className="field"
+                                aria-describedby="signup-password-rules"
+                                maxLength={128}
+                            />
+                            <PasswordChecklist
+                                id="signup-password-rules"
+                                password={formData.password ?? ''}
+                                email={formData.email}
+                                username={formData.username}
                             />
                         </div>
-                        <button type="submit" className="btn btn-primary auth-wide">
-                            Send OTP
+                        <button type="submit" className="btn btn-primary auth-wide" disabled={checking}>
+                            {checking ? 'Checking...' : 'Send OTP'}
                         </button>
                         {/*
                           A sentence rather than a tick-box: it says the same

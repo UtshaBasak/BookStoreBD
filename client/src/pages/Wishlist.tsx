@@ -11,6 +11,7 @@ import { useCart, useToggleCart, useToggleWishlist, useWishlist } from '../hooks
 import { promptSignIn, useToast } from '../hooks/useToast.js';
 import Logo from '../components/Logo.js';
 import NotificationBell from '../components/NotificationBell.js';
+import RequestBookButton from '../components/RequestBookButton.js';
 import PriceTag from '../components/PriceTag.js';
 import { getUserEmail } from '../utils/auth.js';
 import { flagsFor } from '../utils/bookFlags.js';
@@ -271,7 +272,7 @@ export default function Wishlist() {
                           {inCart ? 'Remove from Cart' : 'Add to Cart'}
                         </button>
                       ) : (
-                        <div className="wishlist-sold-out">Out of Stock</div>
+                        <RequestBookButton bookId={book._id} sellerEmail={book.sellerEmail} className="btn btn-ghost wishlist-request" />
                       )}
                     </div>
                   </div>

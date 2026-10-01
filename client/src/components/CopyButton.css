@@ -1,0 +1,36 @@
+.copy-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-height: 28px;
+  margin-left: 6px;
+  padding: 0 8px;
+  border: 1px solid var(--color-line);
+  border-radius: 999px;
+  background: #fff;
+  color: var(--color-brand);
+  font-family: inherit;
+  font-size: 0.72rem;
+  font-weight: 700;
+  line-height: 1;
+  vertical-align: middle;
+  cursor: pointer;
+}
+.copy-btn:hover,
+.copy-btn:focus-visible {
+  border-color: var(--color-brand-light);
+  background: var(--color-brand-tint);
+}
+.copy-btn.is-copied {
+  border-color: #86efac;
+  color: #15803d;
+}
+.copy-btn svg {
+  flex: none;
+}
+@media (pointer: coarse) {
+  .copy-btn {
+    min-height: 36px;
+    padding: 0 10px;
+  }
+}

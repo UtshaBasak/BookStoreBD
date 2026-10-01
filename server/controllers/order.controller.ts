@@ -21,6 +21,7 @@ import { createLogger } from '../config/logger.js';
 import { errorMessage } from '../utils/error.js';
 import {
   CANCELLED,
+  RETURN_WINDOW_DAYS,
   ORDER_STAGES,
   SELLER_LAST_STAGE,
   canCancel,
@@ -30,6 +31,16 @@ import {
   statusChangeProblem,
 } from '../config/commerce.js';
 import { adminEmails, notify } from '../utils/notify.js';
+import { stockChanged } from '../utils/catalogueEvents.js';
+import {
+  dispatchShopMail,
+  orderCancelledEmail,
+  orderDeliveredBuyerEmail,
+  orderDeliveredSellerEmail,
+  orderPlacedBuyerEmail,
+  orderPlacedSellerEmail,
+  type OrderFacts,
+} from '../utils/shopMail.js';
 import { applyPromotion, findPromotion } from '../config/promotions.js';
 import { unitPriceOf } from '../config/pricing.js';
 
@@ -188,8 +199,17 @@ const announceOrder = async (
   orderNumber: string,
   buyer: string,
   reserved: readonly { book: BookDocument; quantity: number }[],
-  { total }: { total: number }
+  { total, facts }: { total: number; facts: OrderFacts }
 ): Promise<void> => {
+  // E-mails first, since they go in the background: one to the buyer, and
+  // one to each seller about their own books.
+  const priced = (list: typeof reserved) =>
+    list.map(({ book, quantity }) => ({ title: book.title, quantity, price: unitPriceOf(book) }));
+  dispatchShopMail(buyer, orderPlacedBuyerEmail(facts, priced(reserved)));
+  for (const seller of new Set(reserved.map(({ book }) => book.sellerEmail))) {
+    dispatchShopMail(seller, orderPlacedSellerEmail(facts, priced(reserved.filter(({ book }) => book.sellerEmail === seller))));
+  }
+
   const copies = reserved.reduce((sum, { quantity }) => sum + quantity, 0);
   await notify([buyer], {
     type: 'order-placed',
@@ -219,19 +239,6 @@ const announceOrder = async (
     body: `${describeLines(reserved.map(({ book, quantity }) => ({ title: book.title, quantity })))} - ${total} Tk.`,
     link: `/admin/order-tracking/${orderNumber}`,
   }, { except: buyer });
-
-  const soldOut = await AddBook.find(
-    { _id: { $in: reserved.map(({ book }) => book._id) }, stock: 0 },
-    { title: 1, sellerEmail: 1 }
-  ).lean();
-  for (const book of soldOut) {
-    await notify([book.sellerEmail], {
-      type: 'stock',
-      title: `"${book.title}" has sold out`,
-      body: 'Add more copies from your books list if you have them.',
-      link: '/seller-books',
-    });
-  }
 };
 
 export const decreaseStock = async (
@@ -282,21 +289,25 @@ export const decreaseStock = async (
 
     const unavailable: UnavailableItem[] = [];
     const reserved: { book: BookDocument; quantity: number }[] = [];
+    const stockMoves: { book: BookDocument; before: number; after: number }[] = [];
 
     for (const { book, quantity } of wanted) {
       const bookId = String(book._id);
 
       // Reserve stock first: the conditional update is atomic, so two buyers
-      // racing for the last copy cannot both succeed.
-      const taken = await AddBook.updateOne(
+      // racing for the last copy cannot both succeed. It answers with what is
+      // left, which is what decides who hears the book is running low.
+      const taken = await AddBook.findOneAndUpdate(
         { _id: String(bookId), stock: { $gte: quantity } },
-        { $inc: { stock: -quantity } }
-      );
-      if (taken.modifiedCount === 0) {
+        { $inc: { stock: -quantity } },
+        { returnDocument: 'after', projection: { stock: 1 } }
+      ).lean();
+      if (!taken) {
         unavailable.push({ bookId, title: book.title, available: book.stock });
         continue;
       }
       reserved.push({ book, quantity });
+      stockMoves.push({ book, before: Number(taken.stock) + quantity, after: Number(taken.stock) });
     }
 
     /*
@@ -341,6 +352,7 @@ export const decreaseStock = async (
         deliveryDivision: req.body.deliveryDivision || '',
         deliveryDistrict: req.body.deliveryDistrict || '',
         deliveryAddress: req.body.deliveryAddress || '',
+        buyerNote: req.body.buyerNote || '',
         // ---
         shippingCharge,
         discount,
@@ -358,7 +370,21 @@ export const decreaseStock = async (
 
     await announceOrder(orderNumber, String(email), reserved, {
       total: booksTotal + shippingCharge - discount,
+      facts: {
+        orderNumber,
+        contactName: req.body.contactName,
+        contactPhone: req.body.contactPhone,
+        deliveryAddress: req.body.deliveryAddress,
+        deliveryDistrict: req.body.deliveryDistrict,
+        deliveryDivision: req.body.deliveryDivision,
+        shippingCharge,
+        discount,
+        buyerNote: req.body.buyerNote,
+      },
     });
+    for (const move of stockMoves) {
+      await stockChanged(move.book, move.before, move.after, { actor: String(email) });
+    }
 
     res.status(200).json({
       message: 'Stock updated & order saved',
@@ -656,6 +682,15 @@ export const updateOrderStatusByOrderNumber = async (
         body: String(status) === 'Delivered' ? 'Enjoy your books! You can ask for a return within 7 days.' : describeLines(mine),
         link: `/order-tracking/${orderNumber}`,
       });
+      // Delivered: an e-mail each to the buyer and the sellers, beside the bell.
+      if (becomesDelivered && !wasDelivered) {
+        const facts = { orderNumber, contactName: existing[0]?.contactName };
+        dispatchShopMail(existing[0]?.buyerEmail, orderDeliveredBuyerEmail(facts, mine));
+        const payableFrom = new Date(Date.now() + RETURN_WINDOW_DAYS * 24 * 60 * 60 * 1000);
+        for (const seller of new Set(mine.map((line) => line.sellerEmail))) {
+          dispatchShopMail(seller, orderDeliveredSellerEmail(facts, mine.filter((line) => line.sellerEmail === seller), payableFrom));
+        }
+      }
       // When the shop moves it on, the seller hears too.
       if (who === 'admin') {
         await notify([...new Set(mine.map((line) => line.sellerEmail))], {
@@ -721,9 +756,16 @@ export const cancelOrder = async (
       { _id: { $in: lines.map((line) => line._id) }, status: { $ne: CANCELLED } },
       { $set: { status: CANCELLED, cancelledAt: new Date(), cancelledBy: who, cancelReason: reason } }
     );
-    // Back on the shelf, copy for copy.
+    // Back on the shelf, copy for copy - and anyone waiting for a sold-out
+    // copy hears it is back.
     for (const line of lines) {
-      await AddBook.updateOne({ _id: line.bookId }, { $inc: { stock: Number(line.quantity) || 1 } });
+      const copies = Number(line.quantity) || 1;
+      const restored = await AddBook.findOneAndUpdate(
+        { _id: line.bookId },
+        { $inc: { stock: copies } },
+        { returnDocument: 'after', projection: { stock: 1, title: 1, sellerEmail: 1 } }
+      ).lean();
+      if (restored) await stockChanged(restored, Number(restored.stock) - copies, Number(restored.stock), { actor });
     }
 
     await recordAudit(req, {
@@ -754,6 +796,19 @@ export const cancelOrder = async (
       body,
       link: `/admin/order-tracking/${orderNumber}`,
     }, { except: actor });
+
+    // And by e-mail to the buyer and each seller concerned, the canceller
+    // included: it is the record of what happened to the order.
+    const cancelledIds = new Set(lines.map((line) => String(line._id)));
+    const whole = existing.every((line) => line.status === CANCELLED || cancelledIds.has(String(line._id)));
+    const facts = { orderNumber };
+    dispatchShopMail(existing[0]?.buyerEmail, orderCancelledEmail('buyer', facts, lines, { by: who, reason, whole }));
+    for (const seller of new Set(lines.map((line) => line.sellerEmail))) {
+      dispatchShopMail(
+        seller,
+        orderCancelledEmail('seller', facts, lines.filter((line) => line.sellerEmail === seller), { by: who, reason, whole })
+      );
+    }
 
     res.status(200).json({ message: 'Order cancelled', cancelled: cancelled.modifiedCount });
   } catch (err) {

@@ -193,3 +193,98 @@ export const alreadyRegisteredEmail = (): Email => {
 
   return { subject: 'Someone tried to sign up with your address', text, html };
 };
+
+// ---------------------------------------------------------------- notices
+//
+// Everything below shares one shape - a lead, an optional list of books, an
+// optional set of facts, a button - so an order e-mail, a return decision and
+// a message from the shop all look like the same shop.
+
+/** A line of an order: the book, how many, what it came to. */
+export interface NoticeItem {
+  title: string;
+  detail?: string;
+  amount?: string;
+}
+
+export interface NoticeInput {
+  subject: string;
+  heading: string;
+  preheader: string;
+  /** Paragraphs before the details, as plain text. */
+  lead: readonly string[];
+  items?: readonly NoticeItem[];
+  /** Label and value pairs: totals, an address, a reason. */
+  facts?: readonly (readonly [string, string])[];
+  /** A button to a page on the site, by path ("/order-tracking/ABC"). */
+  button?: { label: string; path: string };
+  /** Smaller paragraphs after everything else. */
+  after?: readonly string[];
+}
+
+const TABLE = 'role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"';
+
+/** Plain text as HTML: escaped, with its own line breaks kept. */
+const textToHtml = (value: string): string => escape(value).replace(/\r?\n/g, '<br>');
+
+export const noticeEmail = (input: NoticeInput): Email => {
+  const url = siteUrl();
+  const link = input.button && url ? `${url}${input.button.path}` : '';
+
+  const items = input.items?.length
+    ? `<table ${TABLE} style="margin:4px 0 20px;border:1px solid #ece8f7;border-radius:14px;">
+${input.items
+  .map(
+    (item, index) => `<tr><td style="padding:12px 16px;${index ? 'border-top:1px solid #ece8f7;' : ''}font-family:${SANS};font-size:14px;color:${INK};">
+<strong>${escape(item.title)}</strong>${item.detail ? `<br><span style="color:${MUTED};">${escape(item.detail)}</span>` : ''}
+</td><td align="right" style="padding:12px 16px;${index ? 'border-top:1px solid #ece8f7;' : ''}font-family:${SANS};font-size:14px;font-weight:bold;color:${INK};white-space:nowrap;">${escape(item.amount ?? '')}</td></tr>`
+  )
+  .join('\n')}
+</table>`
+    : '';
+
+  const facts = input.facts?.length
+    ? `<table ${TABLE} style="margin:0 0 20px;background:${TINT};border-radius:14px;">
+${input.facts
+  .map(
+    ([label, value]) => `<tr><td valign="top" style="padding:8px 16px;font-family:${SANS};font-size:13px;color:${MUTED};white-space:nowrap;">${escape(label)}</td><td style="padding:8px 16px;font-family:${SANS};font-size:14px;color:${INK};">${textToHtml(value)}</td></tr>`
+  )
+  .join('\n')}
+</table>`
+    : '';
+
+  const button = link
+    ? `<table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:4px 0 20px;"><tr><td bgcolor="${BRAND}" style="background:${BRAND};border-radius:999px;">
+<a href="${escape(link)}" style="display:inline-block;padding:13px 24px;font-family:${SANS};font-size:15px;font-weight:bold;color:#ffffff;text-decoration:none;">${escape(input.button?.label ?? '')}</a>
+</td></tr></table>`
+    : '';
+
+  const html = layout({
+    heading: input.heading,
+    preheader: input.preheader,
+    body: [
+      ...input.lead.map((line) => paragraph(textToHtml(line))),
+      items,
+      facts,
+      button,
+      ...(input.after ?? []).map((line) => paragraph(textToHtml(line), `font-size:14px;color:${MUTED};`)),
+    ]
+      .filter(Boolean)
+      .join('\n'),
+  });
+
+  const text = [
+    `${SHOP}: ${input.heading}`,
+    '',
+    ...input.lead.flatMap((line) => [line, '']),
+    ...(input.items?.length
+      ? [...input.items.map((item) => `- ${item.title}${item.detail ? ` (${item.detail})` : ''}${item.amount ? `: ${item.amount}` : ''}`), '']
+      : []),
+    ...(input.facts?.length ? [...input.facts.map(([label, value]) => `${label}: ${value}`), ''] : []),
+    ...(link ? [`${input.button?.label}: ${link}`, ''] : []),
+    ...(input.after ?? []).flatMap((line) => [line, '']),
+    textFooter(),
+  ].join('\n');
+
+  return { subject: input.subject, text, html };
+};

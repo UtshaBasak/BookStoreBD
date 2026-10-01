@@ -404,7 +404,7 @@ describe('submitting a return with its photographs', () => {
     expect(image.body).toEqual(PNG_PIXEL);
   });
 
-  it('is still accepted without any, because not every fault photographs', async () => {
+  it('is refused without any: a return is decided on the photographs', async () => {
     const { auth } = await createSignedInUser(request, { email: BUYER });
     const damaged = await book();
 
@@ -415,9 +415,9 @@ describe('submitting a return with its photographs', () => {
       .field('refundBkash', '01712345678')
       .field('defectDescription', 'Two chapters are missing');
 
-    expect(res.status).toBe(200);
-    const stored = await ReturnRequest.findById(res.body.returnId).lean();
-    expect(stored?.images).toHaveLength(0);
+    expect(res.status).toBe(400);
+    expect(res.body.message).toMatch(/at least one photo/i);
+    expect(await ReturnRequest.countDocuments()).toBe(0);
   });
 
   it('refuses a file that is not an image, whatever it is called', async () => {
@@ -448,10 +448,10 @@ describe('submitting a return with its photographs', () => {
       .field('defectDescription', 'Pages loose')
       .field('images', 'https://example.invalid/whatever.png');
 
-    expect(res.status).toBe(200);
-    const stored = await ReturnRequest.findById(res.body.returnId).lean();
-    // Nothing configured here, so nothing passes the ownership check.
-    expect(stored?.images).toHaveLength(0);
+    // Nothing configured here, so nothing passes the ownership check - and a
+    // request left with no photograph at all is refused.
+    expect(res.status).toBe(400);
+    expect(await ReturnRequest.countDocuments()).toBe(0);
   });
 
   it('still requires a description', async () => {
@@ -487,7 +487,8 @@ describe('the return window', () => {
       .set('Authorization', auth)
       .field('orderId', String(orderId))
       .field('refundBkash', refundBkash)
-      .field('defectDescription', 'Pages missing');
+      .field('defectDescription', 'Pages missing')
+      .attach('images', PNG_PIXEL, 'damage.png');
 
   it('opens on delivery, not on the order date', async () => {
     const { auth } = await createSignedInUser(request, { email: BUYER });

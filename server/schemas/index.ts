@@ -58,6 +58,14 @@ export const authSchemas = {
   resetPassword: {
     body: z.object({ email, otp: otpCode, newPassword: password }),
   },
+  /** Whether a password would be accepted, before the sign-up code is sent. */
+  passwordCheck: {
+    body: z.object({
+      password,
+      email: z.string().trim().max(254).optional(),
+      username: z.string().trim().max(40).optional(),
+    }),
+  },
 };
 
 // ---------------------------------------------------------------- book
@@ -153,6 +161,14 @@ export const filterSchemas = {
       pageSize: boundedInt(1, 50).default(20),
     }),
   },
+  /** What the search box suggests while somebody types. */
+  suggest: {
+    query: z.object({
+      q: z.string().trim().min(1, 'Type something to search for').max(100),
+      books: boundedInt(0, 12).default(6),
+      sellers: boundedInt(0, 12).default(3),
+    }),
+  },
   /**
    * Books by id, in the order given, for a visitor's Recently viewed - kept in
    * their browser - and the Top picks worked out from it.
@@ -225,6 +241,9 @@ export const orderSchemas = {
       deliveryDivision: shortText.optional(),
       deliveryDistrict: shortText.optional(),
       deliveryAddress: mediumText.optional(),
+      // A few words to the seller - "please call before delivery". Short,
+      // because it is a note, not a conversation; that is what chat is for.
+      buyerNote: z.string().trim().max(300, 'Keep the note to 300 characters').optional(),
     }),
   },
   byOrderNumber: { params: z.object({ orderNumber }) },
@@ -461,6 +480,32 @@ export const reviewSchemas = {
 };
 
 /** The bell: a page of a person's notifications, and marking them read. */
+// ---------------------------------------------------------------- admin messages
+const audience = z.enum(['users', 'buyers', 'sellers', 'all']);
+
+export const adminSchemas = {
+  /** A notification or e-mail from the shop, to chosen people or a whole group. */
+  message: {
+    body: z
+      .object({
+        channel: z.enum(['notification', 'email', 'both']),
+        audience,
+        emails: z.array(email).max(500).optional(),
+        title: z.string().trim().min(1, 'Give it a title').max(120),
+        body: z.string().trim().min(1, 'Write the message').max(3000),
+        // A page on this site, so a message cannot send people elsewhere.
+        link: z
+          .union([z.literal(''), z.string().trim().max(300).regex(/^\/(?!\/)/, 'A page on this site, starting with /')])
+          .optional(),
+      })
+      .refine((value) => value.audience !== 'users' || (value.emails?.length ?? 0) > 0, {
+        message: 'Choose at least one person',
+        path: ['emails'],
+      }),
+  },
+  audience: { query: z.object({ audience }) },
+};
+
 export const notificationSchemas = {
   list: {
     query: z.object({
@@ -544,6 +589,7 @@ export type AdminReviewQuery = z.infer<typeof reviewSchemas.adminList.query>;
 export type NotificationListQuery = z.infer<typeof notificationSchemas.list.query>;
 export type MarkNotificationsBody = z.infer<typeof notificationSchemas.markRead.body>;
 export type CatalogueQuery = z.infer<typeof filterSchemas.catalogue.query>;
+export type SuggestQuery = z.infer<typeof filterSchemas.suggest.query>;
 export type FeaturedQuery = z.infer<typeof filterSchemas.featured.query>;
 export type ByIdsQuery = z.infer<typeof filterSchemas.byIds.query>;
 export type ForYouQuery = z.infer<typeof filterSchemas.forYou.query>;
@@ -569,3 +615,5 @@ export type DeleteConversationBody = z.infer<typeof chatSchemas.remove.body>;
 export type AddBookBody = z.infer<typeof userSchemas.addBook.body>;
 export type ProfileQuery = z.infer<typeof userSchemas.profileQuery.query>;
 export type UpdateProfileBody = z.infer<typeof userSchemas.updateProfile.body>;
+export type AdminMessageBody = z.infer<typeof adminSchemas.message.body>;
+export type AudienceQuery = z.infer<typeof adminSchemas.audience.query>;

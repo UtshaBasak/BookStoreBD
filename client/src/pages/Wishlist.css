@@ -234,3 +234,9 @@
     margin-left: 0;
   }
 }
+
+.wishlist-request {
+  width: 100%;
+  min-height: 40px;
+  font-size: 0.85rem;
+}

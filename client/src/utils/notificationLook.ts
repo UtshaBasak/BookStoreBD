@@ -14,6 +14,10 @@ export const NOTIFICATION_ICON: Record<NotificationType, string> = {
   'review-reply': '💬',
   'review-reported': '🚩',
   deal: '⚡',
+  'price-drop': '🏷️',
+  'book-request': '🙋',
+  'back-in-stock': '📚',
+  announcement: '📣',
 };
 
 /** "just now", "5 min ago", "3 h ago", "2 days ago", then the date. */

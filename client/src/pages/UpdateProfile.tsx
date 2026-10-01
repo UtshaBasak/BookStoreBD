@@ -3,6 +3,8 @@ import { useQueryClient } from '@tanstack/react-query';
 import { useLocation, useNavigate, useSearchParams, Link } from 'react-router-dom';
 
 import Logo from '../components/Logo.js';
+import PasswordChecklist from '../components/PasswordChecklist.js';
+import { passwordReady } from '../utils/passwordPolicy.js';
 import { API_BASE_URL, apiFetch } from '../config/api.js';
 import { useProfile } from '../hooks/queries.js';
 import { useToast } from '../hooks/useToast.js';
@@ -98,6 +100,13 @@ export default function UpdateProfile() {
     };
 
     const handleSubmit = async (e: FormEvent) => {
+        // A new password is only sent once it meets every rule; blank keeps
+        // the current one, whatever rules it was set under.
+        if (formData.password && !passwordReady(formData.password, { email: formData.email, username: formData.username })) {
+            e.preventDefault();
+            toast.warning('Your new password does not meet every rule yet - see the list under it.');
+            return;
+        }
         e.preventDefault();
         try {
             setErrorMsg('');
@@ -311,10 +320,14 @@ export default function UpdateProfile() {
                                 onChange={handleChange}
                                 className="field"
                                 autoComplete="new-password"
+                                maxLength={128}
                                 value={formData.password}
                                 aria-describedby="up-password-help"
                             />
                             <small id="up-password-help" className="pf-help">Leave blank to keep your current password.</small>
+                            {formData.password && (
+                                <PasswordChecklist password={formData.password} email={formData.email} username={formData.username} />
+                            )}
                         </div>
                     </section>
 

@@ -23,10 +23,15 @@ export const email = z
   .toLowerCase()
   .pipe(z.email('Must be a valid email address').max(254));
 
+/**
+ * A password being set. Only its bounds here: the rules need to know whose
+ * password it is, and one of them asks a remote service, so the handlers
+ * apply them (utils/passwordPolicy.ts, utils/breachedPassword.ts).
+ */
 export const password = z
   .string()
-  .min(8, 'Password must be at least 8 characters')
-  .max(200, 'Password is too long');
+  .min(1, 'Password is required')
+  .max(128, 'Password is too long');
 
 export const username = z
   .string()

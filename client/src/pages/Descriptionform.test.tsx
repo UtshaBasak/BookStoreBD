@@ -116,7 +116,7 @@ describe('submitting a return', () => {
     expect(sent[0].body?.getAll('imagePublicIds')).toEqual(['bookstorebd/books/damage']);
   });
 
-  it('is allowed without a photograph, because not every fault photographs', async () => {
+  it('is not sent without a photograph: returns are decided on them', async () => {
     stubFetch();
     renderForm();
 
@@ -124,8 +124,8 @@ describe('submitting a return', () => {
     await userEvent.type(screen.getByLabelText(/describe the problem/i), 'Two chapters missing');
     await userEvent.click(screen.getByRole('button', { name: /confirm return/i }));
 
-    await waitFor(() => expect(sent).toHaveLength(1));
-    expect(sent[0].body?.getAll('images')).toHaveLength(0);
+    expect(await screen.findByRole('alert')).toHaveTextContent(/at least one photo/i);
+    expect(sent).toHaveLength(0);
   });
 
   it('will not send an empty description, and says so', async () => {
@@ -144,6 +144,7 @@ describe('submitting a return', () => {
 
     await userEvent.type(screen.getByLabelText(/bkash number/i), '01712345678');
     await userEvent.type(screen.getByLabelText(/describe the problem/i), 'Pages loose');
+    await userEvent.upload(screen.getByLabelText(/photographs/i), fileFor());
     await userEvent.click(screen.getByRole('button', { name: /confirm return/i }));
 
     await waitFor(() => expect(navigate).toHaveBeenCalledWith('/buyer-books'));
@@ -155,6 +156,7 @@ describe('submitting a return', () => {
 
     await userEvent.type(screen.getByLabelText(/bkash number/i), '01712345678');
     await userEvent.type(screen.getByLabelText(/describe the problem/i), 'Pages loose');
+    await userEvent.upload(screen.getByLabelText(/photographs/i), fileFor());
     await userEvent.click(screen.getByRole('button', { name: /confirm return/i }));
 
     await waitFor(() => expect(sent).toHaveLength(1));
@@ -167,6 +169,7 @@ describe('submitting a return', () => {
 
     await userEvent.type(screen.getByLabelText(/bkash number/i), '+880 1712-345678');
     await userEvent.type(screen.getByLabelText(/describe the problem/i), 'Wrong edition');
+    await userEvent.upload(screen.getByLabelText(/photographs/i), fileFor());
     await userEvent.click(screen.getByRole('button', { name: /confirm return/i }));
 
     await waitFor(() => expect(sent).toHaveLength(1));

@@ -5,6 +5,7 @@ import {
   sendOtp,
   verifyOtp,
   resetPassword,
+  passwordCheck,
   refresh,
   logout,
 } from '../controllers/auth.controller.js';
@@ -20,6 +21,7 @@ router.post("/signin", validate(authSchemas.signin), signin);
 router.post("/send-otp", validate(authSchemas.sendOtp), sendOtp);
 router.post("/verify-otp", validate(authSchemas.verifyOtp), verifyOtp);
 router.post("/reset-password", validate(authSchemas.resetPassword), resetPassword);
+router.post("/password-check", validate(authSchemas.passwordCheck), passwordCheck);
 
 // Session lifecycle. Both read the httpOnly refresh cookie rather than a body,
 // so neither takes a schema.

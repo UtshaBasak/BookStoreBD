@@ -10,7 +10,7 @@ import NotificationBell from '../components/NotificationBell.js';
 import DiscountEditor from '../components/DiscountEditor.js';
 import { API_BASE_URL, apiFetch } from '../config/api.js';
 import { site } from '../config/site.js';
-import { useSellerBooks } from '../hooks/queries.js';
+import { useMyBookRequests, useSellerBooks } from '../hooks/queries.js';
 import { useToast } from '../hooks/useToast.js';
 import { getUserEmail } from '../utils/auth.js';
 
@@ -24,9 +24,16 @@ export default function SellerBookList() {
   const toast = useToast();
 
   const booksQuery = useSellerBooks(sellerEmail);
+  // How many buyers asked for each sold-out book: worth restocking first.
+  const waitingQuery = useMyBookRequests(Boolean(sellerEmail));
+  const waiting = waitingQuery.data ?? {};
   const books = booksQuery.data ?? [];
   const refreshing = booksQuery.isFetching;
-  const fetchBooks = () => booksQuery.refetch();
+  // A restock closes the requests for it, so the waiting counts are read again too.
+  const fetchBooks = () => {
+    void booksQuery.refetch();
+    void waitingQuery.refetch();
+  };
 
   const handleEditChange = (id: Id, field: 'price' | 'stock', value: string) => {
     if (!/^\d*$/.test(value)) return;
@@ -237,6 +244,11 @@ export default function SellerBookList() {
                         <span className={`sl-pill ${stock > 0 ? 'is-done' : 'is-bad'}`}>
                           {stock > 0 ? book.stock : `${book.stock} · sold out`}
                         </span>
+                        {(waiting[book._id] ?? 0) > 0 && (
+                          <span className="sl-waiting">
+                            {waiting[book._id]} {waiting[book._id] === 1 ? 'buyer' : 'buyers'} waiting
+                          </span>
+                        )}
                       </td>
                       <td data-label="Update Stock">
                         <input name="stock"

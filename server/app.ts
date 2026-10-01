@@ -38,6 +38,7 @@ import uploadRouter from './routes/upload.route.js';
 import userRouter from './routes/user.route.js';
 import wishlistRouter from './routes/wishlist.route.js';
 import notificationRouter from './routes/notification.route.js';
+import adminRouter from './routes/admin.route.js';
 
 const log = createLogger('app');
 
@@ -116,6 +117,7 @@ export const createApp = ({
   app.use(apiLimiter);
 
   app.use(`${API_PREFIX}/auth`, authLimiter, authRouter);
+  app.use(`${API_PREFIX}/admin`, writeLimiter, adminRouter);
   app.use(`${API_PREFIX}/audit`, auditRouter);
   app.use(`${API_PREFIX}/book`, bookRouter);
   app.use(`${API_PREFIX}/cart`, cartRouter);

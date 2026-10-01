@@ -39,6 +39,12 @@ import type {
   NotificationPage,
   SellerShop,
   CancelOrderRequest,
+  SuggestResponse,
+  BookRequestStatus,
+  AdminMessageRequest,
+  AdminMessageResponse,
+  AudienceCount,
+  MessageAudience,
 } from '@shared/api.js';
 
 import { apiFetch, apiUrl } from '../config/api.js';
@@ -124,6 +130,11 @@ export const keys = {
   notifications: (query: string) => ['notifications', query] as const,
   allReviews: (query: string) => ['reviews', 'all', query] as const,
   shop: (username: string | undefined) => ['shop', username] as const,
+  /** Under `catalogue`, so a change to any listing refreshes the suggestions too. */
+  suggest: (query: string) => ['catalogue', 'suggest', query] as const,
+  bookRequest: (id: Id | undefined) => ['book-request', id] as const,
+  myBookRequests: ['book-request', 'mine'] as const,
+  audience: (audience: MessageAudience) => ['admin', 'audience', audience] as const,
   chatHistory: ['chat', 'history'] as const,
 };
 
@@ -721,3 +732,68 @@ export const useShop = (username: string | undefined): UseQueryResult<SellerShop
     queryFn: () => request<SellerShop>(`/user/shop/${encodeURIComponent(username ?? '')}`),
     enabled: Boolean(username),
   });
+
+/** What the search box suggests for what has been typed so far. */
+export const useSuggest = (query: string): UseQueryResult<SuggestResponse> => {
+  const q = query.trim();
+  return useQuery<SuggestResponse, Error, SuggestResponse>({
+    queryKey: keys.suggest(q.toLowerCase()),
+    queryFn: () => request<SuggestResponse>(`/filter/suggest?q=${encodeURIComponent(q)}`),
+    enabled: q.length >= 2,
+    placeholderData: keepPreviousData,
+    staleTime: 60_000,
+  });
+};
+
+/** Whether the person asked for this sold-out book to come back, and how many have. */
+export const useBookRequest = (id: Id | undefined, enabled: boolean): UseQueryResult<BookRequestStatus> =>
+  useQuery<BookRequestStatus, Error, BookRequestStatus>({
+    queryKey: keys.bookRequest(id),
+    queryFn: () => request<BookRequestStatus>(`/book/${id}/request`),
+    enabled: Boolean(id) && enabled,
+  });
+
+/** Asks for a sold-out book (false: not asked yet), or withdraws the request (true). */
+export const useToggleBookRequest = (
+  id: Id | undefined
+): UseMutationResult<BookRequestStatus, Error, boolean> => {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: (asked: boolean) =>
+      request<BookRequestStatus>(`/book/${id}/request`, { method: asked ? 'DELETE' : 'POST' }),
+    onSuccess: (status) => client.setQueryData(keys.bookRequest(id), status),
+  });
+};
+
+/** How many people are waiting for each of the seller's sold-out books, by book id. */
+export const useMyBookRequests = (enabled = true): UseQueryResult<Record<string, number>> =>
+  useQuery<Record<string, number>, Error, Record<string, number>>({
+    queryKey: keys.myBookRequests,
+    queryFn: () => request<Record<string, number>>('/book/requests/mine'),
+    enabled,
+  });
+
+/** How many people a message to this audience would reach. */
+export const useAudienceCount = (audience: MessageAudience): UseQueryResult<AudienceCount> =>
+  useQuery<AudienceCount, Error, AudienceCount>({
+    queryKey: keys.audience(audience),
+    queryFn: () => request<AudienceCount>(`/admin/message/audience?audience=${audience}`),
+    enabled: audience !== 'users',
+  });
+
+/** Sends the administrator's notification or e-mail. */
+export const useSendAdminMessage = (): UseMutationResult<AdminMessageResponse, Error, AdminMessageRequest> =>
+  useMutation({
+    mutationFn: (body: AdminMessageRequest) => request<AdminMessageResponse>('/admin/message', json('POST', body)),
+  });
+
+/** Sellers whose name matches a search, for the browse page. */
+export const useSellerSearch = (search: string): UseQueryResult<SuggestResponse> => {
+  const q = search.trim();
+  return useQuery<SuggestResponse, Error, SuggestResponse>({
+    queryKey: keys.suggest(`sellers:${q.toLowerCase()}`),
+    queryFn: () => request<SuggestResponse>(`/filter/suggest?q=${encodeURIComponent(q)}&books=0&sellers=8`),
+    enabled: q.length >= 2,
+    staleTime: 60_000,
+  });
+};

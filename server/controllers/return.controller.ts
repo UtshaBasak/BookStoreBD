@@ -17,6 +17,7 @@ import { createLogger } from '../config/logger.js';
 import { recordAudit } from '../utils/audit.js';
 import { RETURN_WINDOW_DAYS, returnDeadline } from '../config/commerce.js';
 import { adminEmails, notify } from '../utils/notify.js';
+import { dispatchShopMail, returnDecidedEmail, returnRequestedSellerEmail } from '../utils/shopMail.js';
 
 const log = createLogger('return');
 
@@ -84,6 +85,12 @@ export const returnBook = async (
      * evidence.
      */
     const uploaded = collectImages(req);
+    // At least one: a return is decided on the photographs, and a request
+    // without any can only be answered by asking for them.
+    if (!uploaded.images.length) {
+      res.status(400).json({ message: 'Please add at least one photo showing what is wrong.' });
+      return;
+    }
 
     // Copied from the order rather than the listing, which may since have
     // been edited or taken down. One request per book, so each can be decided
@@ -121,6 +128,16 @@ export const returnBook = async (
       body: `Order ${orderNumber}. Decide it in Return Management.`,
       link: '/admin/returns',
     });
+    // The seller by e-mail as well: it is their sale on hold.
+    for (const seller of new Set(lines.map((line) => line.sellerEmail))) {
+      dispatchShopMail(
+        seller,
+        returnRequestedSellerEmail(
+          { orderNumber, bookTitle: titles, defectDescription },
+          lines.filter((line) => line.sellerEmail === seller).map((line) => line.title || 'A book')
+        )
+      );
+    }
 
     res.status(200).json({
       message: lines.length > 1 ? `Return requested for ${lines.length} books` : 'Return request submitted successfully',
@@ -260,6 +277,17 @@ export const updateReturnStatus = async (
             : 'Write to support if you would like to know why.',
         link: '/buyer-books',
       });
+      dispatchShopMail(
+        updatedRequest.userEmail,
+        returnDecidedEmail(
+          {
+            orderNumber: updatedRequest.orderNumber ?? '',
+            bookTitle: updatedRequest.bookTitle ?? 'your book',
+            refundBkash: updatedRequest.refundBkash,
+          },
+          status === 'approved'
+        )
+      );
       await notify([updatedRequest.sellerEmail], {
         type: 'return-decided',
         title: `The return of "${updatedRequest.bookTitle}" was ${decided}`,

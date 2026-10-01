@@ -6,6 +6,7 @@ import type { Book } from '@shared/api.js';
 import Logo from '../components/Logo.js';
 import NotificationBell from '../components/NotificationBell.js';
 import QuantityStepper from '../components/QuantityStepper.js';
+import RequestBookButton from '../components/RequestBookButton.js';
 import PriceTag from '../components/PriceTag.js';
 import { priceOf } from '../utils/pricing.js';
 import { API_BASE_URL } from '../config/api.js';
@@ -199,10 +200,15 @@ export default function Cart() {
                     </p>
 
                     {!inStock(book) ? (
-                      <p role="status" className="cart-note is-out">
-                        Sold out. It stays here, and you can order it when it is back.
-                      </p>
-                    ) : book.cartAdjusted ? (
+                      <>
+                        <p role="status" className="cart-note is-out">
+                          Sold out. It stays here, and you can order it when it is back.
+                        </p>
+                        <div className="mt-2">
+                          <RequestBookButton bookId={book._id} sellerEmail={book.sellerEmail} className="btn btn-ghost cart-request" />
+                        </div>
+                      </>
+                    ) :  book.cartAdjusted ? (
                       <p role="status" className="cart-note">
                         Only {book.stock} left, so we lowered your quantity to {copies(book)}.
                       </p>

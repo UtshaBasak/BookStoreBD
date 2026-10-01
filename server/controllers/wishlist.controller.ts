@@ -3,7 +3,7 @@ import type { Types } from 'mongoose';
 
 import Wishlist from '../models/Wishlist.model.js';
 import User from '../models/user.model.js';
-import type { LeanBook } from '../models/AddBook.model.js';
+import AddBook, { type LeanBook } from '../models/AddBook.model.js';
 import { actingUser } from '../middleware/auth.js';
 import { errorMessage } from '../utils/error.js';
 import { toListBook, withCoverUrls } from '../utils/projections.js';
@@ -50,9 +50,11 @@ export const Wishlist_add: RequestHandler = async (req, res) => {
     }
 
     // Prevent duplicate wishlist entry
+    // The price it was saved at, so a later drop below it can be told.
+    const book = await AddBook.findById(String(bookId), { price: 1, salePrice: 1 }).lean();
     await Wishlist.findOneAndUpdate(
       { user: user._id, book: bookId },
-      { user: user._id, book: bookId },
+      { $setOnInsert: { user: user._id, book: bookId, priceWhenAdded: Number(book?.salePrice ?? book?.price) || null } },
       { upsert: true, returnDocument: 'after' }
     );
 

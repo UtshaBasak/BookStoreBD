@@ -8,6 +8,7 @@ import { API_PREFIX } from '../config/apiPaths.js';
 import { destroyAssets, isCloudinaryConfigured, uploadImage } from '../config/cloudinary.js';
 import type { ProfileQuery, UpdateProfileBody } from '../schemas/index.js';
 import { createLogger } from '../config/logger.js';
+import { newPasswordProblem } from '../utils/breachedPassword.js';
 import { errorMessage, isDuplicateKeyError } from '../utils/error.js';
 
 const log = createLogger('user');
@@ -141,6 +142,14 @@ export const updateUserProfile = async (
         // storing the raw value here would leave plaintext passwords in the
         // database for every profile update.
         if (typeof req.body.password === 'string' && req.body.password !== '') {
+            const weak = await newPasswordProblem(req.body.password, {
+                email,
+                username: typeof body.username === 'string' ? body.username : req.user?.username,
+            });
+            if (weak) {
+                res.status(400).json({ message: weak });
+                return;
+            }
             updateFields.password = bcryptjs.hashSync(req.body.password, 10);
         }
 
