@@ -124,9 +124,11 @@ export default function Homepage() {
     );
   };
 
-  const handleHomepageSearch = () => {
-    if (searchInput.trim()) {
-      navigate(`/filter?search=${encodeURIComponent(searchInput.trim())}`);
+  // The text is passed in by a spoken or remembered search, which sets the
+  // box and searches at once, before the state has caught up.
+  const handleHomepageSearch = (text: string = searchInput) => {
+    if (text.trim()) {
+      navigate(`/filter?search=${encodeURIComponent(text.trim())}`);
     }
   };
 
@@ -151,7 +153,7 @@ export default function Homepage() {
             onSubmit={handleHomepageSearch}
             inputProps={{ name: 'search', 'aria-label': 'Search books', placeholder: 'Search by title, author or ISBN' }}
           />
-          <button onClick={handleHomepageSearch}>Search</button>
+          <button onClick={() => handleHomepageSearch()}>Search</button>
         </div>
         <div className="user-options" style={{ position: 'relative' }}>
 

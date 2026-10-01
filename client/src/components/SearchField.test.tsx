@@ -20,6 +20,8 @@ const ANSWER: SuggestResponse = {
     { _id: 'b1', title: 'Deyal', author: 'Humayun Ahmed', cover: null, price: 320, salePrice: 256, discountPercent: 20, inStock: true },
   ],
   sellers: [{ username: 'nadia_books', avatar: null, books: 14 }],
+  authors: [{ name: 'Humayun Ahmed', books: 9 }],
+  categories: [],
 };
 
 afterEach(() => {
@@ -63,5 +65,59 @@ describe('the search box', () => {
     await userEvent.type(screen.getByRole('combobox', { name: 'Search books' }), 'deyal{Enter}');
     expect(onSubmit).toHaveBeenCalledWith('deyal');
     expect(navigate).not.toHaveBeenCalled();
+  });
+
+  it('completes the top match with Tab', async () => {
+    renderField();
+    const box = screen.getByRole('combobox', { name: 'Search books' });
+    await userEvent.type(box, 'Huma');
+    await screen.findByRole('option', { name: /Author/ });
+    await userEvent.keyboard('{Tab}');
+    expect(box).toHaveValue('Humayun Ahmed');
+  });
+
+  it('offers recent searches before anything is typed, and remembers new ones', async () => {
+    localStorage.setItem('recentSearches', JSON.stringify(['physics']));
+    const onSubmit = renderField();
+    const box = screen.getByRole('combobox', { name: 'Search books' });
+    await userEvent.click(box);
+    await userEvent.click(await screen.findByRole('option', { name: 'physics' }));
+    expect(onSubmit).toHaveBeenCalledWith('physics');
+
+    await userEvent.clear(box);
+    await userEvent.type(box, 'deyal{Enter}');
+    expect(JSON.parse(localStorage.getItem('recentSearches') ?? '[]')).toEqual(['deyal', 'physics']);
+    localStorage.clear();
+  });
+
+  it('searches by voice where the browser can listen, and says nothing where it cannot', async () => {
+    renderField();
+    expect(screen.queryByRole('button', { name: /search by voice/i })).not.toBeInTheDocument();
+  });
+
+  it('turns speech into a search', async () => {
+    class FakeRecognition {
+      lang = '';
+      interimResults = false;
+      maxAlternatives = 1;
+      continuous = false;
+      onresult: ((event: unknown) => void) | null = null;
+      onerror = null;
+      onend: (() => void) | null = null;
+      start() {
+        setTimeout(() => {
+          const result = Object.assign([{ transcript: 'pather panchali' }], { isFinal: true });
+          this.onresult?.({ resultIndex: 0, results: [result] });
+          this.onend?.();
+        }, 10);
+      }
+      stop() {}
+      abort() {}
+    }
+    vi.stubGlobal('webkitSpeechRecognition', FakeRecognition);
+    const onSubmit = renderField();
+    await userEvent.click(screen.getByRole('button', { name: /search by voice/i }));
+    await vi.waitFor(() => expect(onSubmit).toHaveBeenCalledWith('pather panchali'));
+    expect(screen.getByRole('combobox', { name: 'Search books' })).toHaveValue('pather panchali');
   });
 });

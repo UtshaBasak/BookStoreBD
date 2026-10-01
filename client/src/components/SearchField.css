@@ -98,3 +98,164 @@
   color: var(--color-danger-ink);
   font-size: 0.75rem;
 }
+
+/* Groups when the box is empty: recent searches, then popular ones. */
+.sg-option.starts-group {
+  position: relative;
+  margin-top: 26px;
+}
+.sg-option.starts-group:first-child {
+  margin-top: 24px;
+}
+.sg-option.starts-group::before {
+  content: attr(data-group);
+  position: absolute;
+  top: -22px;
+  left: 10px;
+  color: var(--color-ink-muted);
+  font-size: 0.7rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.sg-option.is-recent,
+.sg-option.is-popular {
+  min-height: 40px;
+}
+.sg-plain {
+  font-weight: 600;
+}
+.sg-mark {
+  padding: 0;
+  background: transparent;
+  color: var(--color-brand);
+}
+.sg-hint {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 10px 4px;
+  color: var(--color-ink-muted);
+  font-size: 0.78rem;
+}
+.sg-hint kbd {
+  padding: 1px 6px;
+  border: 1px solid var(--color-line);
+  border-radius: 6px;
+  background: var(--color-surface-alt);
+  font-family: inherit;
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+.sg-hint button {
+  min-height: 32px;
+  padding: 0 4px;
+  border: none;
+  background: transparent;
+  color: var(--color-brand);
+  font-size: 0.8rem;
+  font-weight: 700;
+  text-decoration: underline;
+}
+@media (pointer: coarse) {
+  .sg-hint:has(kbd) {
+    display: none;
+  }
+}
+
+/* The microphone, beside the input, inside the page's search box. Doubled
+   class, so it wins over each page's own "every button in the search box"
+   rule. */
+button.sg-mic.sg-mic {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  min-width: 40px;
+  height: 40px;
+  min-height: 40px;
+  align-self: center;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--color-brand);
+  font-size: 1rem;
+  cursor: pointer;
+}
+button.sg-mic.sg-mic:hover {
+  background: var(--color-brand-tint);
+}
+button.sg-mic.sg-mic.is-on {
+  background: var(--color-accent);
+  color: #fff;
+  animation: sg-pulse 1.2s ease-in-out infinite;
+}
+
+.sg-voice {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  padding: 14px;
+}
+.sg-voice-pulse {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: var(--color-accent);
+  color: #fff;
+  animation: sg-pulse 1.2s ease-in-out infinite;
+}
+@keyframes sg-pulse {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgba(255, 92, 53, 0.45);
+  }
+  50% {
+    box-shadow: 0 0 0 10px rgba(255, 92, 53, 0);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .sg-mic.is-on,
+  .sg-voice-pulse {
+    animation: none;
+  }
+}
+.sg-voice-text {
+  display: grid;
+  flex: 1 1 160px;
+  min-width: 0;
+}
+.sg-voice-text strong {
+  overflow-wrap: anywhere;
+  color: var(--color-ink);
+}
+.sg-voice-text span {
+  color: var(--color-ink-muted);
+  font-size: 0.82rem;
+}
+.sg-voice-langs {
+  display: inline-flex;
+  padding: 3px;
+  border: 1px solid var(--color-line);
+  border-radius: 999px;
+}
+.sg-voice-langs button {
+  min-height: 32px;
+  padding: 0 12px;
+  border: none;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--color-ink-soft);
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+.sg-voice-langs button.is-on {
+  background: var(--color-brand);
+  color: #fff;
+}

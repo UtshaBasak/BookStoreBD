@@ -257,9 +257,9 @@ export default function BookFilter() {
     if (target !== currentPage) setPage(target);
   };
 
-  const handleSearch = () => {
-    setSearchTerm(searchInput);
-    navigate(`/filter?search=${encodeURIComponent(searchInput.trim())}`);
+  const handleSearch = (text: string = searchInput) => {
+    setSearchTerm(text);
+    navigate(`/filter?search=${encodeURIComponent(text.trim())}`);
   };
 
   // A second click on the chosen option clears it.
@@ -324,7 +324,7 @@ export default function BookFilter() {
               placeholder: 'Search books, authors or sellers...',
             }}
           />
-          <button type="button" onClick={handleSearch} aria-label="Search">
+          <button type="button" onClick={() => handleSearch()} aria-label="Search">
             Search
           </button>
         </div>

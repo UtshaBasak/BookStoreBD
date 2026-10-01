@@ -252,6 +252,20 @@ export interface SuggestBook {
 export interface SuggestResponse {
   books: SuggestBook[];
   sellers: SellerHit[];
+  /** Authors whose name matches, and categories, with how many books each has. */
+  authors: SuggestHit[];
+  categories: SuggestHit[];
+}
+
+/** An author or category the search box suggests. */
+export interface SuggestHit {
+  name: string;
+  books: number;
+}
+
+/** GET /filter/popular-searches */
+export interface PopularSearchesResponse {
+  terms: string[];
 }
 
 /** GET and POST /book/:id/request - asking for a sold-out book to come back. */

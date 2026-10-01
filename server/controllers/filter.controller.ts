@@ -2,7 +2,7 @@ import type { Request, RequestHandler, Response } from 'express';
 
 import type { Types } from 'mongoose';
 
-import type { Book, HomeSections, SellerHit, SuggestResponse } from '@shared/api.js';
+import type { Book, HomeSections, SellerHit, SuggestHit, SuggestResponse } from '@shared/api.js';
 
 import AddBook, { type LeanBook } from '../models/AddBook.model.js';
 import Cart from '../models/Cart.model.js';
@@ -17,6 +17,7 @@ import { contains, sameText } from '../utils/regex.js';
 import { LIST_IMAGE_PROJECTION, toListBook, withCoverUrls } from '../utils/projections.js';
 import { API_PREFIX } from '../config/apiPaths.js';
 import { phoneticPattern } from '../utils/phonetic.js';
+import { logSearch, popularSearches } from '../utils/searchLog.js';
 
 /**
  * What a typed search matches: the title, author or ISBN as written, or - for
@@ -108,6 +109,10 @@ export const Booklist: RequestHandler = async (req, res) => {
         .lean(),
       AddBook.countDocuments(filter),
     ]);
+
+    // What people search the whole catalogue for - not a shop's own box -
+    // counted once per search, on its first page.
+    if (q.search && !q.seller && q.page === 1) logSearch(q.search, total);
 
     res.status(200).json({
       items: items.map(withCoverUrls),
@@ -422,6 +427,48 @@ export const sellerHits = async (search: string, limit: number): Promise<SellerH
     .map((person) => ({ username: person.username, avatar: avatarUrl(person), books: byEmail.get(person.email) ?? 0 }));
 };
 
+/** Authors whose name matches, with how many books of theirs are listed. */
+const authorHits = async (search: string, limit: number): Promise<SuggestHit[]> => {
+  const rows = await AddBook.aggregate<{ _id: string; books: number }>([
+    { $match: { author: contains(String(search)) } },
+    { $group: { _id: '$author', books: { $sum: 1 } } },
+    { $sort: { books: -1, _id: 1 } },
+    { $limit: limit },
+  ]);
+  return rows.filter((row) => row._id).map((row) => ({ name: row._id, books: row.books }));
+};
+
+let categoryCache: { at: number; rows: SuggestHit[] } | null = null;
+/** For tests: forget the cached category counts. */
+export const forgetCategoryCache = (): void => {
+  categoryCache = null;
+};
+
+/** Categories whose name matches, with how many books are in each. */
+const categoryHits = async (search: string, limit: number): Promise<SuggestHit[]> => {
+  if (!categoryCache || Date.now() - categoryCache.at > 5 * 60 * 1000) {
+    const rows = await AddBook.aggregate<{ _id: string; books: number }>([
+      { $unwind: '$category' },
+      { $group: { _id: '$category', books: { $sum: 1 } } },
+    ]);
+    categoryCache = { at: Date.now(), rows: rows.filter((row) => row._id).map((row) => ({ name: row._id, books: row.books })) };
+  }
+  const lower = search.toLowerCase();
+  return categoryCache.rows
+    .filter((row) => row.name.toLowerCase().includes(lower))
+    .sort((a, b) => Number(b.name.toLowerCase().startsWith(lower)) - Number(a.name.toLowerCase().startsWith(lower)) || b.books - a.books)
+    .slice(0, limit);
+};
+
+/** What people search for most, for the search box before anything is typed. */
+export const PopularSearches: RequestHandler = async (_req, res) => {
+  try {
+    res.set('Cache-Control', 'public, max-age=600').json({ terms: await popularSearches() });
+  } catch (error) {
+    res.status(500).json({ message: errorMessage(error) });
+  }
+};
+
 /**
  * What the search box offers while somebody types: a few books and sellers.
  *
@@ -434,7 +481,7 @@ export const Suggest: RequestHandler = async (req, res) => {
   const text = String(q);
   try {
     const lower = text.toLowerCase();
-    const [found, sellers] = await Promise.all([
+    const [found, sellers, authors, categories] = await Promise.all([
       bookLimit > 0
         ? AddBook.find(
             { $or: searchClauses(text) },
@@ -445,6 +492,8 @@ export const Suggest: RequestHandler = async (req, res) => {
             .lean()
         : Promise.resolve([]),
       sellerHits(text, sellerLimit),
+      authorHits(text, 2),
+      categoryHits(text, 2),
     ]);
 
     const rank = (book: { title?: string | null; author?: string | null; stock?: number | null }): number => {
@@ -473,6 +522,8 @@ export const Suggest: RequestHandler = async (req, res) => {
           };
         }),
       sellers,
+      authors,
+      categories,
     };
     res.json(body);
   } catch (error) {

@@ -54,6 +54,7 @@ import type {
   CreateWantedResponse,
   InviteList,
   InviteRequest,
+  PopularSearchesResponse,
 } from '@shared/api.js';
 
 import { apiFetch, apiUrl } from '../config/api.js';
@@ -162,6 +163,8 @@ export const keys = {
   /** One entry per distinct search, so turning a page keeps the last one. */
   wanted: (query: string) => ['wanted', query] as const,
   invites: ['invites'] as const,
+  /** Under `catalogue`, with the suggestions. */
+  popularSearches: ['catalogue', 'popular-searches'] as const,
 };
 
 // ---------------------------------------------------------------------------
@@ -897,3 +900,12 @@ export const useSendInvites = (): UseMutationResult<MessageResponse, Error, Invi
     onSuccess: () => client.invalidateQueries({ queryKey: keys.invites }),
   });
 };
+
+/** What people search for most, for the search box before anything is typed. */
+export const usePopularSearches = (enabled: boolean): UseQueryResult<PopularSearchesResponse> =>
+  useQuery<PopularSearchesResponse>({
+    queryKey: keys.popularSearches,
+    queryFn: () => request<PopularSearchesResponse>('/filter/popular-searches'),
+    enabled,
+    staleTime: 10 * 60 * 1000,
+  });
