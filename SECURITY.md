@@ -34,13 +34,14 @@ Include what you can of:
 
 ## What to expect
 
-- An acknowledgement, usually within **3 days**.
-- An assessment and a plan, usually within **7 days**.
-- A fix as fast as its severity calls for, then a published advisory crediting
-  you, unless you would rather not be named.
+- An acknowledgement once the report has been read.
+- An assessment of how serious it is, and what will be done about it.
+- A fix with the priority its severity calls for, then a published advisory
+  crediting you, unless you would rather not be named.
 
-This is a one-person project, so these are aims, not guarantees. If you hear
-nothing within a week, please send a reminder.
+This is a one-person project, so there is no fixed response time. Every
+private report is read, and a reminder is welcome if one seems to have been
+missed.
 
 ## In scope
 
