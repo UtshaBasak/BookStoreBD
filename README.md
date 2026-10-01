@@ -7,7 +7,7 @@
 🌐 **Live site:** [bookstorebd-loum.onrender.com](https://bookstorebd-loum.onrender.com)
 
 [![CI](https://github.com/UtshaBasak/BookStoreBD/actions/workflows/ci.yml/badge.svg)](https://github.com/UtshaBasak/BookStoreBD/actions/workflows/ci.yml)
-[![CodeQL](https://github.com/UtshaBasak/BookStoreBD/actions/workflows/codeql.yml/badge.svg)](https://github.com/UtshaBasak/BookStoreBD/actions/workflows/codeql.yml)
+[![CodeQL](https://github.com/UtshaBasak/BookStoreBD/actions/workflows/github-code-scanning/codeql/badge.svg)](https://github.com/UtshaBasak/BookStoreBD/actions/workflows/github-code-scanning/codeql)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Node](https://img.shields.io/badge/node-22.13%2B%20%7C%2024%20LTS-brightgreen.svg)](.nvmrc)
 
@@ -310,7 +310,7 @@ MernBookstore/
 │
 ├── .github/
 │   ├── ISSUE_TEMPLATE/
-│   └── workflows/               # CI and CodeQL
+│   └── workflows/               # CI (CodeQL runs as GitHub's default setup)
 ├── docker-compose.yml           # Dev stack: Mongo + API + Vite
 ├── docker-compose.prod.yml      # Production-like: Mongo + API + nginx
 ├── render.yaml                  # The Render Blueprint for the live site
