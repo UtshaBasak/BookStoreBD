@@ -1,4 +1,4 @@
-import { useState, type ChangeEvent, type FormEvent } from 'react';
+import { useEffect, useState, type ChangeEvent, type FormEvent } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { useLocation, useNavigate, useSearchParams, Link } from 'react-router-dom';
 
@@ -49,10 +49,19 @@ export default function UpdateProfile() {
     const queryClient = useQueryClient();
     const userEmail = getUserEmail();
     // Arriving from "add your bKash number first", straight to that field.
-    const payoutFirst = useLocation().hash === '#bkash';
+    const { hash } = useLocation();
+    const payoutFirst = hash === '#bkash';
 
     const { data: profile } = useProfile(userEmail, { enabled: Boolean(userEmail) });
     const stored = isOwnProfile(profile) ? profile : null;
+
+    // Arriving from a step of the profile set-up: to that field, ready to type.
+    useEffect(() => {
+        if (!profile || !hash || payoutFirst) return;
+        const field = document.getElementById(decodeURIComponent(hash.slice(1)));
+        field?.scrollIntoView({ block: 'center' });
+        if (field instanceof HTMLInputElement) field.focus({ preventScroll: true });
+    }, [profile, hash, payoutFirst]);
 
     /**
      * The saved profile is the starting point; an edit is kept as an override

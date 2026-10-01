@@ -262,6 +262,29 @@ export const returnRequestedSellerEmail = (request: ReturnFacts, titles: readonl
     button: { label: 'Open the order', path: `/seller/order-tracking/${request.orderNumber}` },
   });
 
+/** A new member's first e-mail: what the shop is, and where to start. */
+export const welcomeEmail = (username: string): Email =>
+  noticeEmail({
+    subject: `Welcome to BookStoreBD, ${username}!`,
+    heading: `Welcome, ${username}!`,
+    preheader: 'New and second-hand books, bought and sold by readers across Bangladesh.',
+    lead: [
+      'Thank you for joining BookStoreBD, where readers across Bangladesh buy and sell new and second-hand books.',
+      'Here is what you can do:',
+    ],
+    items: [
+      { title: '🔎 Find any book', detail: 'Search in Bangla or English, filter by condition and price, and catch Quick deals.' },
+      { title: '💵 Pay on delivery', detail: 'Cash on delivery, with 7-day returns if a book is not as described.' },
+      { title: '🏪 Sell your books', detail: 'List a book in minutes for free, and get paid by bKash.' },
+      { title: '🎯 Ask for any book', detail: 'Not listed yet? Ask on the Wanted board and hear the moment it is.' },
+    ],
+    button: { label: 'See how it works', path: '/how-it-works' },
+    after: [
+      'Next, finish setting up your profile - your phone and address make checkout quicker.',
+      "You received this because you created an account. If that wasn't you, write to us and we will close it.",
+    ],
+  });
+
 /** Two-step sign-in was turned on or off for this account. */
 export const twoFactorChangedEmail = (enabled: boolean): Email =>
   noticeEmail({

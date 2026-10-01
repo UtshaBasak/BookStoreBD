@@ -17,6 +17,7 @@ const log = createLogger('seo');
 const STATIC_PAGES: readonly { path: string; changefreq: string; priority: string }[] = [
   { path: '/', changefreq: 'daily', priority: '1.0' },
   { path: '/filter', changefreq: 'daily', priority: '0.9' },
+  { path: '/how-it-works', changefreq: 'monthly', priority: '0.6' },
   { path: '/about', changefreq: 'monthly', priority: '0.5' },
   { path: '/contact', changefreq: 'monthly', priority: '0.5' },
   { path: '/returns', changefreq: 'yearly', priority: '0.3' },
@@ -157,6 +158,7 @@ export const llmsTxt: RequestHandler = (req, res) => {
 
 ## About and policies
 
+- [How it works](${link('/how-it-works')}): buying and selling, step by step, and common questions
 - [About](${link('/about')}): who runs the shop and how buying and selling work
 - [Contact](${link('/contact')})
 - [Returns and refunds](${link('/returns')})

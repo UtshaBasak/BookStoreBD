@@ -40,6 +40,7 @@ const Contact = lazy(() => import('./pages/legal/Contact'));
 const Privacy = lazy(() => import('./pages/legal/Privacy'));
 const Returns = lazy(() => import('./pages/legal/Returns'));
 const Terms = lazy(() => import('./pages/legal/Terms'));
+const HowItWorks = lazy(() => import('./pages/HowItWorks'));
 
 import './styles/orderTracking.css';
 import { isAdmin, isAuthenticated } from './utils/auth.js';
@@ -112,6 +113,7 @@ export default function App() {
         <Route path="/privacy" element={<Privacy />} />
         <Route path="/terms" element={<Terms />} />
         <Route path="/returns" element={<Returns />} />
+        <Route path="/how-it-works" element={<HowItWorks />} />
         <Route
           path="/sign-in"
           element={

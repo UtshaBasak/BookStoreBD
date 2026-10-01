@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useNavigate, useSearchParams, Link } from 'react-router-dom';
+import { useLocation, useNavigate, useSearchParams, Link } from 'react-router-dom';
 import {
     FaBirthdayCake,
     FaBook,
@@ -23,6 +23,7 @@ import type { OwnProfile } from '@shared/api.js';
 import AccountData from '../components/AccountData.js';
 import TwoStepSetting from '../components/TwoStepSetting.js';
 import NotificationSettings from '../components/NotificationSettings.js';
+import ProfileSetup from '../components/ProfileSetup.js';
 import Logo from '../components/Logo.js';
 import NotificationBell from '../components/NotificationBell.js';
 import { ThemeSetting, ThemeToggle } from '../components/ThemeToggle.js';
@@ -62,6 +63,15 @@ export default function Profile() {
     // not pretend the rest are guaranteed.
     const { data } = useProfile(userEmail, { enabled: Boolean(userEmail) });
     const profileData: Partial<OwnProfile> = data ?? { email: '', username: '' };
+
+    // A link to the set-up card or two-step sign-in, from a notification or
+    // the set-up checklist, lands on it once the page has its content.
+    const { hash } = useLocation();
+    useEffect(() => {
+        if (data && (hash === '#setup' || hash === '#two-step')) {
+            document.getElementById(hash.slice(1))?.scrollIntoView({ block: 'start' });
+        }
+    }, [data, hash]);
 
     // Blank, null and undefined fields are left off the page.
     const showIfFilled = (val: unknown) =>
@@ -236,6 +246,8 @@ export default function Profile() {
                         </dl>
                     )}
                 </section>
+
+                <ProfileSetup profile={profileData} mode={profileMode} />
 
                 {/* Where sales are paid - and, without it, why listing will not work. */}
                 {profileMode === 'seller' && (
