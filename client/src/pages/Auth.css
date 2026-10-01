@@ -335,3 +335,16 @@
   font-size: 0.78rem;
   font-weight: 700;
 }
+
+/* The bot check: empty unless Cloudflare needs a tick from the visitor. */
+.auth-botcheck:empty {
+  display: none;
+}
+.auth-botcheck {
+  display: flex;
+  justify-content: center;
+  margin: 0.25rem 0;
+}
+.auth-google {
+  gap: 0.6rem;
+}

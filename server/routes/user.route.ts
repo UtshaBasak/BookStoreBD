@@ -16,6 +16,7 @@ import {
 } from '../controllers/account.controller.js';
 import { sellerRatingOf } from '../controllers/sellerReview.controller.js';
 import { fulfilWanted } from '../utils/wanted.js';
+import { requireCaptcha } from '../utils/captcha.js';
 import AddBook from '../models/AddBook.model.js';
 import Order from '../models/Order.model.js';
 import User from '../models/user.model.js';
@@ -60,7 +61,7 @@ const router = express.Router();
 // Validated with the same schemas: an alias that skipped validation would be a
 // way in around the rules the canonical route enforces.
 router.post('/signup', validate(authSchemas.signup), signup);
-router.post('/signin', validate(authSchemas.signin), signin);
+router.post('/signin', validate(authSchemas.signin), requireCaptcha, signin);
 
 // A listing shows its seller's public details, so this stays readable without
 // a token; the handler only ever returns non-sensitive fields.

@@ -21,7 +21,7 @@ import sellerReviewRouter from './routes/sellerReview.route.js';
 import wantedRouter from './routes/wanted.route.js';
 import { CLIENT_DIST, UPLOADS_DIR } from './config/paths.js';
 import { TRUSTED_PROXIES } from './config/trustedProxies.js';
-import { securityHeaders, shareableImages } from './config/securityHeaders.js';
+import { permissionsPolicy, securityHeaders, shareableImages } from './config/securityHeaders.js';
 import { errorHandler, notFoundHandler } from './middleware/errorHandler.js';
 import { sanitizeRequest } from './middleware/sanitizeRequest.js';
 import { requestLogger } from './middleware/requestLogger.js';
@@ -89,6 +89,7 @@ export const createApp = ({
   // Before any route, so an error response carries the same protections as a
   // successful one.
   app.use(helmet(securityHeaders()));
+  app.use(permissionsPolicy);
   app.use(shareableImages);
 
   app.use(cors(corsOptions));

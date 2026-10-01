@@ -43,6 +43,8 @@ export const authSchemas = {
       // Not `password` here: an existing account may pre-date the length rule,
       // and a minimum on sign-in would lock those users out.
       password: z.string().min(1, 'Password is required').max(200),
+      /** From the bot check on the page, when it is on. */
+      captchaToken: z.string().max(4096).optional(),
     }),
   },
   sendOtp: {
@@ -50,6 +52,7 @@ export const authSchemas = {
       email,
       username: username.optional(),
       purpose: z.enum(['register', 'reset']).optional(),
+      captchaToken: z.string().max(4096).optional(),
     }),
   },
   verifyOtp: {

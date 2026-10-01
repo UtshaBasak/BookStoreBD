@@ -44,6 +44,13 @@ const IMAGE_SOURCES = [
  */
 const CLOUDINARY_UPLOAD = 'https://api.cloudinary.com';
 
+/**
+ * Cloudflare Turnstile, the bot check on sign-in and sign-up: its script, and
+ * the frame it draws its checkbox in. One named host, so scripts stay
+ * limited to this site and that one.
+ */
+const TURNSTILE = 'https://challenges.cloudflare.com';
+
 const connectSources = (): string[] => {
   const extra = (process.env.CLIENT_API_ORIGIN ?? '').trim();
   const sources = ["'self'", CLOUDINARY_UPLOAD];
@@ -57,7 +64,8 @@ export const securityHeaders = (): HelmetOptions => ({
       defaultSrc: ["'self'"],
       // No inline scripts and no eval anywhere in the bundle, so this needs no
       // escape hatch - which is the directive that actually stops an injection.
-      scriptSrc: ["'self'"],
+      scriptSrc: ["'self'", TURNSTILE],
+      frameSrc: [TURNSTILE],
       // React sets styles through the CSSOM, which CSP does not govern, but
       // libraries that inject a <style> element at runtime do need this.
       // Style injection is a far weaker vector than script injection.
@@ -98,6 +106,18 @@ export const securityHeaders = (): HelmetOptions => ({
   // avatar and cover hosts do not. Off deliberately rather than by oversight.
   crossOriginEmbedderPolicy: false,
 });
+
+/**
+ * What the page may ask the browser for: the microphone, for voice search,
+ * from this site only; nothing else - no camera, location, payment handler,
+ * USB device or ad-targeting topics.
+ */
+export const PERMISSIONS_POLICY = 'camera=(), microphone=(self), geolocation=(), payment=(), usb=(), browsing-topics=()';
+
+export const permissionsPolicy: RequestHandler = (_req, res, next) => {
+  res.setHeader('Permissions-Policy', PERMISSIONS_POLICY);
+  next();
+};
 
 /**
  * The pictures meant to be shown on other sites: the shop's share card, its

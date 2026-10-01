@@ -12,6 +12,8 @@ import { isDuplicateKeyError } from './error.js';
 
 const log = createLogger('book-stats');
 
+let indexReady: Promise<unknown> | null = null;
+
 /** Crawlers, link previews and scripts, which are not readers. */
 const NOT_A_READER = /bot|crawl|spider|slurp|preview|facebookexternalhit|whatsapp|telegram|discord|slack|curl|wget|python|headless|lighthouse/i;
 
@@ -33,10 +35,15 @@ export const countView = async (
 
     const viewer = req.user?.id ? `user:${req.user.id}` : `anon:${req.ip}:${agent}`;
     const key = createHmac('sha256', jwtSecret()).update(`view:${viewer}:${String(book._id)}`).digest('hex');
+    // The unique index is what makes two views at once count once, so it has
+    // to exist before the first one.
+    indexReady ??= BookView.init();
+    await indexReady;
     try {
-      await BookView.create({ key });
+      const { upsertedCount } = await BookView.updateOne({ key }, { $setOnInsert: { key, createdAt: new Date() } }, { upsert: true });
+      if (!upsertedCount) return; // already counted today
     } catch (error) {
-      if (isDuplicateKeyError(error)) return; // already counted today
+      if (isDuplicateKeyError(error)) return; // counted by a view at the same moment
       throw error;
     }
     await AddBook.updateOne({ _id: book._id }, { $inc: { viewCount: 1 } });

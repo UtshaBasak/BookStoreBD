@@ -87,14 +87,14 @@ const sessionBody = (user: UserDocument): SessionResponse => ({
 });
 
 /** Starts a session: a new refresh family plus a fresh access token. */
-const startSession = async (res: Response, user: UserDocument): Promise<SessionResponse> => {
+export const startSession = async (res: Response, user: UserDocument): Promise<SessionResponse> => {
   const { token: refresh } = await issueRefreshToken(user._id);
   setRefreshCookie(res, refresh);
   return sessionBody(user);
 };
 
 /** Promotes accounts listed in ADMIN_EMAILS, so the deployment keeps its admin. */
-const applyAdminBootstrap = async (user: UserDocument): Promise<UserDocument> => {
+export const applyAdminBootstrap = async (user: UserDocument): Promise<UserDocument> => {
   if (user.role !== 'admin' && config.adminEmails.includes(user.email.toLowerCase())) {
     user.role = 'admin';
     await user.save();
@@ -343,19 +343,11 @@ export const signin = async (
         // Two-step sign-in: the password is right, but the session waits for
         // the code sent to the account's address.
         if (validUser.twoFactor) {
-            if (!mailConfigured()) {
-                log.error('Two-step sign-in needs e-mail, which is not configured');
+            const challenge = await beginTwoStep(validUser);
+            if (!challenge) {
                 res.status(503).json({ message: 'Sign-in codes cannot be sent right now. Please try again later.' });
                 return;
             }
-            const code = generateOTP();
-            await issueCode(validUser.email, code, 'signin');
-            dispatchEmail(validUser.email, codeEmail('signin', code));
-            const challenge: TwoFactorChallenge = {
-                twoFactor: true,
-                sentTo: maskEmail(validUser.email),
-                message: 'Enter the 6-digit code we sent to your e-mail.',
-            };
             res.status(200).json(challenge);
             return;
         }
@@ -367,8 +359,28 @@ export const signin = async (
     }
 }
 
+/**
+ * The second step of a sign-in, for an account with two-step sign-in on: a
+ * code to the account's address. Null when e-mail is not set up, since the
+ * code could not arrive. Shared by password and Google sign-in.
+ */
+export const beginTwoStep = async (user: { email: string }): Promise<TwoFactorChallenge | null> => {
+    if (!mailConfigured()) {
+        log.error('Two-step sign-in needs e-mail, which is not configured');
+        return null;
+    }
+    const code = generateOTP();
+    await issueCode(user.email, code, 'signin');
+    dispatchEmail(user.email, codeEmail('signin', code));
+    return {
+        twoFactor: true,
+        sentTo: maskEmail(user.email),
+        message: 'Enter the 6-digit code we sent to your e-mail.',
+    };
+};
+
 /** "r•••@gmail.com": enough to recognise one's own address, not to read it. */
-const maskEmail = (email: string): string => {
+export const maskEmail = (email: string): string => {
     const [name = '', domain = ''] = email.split('@');
     return `${name.slice(0, 1)}•••@${domain}`;
 };

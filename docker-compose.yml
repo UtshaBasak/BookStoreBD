@@ -51,6 +51,11 @@ services:
       SMTP_SERVICE: ${SMTP_SERVICE:-gmail}
       SMTP_USER: ${SMTP_USER:-}
       SMTP_PASS: ${SMTP_PASS:-}
+      # Optional sign-in extras; unset means no bot check and no Google button.
+      TURNSTILE_SITE_KEY: ${TURNSTILE_SITE_KEY:-}
+      TURNSTILE_SECRET_KEY: ${TURNSTILE_SECRET_KEY:-}
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
     # -L makes nodemon poll. Filesystem events raised on a Windows host do not
     # reach a Linux container, so without it edits never trigger a restart.
     command: ['npm', 'run', 'dev', '--', '--legacy-watch']

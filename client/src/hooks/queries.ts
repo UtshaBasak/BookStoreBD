@@ -55,6 +55,7 @@ import type {
   InviteList,
   InviteRequest,
   PopularSearchesResponse,
+  AuthConfig,
 } from '@shared/api.js';
 
 import { apiFetch, apiUrl } from '../config/api.js';
@@ -165,6 +166,7 @@ export const keys = {
   invites: ['invites'] as const,
   /** Under `catalogue`, with the suggestions. */
   popularSearches: ['catalogue', 'popular-searches'] as const,
+  authConfig: ['auth-config'] as const,
 };
 
 // ---------------------------------------------------------------------------
@@ -908,4 +910,12 @@ export const usePopularSearches = (enabled: boolean): UseQueryResult<PopularSear
     queryFn: () => request<PopularSearchesResponse>('/filter/popular-searches'),
     enabled,
     staleTime: 10 * 60 * 1000,
+  });
+
+/** What the sign-in and sign-up pages offer: the bot check, and Google. */
+export const useAuthConfig = (): UseQueryResult<AuthConfig> =>
+  useQuery<AuthConfig>({
+    queryKey: keys.authConfig,
+    queryFn: () => request<AuthConfig>('/auth/config'),
+    staleTime: 5 * 60 * 1000,
   });

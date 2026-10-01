@@ -1,5 +1,5 @@
 import { useState, useEffect, type ChangeEvent, type FormEvent } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { FaBookOpen, FaEnvelopeOpenText, FaHeart, FaKey, FaTruck } from 'react-icons/fa';
 
 import type { ApiError, SignInResponse, TwoFactorChallenge } from '@shared/api.js';
@@ -7,7 +7,9 @@ import type { ApiError, SignInResponse, TwoFactorChallenge } from '@shared/api.j
 import Logo from '../components/Logo.js';
 import PasswordChecklist from '../components/PasswordChecklist.js';
 import { passwordReady } from '../utils/passwordPolicy.js';
-import { API_BASE_URL, apiFetch } from '../config/api.js';
+import { API_BASE_URL, apiFetch, refreshSession } from '../config/api.js';
+import GoogleButton from '../components/GoogleButton.js';
+import { useBotCheck } from '../hooks/useBotCheck.js';
 import { site } from '../config/site.js';
 import { useToast } from '../hooks/useToast.js';
 import { isAdmin, isAuthenticated, setSession } from '../utils/auth.js';
@@ -18,9 +20,15 @@ import './Auth.css';
 export default function SignIn() {
     const navigate = useNavigate();
     const toast = useToast();
-    const [formData, setFormData] = useState<{ email?: string; password?: string }>({});
+    const { hash } = useLocation();
+    // Back from Google with two-step sign-in on: straight to the code.
+    const googleTwoStep = /#google-2fa=([^&]+)/.exec(hash)?.[1];
+    const googleEmail = googleTwoStep ? decodeURIComponent(googleTwoStep) : '';
+    const [formData, setFormData] = useState<{ email?: string; password?: string }>(googleEmail ? { email: googleEmail } : {});
     // Two-step sign-in: the password was right and a code is on its way.
-    const [challenge, setChallenge] = useState<TwoFactorChallenge | null>(null);
+    const [challenge, setChallenge] = useState<TwoFactorChallenge | null>(
+        googleEmail ? { twoFactor: true, sentTo: googleEmail, message: 'Enter the 6-digit code we sent to your e-mail.' } : null
+    );
     const [code, setCode] = useState('');
     const [busy, setBusy] = useState(false);
     const [showForgot, setShowForgot] = useState(false);
@@ -29,12 +37,46 @@ export default function SignIn() {
     const [forgotStep, setForgotStep] = useState('email'); // email | otp | reset
     const [forgotMsg, setForgotMsg] = useState('');
     const [newPassword, setNewPassword] = useState('');
+    /** Where a two-step code came from: the password form, or Google. */
+    const [challengeFrom, setChallengeFrom] = useState<'password' | 'google'>(googleEmail ? 'google' : 'password');
+    // The bot check, for the form and for the password reset - one each, since
+    // a token works once.
+    const bot = useBotCheck();
+    const forgotBot = useBotCheck();
+    const [searchParams] = useSearchParams();
+    const next = searchParams.get('next') ?? '/';
+    const after = /^\/(?!\/)/.test(next) ? next : '/';
 
     useEffect(() => {
         if (isAuthenticated()) {
             navigate(isAdmin() ? '/admin/users' : '/profile', { replace: true });
         }
     }, [navigate]);
+
+    // Back from Google: signed in (the session is in the cookie it set), or
+    // a reason it did not work. A code to enter is handled above.
+    useEffect(() => {
+        if (searchParams.get('google') === 'done') {
+            void refreshSession().then((ok) => {
+                if (ok) navigate(isAdmin() ? '/admin/users' : after, { replace: true });
+                else toast.error('Could not finish signing in with Google. Please try again.');
+            });
+            return;
+        }
+        const reason = /#google-error=([^&]+)/.exec(hash)?.[1];
+        if (reason) {
+            const messages: Record<string, string> = {
+                cancelled: 'Google sign-in was cancelled.',
+                expired: 'That took a little too long. Please try Google sign-in again.',
+                unverified: 'Google has not verified that e-mail address yet.',
+                unavailable: 'Google sign-in is not available right now.',
+                codes: 'Sign-in codes cannot be sent right now. Please try again later.',
+            };
+            toast.error(messages[reason] ?? 'Could not sign in with Google. Please try again.');
+        }
+        // Once, on arrival.
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
 
     const handleChange = (e: ChangeEvent<HTMLInputElement>) => {
         setFormData({
@@ -53,18 +95,21 @@ export default function SignIn() {
                 headers: {
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify(formData),
+                body: JSON.stringify({ ...formData, captchaToken: bot.token }),
             });
+            // A bot-check token works once, whatever the answer.
+            bot.reset();
 
             const data = (await res.json()) as SignInResponse | ApiError;
             if (res.ok && 'twoFactor' in data) {
+                setChallengeFrom('password');
                 setChallenge(data);
                 setCode('');
                 toast.info(`A sign-in code is on its way to ${data.sentTo}.`);
             } else if (res.ok && 'token' in data) {
                 // The token is what authorises every later request.
                 setSession(data);
-                navigate('/');
+                navigate(after);
             } else {
                 // The API's sentence, not the raw error envelope. A wrong
                 // email and a wrong password answer the same on purpose.
@@ -96,7 +141,7 @@ export default function SignIn() {
             const data = (await res.json()) as SignInResponse | ApiError;
             if (res.ok && 'token' in data) {
                 setSession(data);
-                navigate('/');
+                navigate(isAdmin() ? '/admin/users' : after);
             } else {
                 toast.error((data as ApiError).message || 'That code did not work.');
             }
@@ -113,8 +158,9 @@ export default function SignIn() {
         const res = await apiFetch(`${API_BASE_URL}/auth/send-otp`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ email: forgotEmail, purpose: 'reset' })
+            body: JSON.stringify({ email: forgotEmail, purpose: 'reset', captchaToken: forgotBot.token })
         });
+        forgotBot.reset();
         const data = await res.json();
         if (res.ok) {
             setForgotStep('otp');
@@ -201,9 +247,15 @@ export default function SignIn() {
                         <button type="submit" className="btn btn-primary auth-wide" disabled={busy}>
                             {busy ? 'Checking...' : 'Verify and sign in'}
                         </button>
-                        <button type="button" className="auth-text-button" style={{ justifySelf: 'center' }} disabled={busy} onClick={() => void handleSubmit()}>
-                            Send a new code
-                        </button>
+                        {challengeFrom === 'google' ? (
+                            <a className="auth-text-button" style={{ justifySelf: 'center' }} href={`${API_BASE_URL}/auth/google?next=${encodeURIComponent(after)}`}>
+                                Send a new code
+                            </a>
+                        ) : (
+                            <button type="button" className="auth-text-button" style={{ justifySelf: 'center' }} disabled={busy || !bot.ready} onClick={() => void handleSubmit()}>
+                                Send a new code
+                            </button>
+                        )}
                         <button
                             type="button"
                             className="btn btn-ghost auth-wide"
@@ -253,11 +305,14 @@ export default function SignIn() {
                             />
                         </div>
 
-                        <button type="submit" className="btn btn-primary auth-wide" disabled={busy}>
+                        <button type="submit" className="btn btn-primary auth-wide" disabled={busy || !bot.ready}>
                             Sign In
                         </button>
                     </form>
                 )}
+                {/* Outside both forms, so it stays put for "Send a new code". */}
+                {challengeFrom === 'password' && bot.element}
+                {!challenge && <GoogleButton next={after} />}
 
                 <p className="auth-divider">New here?</p>
                 <p className="auth-switch">
@@ -285,14 +340,16 @@ export default function SignIn() {
                             {forgotStep === 'email' && (
                                 <>
                                     <input type="email" name="reset-email" autoComplete="username" aria-label="Email" placeholder="Enter your email" value={forgotEmail} onChange={e => setForgotEmail(e.target.value)} className="field" />
-                                    <button onClick={handleForgotSendOtp} className="btn btn-primary auth-wide">Send OTP</button>
+                                    {forgotBot.element}
+                                    <button onClick={handleForgotSendOtp} className="btn btn-primary auth-wide" disabled={!forgotBot.ready}>Send OTP</button>
                                 </>
                             )}
                             {forgotStep === 'otp' && (
                                 <>
                                     <input type="text" name="reset-otp" inputMode="numeric" autoComplete="one-time-code" aria-label="OTP" placeholder="Enter OTP" value={forgotOtp} onChange={e => setForgotOtp(e.target.value)} className="field" />
                                     <button onClick={handleForgotVerifyOtp} className="btn btn-primary auth-wide">Verify OTP</button>
-                                    <button onClick={handleForgotSendOtp} className="auth-text-button" style={{ justifySelf: 'center' }}>Resend OTP</button>
+                                    {forgotBot.element}
+                                    <button onClick={handleForgotSendOtp} className="auth-text-button" style={{ justifySelf: 'center' }} disabled={!forgotBot.ready}>Resend OTP</button>
                                 </>
                             )}
                             {forgotStep === 'reset' && (

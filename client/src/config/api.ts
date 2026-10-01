@@ -58,7 +58,7 @@ const handleUnauthorized = (): void => {
  */
 let refreshInFlight: Promise<boolean> | null = null;
 
-const refreshSession = (): Promise<boolean> => {
+export const refreshSession = (): Promise<boolean> => {
   refreshInFlight ??= fetch(apiUrl(REFRESH_PATH), {
     method: 'POST',
     credentials: 'include',

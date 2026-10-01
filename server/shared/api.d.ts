@@ -96,6 +96,16 @@ export interface SessionResponse {
 export interface SignInRequest {
   email: string;
   password: string;
+  /** From the bot check, when the site has one. */
+  captchaToken?: string;
+}
+
+/** GET /auth/config - what the sign-in and sign-up pages offer. */
+export interface AuthConfig {
+  /** Cloudflare Turnstile's site key, when the bot check is on. */
+  captchaSiteKey: string | null;
+  /** Whether "Continue with Google" is set up. */
+  google: boolean;
 }
 
 /**
@@ -128,6 +138,7 @@ export interface SendOtpRequest {
   email: string;
   username?: string;
   purpose?: 'register' | 'reset';
+  captchaToken?: string;
 }
 
 export interface VerifyOtpRequest {

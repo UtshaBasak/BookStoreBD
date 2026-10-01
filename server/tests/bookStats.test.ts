@@ -2,7 +2,7 @@
  * How wanted a book is: views, once a person a day, and how many wishlists it
  * is on.
  */
-import { describe, it, expect, beforeAll, afterAll, beforeEach } from 'vitest';
+import { describe, it, expect, beforeAll, afterAll, beforeEach, vi } from 'vitest';
 
 import { createTestContext, clearDatabase, closeTestContext, type PrefixedRequest } from './helpers/testApp.js';
 import { createBook, createUserWithToken } from './helpers/factories.js';
@@ -24,7 +24,7 @@ const settle = () => new Promise((resolve) => setTimeout(resolve, 150));
 const countsOf = async (id: string) => AddBook.findById(id, { viewCount: 1, wishlistCount: 1 }).lean();
 
 describe('a book’s views', () => {
-  it('count each reader once, but not the seller or a crawler', async () => {
+  it('count each reader once, but not the seller or a crawler', { timeout: 30000 }, async () => {
     const seller = await createUserWithToken({ email: 'seller@test.com' });
     const reader = await createUserWithToken({ email: 'reader@test.com' });
     const id = String((await createBook({ sellerEmail: 'seller@test.com' }))._id);
@@ -34,8 +34,9 @@ describe('a book’s views', () => {
     await view(id);
     await view(id, seller.auth);
     await view(id, undefined, 'Googlebot/2.1 (+http://www.google.com/bot.html)');
+    // Counted in the background: wait for it rather than for a fixed time.
+    await vi.waitFor(async () => expect((await countsOf(id))?.viewCount).toBe(2), { timeout: 20000, interval: 100 });
     await settle();
-
     expect((await countsOf(id))?.viewCount).toBe(2);
     expect((await view(id)).body.viewCount).toBe(2);
   });

@@ -2,7 +2,7 @@
  * The search box's suggestions: authors and categories beside the books, and
  * what people search for most before anything is typed.
  */
-import { describe, it, expect, beforeAll, afterAll, beforeEach } from 'vitest';
+import { describe, it, expect, beforeAll, afterAll, beforeEach, vi } from 'vitest';
 
 import { createTestContext, clearDatabase, closeTestContext, type PrefixedRequest } from './helpers/testApp.js';
 import { createBook } from './helpers/factories.js';
@@ -36,13 +36,13 @@ describe('search suggestions', () => {
 });
 
 describe('popular searches', () => {
-  it('count catalogue searches that found something, most searched first', async () => {
+  it('count catalogue searches that found something, most searched first', { timeout: 30000 }, async () => {
     await createBook({ title: 'Deyal', author: 'Humayun Ahmed', isbn: 'B1' });
     for (const term of ['Deyal', 'deyal ', 'Humayun', 'nothing at all like this']) {
       await request.get(`/filter/booklist?search=${encodeURIComponent(term)}`);
     }
-    await new Promise((resolve) => setTimeout(resolve, 100));
-
+    // Logged in the background: wait for it rather than for a fixed time.
+    await vi.waitFor(async () => expect(await SearchLog.countDocuments()).toBe(4), { timeout: 20000, interval: 100 });
     expect(await SearchLog.countDocuments({ term: 'deyal' })).toBe(2);
     const popular = await request.get('/filter/popular-searches');
     expect(popular.body.terms).toEqual(['deyal', 'humayun']);

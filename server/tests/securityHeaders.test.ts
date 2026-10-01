@@ -50,6 +50,12 @@ describe('security headers', () => {
     expect(res.headers['referrer-policy']).toBe('strict-origin-when-cross-origin');
   });
 
+  it('lets the page use the microphone, for voice search, and nothing else', async () => {
+    const res = await agent.get('/health');
+    expect(res.headers['permissions-policy']).toMatch(/microphone=\(self\)/);
+    expect(res.headers['permissions-policy']).toMatch(/camera=\(\)/);
+  });
+
   it('asks browsers to remember HTTPS', async () => {
     const res = await agent.get('/health');
     expect(res.headers['strict-transport-security']).toMatch(/max-age=63072000/);
@@ -59,9 +65,10 @@ describe('security headers', () => {
     const res = await agent.get('/health');
     const directives = policy(res.headers['content-security-policy']);
 
-    // The directive that actually stops an injection. If either of these
-    // appears, the policy no longer does.
-    expect(directives['script-src']).toEqual(["'self'"]);
+    // The directive that actually stops an injection: this site, and the one
+    // named host of the sign-in bot check - never inline scripts or eval.
+    expect(directives['script-src']).toEqual(["'self'", 'https://challenges.cloudflare.com']);
+    expect(directives['frame-src']).toEqual(['https://challenges.cloudflare.com']);
     expect(directives['object-src']).toEqual(["'none'"]);
     expect(directives['base-uri']).toEqual(["'self'"]);
   });

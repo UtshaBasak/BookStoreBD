@@ -8,6 +8,8 @@ import Logo from '../components/Logo.js';
 import PasswordChecklist from '../components/PasswordChecklist.js';
 import { passwordReady } from '../utils/passwordPolicy.js';
 import { API_BASE_URL, apiFetch } from '../config/api.js';
+import GoogleButton from '../components/GoogleButton.js';
+import { useBotCheck } from '../hooks/useBotCheck.js';
 import { site } from '../config/site.js';
 import { useToast } from '../hooks/useToast.js';
 import { isAdmin, isAuthenticated, setSession } from '../utils/auth.js';
@@ -32,6 +34,8 @@ export default function SignUp() {
     const [checking, setChecking] = useState(false);
     const navigate = useNavigate();
     const toast = useToast();
+    // The bot check, before a code is e-mailed.
+    const bot = useBotCheck();
 
     useEffect(() => {
         if (isAuthenticated()) {
@@ -51,8 +55,10 @@ export default function SignUp() {
         const res = await apiFetch(`${API_BASE_URL}/auth/send-otp`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ email, username: formData.username, purpose: 'register' })
+            body: JSON.stringify({ email, username: formData.username, purpose: 'register', captchaToken: bot.token })
         });
+        // A bot-check token works once, whatever the answer.
+        bot.reset();
         const data = (await res.json()) as ApiError;
         if (res.ok) {
             setOtpMsg('OTP sent to your email.');
@@ -219,7 +225,7 @@ export default function SignUp() {
                                 username={formData.username}
                             />
                         </div>
-                        <button type="submit" className="btn btn-primary auth-wide" disabled={checking}>
+                        <button type="submit" className="btn btn-primary auth-wide" disabled={checking || !bot.ready}>
                             {checking ? 'Checking...' : 'Send OTP'}
                         </button>
                         {/*
@@ -260,7 +266,7 @@ export default function SignUp() {
                         <button onClick={handleVerifyOtp} className="btn btn-primary auth-wide">
                             Verify OTP & Register
                         </button>
-                        <button type="button" onClick={() => handleSendOtp(emailForOtp)} className="auth-text-button" style={{ justifySelf: 'center' }}>
+                        <button type="button" onClick={() => handleSendOtp(emailForOtp)} className="auth-text-button" style={{ justifySelf: 'center' }} disabled={!bot.ready}>
                             Resend OTP
                         </button>
                         {otpMsg && (
@@ -274,6 +280,10 @@ export default function SignUp() {
                         <p className="auth-message auth-message-ok">Registration successful! Redirecting...</p>
                     </div>
                 )}
+
+                {/* Outside the forms, so it stays put for "Resend OTP". */}
+                {step !== 'done' && bot.element}
+                {step === 'form' && <GoogleButton />}
 
                 <p className="auth-divider">Have an account?</p>
                 <p className="auth-switch">
