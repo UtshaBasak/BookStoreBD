@@ -9,6 +9,8 @@ import {
   deleteMyAccount,
   exportMyData,
   getNotificationSettings,
+  listInvites,
+  sendInvites,
   setTwoFactor,
   updateNotificationSettings,
 } from '../controllers/account.controller.js';
@@ -281,6 +283,9 @@ router.put('/me/two-factor', requireAuth, validate(userSchemas.twoFactor), setTw
 
 router.get('/me/notifications', requireAuth, getNotificationSettings);
 router.put('/me/notifications', requireAuth, validate(userSchemas.notifications), updateNotificationSettings);
+
+router.get('/me/invites', requireAuth, listInvites);
+router.post('/me/invites', requireAuth, validate(userSchemas.invite), sendInvites);
 
 // ---------------------------------------------------------------------------
 // Administrator only

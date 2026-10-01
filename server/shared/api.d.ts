@@ -992,6 +992,20 @@ export interface NotificationSettings {
   }[];
 }
 
+/** POST /user/me/invites */
+export interface InviteRequest {
+  emails: string[];
+  /** A few words of their own; links are not allowed. */
+  note?: string;
+}
+
+/** GET /user/me/invites - who the caller has invited, and who has joined. */
+export interface InviteList {
+  items: { email: string; invitedAt: IsoDate; joined: boolean }[];
+  /** How many more may be sent today. */
+  remainingToday: number;
+}
+
 /** PUT /user/me/notifications */
 export interface UpdateNotificationSettingsRequest {
   prefs: NotificationPrefs;

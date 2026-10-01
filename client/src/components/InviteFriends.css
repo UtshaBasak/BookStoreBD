@@ -1,0 +1,73 @@
+/* The Invite friends card on the profile page. */
+.if-form {
+  display: grid;
+  gap: 0.85rem;
+}
+.if-form label {
+  display: grid;
+  gap: 0.3rem;
+}
+.if-form label > span {
+  color: var(--color-ink-soft);
+  font-size: 0.88rem;
+  font-weight: 700;
+}
+.if-form small {
+  color: var(--color-ink-muted);
+  font-size: 0.8rem;
+  font-weight: 500;
+}
+.if-form textarea.field {
+  min-height: 70px;
+  padding: 10px 14px;
+}
+.if-send {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem;
+}
+.if-sent {
+  margin-top: 1.25rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--color-line);
+}
+.if-sent h3 {
+  margin: 0 0 0.5rem;
+  font-size: 0.95rem;
+}
+.if-sent ul {
+  display: grid;
+  gap: 0.35rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.if-sent li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  font-size: 0.9rem;
+}
+.if-email {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  color: var(--color-ink-soft);
+}
+.if-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 2px 10px;
+  border-radius: 999px;
+  background: var(--color-surface-muted);
+  color: var(--color-ink-muted);
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+.if-pill.is-joined {
+  background: var(--color-success-tint);
+  color: var(--color-success-dark);
+}

@@ -430,6 +430,13 @@ export const userSchemas = {
       password: z.string().min(1, 'Your password is required to delete the account').max(200),
     }),
   },
+  /** Inviting friends who are not members yet. */
+  invite: {
+    body: z.object({
+      emails: z.array(email).min(1, 'Add an e-mail address').max(5, 'Up to five at a time'),
+      note: z.string().trim().max(300).optional(),
+    }),
+  },
   /** What a person wants to hear about. Unknown categories are dropped on save. */
   notifications: {
     body: z.object({
@@ -598,6 +605,7 @@ export type TwoFactorBody = z.infer<typeof userSchemas.twoFactor.body>;
 export type WantedListQuery = z.infer<typeof wantedSchemas.list.query>;
 export type CreateWantedBody = z.infer<typeof wantedSchemas.create.body>;
 export type NotificationSettingsBody = z.infer<typeof userSchemas.notifications.body>;
+export type InviteBody = z.infer<typeof userSchemas.invite.body>;
 export type AuditListQuery = z.infer<typeof auditSchemas.list.query>;
 export type WriteReviewBody = z.infer<typeof reviewSchemas.write.body>;
 

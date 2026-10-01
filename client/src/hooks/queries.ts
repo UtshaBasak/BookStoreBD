@@ -52,6 +52,8 @@ import type {
   WantedItem,
   CreateWantedRequest,
   CreateWantedResponse,
+  InviteList,
+  InviteRequest,
 } from '@shared/api.js';
 
 import { apiFetch, apiUrl } from '../config/api.js';
@@ -159,6 +161,7 @@ export const keys = {
   notificationSettings: ['notification-settings'] as const,
   /** One entry per distinct search, so turning a page keeps the last one. */
   wanted: (query: string) => ['wanted', query] as const,
+  invites: ['invites'] as const,
 };
 
 // ---------------------------------------------------------------------------
@@ -880,5 +883,17 @@ export const useRemoveWanted = (): UseMutationResult<MessageResponse, Error, Id>
   return useMutation({
     mutationFn: (id: Id) => request<MessageResponse>(`/wanted/${id}`, json('DELETE')),
     onSuccess: () => client.invalidateQueries({ queryKey: ['wanted'] }),
+  });
+};
+
+/** Who the caller has invited, and who joined. */
+export const useInvites = (): UseQueryResult<InviteList> =>
+  useQuery<InviteList>({ queryKey: keys.invites, queryFn: () => request<InviteList>('/user/me/invites') });
+
+export const useSendInvites = (): UseMutationResult<MessageResponse, Error, InviteRequest> => {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: (body: InviteRequest) => request<MessageResponse>('/user/me/invites', json('POST', body)),
+    onSuccess: () => client.invalidateQueries({ queryKey: keys.invites }),
   });
 };

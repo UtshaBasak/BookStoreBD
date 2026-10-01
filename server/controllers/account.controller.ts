@@ -22,9 +22,11 @@ import { destroyAssets } from '../config/cloudinary.js';
 import { mailConfigured } from '../utils/mailer.js';
 import { recountWishlists } from '../utils/bookStats.js';
 import { dispatchShopMail, twoFactorChangedEmail } from '../utils/shopMail.js';
-import type { NotificationSettingsBody, TwoFactorBody } from '../schemas/index.js';
+import type { InviteBody, NotificationSettingsBody, TwoFactorBody } from '../schemas/index.js';
+import Invite from '../models/Invite.model.js';
+import { inviteEmail } from '../utils/shopMail.js';
 import { CATEGORIES, cleanPrefs, wants } from '../utils/notificationPrefs.js';
-import type { NotificationPrefs, NotificationSettings } from '@shared/api.js';
+import type { InviteList, NotificationPrefs, NotificationSettings } from '@shared/api.js';
 
 const log = createLogger('account');
 
@@ -80,6 +82,102 @@ export const exportMyData: RequestHandler = async (req, res, next) => {
       sellerRatings,
       ratingsReceived,
     });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/** Invitations one member may send in a day, and how soon one address may be e-mailed again. */
+export const INVITES_PER_DAY = 20;
+const REINVITE_AFTER_MS = 7 * 24 * 60 * 60 * 1000;
+const DAY_MS = 24 * 60 * 60 * 1000;
+
+const invitesLeftToday = async (inviterEmail: string): Promise<number> =>
+  Math.max(0, INVITES_PER_DAY - (await Invite.countDocuments({ inviterEmail, createdAt: { $gt: new Date(Date.now() - DAY_MS) } })));
+
+/**
+ * Invites friends by e-mail: who is inviting them, what the shop is, and a
+ * link to join.
+ *
+ * The answer is the same whether or not an address already has an account -
+ * otherwise this would be a way to find out who shops here - and a member is
+ * simply not e-mailed. An address is e-mailed at most once a week whoever
+ * invites it, links are not allowed in the note, and a member may send a
+ * limited number a day, so an invitation cannot be turned into spam.
+ */
+export const sendInvites: RequestHandler = async (req, res, next) => {
+  try {
+    const actor = actingUser(req);
+    const { emails, note = '' } = req.body as InviteBody;
+    if (/https?:\/\/|www\.|\b[a-z0-9-]+\.(com|net|org|xyz|io|ly|me|info|bd)\b/i.test(note)) {
+      res.status(400).json({ message: 'Leave links out of the note - a few words of your own is perfect.' });
+      return;
+    }
+
+    const inviter = await User.findById(actor.id).select('username email').lean();
+    if (!inviter) {
+      res.status(404).json({ message: 'Account not found' });
+      return;
+    }
+
+    const addresses = [...new Set(emails.map((address) => address.toLowerCase()))].filter((address) => address !== inviter.email);
+    // Each address once per inviter: asking again sends nothing new.
+    const already = new Set(
+      (await Invite.find({ inviterEmail: inviter.email, inviteeEmail: { $in: addresses } }, { inviteeEmail: 1 }).lean()).map(
+        (invite) => invite.inviteeEmail
+      )
+    );
+    const toInvite = addresses.filter((address) => !already.has(address));
+
+    const left = await invitesLeftToday(inviter.email);
+    if (toInvite.length > left) {
+      res.status(429).json({
+        message: left ? `You can send ${left} more ${left === 1 ? 'invitation' : 'invitations'} today.` : 'That is all the invitations for today. Try again tomorrow.',
+      });
+      return;
+    }
+
+    const members = new Set((await User.find({ email: { $in: toInvite } }, { email: 1 }).lean()).map((user) => user.email));
+    const recentlyEmailed = new Set(
+      (
+        await Invite.find(
+          { inviteeEmail: { $in: toInvite }, emailed: true, createdAt: { $gt: new Date(Date.now() - REINVITE_AFTER_MS) } },
+          { inviteeEmail: 1 }
+        ).lean()
+      ).map((invite) => invite.inviteeEmail)
+    );
+
+    const mail = inviteEmail(inviter.username, note);
+    for (const address of toInvite) {
+      const send = !members.has(address) && !recentlyEmailed.has(address);
+      await Invite.create({ inviterEmail: inviter.email, inviteeEmail: address, emailed: send });
+      if (send) dispatchShopMail(address, mail);
+    }
+
+    const count = addresses.length;
+    res.status(200).json({
+      message: count ? `Invitation sent to ${count} ${count === 1 ? 'friend' : 'friends'}. Thank you!` : 'Add a friend’s address, not your own.',
+      sent: count,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/** Who the caller has invited, newest first, and whether they joined. */
+export const listInvites: RequestHandler = async (req, res, next) => {
+  try {
+    const actor = actingUser(req);
+    const invites = await Invite.find({ inviterEmail: actor.email }).sort({ createdAt: -1 }).limit(50).lean();
+    const body: InviteList = {
+      items: invites.map((invite) => ({
+        email: invite.inviteeEmail,
+        invitedAt: new Date(invite.createdAt).toISOString(),
+        joined: Boolean(invite.joinedAt),
+      })),
+      remainingToday: await invitesLeftToday(actor.email),
+    };
+    res.status(200).json(body);
   } catch (error) {
     next(error);
   }

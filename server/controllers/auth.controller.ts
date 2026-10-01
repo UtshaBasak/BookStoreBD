@@ -31,6 +31,7 @@ import type {
 } from '../schemas/index.js';
 import { createLogger } from '../config/logger.js';
 import { welcomeNewMember } from '../utils/welcome.js';
+import { creditInvites } from '../utils/invites.js';
 import { newPasswordProblem } from '../utils/breachedPassword.js';
 import { passwordProblems } from '../utils/passwordPolicy.js';
 import { alreadyRegisteredEmail, codeEmail, type Email } from '../utils/emailTemplates.js';
@@ -285,6 +286,7 @@ export const signup = async (
         await applyAdminBootstrap(newUser);
         await clearCode(email);
         await welcomeNewMember(newUser);
+        await creditInvites(newUser);
         res.status(201).json(await startSession(res, newUser));
     } catch (error) {
         // Handle duplicate key error (in case of race condition)

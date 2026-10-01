@@ -25,6 +25,7 @@ import type {
   CreateReturnRequest,
   CreateWantedRequest,
   DeleteConversationRequest,
+  InviteRequest,
   CatalogueParams,
   MarkReadRequest,
   PasswordCheckRequest,
@@ -105,6 +106,7 @@ export type ContractChecks = [
   Expect<Accepts<typeof userSchemas.updateProfile.body, UpdateProfileRequest>>,
   Expect<Accepts<typeof userSchemas.twoFactor.body, TwoFactorRequest>>,
   Expect<Accepts<typeof userSchemas.notifications.body, UpdateNotificationSettingsRequest>>,
+  Expect<Accepts<typeof userSchemas.invite.body, InviteRequest>>,
 
   // ----------------------------------------------------------------- admin
   Expect<Accepts<typeof adminSchemas.message.body, AdminMessageRequest>>,

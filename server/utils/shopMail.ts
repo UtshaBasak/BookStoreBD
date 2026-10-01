@@ -285,6 +285,27 @@ export const welcomeEmail = (username: string): Email =>
     ],
   });
 
+/** A member inviting a friend: who, what the shop is, and how to join. */
+export const inviteEmail = (inviterName: string, note: string): Email =>
+  noticeEmail({
+    subject: `${inviterName} invited you to BookStoreBD`,
+    heading: `${inviterName} thinks you would like BookStoreBD`,
+    preheader: 'New and second-hand books, bought and sold by readers across Bangladesh.',
+    lead: [
+      ...(note ? [`"${note}" - ${inviterName}`] : []),
+      'BookStoreBD is where readers across Bangladesh buy and sell new and second-hand books.',
+    ],
+    items: [
+      { title: '📚 Thousands of books', detail: 'New and second-hand, searchable in Bangla and English.' },
+      { title: '💵 Pay on delivery', detail: 'Cash on delivery, delivered to your door, with 7-day returns.' },
+      { title: '🏪 Sell yours too', detail: 'List the books you have finished for free, and get paid by bKash.' },
+    ],
+    button: { label: 'Join BookStoreBD', path: '/sign-up' },
+    after: [
+      `You received this because ${inviterName} entered your address. We will not e-mail you again unless you sign up.`,
+    ],
+  });
+
 /** A book someone asked for on the Wanted board has been listed. */
 export const wantedFoundEmail = (title: string, author: string, link: string): Email =>
   noticeEmail({
