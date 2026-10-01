@@ -6,7 +6,7 @@ commit, so any one of them can be reverted without unpicking the others.
 
 ## Known CodeQL findings
 
-**4 findings, all false positives**, to be dismissed in the Security tab rather
+**5 findings, all false positives**, to be dismissed in the Security tab rather
 than fixed in code. Recorded here so the list stays short enough that a real
 finding is noticeable.
 
@@ -18,6 +18,7 @@ workflow uses, against a copy of the working tree with no `node_modules` in it.
 | --- | ---: | --- |
 | `js/xss-through-dom` | 3 | `URL.createObjectURL` can only produce a `blob:` URL; CodeQL models it as taint-propagating regardless. The only barriers the query accepts would corrupt a `blob:` or `data:` URL. The three sites are the file pickers in `ChatWindow`, `ChatPage` and `UpdateProfile`. |
 | `js/missing-token-validation` | 1 | The refresh cookie is `SameSite=Lax` and both endpoints that read it are POST, so a browser will not attach it cross-site. Every other endpoint authenticates from the `Authorization` header, which a third-party page cannot set. Pinned by tests asserting the cookie alone authenticates nothing. |
+| `js/insufficient-password-hash` | 1 | `server/utils/breachedPassword.ts` hashes a new password with SHA-1 to look it up in Have I Been Pwned, whose range API is keyed by SHA-1: only the first five characters of the hash are sent. Nothing is stored; passwords are stored as bcrypt hashes. Added 1 October 2026. |
 
 ### `js/sql-injection` went from 25 to 0
 

@@ -22,6 +22,9 @@ const TIMEOUT_MS = 2500;
  */
 export const isBreached = async (password: string): Promise<boolean> => {
   if (process.env.NODE_ENV === 'test' || process.env.PASSWORD_BREACH_CHECK === 'off') return false;
+  // SHA-1 because it is what the range API is keyed by - this is a lookup, not
+  // storage. The password itself is stored only as a bcrypt hash, elsewhere.
+  // CodeQL's js/insufficient-password-hash flags it regardless (docs/ROADMAP.md).
   const hash = crypto.createHash('sha1').update(password, 'utf8').digest('hex').toUpperCase();
   const prefix = hash.slice(0, 5);
   const suffix = hash.slice(5);
