@@ -446,8 +446,10 @@
 
 /* ------------------------------------------------------------ responsive */
 @media (max-width: 860px) {
+  /* minmax(0, ...) rather than 1fr, whose minimum is the content's: the search
+     box's natural width would otherwise push the card past a phone's edge. */
   .hero {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
   }
   .hero-art {
     display: none;
@@ -497,6 +499,26 @@
     right: 12px;
     min-width: 0;
     grid-template-columns: 1fr 1fr;
+  }
+}
+
+/* A narrow phone, signed in: the logo and all five icons still share the top
+   row. The logo scales with the screen, and the icons sit closer together
+   while each stays a 36px target. */
+@media (max-width: 480px) {
+  .header {
+    column-gap: 0.5rem;
+    padding-inline: 0.6rem;
+  }
+  .logo-button {
+    --logo-size: clamp(24px, 7.2vw, 30px);
+  }
+  .user-options .icon-button,
+  .user-options .icon-link {
+    min-width: 36px;
+  }
+  .user-options .profile-link {
+    margin-left: 0.15rem;
   }
 }
 
