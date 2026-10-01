@@ -314,6 +314,8 @@ describe("the administrator's lists", () => {
     expect((await request.get('/review/all').set('Authorization', buyer.auth)).status).toBe(403);
     // And the seller heard about it.
     expect(await notificationsOf(SELLER)).toContain('review');
+    const note = await Notification.findOne({ recipient: SELLER, type: 'review' }).lean();
+    expect(note?.title).toBe(`New ★★★★ review of "${book.title}"`);
   });
 
   it('show sales still inside the return window as upcoming payouts', async () => {

@@ -81,7 +81,9 @@ export const Booklist: RequestHandler = async (req, res) => {
   try {
     // A seller's shop: their books only. An unknown name finds nothing.
     if (q.seller) {
-      const seller = await User.findOne({ username: q.seller }, { email: 1 }).lean();
+      // `String()` at the sink, as everywhere else: the schema already made it
+      // text, and this says so where the query is built.
+      const seller = await User.findOne({ username: String(q.seller) }, { email: 1 }).lean();
       filter.sellerEmail = seller?.email ?? '\u0000';
     }
 
