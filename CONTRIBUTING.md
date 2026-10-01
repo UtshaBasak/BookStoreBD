@@ -173,5 +173,13 @@ Open the PR against `master` and fill in the template.
 
 Open an issue using the [bug report template](.github/ISSUE_TEMPLATE/bug_report.md)
 and include reproduction steps, what you expected, and what actually happened.
-For anything security-sensitive, contact a maintainer directly instead of filing
-a public issue.
+For anything security-sensitive, do not file a public issue: report it privately
+as [SECURITY.md](SECURITY.md) describes.
+
+---
+
+## Code of conduct
+
+Everyone taking part is expected to follow the
+[Code of Conduct](CODE_OF_CONDUCT.md). Report unacceptable behaviour to
+<support.utsha@gmail.com>.
