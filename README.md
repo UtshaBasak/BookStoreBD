@@ -85,9 +85,9 @@ One codebase serves three roles:
 
 | Role | What they can do |
 | --- | --- |
-| **Buyer** | Browse and filter the catalogue, keep a wishlist and cart, check out, track and cancel orders, request returns, and chat with sellers |
-| **Seller** | List books with photos and condition details, run discounts, manage stock, handle orders, and get paid by bKash |
-| **Admin** | Manage users, orders, listings, returns, payouts and reviews, and message buyers and sellers |
+| **Buyer** | Browse and filter the catalogue, keep a wishlist and cart, check out, track and cancel orders, request returns, review books, rate sellers, and chat with sellers |
+| **Seller** | List books with photos and condition details, run discounts, manage stock, handle orders, answer reviews, and get paid by bKash |
+| **Admin** | Manage users, orders, listings, returns, payouts, reviews and seller ratings, and message buyers and sellers |
 
 User guides for each role are in the [wiki](https://github.com/UtshaBasak/BookStoreBD/wiki).
 
@@ -120,7 +120,7 @@ User guides for each role are in the [wiki](https://github.com/UtshaBasak/BookSt
   ([`server/utils/phonetic.ts`](server/utils/phonetic.ts))
 - Search by title, author or ISBN, with filters for type, condition, category,
   price, rating, stock and deals, seven sort orders, and 20–50 results a page
-- Seller shop pages (`/shop/:username`) with stats, ratings and their books
+- Seller shop pages (`/shop/:username`) with stats, seller ratings and their books
 - Homepage shelves: Quick deals, Latest, Trending, Top picks for you, Shop by
   category, Bestsellers, Popular writers, Top rated, Under ৳300 and Recently viewed
 
@@ -144,12 +144,23 @@ User guides for each role are in the [wiki](https://github.com/UtshaBasak/BookSt
 - Share any book to Facebook, WhatsApp, X, Telegram or e-mail; shared links
   preview with the book's title, price and cover
 
+### Reviews and seller ratings
+
+- Book reviews and seller ratings from verified buyers only: one each, with
+  stars, a headline and a few words, editable or withdrawn at any time
+- The average and the spread of stars on every book page and seller shop; a
+  seller's rating also appears beside their name on each of their listings
+- Sellers hear about every new review and rating and can reply publicly; the
+  buyer hears about the reply
+- Anyone signed in can report a review or rating; it stays up while an
+  administrator decides whether to clear the reports or remove it
+
 ### Notifications and e-mail
 
 - A notification bell on every page, delivered live over Socket.IO, and a full
   history at `/notifications`
 - Everyone in an order hears what concerns them: new orders, status changes,
-  cancellations, returns, payouts, reviews and replies
+  cancellations, returns, payouts, reviews, seller ratings and replies
 - Stock and price alerts: low stock and sold-out notices for sellers; low stock
   and price drops for buyers with the book in their cart or wishlist; a notice
   when a requested book is back
@@ -159,7 +170,8 @@ User guides for each role are in the [wiki](https://github.com/UtshaBasak/BookSt
 ### Administration
 
 - Users, transactions, books, returns, payouts, all reviews and reported
-  reviews — each searchable, filterable, sortable and refreshable
+  reviews (of books and of sellers) — each searchable, filterable, sortable
+  and refreshable
 - Full control of order stages and cancellation
 - **Messages:** a notification, a branded e-mail or both, to chosen people or
   to every buyer, every seller, or everyone
@@ -586,7 +598,7 @@ The caller's identity always comes from the token, never from the request.
 | **Public** | `/health`, catalogue browsing, `/auth/*`, public profiles and shops |
 | **Authenticated** | Cart, wishlist, orders, chat, returns, notifications, profile, creating a listing |
 | **Owner** | Editing a listing, reading or updating an order, reading a conversation |
-| **Administrator** | Users, every order, returns, payouts, reviews, messages |
+| **Administrator** | Users, every order, returns, payouts, reviews and ratings, messages |
 
 An invalid token returns `401`; a valid one without the right role returns `403`.
 
@@ -594,7 +606,7 @@ An invalid token returns `401`; a valid one without the right role returns `403`
 
 | Method | Endpoint | Description |
 | --- | --- | --- |
-| `GET` | `/health` | Liveness probe and process uptime |
+| `GET` | `/health` | Liveness probe, process uptime and the deployed commit |
 
 ### Authentication — `/auth`
 
@@ -658,8 +670,8 @@ Admin lists add their own filters and a `sort`:
 | `/book/admin` | `bookType`, `stock` = `in` \| `low` \| `out`, `deals` = `yes` \| `no` | `newest`, `oldest`, `priceHigh`, `priceLow`, `stockLow`, `titleAZ` |
 | `/return/requests` | `status` = `pending` \| `approved` \| `rejected` | `newest`, `oldest` |
 | `/order/admin/payouts` | `state` = `due` \| `upcoming` \| `paid` | `oldest`, `newest`, `amountHigh`, `amountLow` |
-| `/review/flagged` | `rating` | `mostReported`, `newest`, `oldest`, `ratingLow`, `ratingHigh` |
-| `/review/all` | `rating`, `replied`, `reported` (`yes` \| `no`) | `newest`, `oldest`, `ratingHigh`, `ratingLow`, `mostReported` |
+| `/review/flagged`, `/seller-review/flagged` | `rating` | `mostReported`, `newest`, `oldest`, `ratingLow`, `ratingHigh` |
+| `/review/all`, `/seller-review/all` | `rating`, `replied`, `reported` (`yes` \| `no`) | `newest`, `oldest`, `ratingHigh`, `ratingLow`, `mostReported` |
 
 ### Cart and wishlist
 
@@ -713,6 +725,26 @@ Admin lists add their own filters and a `sort`:
 
 Only buyers of a book can review it, and only its seller can reply. A reported
 review stays visible until an administrator decides.
+
+### Seller ratings — `/seller-review`
+
+The same endpoints and rules as book reviews, keyed by the seller's account id
+(`id` in `/user/shop/:username`).
+
+| Method | Endpoint | Description |
+| --- | --- | --- |
+| `GET` | `/seller-review/:sellerId` | A seller's ratings and score |
+| `POST` | `/seller-review/:sellerId` | Rate a seller you have bought from, or update your rating |
+| `DELETE` | `/seller-review/:sellerId` | Withdraw your rating; `?email=` for an admin |
+| `POST` / `DELETE` | `/seller-review/:id/reply` | The seller's reply |
+| `POST` | `/seller-review/:id/flag` | Report a rating |
+| `GET` | `/seller-review/flagged` | Reported ratings (admin) |
+| `GET` | `/seller-review/all` | Every rating (admin) |
+| `DELETE` | `/seller-review/:id/flags` | Clear a rating's reports (admin) |
+
+Any order from the seller that was not cancelled entitles a buyer to rate them.
+The score is part of the shop (`sellerRating`) and of the seller's public
+profile.
 
 ### Messages, notifications and more
 
@@ -771,6 +803,7 @@ Messages are sent with `POST /chat/message`; attachments are delivered as URLs.
 | `Purchase` | `purchases` | Purchase history |
 | `ReturnRequest` | `returnrequests` | Return requests and decisions |
 | `Review` / `ReviewFlag` | `reviews` / `reviewflags` | Reviews, replies and reports |
+| `SellerReview` / `SellerReviewFlag` | `sellerreviews` / `sellerreviewflags` | Seller ratings, replies and reports |
 | `ChatMessage` | `chatmessages` | Messages with read state |
 | `Notification` | `notifications` | The bell's items, kept for 90 days |
 | `BookRequest` | `bookrequests` | Requests for sold-out books |
@@ -820,7 +853,6 @@ the hardening planned next.
 | 💳 **Online payment** | bKash, Nagad and card payments alongside cash on delivery, with refunds to the same account |
 | 🚚 **Live courier tracking** | Delivery status straight from the courier |
 | 🔔 **SMS alerts** | Order and price alerts by SMS, with per-person preferences for alerts and e-mails |
-| ⭐ **Seller ratings** | A rating for each seller from their buyers, shown on every listing |
 | 📲 **Mobile app** | The shop as an installable app for Android and iOS |
 
 Track these on the [roadmap issues](https://github.com/UtshaBasak/BookStoreBD/issues?q=label%3Aroadmap),

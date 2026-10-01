@@ -544,6 +544,19 @@ export default function BookView() {
                                         sellerName
                                     )}
                                 </p>
+                                {sellerInfo?.username && (sellerInfo.sellerRating?.count ?? 0) > 0 && (
+                                    <Link
+                                        to={`/shop/${encodeURIComponent(sellerInfo.username)}#ratings`}
+                                        className="book-seller-rating"
+                                    >
+                                        <Stars value={sellerInfo.sellerRating?.average ?? 0} size={13} />
+                                        <span style={{ color: '#111827' }}>{(sellerInfo.sellerRating?.average ?? 0).toFixed(1)}</span>
+                                        <span>
+                                            ({sellerInfo.sellerRating?.count}{' '}
+                                            {sellerInfo.sellerRating?.count === 1 ? 'rating' : 'ratings'})
+                                        </span>
+                                    </Link>
+                                )}
                             </div>
                             {sellerInfo?.username && (
                                 <Link to={`/shop/${encodeURIComponent(sellerInfo.username)}`} className="btn btn-ghost">

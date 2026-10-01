@@ -1,12 +1,14 @@
 import { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { FaCheck, FaFlag, FaSearch, FaTrashAlt } from 'react-icons/fa';
 
 import type { Id } from '@shared/api.js';
 
-import { useDismissFlags, useFlaggedReviews, useRemoveReview } from '../../hooks/queries.js';
+import { useDismissFlags, useFlaggedReviews, useRemoveReview, type ReviewKind } from '../../hooks/queries.js';
 import { useToast } from '../../hooks/useToast.js';
 import { useDebounced } from '../../hooks/useDebounced.js';
-import { FilterSelect, RefreshButton } from './AdminControls.js';
+import { FilterSelect, RefreshButton, ReviewKindTabs } from './AdminControls.js';
+import { reviewSubject, useReviewKind } from './reviewKind.js';
 import { messageOf } from '../../utils/apiError.js';
 import Pager from '../../components/Pager.js';
 import { Stars } from '../../components/Stars.js';
@@ -48,13 +50,18 @@ export default function ReviewModeration() {
   const [rating, setRating] = useState('');
   const settled = useDebounced(search);
   const toast = useToast();
+  const [kind, setKind] = useReviewKind();
 
-  const query = useFlaggedReviews({
-    search: settled || undefined,
-    page,
-    pageSize: PAGE_SIZE,
-    filters: { sort, rating },
-  });
+  const query = useFlaggedReviews<ReviewKind>(
+    {
+      search: settled || undefined,
+      page,
+      pageSize: PAGE_SIZE,
+      filters: { sort, rating },
+    },
+    {},
+    kind
+  );
   const change = (set: (value: string) => void) => (value: string) => {
     set(value);
     setPage(1);
@@ -64,8 +71,8 @@ export default function ReviewModeration() {
   const pageCount = query.data?.pageCount ?? 1;
   const currentPage = query.data?.page ?? page;
 
-  const { mutateAsync: dismiss } = useDismissFlags();
-  const { mutateAsync: remove } = useRemoveReview();
+  const { mutateAsync: dismiss } = useDismissFlags(kind);
+  const { mutateAsync: remove } = useRemoveReview(kind);
 
   const clearReports = async (reviewId: Id) => {
     try {
@@ -75,9 +82,9 @@ export default function ReviewModeration() {
     }
   };
 
-  const deleteReview = async (bookId: Id, reviewerEmail: string) => {
+  const deleteReview = async (targetId: Id, reviewerEmail: string) => {
     try {
-      toast.success((await remove({ bookId, reviewerEmail })).message);
+      toast.success((await remove({ targetId, reviewerEmail })).message);
     } catch (error) {
       toast.error(messageOf(error) || 'Could not remove that review.');
     }
@@ -103,13 +110,20 @@ export default function ReviewModeration() {
       </header>
 
       <div className="admin-toolbar">
+        <ReviewKindTabs
+          kind={kind}
+          onChange={(next) => {
+            setKind(next);
+            setPage(1);
+          }}
+        />
         <div className="admin-search">
           <FaSearch className="admin-search-icon" aria-hidden="true" />
           <input
             name="q"
             type="text"
             className="field"
-            placeholder="Search words, reviewer or book..."
+            placeholder={`Search words, reviewer or ${kind === 'seller' ? 'seller' : 'book'}...`}
             aria-label="Search reported reviews"
             value={search}
             onChange={(e) => change(setSearch)(e.target.value)}
@@ -132,64 +146,69 @@ export default function ReviewModeration() {
         </div>
       ) : (
         <ul className="admin-reviews">
-          {reviews.map((review) => (
-            <li key={review._id} className="admin-card admin-review">
-              <div className="admin-review-head">
-                <span className="admin-avatar" aria-hidden="true">
-                  {review.reviewerName ? review.reviewerName.charAt(0) : '?'}
-                </span>
-                <div style={{ minWidth: 0, flex: '1 1 180px' }}>
-                  <strong style={{ color: '#111827' }}>{review.reviewerName}</strong>
-                  <div className="admin-cell-muted" style={{ overflowWrap: 'anywhere' }}>
-                    <span>{review.reviewerEmail}</span>
-                    {' · '}
-                    <span className="admin-nowrap">{when(review.createdAt)}</span>
+          {reviews.map((review) => {
+            const subject = reviewSubject(review);
+            return (
+              <li key={review._id} className="admin-card admin-review">
+                <div className="admin-review-head">
+                  <span className="admin-avatar" aria-hidden="true">
+                    {review.reviewerName ? review.reviewerName.charAt(0) : '?'}
+                  </span>
+                  <div style={{ minWidth: 0, flex: '1 1 180px' }}>
+                    <strong style={{ color: '#111827' }}>{review.reviewerName}</strong>
+                    <div className="admin-cell-muted" style={{ overflowWrap: 'anywhere' }}>
+                      <span>{review.reviewerEmail}</span>
+                      {' · '}
+                      <span className="admin-nowrap">{when(review.createdAt)}</span>
+                    </div>
                   </div>
+                  <Stars value={review.rating} size={14} />
+                  <span className="badge admin-status is-bad">
+                    <FaFlag aria-hidden="true" />
+                    {review.flagCount} report{review.flagCount === 1 ? '' : 's'}
+                  </span>
                 </div>
-                <Stars value={review.rating} size={14} />
-                <span className="badge admin-status is-bad">
-                  <FaFlag aria-hidden="true" />
-                  {review.flagCount} report{review.flagCount === 1 ? '' : 's'}
-                </span>
-              </div>
 
-              <div className="admin-review-quote">
-                <p className="admin-cell-muted" style={{ margin: '0 0 4px' }}>on “{review.bookTitle}”</p>
-                {review.title && <p style={{ margin: '0 0 4px', fontWeight: 700, color: '#111827' }}>{review.title}</p>}
-                {review.body && <p style={{ margin: 0, whiteSpace: 'pre-line', color: '#374151' }}>{review.body}</p>}
-              </div>
-
-              {review.reasons.length > 0 && (
-                <div className="admin-reasons">
-                  <strong>What the reporters said:</strong>
-                  <ul>
-                    {review.reasons.map((reason, index) => (
-                      <li key={`${String(review._id)}-${String(index)}`}>{reason}</li>
-                    ))}
-                  </ul>
+                <div className="admin-review-quote">
+                  <p className="admin-cell-muted" style={{ margin: '0 0 4px' }}>
+                    {subject.prefix} <Link to={subject.to}>{subject.label}</Link>
+                  </p>
+                  {review.title && <p style={{ margin: '0 0 4px', fontWeight: 700, color: '#111827' }}>{review.title}</p>}
+                  {review.body && <p style={{ margin: 0, whiteSpace: 'pre-line', color: '#374151' }}>{review.body}</p>}
                 </div>
-              )}
 
-              <div className="admin-review-actions">
-                <button
-                  type="button"
-                  className="btn btn-ghost"
-                  onClick={() => void clearReports(review._id)}
-                >
-                  <FaCheck aria-hidden="true" />
-                  It is fine — clear the reports
-                </button>
-                <button
-                  type="button"
-                  className="btn btn-danger"
-                  onClick={() => void deleteReview(review.book, review.reviewerEmail)}
-                >
-                  <FaTrashAlt aria-hidden="true" />
-                  Remove the review
-                </button>
-              </div>
-            </li>
-          ))}
+                {review.reasons.length > 0 && (
+                  <div className="admin-reasons">
+                    <strong>What the reporters said:</strong>
+                    <ul>
+                      {review.reasons.map((reason, index) => (
+                        <li key={`${String(review._id)}-${String(index)}`}>{reason}</li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+
+                <div className="admin-review-actions">
+                  <button
+                    type="button"
+                    className="btn btn-ghost"
+                    onClick={() => void clearReports(review._id)}
+                  >
+                    <FaCheck aria-hidden="true" />
+                    It is fine — clear the reports
+                  </button>
+                  <button
+                    type="button"
+                    className="btn btn-danger"
+                    onClick={() => void deleteReview(subject.targetId, review.reviewerEmail)}
+                  >
+                    <FaTrashAlt aria-hidden="true" />
+                    Remove the review
+                  </button>
+                </div>
+              </li>
+            );
+          })}
         </ul>
       )}
 

@@ -17,7 +17,7 @@ import { defineModel } from './defineModel.js';
  * of reply is a review the seller can only argue with by deleting, which they
  * cannot do. The name is copied in for the same reason the reviewer's is.
  */
-const ReplySchema = new Schema(
+export const ReplySchema = new Schema(
   {
     body: { type: String, required: true },
     byEmail: { type: String, required: true },

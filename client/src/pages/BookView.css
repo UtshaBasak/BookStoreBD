@@ -393,6 +393,19 @@
   color: var(--color-brand);
   text-decoration: underline;
 }
+.book-seller-rating {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  margin-top: 0.15rem;
+  color: var(--color-ink-muted);
+  font-size: 0.85rem;
+  font-weight: 600;
+  text-decoration: none;
+}
+.book-seller-rating:hover {
+  text-decoration: underline;
+}
 
 /* How many copies, above the cart button. */
 .book-qty {

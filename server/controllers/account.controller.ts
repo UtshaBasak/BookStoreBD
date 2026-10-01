@@ -9,6 +9,8 @@ import Order from '../models/Order.model.js';
 import Purchase from '../models/Purchase.model.js';
 import ReturnRequest from '../models/ReturnRequest.model.js';
 import Review from '../models/Review.model.js';
+import SellerReview from '../models/SellerReview.model.js';
+import SellerReviewFlag from '../models/SellerReviewFlag.model.js';
 import Wishlist from '../models/Wishlist.model.js';
 import { actingUser } from '../middleware/auth.js';
 import { revokeAllForUser } from '../utils/refreshToken.js';
@@ -37,7 +39,7 @@ export const exportMyData: RequestHandler = async (req, res, next) => {
       return;
     }
 
-    const [orders, sales, purchases, returns, cart, wishlist, messages, reviews, listings] =
+    const [orders, sales, purchases, returns, cart, wishlist, messages, reviews, listings, sellerRatings, ratingsReceived] =
       await Promise.all([
         Order.find({ buyerEmail: user.email }).lean(),
         Order.find({ sellerEmail: user.email }).lean(),
@@ -48,6 +50,8 @@ export const exportMyData: RequestHandler = async (req, res, next) => {
         Chat.find({ $or: [{ sender: user.email }, { receiver: user.email }] }).lean(),
         Review.find({ reviewerEmail: user.email }).lean(),
         AddBook.find({ sellerEmail: user.email }).lean(),
+        SellerReview.find({ reviewerEmail: user.email }).lean(),
+        SellerReview.find({ sellerEmail: user.email }).lean(),
       ]);
 
     const filename = `bookstorebd-export-${new Date().toISOString().slice(0, 10)}.json`;
@@ -67,6 +71,8 @@ export const exportMyData: RequestHandler = async (req, res, next) => {
       listings,
       messages,
       reviews,
+      sellerRatings,
+      ratingsReceived,
     });
   } catch (error) {
     next(error);
@@ -117,7 +123,7 @@ export const deleteMyAccount: RequestHandler = async (req, res, next) => {
       deliveryAddress: '',
     };
 
-    const [ordersPlaced, sales, purchases, returns, listings, sent, received, reviews] =
+    const [ordersPlaced, sales, purchases, returns, listings, sent, received, reviews, sellerRatings] =
       await Promise.all([
       Order.updateMany({ buyerEmail: email }, { $set: { buyerEmail: tombstone, ...anonymise } }),
       Order.updateMany({ sellerEmail: email }, { $set: { sellerEmail: tombstone } }),
@@ -144,6 +150,17 @@ export const deleteMyAccount: RequestHandler = async (req, res, next) => {
         { reviewerEmail: email },
         { $set: { reviewerEmail: tombstone, reviewerName: DELETED_USER_NAME } }
       ),
+      SellerReview.updateMany(
+        { reviewerEmail: email },
+        { $set: { reviewerEmail: tombstone, reviewerName: DELETED_USER_NAME } }
+      ),
+    ]);
+
+    // Ratings of their shop go with it, as its listings do.
+    const ratingsOfShop = await SellerReview.find({ sellerEmail: email }, { _id: 1 }).lean();
+    await Promise.all([
+      SellerReview.deleteMany({ sellerEmail: email }),
+      SellerReviewFlag.deleteMany({ review: { $in: ratingsOfShop.map((rating) => rating._id) } }),
     ]);
 
     await Promise.all([
@@ -158,7 +175,8 @@ export const deleteMyAccount: RequestHandler = async (req, res, next) => {
       returnsAnonymised: returns.modifiedCount,
       listingsRemoved: listings.deletedCount,
       messagesAnonymised: sent.modifiedCount + received.modifiedCount,
-      reviewsAnonymised: reviews.modifiedCount,
+      reviewsAnonymised: reviews.modifiedCount + sellerRatings.modifiedCount,
+      ratingsOfShopRemoved: ratingsOfShop.length,
     };
 
     // Recorded before the account goes, while there is still an actor to name.

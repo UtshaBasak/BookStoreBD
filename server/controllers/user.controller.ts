@@ -8,6 +8,7 @@ import { API_PREFIX } from '../config/apiPaths.js';
 import { destroyAssets, isCloudinaryConfigured, uploadImage } from '../config/cloudinary.js';
 import type { ProfileQuery, UpdateProfileBody } from '../schemas/index.js';
 import { createLogger } from '../config/logger.js';
+import { sellerRatingOf } from './sellerReview.controller.js';
 import { newPasswordProblem } from '../utils/breachedPassword.js';
 import { errorMessage, isDuplicateKeyError } from '../utils/error.js';
 
@@ -46,6 +47,7 @@ export const getUserProfile = async (
             profilePicture: user.profilePicture || null,
             buyerBanner: bannerUrl(user, 'buyer'),
             sellerBanner: bannerUrl(user, 'seller'),
+            sellerRating: await sellerRatingOf(user.email),
         };
 
         const ownProfile: OwnProfile = {

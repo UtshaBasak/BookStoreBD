@@ -39,8 +39,8 @@ const SECTIONS: Section[] = [
   { to: '/admin/books', label: 'Book List', icon: FaBook, blurb: 'Every listing in the shop.' },
   { to: '/admin/returns', label: 'Return Management', icon: FaUndoAlt, blurb: 'Approve or refuse a return.' },
   { to: '/admin/payouts', label: 'Seller Payouts', icon: FaMoneyBillWave, blurb: 'What sellers are owed, and paid.' },
-  { to: '/admin/all-reviews', label: 'Reviews', icon: FaStar, blurb: 'Every review in the shop.' },
-  { to: '/admin/reviews', label: 'Reported Reviews', icon: FaFlag, blurb: 'Reviews somebody has reported.' },
+  { to: '/admin/all-reviews', label: 'Reviews', icon: FaStar, blurb: 'Book reviews and seller ratings.' },
+  { to: '/admin/reviews', label: 'Reported Reviews', icon: FaFlag, blurb: 'Reviews and ratings somebody has reported.' },
   { to: '/admin/messages', label: 'Messages', icon: FaPaperPlane, blurb: 'Notify or e-mail buyers and sellers.' },
 ];
 

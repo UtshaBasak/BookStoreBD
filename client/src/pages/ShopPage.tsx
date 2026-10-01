@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { Link, useNavigate, useParams } from 'react-router-dom';
+import { useEffect, useState } from 'react';
+import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
 import { FaBoxOpen, FaComments, FaHeart, FaSearch, FaShoppingBag, FaStar } from 'react-icons/fa';
 
 import type { CatalogueSort } from '@shared/api.js';
@@ -11,6 +11,7 @@ import ChatWindow from '../components/ChatWindow';
 import Logo from '../components/Logo.js';
 import NotificationBell from '../components/NotificationBell.js';
 import Pager from '../components/Pager.js';
+import SellerReviews from '../components/SellerReviews.js';
 import { useCart, useCatalogue, useShop, useToggleCart, useToggleWishlist, useWishlist } from '../hooks/queries.js';
 import { useDebounced } from '../hooks/useDebounced.js';
 import { useSeo } from '../hooks/useSeo.js';
@@ -61,6 +62,14 @@ export default function ShopPage() {
     },
     { enabled: Boolean(shop) }
   );
+
+  // A link to the ratings (from a notification, say) lands on them once the
+  // books above have taken their space.
+  const { hash } = useLocation();
+  const laidOut = Boolean(shop && catalogue);
+  useEffect(() => {
+    if (laidOut && hash === '#ratings') document.getElementById('ratings')?.scrollIntoView();
+  }, [laidOut, hash]);
 
   useSeo({
     title: shop ? `${shop.username}'s shop` : 'Seller shop',
@@ -201,6 +210,21 @@ export default function ShopPage() {
           </div>
           <dl className="sp-stats">
             <div>
+              <dt>Seller rating</dt>
+              <dd>
+                <a href="#ratings">
+                  {shop.sellerRating.count ? (
+                    <>
+                      <FaStar aria-hidden="true" className="sp-star" /> {shop.sellerRating.average.toFixed(1)}
+                      <span className="sp-count"> ({shop.sellerRating.count})</span>
+                    </>
+                  ) : (
+                    <span className="sp-count">No ratings yet</span>
+                  )}
+                </a>
+              </dd>
+            </div>
+            <div>
               <dt>Books listed</dt>
               <dd>{shop.books}</dd>
             </div>
@@ -213,7 +237,7 @@ export default function ShopPage() {
               <dd>{shop.sold}</dd>
             </div>
             <div>
-              <dt>Rating</dt>
+              <dt>Book reviews</dt>
               <dd>
                 {shop.ratingCount ? (
                   <>
@@ -307,6 +331,10 @@ export default function ShopPage() {
               />
             </div>
           )}
+        </section>
+
+        <section id="ratings" className="sp-ratings" aria-label={`Ratings of ${shop.username}`}>
+          <SellerReviews sellerId={shop.id} />
         </section>
       </main>
 

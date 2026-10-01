@@ -6,6 +6,7 @@ import {
   updateUserProfile,
 } from '../controllers/user.controller.js';
 import { deleteMyAccount, exportMyData } from '../controllers/account.controller.js';
+import { sellerRatingOf } from '../controllers/sellerReview.controller.js';
 import AddBook from '../models/AddBook.model.js';
 import Order from '../models/Order.model.js';
 import User from '../models/user.model.js';
@@ -98,7 +99,7 @@ router.get(
         return;
       }
 
-      const [books, inStock, sold, rated] = await Promise.all([
+      const [books, inStock, sold, rated, sellerRating] = await Promise.all([
         AddBook.countDocuments({ sellerEmail: user.email }),
         AddBook.countDocuments({ sellerEmail: user.email, stock: { $gt: 0 } }),
         Order.aggregate<{ copies: number }>([
@@ -116,6 +117,7 @@ router.get(
           },
           { $project: { count: 1, average: { $divide: ['$weighted', '$count'] } } },
         ]),
+        sellerRatingOf(user.email),
       ]);
       if (books === 0) {
         res.status(404).json({ message: 'That account has no shop yet' });
@@ -130,6 +132,7 @@ router.get(
         : null;
 
       res.json({
+        id: String(user._id),
         username: user.username,
         email: user.email,
         profilePicture: user.profilePicture || null,
@@ -140,6 +143,7 @@ router.get(
         sold: sold[0]?.copies ?? 0,
         ratingAverage: rated[0] ? Math.round(rated[0].average * 10) / 10 : 0,
         ratingCount: rated[0]?.count ?? 0,
+        sellerRating,
       });
     } catch (error) {
       next(error);

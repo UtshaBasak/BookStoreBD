@@ -17,6 +17,7 @@ import AddBook from './models/AddBook.model.js';
 import { BOOK_PAGE, renderBookPage, renderSitePage, templateLoader, type PreviewBook } from './utils/sharePreview.js';
 import auditRouter from './routes/audit.route.js';
 import reviewRouter from './routes/review.route.js';
+import sellerReviewRouter from './routes/sellerReview.route.js';
 import { CLIENT_DIST, UPLOADS_DIR } from './config/paths.js';
 import { TRUSTED_PROXIES } from './config/trustedProxies.js';
 import { securityHeaders, shareableImages } from './config/securityHeaders.js';
@@ -131,6 +132,7 @@ export const createApp = ({
   app.use(`${API_PREFIX}/purchase`, purchaseRouter);
   app.use(`${API_PREFIX}/return`, writeLimiter, returnRouter);
   app.use(`${API_PREFIX}/review`, writeLimiter, reviewRouter);
+  app.use(`${API_PREFIX}/seller-review`, writeLimiter, sellerReviewRouter);
   app.use(`${API_PREFIX}/upload`, writeLimiter, uploadRouter);
   app.use(`${API_PREFIX}/user`, writeLimiter, userRouter);
   app.use(`${API_PREFIX}/wishlist`, wishlistRouter);

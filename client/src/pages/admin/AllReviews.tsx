@@ -4,13 +4,14 @@ import { FaFlag, FaReply, FaSearch, FaStar, FaTrashAlt } from 'react-icons/fa';
 
 import type { Id } from '@shared/api.js';
 
-import { useAllReviews, useRemoveReview } from '../../hooks/queries.js';
+import { useAllReviews, useRemoveReview, type ReviewKind } from '../../hooks/queries.js';
 import { useDebounced } from '../../hooks/useDebounced.js';
 import { useToast } from '../../hooks/useToast.js';
 import { messageOf } from '../../utils/apiError.js';
 import Pager from '../../components/Pager.js';
 import { Stars } from '../../components/Stars.js';
-import { FilterSelect, RefreshButton } from './AdminControls.js';
+import { FilterSelect, RefreshButton, ReviewKindTabs } from './AdminControls.js';
+import { reviewSubject, useReviewKind } from './reviewKind.js';
 import '../AdminPanel.css';
 
 const PAGE_SIZE = 25;
@@ -51,14 +52,19 @@ export default function AllReviews() {
   const [reported, setReported] = useState('');
   const [page, setPage] = useState(1);
   const settled = useDebounced(search);
+  const [kind, setKind] = useReviewKind();
 
-  const { data, isPending, isFetching, error, refetch } = useAllReviews({
-    search: settled || undefined,
-    page,
-    pageSize: PAGE_SIZE,
-    filters: { sort, rating, replied, reported },
-  });
-  const { mutateAsync: remove } = useRemoveReview();
+  const { data, isPending, isFetching, error, refetch } = useAllReviews<ReviewKind>(
+    {
+      search: settled || undefined,
+      page,
+      pageSize: PAGE_SIZE,
+      filters: { sort, rating, replied, reported },
+    },
+    {},
+    kind
+  );
+  const { mutateAsync: remove } = useRemoveReview(kind);
 
   // Any change but the page starts again from the first one.
   const change = (set: (value: string) => void) => (value: string) => {
@@ -66,11 +72,12 @@ export default function AllReviews() {
     setPage(1);
   };
 
-  const deleteReview = async (bookId: Id, reviewerEmail: string) => {
+  const deleteReview = async (targetId: Id, reviewerEmail: string) => {
+    const whose = kind === 'seller' ? "the seller's" : "the book's";
     // eslint-disable-next-line no-alert -- removing somebody's words needs a yes
-    if (!window.confirm('Remove this review? It no longer counts towards the book\'s score.')) return;
+    if (!window.confirm(`Remove this review? It no longer counts towards ${whose} score.`)) return;
     try {
-      toast.success((await remove({ bookId, reviewerEmail })).message);
+      toast.success((await remove({ targetId, reviewerEmail })).message);
     } catch (err) {
       toast.error(messageOf(err) || 'Could not remove that review.');
     }
@@ -94,13 +101,20 @@ export default function AllReviews() {
       </header>
 
       <div className="admin-toolbar">
+        <ReviewKindTabs
+          kind={kind}
+          onChange={(next) => {
+            setKind(next);
+            setPage(1);
+          }}
+        />
         <div className="admin-search">
           <FaSearch className="admin-search-icon" aria-hidden="true" />
           <input
             name="q"
             type="text"
             className="field"
-            placeholder="Search words, reviewer or book..."
+            placeholder={`Search words, reviewer or ${kind === 'seller' ? 'seller' : 'book'}...`}
             aria-label="Search reviews"
             value={search}
             onChange={(e) => change(setSearch)(e.target.value)}
@@ -137,57 +151,60 @@ export default function AllReviews() {
         </div>
       ) : (
         <ul className="admin-reviews">
-          {reviews.map((review) => (
-            <li key={review._id} className="admin-card admin-review">
-              <div className="admin-review-head">
-                <span className="admin-avatar" aria-hidden="true">
-                  {review.reviewerName ? review.reviewerName.charAt(0) : '?'}
-                </span>
-                <div style={{ minWidth: 0, flex: '1 1 180px' }}>
-                  <strong style={{ color: '#111827' }}>{review.reviewerName}</strong>
-                  <div className="admin-cell-muted" style={{ overflowWrap: 'anywhere' }}>
-                    <span>{review.reviewerEmail}</span>
-                    {' · '}
-                    <span className="admin-nowrap">{when(review.createdAt)}</span>
-                  </div>
-                </div>
-                <Stars value={review.rating} size={14} />
-                {(review.flagCount ?? 0) > 0 && (
-                  <span className="badge admin-status is-bad">
-                    <FaFlag aria-hidden="true" />
-                    {review.flagCount} report{review.flagCount === 1 ? '' : 's'}
+          {reviews.map((review) => {
+            const subject = reviewSubject(review);
+            return (
+              <li key={review._id} className="admin-card admin-review">
+                <div className="admin-review-head">
+                  <span className="admin-avatar" aria-hidden="true">
+                    {review.reviewerName ? review.reviewerName.charAt(0) : '?'}
                   </span>
-                )}
-              </div>
-
-              <div className="admin-review-quote">
-                <p className="admin-cell-muted" style={{ margin: '0 0 4px' }}>
-                  on <Link to={`/book/${review.book}`}>“{review.bookTitle}”</Link>
-                </p>
-                {review.title && <p style={{ margin: '0 0 4px', fontWeight: 700, color: '#111827' }}>{review.title}</p>}
-                {review.body && <p style={{ margin: 0, whiteSpace: 'pre-line', color: '#374151' }}>{review.body}</p>}
-              </div>
-
-              {review.reply && (
-                <div className="admin-reasons">
-                  <strong>
-                    <FaReply aria-hidden="true" /> {review.reply.byName} replied:
-                  </strong>
-                  <p style={{ margin: '4px 0 0', whiteSpace: 'pre-line' }}>{review.reply.body}</p>
+                  <div style={{ minWidth: 0, flex: '1 1 180px' }}>
+                    <strong style={{ color: '#111827' }}>{review.reviewerName}</strong>
+                    <div className="admin-cell-muted" style={{ overflowWrap: 'anywhere' }}>
+                      <span>{review.reviewerEmail}</span>
+                      {' · '}
+                      <span className="admin-nowrap">{when(review.createdAt)}</span>
+                    </div>
+                  </div>
+                  <Stars value={review.rating} size={14} />
+                  {(review.flagCount ?? 0) > 0 && (
+                    <span className="badge admin-status is-bad">
+                      <FaFlag aria-hidden="true" />
+                      {review.flagCount} report{review.flagCount === 1 ? '' : 's'}
+                    </span>
+                  )}
                 </div>
-              )}
 
-              <div className="admin-review-actions">
-                <Link to={`/book/${review.book}#reviews`} className="btn btn-ghost">
-                  View on the book page
-                </Link>
-                <button type="button" className="btn btn-danger" onClick={() => void deleteReview(review.book, review.reviewerEmail)}>
-                  <FaTrashAlt aria-hidden="true" />
-                  Remove the review
-                </button>
-              </div>
-            </li>
-          ))}
+                <div className="admin-review-quote">
+                  <p className="admin-cell-muted" style={{ margin: '0 0 4px' }}>
+                    {subject.prefix} <Link to={subject.to}>{subject.label}</Link>
+                  </p>
+                  {review.title && <p style={{ margin: '0 0 4px', fontWeight: 700, color: '#111827' }}>{review.title}</p>}
+                  {review.body && <p style={{ margin: 0, whiteSpace: 'pre-line', color: '#374151' }}>{review.body}</p>}
+                </div>
+
+                {review.reply && (
+                  <div className="admin-reasons">
+                    <strong>
+                      <FaReply aria-hidden="true" /> {review.reply.byName} replied:
+                    </strong>
+                    <p style={{ margin: '4px 0 0', whiteSpace: 'pre-line' }}>{review.reply.body}</p>
+                  </div>
+                )}
+
+                <div className="admin-review-actions">
+                  <Link to={subject.to} className="btn btn-ghost">
+                    View on {subject.page}
+                  </Link>
+                  <button type="button" className="btn btn-danger" onClick={() => void deleteReview(subject.targetId, review.reviewerEmail)}>
+                    <FaTrashAlt aria-hidden="true" />
+                    Remove the review
+                  </button>
+                </div>
+              </li>
+            );
+          })}
         </ul>
       )}
 

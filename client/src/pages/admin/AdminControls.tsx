@@ -1,5 +1,7 @@
 import { FaSyncAlt } from 'react-icons/fa';
 
+import type { ReviewKind } from '../../hooks/queries.js';
+
 export interface FilterOption {
   value: string;
   label: string;
@@ -34,6 +36,30 @@ export function FilterSelect({
         ))}
       </select>
     </label>
+  );
+}
+
+/** Book reviews or seller ratings, on the two review pages. */
+export function ReviewKindTabs({ kind, onChange }: { kind: ReviewKind; onChange: (kind: ReviewKind) => void }) {
+  const tabs: readonly { value: ReviewKind; label: string }[] = [
+    { value: 'book', label: 'Book reviews' },
+    { value: 'seller', label: 'Seller ratings' },
+  ];
+  return (
+    <div role="tablist" aria-label="Which reviews" className="admin-tabs">
+      {tabs.map((tab) => (
+        <button
+          key={tab.value}
+          type="button"
+          role="tab"
+          aria-selected={kind === tab.value}
+          onClick={() => onChange(tab.value)}
+          className="admin-tab"
+        >
+          {tab.label}
+        </button>
+      ))}
+    </div>
   );
 }
 

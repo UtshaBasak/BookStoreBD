@@ -241,6 +241,8 @@ export interface BookRequestStatus {
 
 /** GET /user/shop/:username - a seller's shop front. */
 export interface SellerShop {
+  /** The seller's account id: what their ratings are filed under. */
+  id: Id;
   username: string;
   email: string;
   profilePicture: string | null;
@@ -253,6 +255,14 @@ export interface SellerShop {
   /** Across every rated book of theirs, weighted by how many reviews each has. */
   ratingAverage: number;
   ratingCount: number;
+  /** Buyers' ratings of the seller themself. */
+  sellerRating: SellerRating;
+}
+
+/** A seller's score from the buyers who have rated them. */
+export interface SellerRating {
+  average: number;
+  count: number;
 }
 
 /** GET /filter/for-you. `personal` is false when there was nothing to go on. */
@@ -297,8 +307,28 @@ export interface FlaggedReview extends Review {
   reasons: string[];
 }
 
+/** One buyer's rating of a seller, under /seller-review. Shaped like a book review. */
+export interface SellerReview extends Omit<Review, 'book'> {
+  /** The seller's account id. */
+  seller: Id;
+  sellerEmail: string;
+}
+
+/** A row of the administrator's lists of seller ratings. */
+export interface FlaggedSellerReview extends SellerReview {
+  /** The seller's username, for the link to their shop. */
+  sellerName: string;
+  reasons: string[];
+}
+
+/** GET /seller-review/:id - a shop's ratings section, on the same terms as a book's. */
+export interface SellerReviewSummary extends Omit<ReviewSummary, 'reviews' | 'mine'> {
+  reviews: SellerReview[];
+  mine: SellerReview | null;
+}
+
 /** Why a caller may not write a review, when they may not. */
-export type ReviewBlockedReason = 'sign-in' | 'own-listing' | 'not-purchased';
+export type ReviewBlockedReason = 'sign-in' | 'own-listing' | 'own-shop' | 'not-purchased';
 
 /** GET /review/:id - everything a book's review section needs. */
 export interface ReviewSummary {
@@ -311,7 +341,7 @@ export interface ReviewSummary {
   mine: Review | null;
   canReview: boolean;
   reason: ReviewBlockedReason | null;
-  /** Whether the caller sells this book, and so may answer its reviews. */
+  /** Whether the caller is the seller, and so may answer the reviews. */
   isSeller: boolean;
 }
 
@@ -692,6 +722,8 @@ export interface PublicProfile {
    */
   buyerBanner: string | null;
   sellerBanner: string | null;
+  /** Buyers' ratings of this person as a seller. */
+  sellerRating?: SellerRating;
 }
 
 /**
@@ -836,6 +868,8 @@ export interface UploadUnavailable {
 export interface HealthResponse {
   status: 'ok';
   uptime: number;
+  /** The deployed commit, when the host reports one. */
+  commit: string | null;
 }
 
 // ---------------------------------------------------------------------------
@@ -854,6 +888,9 @@ export type NotificationType =
   | 'review'
   | 'review-reply'
   | 'review-reported'
+  | 'seller-review'
+  | 'seller-review-reply'
+  | 'seller-review-reported'
   | 'deal'
   | 'price-drop'
   | 'book-request'

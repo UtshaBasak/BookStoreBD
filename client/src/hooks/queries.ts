@@ -34,6 +34,8 @@ import type {
   ReturnStatus,
   ReviewSummary,
   FlaggedReview,
+  FlaggedSellerReview,
+  SellerReviewSummary,
   WriteReviewRequest,
   UnreadCountResponse,
   NotificationPage,
@@ -94,6 +96,20 @@ export type QueryOptions<TQueryFnData, TData = TQueryFnData> = Omit<
   'queryKey' | 'queryFn'
 >;
 
+/**
+ * Which reviews: of a book, under /review, or of a seller, under
+ * /seller-review. The two APIs take the same requests and give the same
+ * answers, so one set of hooks serves both.
+ */
+export type ReviewKind = 'book' | 'seller';
+const REVIEWS = {
+  book: { base: '/review', root: 'reviews' },
+  seller: { base: '/seller-review', root: 'seller-reviews' },
+} as const satisfies Record<ReviewKind, { base: string; root: string }>;
+
+type SummaryOf<K extends ReviewKind> = K extends 'seller' ? SellerReviewSummary : ReviewSummary;
+type FlaggedOf<K extends ReviewKind> = K extends 'seller' ? FlaggedSellerReview : FlaggedReview;
+
 // ---------------------------------------------------------------------------
 // Keys, in one place so an invalidation cannot miss a cache by typo
 // ---------------------------------------------------------------------------
@@ -122,11 +138,12 @@ export const keys = {
   returnRequests: (query: string) => ['returns', query] as const,
   /** Under `orders`, so recording a payment refreshes the seller's view too. */
   payouts: (query: string) => ['orders', 'payouts', query] as const,
-  reviews: (id: Id | undefined) => ['reviews', id] as const,
-  flaggedReviews: (query: string) => ['reviews', 'flagged', query] as const,
+  /** Book reviews under `reviews`, seller ratings under `seller-reviews`. */
+  reviews: (id: Id | undefined, kind: ReviewKind = 'book') => [REVIEWS[kind].root, id] as const,
+  flaggedReviews: (query: string, kind: ReviewKind = 'book') => [REVIEWS[kind].root, 'flagged', query] as const,
   unreadChats: ['chat', 'unread'] as const,
   notifications: (query: string) => ['notifications', query] as const,
-  allReviews: (query: string) => ['reviews', 'all', query] as const,
+  allReviews: (query: string, kind: ReviewKind = 'book') => [REVIEWS[kind].root, 'all', query] as const,
   shop: (username: string | undefined) => ['shop', username] as const,
   /** Under `catalogue`, so a change to any listing refreshes the suggestions too. */
   suggest: (query: string) => ['catalogue', 'suggest', query] as const,
@@ -362,62 +379,77 @@ export const useClearCart = (): UseMutationResult<MessageResponse, Error, void> 
 // ---------------------------------------------------------------------------
 
 /**
- * A book's reviews, its score, and whether this caller may add to it.
+ * A book's reviews, or a seller's ratings: the score, and whether this caller
+ * may add to it.
  *
  * Public, so it runs for a signed-out visitor too: the score is mostly for the
  * person who has not signed up yet.
  */
-export const useReviews = (id: Id | undefined): UseQueryResult<ReviewSummary> =>
-  useQuery<ReviewSummary>({
-    queryKey: keys.reviews(id),
-    queryFn: () => request<ReviewSummary>(`/review/${id}`),
+export const useReviews = <K extends ReviewKind = 'book'>(
+  id: Id | undefined,
+  kind: K = 'book' as K
+): UseQueryResult<SummaryOf<K>> =>
+  useQuery<SummaryOf<K>>({
+    queryKey: keys.reviews(id, kind),
+    queryFn: () => request<SummaryOf<K>>(`${REVIEWS[kind].base}/${id}`),
     enabled: Boolean(id),
   });
 
 /**
- * Writes or replaces the caller's review.
- *
- * Invalidates the catalogue as well as the book: the score is denormalised
- * onto every listing, so a new review changes what the browse page sorts by.
+ * After a review is written or removed: the list, and wherever its score is
+ * shown. A book's score is denormalised onto every listing, so a new review
+ * changes what the browse page sorts by; a seller's is on their shop and
+ * beside their name on each of their books.
  */
+const refreshScores = (client: ReturnType<typeof useQueryClient>, id: Id | undefined, kind: ReviewKind) => {
+  void client.invalidateQueries({ queryKey: keys.reviews(id, kind) });
+  if (kind === 'seller') {
+    void client.invalidateQueries({ queryKey: ['shop'] });
+    void client.invalidateQueries({ queryKey: ['profile'] });
+    return;
+  }
+  void client.invalidateQueries({ queryKey: keys.book(id) });
+  void client.invalidateQueries({ queryKey: ['catalogue'] });
+};
+
+/** Writes or replaces the caller's review. */
 export const useWriteReview = (
-  id: Id | undefined
+  id: Id | undefined,
+  kind: ReviewKind = 'book'
 ): UseMutationResult<unknown, Error, WriteReviewRequest> => {
   const client = useQueryClient();
   return useMutation({
-    mutationFn: (review: WriteReviewRequest) => request(`/review/${id}`, json('POST', review)),
-    onSuccess: () => {
-      void client.invalidateQueries({ queryKey: keys.reviews(id) });
-      void client.invalidateQueries({ queryKey: keys.book(id) });
-      void client.invalidateQueries({ queryKey: ['catalogue'] });
-    },
+    mutationFn: (review: WriteReviewRequest) => request(`${REVIEWS[kind].base}/${id}`, json('POST', review)),
+    onSuccess: () => refreshScores(client, id, kind),
   });
 };
 
 /**
  * The seller's answer to one review.
  *
- * Keyed by the review, not the book, and the book's review query is what gets
- * invalidated: the reply is drawn inside that list.
+ * Keyed by the review, not the book or seller, and their review query is what
+ * gets invalidated: the reply is drawn inside that list.
  */
 export const useReplyToReview = (
-  bookId: Id | undefined
+  targetId: Id | undefined,
+  kind: ReviewKind = 'book'
 ): UseMutationResult<unknown, Error, { reviewId: Id; body: string }> => {
   const client = useQueryClient();
   return useMutation({
     mutationFn: ({ reviewId, body }: { reviewId: Id; body: string }) =>
-      request(`/review/${reviewId}/reply`, json('POST', { body })),
-    onSuccess: () => client.invalidateQueries({ queryKey: keys.reviews(bookId) }),
+      request(`${REVIEWS[kind].base}/${reviewId}/reply`, json('POST', { body })),
+    onSuccess: () => client.invalidateQueries({ queryKey: keys.reviews(targetId, kind) }),
   });
 };
 
 export const useDeleteReply = (
-  bookId: Id | undefined
+  targetId: Id | undefined,
+  kind: ReviewKind = 'book'
 ): UseMutationResult<unknown, Error, Id> => {
   const client = useQueryClient();
   return useMutation({
-    mutationFn: (reviewId: Id) => request(`/review/${reviewId}/reply`, json('DELETE')),
-    onSuccess: () => client.invalidateQueries({ queryKey: keys.reviews(bookId) }),
+    mutationFn: (reviewId: Id) => request(`${REVIEWS[kind].base}/${reviewId}/reply`, json('DELETE')),
+    onSuccess: () => client.invalidateQueries({ queryKey: keys.reviews(targetId, kind) }),
   });
 };
 
@@ -427,67 +459,69 @@ export const useDeleteReply = (
  * Nothing about the list changes when it succeeds - reporting hides nothing -
  * so there is no invalidation here; the button says it has been done.
  */
-export const useFlagReview = (): UseMutationResult<
-  MessageResponse,
-  Error,
-  { reviewId: Id; reason?: string }
-> =>
+export const useFlagReview = (
+  kind: ReviewKind = 'book'
+): UseMutationResult<MessageResponse, Error, { reviewId: Id; reason?: string }> =>
   useMutation({
     mutationFn: ({ reviewId, reason }: { reviewId: Id; reason?: string }) =>
-      request<MessageResponse>(`/review/${reviewId}/flag`, json('POST', { reason })),
+      request<MessageResponse>(`${REVIEWS[kind].base}/${reviewId}/flag`, json('POST', { reason })),
   });
 
 /** The administrator's moderation queue. */
-export const useFlaggedReviews = (
+export const useFlaggedReviews = <K extends ReviewKind = 'book'>(
   params: ListParams = {},
-  options: Partial<QueryOptions<Page<FlaggedReview>>> = {}
-): UseQueryResult<Page<FlaggedReview>> =>
-  useQuery(pagedQuery<FlaggedReview>('/review/flagged', keys.flaggedReviews, params, options));
+  options: Partial<QueryOptions<Page<FlaggedOf<K>>>> = {},
+  kind: K = 'book' as K
+): UseQueryResult<Page<FlaggedOf<K>>> =>
+  useQuery(
+    pagedQuery<FlaggedOf<K>>(`${REVIEWS[kind].base}/flagged`, (q) => keys.flaggedReviews(q, kind), params, options)
+  );
 
 /** Every review, for the administrator's Reviews page. */
-export const useAllReviews = (
+export const useAllReviews = <K extends ReviewKind = 'book'>(
   params: ListParams = {},
-  options: Partial<QueryOptions<Page<FlaggedReview>>> = {}
-): UseQueryResult<Page<FlaggedReview>> =>
-  useQuery(pagedQuery<FlaggedReview>('/review/all', keys.allReviews, params, options));
+  options: Partial<QueryOptions<Page<FlaggedOf<K>>>> = {},
+  kind: K = 'book' as K
+): UseQueryResult<Page<FlaggedOf<K>>> =>
+  useQuery(pagedQuery<FlaggedOf<K>>(`${REVIEWS[kind].base}/all`, (q) => keys.allReviews(q, kind), params, options));
 
 /** Clears the reports and leaves the review where it is. */
-export const useDismissFlags = (): UseMutationResult<MessageResponse, Error, Id> => {
+export const useDismissFlags = (kind: ReviewKind = 'book'): UseMutationResult<MessageResponse, Error, Id> => {
   const client = useQueryClient();
   return useMutation({
     mutationFn: (reviewId: Id) =>
-      request<MessageResponse>(`/review/${reviewId}/flags`, json('DELETE')),
-    onSuccess: () => client.invalidateQueries({ queryKey: ['reviews', 'flagged'] }),
+      request<MessageResponse>(`${REVIEWS[kind].base}/${reviewId}/flags`, json('DELETE')),
+    onSuccess: () => client.invalidateQueries({ queryKey: [REVIEWS[kind].root, 'flagged'] }),
   });
 };
 
-/** Removes somebody else's review. Administrators only; writes an audit row. */
-export const useRemoveReview = (): UseMutationResult<
-  MessageResponse,
-  Error,
-  { bookId: Id; reviewerEmail: string }
-> => {
+/**
+ * Removes somebody else's review. Administrators only; writes an audit row.
+ * `targetId` is the book, or the seller's account.
+ */
+export const useRemoveReview = (
+  kind: ReviewKind = 'book'
+): UseMutationResult<MessageResponse, Error, { targetId: Id; reviewerEmail: string }> => {
   const client = useQueryClient();
   return useMutation({
-    mutationFn: ({ bookId, reviewerEmail }: { bookId: Id; reviewerEmail: string }) =>
+    mutationFn: ({ targetId, reviewerEmail }: { targetId: Id; reviewerEmail: string }) =>
       request<MessageResponse>(
-        `/review/${bookId}?email=${encodeURIComponent(reviewerEmail)}`,
+        `${REVIEWS[kind].base}/${targetId}?email=${encodeURIComponent(reviewerEmail)}`,
         json('DELETE')
       ),
     // Both administrator lists: the reported queue and every review.
-    onSuccess: () => client.invalidateQueries({ queryKey: ['reviews'] }),
+    onSuccess: () => client.invalidateQueries({ queryKey: [REVIEWS[kind].root] }),
   });
 };
 
-export const useDeleteReview = (id: Id | undefined): UseMutationResult<unknown, Error, void> => {
+export const useDeleteReview = (
+  id: Id | undefined,
+  kind: ReviewKind = 'book'
+): UseMutationResult<unknown, Error, void> => {
   const client = useQueryClient();
   return useMutation({
-    mutationFn: () => request(`/review/${id}`, json('DELETE')),
-    onSuccess: () => {
-      void client.invalidateQueries({ queryKey: keys.reviews(id) });
-      void client.invalidateQueries({ queryKey: keys.book(id) });
-      void client.invalidateQueries({ queryKey: ['catalogue'] });
-    },
+    mutationFn: () => request(`${REVIEWS[kind].base}/${id}`, json('DELETE')),
+    onSuccess: () => refreshScores(client, id, kind),
   });
 };
 
