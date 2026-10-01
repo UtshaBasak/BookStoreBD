@@ -46,7 +46,7 @@ export const connectDatabase = async (): Promise<Connection> => {
     const { default: AddBook } = await import('../models/AddBook.model.js');
     const { modifiedCount } = await AddBook.updateMany({ salePrice: { $exists: false } }, [
       { $set: { salePrice: '$price', discountPercent: 0, discountAmount: 0, discountType: null, discountValue: 0 } },
-    ]);
+    ], { updatePipeline: true }); // Mongoose 9 refuses a pipeline update without it
     if (modifiedCount) log.info({ modifiedCount }, 'Gave older listings a sale price');
   } catch (error) {
     log.error({ err: error }, 'Could not backfill sale prices');
