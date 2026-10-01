@@ -16,6 +16,9 @@ import type { AdminReviewQuery, FlaggedReviewQuery } from '../schemas/index.js';
 
 const log = createLogger('review');
 
+/** A rating as stars, by its value; anything but 1 to 5 has none. */
+const STARS: readonly string[] = ['', '★', '★★', '★★★', '★★★★', '★★★★★'];
+
 /**
  * Rewrites the score held on a book.
  *
@@ -160,7 +163,9 @@ export const upsertReview: RequestHandler<{ id: string }> = async (req, res, nex
     if (isNew) {
       await notify([book.sellerEmail], {
         type: 'review',
-        title: `New ${'★'.repeat(Number(rating))} review of "${book.title}"`,
+        // A fixed row of stars rather than `repeat(rating)`: a string sized by
+        // a request value is how a long one gets built.
+        title: `New ${STARS[Number(rating)] ?? ''} review of "${book.title}"`,
         body: String(title || body).slice(0, 140) || `${reviewer?.username || 'A buyer'} rated it ${rating} out of 5.`,
         link: `/book/${String(bookId)}#reviews`,
       });
