@@ -8,6 +8,7 @@ import { validatedQuery } from '../middleware/validate.js';
 import { serveStoredImage } from '../utils/serveImage.js';
 import { contains } from '../utils/regex.js';
 import { createLogger } from '../config/logger.js';
+import { countView } from '../utils/bookStats.js';
 
 const log = createLogger('book');
 
@@ -65,6 +66,9 @@ export const getBookById: RequestHandler = async (req, res) => {
             },
             LIST_IMAGE_PROJECTION
         ).limit(10);
+
+        // Counted without making the reader wait for it.
+        void countView(req, book);
 
         // Combine book data with related books
         const bookResponse = withCoverUrls({

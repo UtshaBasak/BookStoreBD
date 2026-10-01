@@ -7,6 +7,7 @@ import AddBook, { type LeanBook } from '../models/AddBook.model.js';
 import { actingUser } from '../middleware/auth.js';
 import { errorMessage } from '../utils/error.js';
 import { toListBook, withCoverUrls } from '../utils/projections.js';
+import { recountWishlists } from '../utils/bookStats.js';
 
 /** The books on a wishlist, trimmed to what a list view renders. */
 const booksInWishlist = async (userId: Types.ObjectId): Promise<LeanBook[]> => {
@@ -57,6 +58,7 @@ export const Wishlist_add: RequestHandler = async (req, res) => {
       { $setOnInsert: { user: user._id, book: bookId, priceWhenAdded: Number(book?.salePrice ?? book?.price) || null } },
       { upsert: true, returnDocument: 'after' }
     );
+    await recountWishlists([String(bookId)]);
 
     // Return updated wishlist
     res.status(200).json(await booksInWishlist(user._id));
@@ -77,6 +79,7 @@ export const Wishlist_remove: RequestHandler = async (req, res) => {
     }
 
     await Wishlist.deleteOne({ user: user._id, book: bookId });
+    await recountWishlists([String(bookId)]);
 
     // Return updated wishlist
     res.status(200).json(await booksInWishlist(user._id));

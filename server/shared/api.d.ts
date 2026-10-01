@@ -179,6 +179,10 @@ export interface Book {
    */
   ratingAverage?: number;
   ratingCount?: number;
+  /** Views, one per person a day. */
+  viewCount?: number;
+  /** How many wishlists it is on. */
+  wishlistCount?: number;
   /** The seller's discount, as they gave it; null when there is none. */
   discountType?: DiscountType | null;
   discountValue?: number;

@@ -20,6 +20,7 @@ import { anonymousEmail, DELETED_USER_NAME } from '../utils/anonymous.js';
 import { createLogger } from '../config/logger.js';
 import { destroyAssets } from '../config/cloudinary.js';
 import { mailConfigured } from '../utils/mailer.js';
+import { recountWishlists } from '../utils/bookStats.js';
 import { dispatchShopMail, twoFactorChangedEmail } from '../utils/shopMail.js';
 import type { NotificationSettingsBody, TwoFactorBody } from '../schemas/index.js';
 import { CATEGORIES, cleanPrefs, wants } from '../utils/notificationPrefs.js';
@@ -264,11 +265,14 @@ export const deleteMyAccount: RequestHandler = async (req, res, next) => {
       SellerReviewFlag.deleteMany({ review: { $in: ratingsOfShop.map((rating) => rating._id) } }),
     ]);
 
+    // The books they had saved lose one wishlist each.
+    const saved = await Wishlist.find({ user: user._id }, { book: 1 }).lean();
     await Promise.all([
       Cart.deleteMany({ user: user._id }),
       Wishlist.deleteMany({ user: user._id }),
       revokeAllForUser(user._id),
     ]);
+    await recountWishlists(saved.map((entry) => entry.book));
 
     const summary = {
       ordersAnonymised: ordersPlaced.modifiedCount + sales.modifiedCount,

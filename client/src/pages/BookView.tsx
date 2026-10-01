@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import {
+    FaEye,
     FaHeart,
     FaRegHeart,
     FaChevronLeft,
@@ -49,6 +50,7 @@ import { reportError } from '../utils/report.js';
 import PriceTag from '../components/PriceTag.js';
 import { priceOf } from '../utils/pricing.js';
 import { recordView } from '../utils/recentlyViewed.js';
+import { countLabel } from '../utils/compactCount.js';
 
 export default function BookView() {
     const [searchQuery, setSearchQuery] = useState('');
@@ -440,6 +442,16 @@ export default function BookView() {
                             ) : (
                                 <p className="book-rating" style={{ color: 'var(--color-ink-muted)' }}>No reviews yet</p>
                             )}
+
+                            {/* How wanted it is: views and wishlists. */}
+                            <ul className="book-demand" aria-label="Demand for this book">
+                                <li>
+                                    <FaEye aria-hidden="true" /> {countLabel(book.viewCount, 'view', 'views')}
+                                </li>
+                                <li>
+                                    <FaHeart aria-hidden="true" /> On {countLabel(book.wishlistCount, 'wishlist', 'wishlists')}
+                                </li>
+                            </ul>
 
                             <div className="book-price-row">
                                 <span className="book-price">

@@ -35,6 +35,12 @@ const AddBookSchema = new Schema({
    */
   ratingAverage: { type: Number, default: 0, min: 0, max: 5 },
   ratingCount: { type: Number, default: 0, min: 0 },
+  /**
+   * How wanted a book is, for shoppers to see: views (one per person a day,
+   * see utils/bookStats.ts) and how many wishlists it is on.
+   */
+  viewCount: { type: Number, default: 0, min: 0 },
+  wishlistCount: { type: Number, default: 0, min: 0 },
   stock: { type: Number, default: 1, min: 0 },    // allow zero
 
   /*

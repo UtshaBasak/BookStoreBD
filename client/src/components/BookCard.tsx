@@ -1,11 +1,12 @@
 import { Link } from 'react-router-dom';
-import { FaHeart, FaRegHeart } from 'react-icons/fa';
+import { FaEye, FaHeart, FaRegHeart } from 'react-icons/fa';
 
 import type { Book } from '@shared/api.js';
 
 import './BookCard.css';
 import PriceTag from './PriceTag.js';
 import { Stars } from './Stars.js';
+import { compactCount, countLabel } from '../utils/compactCount.js';
 import { hasDeal } from '../utils/pricing.js';
 import { PLACEHOLDER_IMAGE } from '../utils/safeImageSrc.js';
 import { sized, IMAGE_WIDTHS } from '../utils/imageUrl.js';
@@ -82,10 +83,30 @@ export default function BookCard({
         </h3>
         <p className="bc-author">{book.author}</p>
         <PriceTag book={book} size="md" showSaving={false} />
-        {(book.ratingCount ?? 0) > 0 && (
+        {((book.ratingCount ?? 0) > 0 || (book.viewCount ?? 0) > 0 || (book.wishlistCount ?? 0) > 0) && (
           <div className="bc-rating">
-            <Stars value={book.ratingAverage ?? 0} size={13} />
-            <span>({book.ratingCount})</span>
+            {(book.ratingCount ?? 0) > 0 && (
+              <>
+                <Stars value={book.ratingAverage ?? 0} size={13} />
+                <span>({book.ratingCount})</span>
+              </>
+            )}
+            {/* How wanted it is, at a glance. */}
+            <span
+              className="bc-demand"
+              aria-label={`${countLabel(book.viewCount, 'view', 'views')}, ${countLabel(book.wishlistCount, 'wishlist', 'wishlists')}`}
+            >
+              {(book.viewCount ?? 0) > 0 && (
+                <span aria-hidden="true">
+                  <FaEye /> {compactCount(book.viewCount)}
+                </span>
+              )}
+              {(book.wishlistCount ?? 0) > 0 && (
+                <span aria-hidden="true">
+                  <FaHeart /> {compactCount(book.wishlistCount)}
+                </span>
+              )}
+            </span>
           </div>
         )}
         {onToggleCart && (

@@ -13,6 +13,7 @@ import { site } from '../config/site.js';
 import { useMyBookRequests, useSellerBooks } from '../hooks/queries.js';
 import { useToast } from '../hooks/useToast.js';
 import { getUserEmail } from '../utils/auth.js';
+import { countLabel } from '../utils/compactCount.js';
 
 export default function SellerBookList() {
   // Pending edits per book id: the raw input text, parsed on save.
@@ -200,6 +201,7 @@ export default function SellerBookList() {
                   <th>Update Price</th>
                   <th>Stock</th>
                   <th>Update Stock</th>
+                  <th>Demand</th>
                   <th>Created at</th>
                   <th>Actions</th>
                 </tr>
@@ -257,6 +259,12 @@ export default function SellerBookList() {
                           aria-label={`New stock for ${book.title ?? 'this book'}`}
                           placeholder=""
                         />
+                      </td>
+                      <td data-label="Demand" className="sl-num">
+                        {/* What buyers see too: how often it is viewed and saved. */}
+                        {countLabel(book.viewCount, 'view', 'views')}
+                        <br />
+                        {countLabel(book.wishlistCount, 'wishlist', 'wishlists')}
                       </td>
                       <td data-label="Created at" className="sl-num">{book.createdAt ? new Date(book.createdAt).toLocaleDateString() : ''}</td>
                       <td data-label="Actions">

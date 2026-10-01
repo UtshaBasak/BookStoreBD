@@ -427,3 +427,24 @@
   justify-content: flex-end;
   margin-top: 0.75rem;
 }
+
+/* Views and wishlists, under the rating. */
+.book-demand {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem 1rem;
+  margin: 0 0 0.25rem;
+  padding: 0;
+  list-style: none;
+  color: var(--color-ink-muted);
+  font-size: 0.88rem;
+  font-weight: 600;
+}
+.book-demand li {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+.book-demand svg {
+  color: var(--color-brand-light);
+}

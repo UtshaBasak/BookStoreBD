@@ -184,3 +184,18 @@
   font-weight: 700;
   text-align: center;
 }
+.bc-demand {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: auto;
+}
+.bc-demand > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+}
+.bc-demand svg {
+  font-size: 0.7rem;
+  color: var(--color-ink-faint);
+}

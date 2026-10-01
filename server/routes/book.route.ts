@@ -3,7 +3,7 @@ import express, { type Request, type Response } from 'express';
 import AddBook, { type BookDocument } from '../models/AddBook.model.js';
 import Cart from '../models/Cart.model.js';
 import { adminBookList, getBookById, getBookCover } from '../controllers/book.controller.js';
-import { actingUser, requireAdmin, requireAuth } from '../middleware/auth.js';
+import { actingUser, optionalAuth, requireAdmin, requireAuth } from '../middleware/auth.js';
 import { destroyAssets } from '../config/cloudinary.js';
 import { discountProblem } from '../config/pricing.js';
 import BookRequest from '../models/BookRequest.model.js';
@@ -288,6 +288,7 @@ router.delete('/:id/request', requireAuth, validate(bookSchemas.byId), async (re
 router.get('/:id/cover/:index', validate(bookSchemas.cover), getBookCover);
 router.get('/:id/cover', validate(bookSchemas.cover), getBookCover);
 
-router.get('/:id', validate(bookSchemas.byId), getBookById);
+// optionalAuth: so a seller looking at their own listing does not add a view.
+router.get('/:id', optionalAuth, validate(bookSchemas.byId), getBookById);
 
 export default router;
