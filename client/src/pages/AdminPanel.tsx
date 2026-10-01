@@ -23,6 +23,7 @@ import {
 } from 'react-icons/fa';
 import Logo from '../components/Logo.js';
 import { ThemeToggle } from '../components/ThemeToggle.js';
+import NotificationSettings from '../components/NotificationSettings.js';
 import { isAdmin } from '../utils/auth.js';
 import { signOut } from '../config/api.js';
 
@@ -67,6 +68,9 @@ function AdminHome() {
             </span>
           </Link>
         ))}
+      </div>
+      <div className="admin-settings">
+        <NotificationSettings />
       </div>
     </div>
   );

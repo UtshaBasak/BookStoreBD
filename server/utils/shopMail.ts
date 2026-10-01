@@ -2,6 +2,8 @@ import { createLogger } from '../config/logger.js';
 import { RETURN_WINDOW_DAYS, sellerFeeFor, SELLER_FEE_PERCENT } from '../config/commerce.js';
 import { noticeEmail, type Email, type NoticeItem } from './emailTemplates.js';
 import { mailConfigured, sendMail } from './mailer.js';
+import { recipientsWanting } from './notificationPrefs.js';
+import type { NotificationCategory } from '@shared/api.js';
 
 /**
  * The shop's e-mails about orders and returns, and the one place they are sent.
@@ -15,12 +17,24 @@ const log = createLogger('mail');
 
 const inFlight = new Set<Promise<void>>();
 
-/** Sends in the background, or does nothing where mail is not set up. */
-export const dispatchShopMail = (to: string | null | undefined, mail: Email): void => {
+/**
+ * Sends in the background, or does nothing where mail is not set up. With a
+ * category, only if the person has not turned that kind of e-mail off; without
+ * one - account and security mail - always.
+ */
+export const dispatchShopMail = (
+  to: string | null | undefined,
+  mail: Email,
+  category: NotificationCategory | null = null
+): void => {
   if (!to || !mailConfigured()) return;
   const sending: Promise<void> = new Promise<void>((resolve) => {
-    setImmediate(() => resolve(sendMail({ to, subject: mail.subject, text: mail.text, html: mail.html })));
+    setImmediate(() => resolve());
   })
+    .then(async () => {
+      if (!(await recipientsWanting([to], category, 'email')).length) return;
+      await sendMail({ to, subject: mail.subject, text: mail.text, html: mail.html });
+    })
     .catch((err: unknown) => {
       log.error({ err, subject: mail.subject }, 'Failed to send mail');
     })

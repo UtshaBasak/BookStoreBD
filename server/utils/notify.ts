@@ -4,6 +4,7 @@ import Notification from '../models/Notification.model.js';
 import User from '../models/user.model.js';
 import { createLogger } from '../config/logger.js';
 import { deliverToUser } from '../sockets/chatSocket.js';
+import { categoryOf, recipientsWanting } from './notificationPrefs.js';
 
 const log = createLogger('notify');
 
@@ -28,12 +29,15 @@ export const notify = async (
   input: NotificationInput,
   { except }: { except?: string | null } = {}
 ): Promise<void> => {
-  const people = [...new Set(recipients.filter((email): email is string => Boolean(email)))].filter(
+  const named = [...new Set(recipients.filter((email): email is string => Boolean(email)))].filter(
     (email) => email !== except
   );
-  if (!people.length) return;
+  if (!named.length) return;
 
   try {
+    // Less whoever has turned this kind of notification off.
+    const people = await recipientsWanting(named, categoryOf(input.type), 'inApp');
+    if (!people.length) return;
     const saved = await Notification.insertMany(
       people.map((recipient) => ({
         recipient,

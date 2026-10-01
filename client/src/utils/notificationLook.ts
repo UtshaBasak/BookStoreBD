@@ -20,6 +20,10 @@ export const NOTIFICATION_ICON: Record<NotificationType, string> = {
   'price-drop': '🏷️',
   'book-request': '🙋',
   'back-in-stock': '📚',
+  'wanted-found': '🎯',
+  'invite-joined': '🤝',
+  welcome: '👋',
+  'shop-message': '✉️',
   announcement: '📣',
 };
 

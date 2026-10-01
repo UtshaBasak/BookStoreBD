@@ -430,6 +430,12 @@ export const userSchemas = {
       password: z.string().min(1, 'Your password is required to delete the account').max(200),
     }),
   },
+  /** What a person wants to hear about. Unknown categories are dropped on save. */
+  notifications: {
+    body: z.object({
+      prefs: z.record(z.string().max(30), z.object({ inApp: z.boolean(), email: z.boolean() })),
+    }),
+  },
   /** Two-step sign-in on or off. The password is checked when turning it off. */
   twoFactor: {
     body: z.object({
@@ -569,6 +575,7 @@ export const auditSchemas = {
 
 export type DeleteMeBody = z.infer<typeof userSchemas.deleteMe.body>;
 export type TwoFactorBody = z.infer<typeof userSchemas.twoFactor.body>;
+export type NotificationSettingsBody = z.infer<typeof userSchemas.notifications.body>;
 export type AuditListQuery = z.infer<typeof auditSchemas.list.query>;
 export type WriteReviewBody = z.infer<typeof reviewSchemas.write.body>;
 

@@ -123,7 +123,8 @@ export const returnBook = async (
         returnRequestedSellerEmail(
           { orderNumber, bookTitle: titles, defectDescription },
           lines.filter((line) => line.sellerEmail === seller).map((line) => line.title || 'A book')
-        )
+        ),
+        'returns'
       );
     }
 
@@ -271,7 +272,8 @@ export const updateReturnStatus = async (
             refundBkash: updatedRequest.refundBkash,
           },
           status === 'approved'
-        )
+        ),
+        'returns'
       );
       await notify([updatedRequest.sellerEmail], {
         type: 'return-decided',

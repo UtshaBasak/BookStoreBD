@@ -21,7 +21,9 @@ import { createLogger } from '../config/logger.js';
 import { destroyAssets } from '../config/cloudinary.js';
 import { mailConfigured } from '../utils/mailer.js';
 import { dispatchShopMail, twoFactorChangedEmail } from '../utils/shopMail.js';
-import type { TwoFactorBody } from '../schemas/index.js';
+import type { NotificationSettingsBody, TwoFactorBody } from '../schemas/index.js';
+import { CATEGORIES, cleanPrefs, wants } from '../utils/notificationPrefs.js';
+import type { NotificationPrefs, NotificationSettings } from '@shared/api.js';
 
 const log = createLogger('account');
 
@@ -77,6 +79,51 @@ export const exportMyData: RequestHandler = async (req, res, next) => {
       sellerRatings,
       ratingsReceived,
     });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/** The caller's notification choices, with what each category covers. */
+const settingsFor = (role: string, prefs: NotificationPrefs): NotificationSettings => ({
+  categories: CATEGORIES.filter((category) => !category.adminOnly || role === 'admin').map((category) => ({
+    id: category.id,
+    label: category.label,
+    description: category.description,
+    emailAvailable: category.email,
+    inApp: wants(prefs, category.id, 'inApp'),
+    email: category.email && wants(prefs, category.id, 'email'),
+  })),
+});
+
+export const getNotificationSettings: RequestHandler = async (req, res, next) => {
+  try {
+    const actor = actingUser(req);
+    const user = await User.findById(actor.id).select('role notificationPrefs').lean();
+    if (!user) {
+      res.status(404).json({ message: 'Account not found' });
+      return;
+    }
+    res.status(200).json(settingsFor(user.role, (user.notificationPrefs ?? {}) as NotificationPrefs));
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const updateNotificationSettings: RequestHandler = async (req, res, next) => {
+  try {
+    const actor = actingUser(req);
+    const { prefs } = req.body as NotificationSettingsBody;
+    const user = await User.findById(actor.id).select('role notificationPrefs');
+    if (!user) {
+      res.status(404).json({ message: 'Account not found' });
+      return;
+    }
+    const merged = cleanPrefs({ ...((user.notificationPrefs ?? {}) as NotificationPrefs), ...prefs });
+    user.notificationPrefs = merged;
+    user.markModified('notificationPrefs');
+    await user.save();
+    res.status(200).json(settingsFor(user.role, merged));
   } catch (error) {
     next(error);
   }

@@ -56,6 +56,9 @@ export default function NotificationsPage() {
             >
               Unread only
             </button>
+            <Link to="/profile#notification-settings" className="btn btn-ghost">
+              Settings
+            </Link>
             <button type="button" className="btn btn-ghost" onClick={() => markRead()} disabled={!unread || marking}>
               Mark all read
             </button>

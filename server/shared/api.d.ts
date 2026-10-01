@@ -916,7 +916,45 @@ export type NotificationType =
   | 'price-drop'
   | 'book-request'
   | 'back-in-stock'
+  | 'wanted-found'
+  | 'invite-joined'
+  | 'welcome'
+  | 'shop-message'
   | 'announcement';
+
+/** What people can choose to hear about. See server/utils/notificationPrefs.ts. */
+export type NotificationCategory =
+  | 'orders'
+  | 'returns'
+  | 'payouts'
+  | 'reviews'
+  | 'stock'
+  | 'deals'
+  | 'wanted'
+  | 'community'
+  | 'announcements'
+  | 'moderation';
+
+/** On or off for each category and channel. A category left out is on. */
+export type NotificationPrefs = Partial<Record<NotificationCategory, { inApp: boolean; email: boolean }>>;
+
+/** GET /user/me/notifications - the choices, with what each one covers. */
+export interface NotificationSettings {
+  categories: {
+    id: NotificationCategory;
+    label: string;
+    description: string;
+    /** Whether this category is ever e-mailed, so whether there is an e-mail switch. */
+    emailAvailable: boolean;
+    inApp: boolean;
+    email: boolean;
+  }[];
+}
+
+/** PUT /user/me/notifications */
+export interface UpdateNotificationSettingsRequest {
+  prefs: NotificationPrefs;
+}
 
 /** POST /auth/password-check */
 export interface PasswordCheckRequest {

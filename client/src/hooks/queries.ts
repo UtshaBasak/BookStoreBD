@@ -47,6 +47,8 @@ import type {
   AdminMessageResponse,
   AudienceCount,
   MessageAudience,
+  NotificationPrefs,
+  NotificationSettings,
 } from '@shared/api.js';
 
 import { apiFetch, apiUrl } from '../config/api.js';
@@ -151,6 +153,7 @@ export const keys = {
   myBookRequests: ['book-request', 'mine'] as const,
   audience: (audience: MessageAudience) => ['admin', 'audience', audience] as const,
   chatHistory: ['chat', 'history'] as const,
+  notificationSettings: ['notification-settings'] as const,
 };
 
 // ---------------------------------------------------------------------------
@@ -822,5 +825,22 @@ export const useSellerSearch = (search: string): UseQueryResult<SuggestResponse>
     queryFn: () => request<SuggestResponse>(`/filter/suggest?q=${encodeURIComponent(q)}&books=0&sellers=8`),
     enabled: q.length >= 2,
     staleTime: 60_000,
+  });
+};
+
+/** What the caller has chosen to hear about. */
+export const useNotificationSettings = (): UseQueryResult<NotificationSettings> =>
+  useQuery<NotificationSettings>({
+    queryKey: keys.notificationSettings,
+    queryFn: () => request<NotificationSettings>('/user/me/notifications'),
+  });
+
+/** Saves a change to them; the answer is the whole set, as stored. */
+export const useSaveNotificationSettings = (): UseMutationResult<NotificationSettings, Error, NotificationPrefs> => {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: (prefs: NotificationPrefs) =>
+      request<NotificationSettings>('/user/me/notifications', json('PUT', { prefs })),
+    onSuccess: (settings) => client.setQueryData(keys.notificationSettings, settings),
   });
 };

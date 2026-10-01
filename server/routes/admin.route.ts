@@ -7,6 +7,7 @@ import { requireAdmin, requireAuth } from '../middleware/auth.js';
 import { validate, validatedQuery } from '../middleware/validate.js';
 import { adminSchemas, type AdminMessageBody, type AudienceQuery } from '../schemas/index.js';
 import { notify } from '../utils/notify.js';
+import { recipientsWanting } from '../utils/notificationPrefs.js';
 import { adminMessageEmail, sendShopMailNow } from '../utils/shopMail.js';
 import { recordAudit } from '../utils/audit.js';
 import { createLogger } from '../config/logger.js';
@@ -59,18 +60,26 @@ router.post('/message', validate(adminSchemas.message), async (req: Request, res
       return;
     }
 
+    // A message to a whole group is news from the shop, which people may turn
+    // off; one to chosen people is addressed to them, and always arrives.
+    const direct = audience === 'users';
+    const optedIn = async (channelName: 'inApp' | 'email') =>
+      direct ? recipients : recipientsWanting(recipients, 'announcements', channelName);
+
     let notified = 0;
     if (channel !== 'email') {
-      await notify(recipients, { type: 'announcement', title, body, link: link || '' });
-      notified = recipients.length;
+      const people = await optedIn('inApp');
+      await notify(people, { type: direct ? 'shop-message' : 'announcement', title, body, link: link || '' });
+      notified = people.length;
     }
 
     let emailed = 0;
     let failed = 0;
     if (channel !== 'notification') {
       const mail = adminMessageEmail(title, body, link || null);
-      for (let i = 0; i < recipients.length; i += BATCH) {
-        const sent = await Promise.all(recipients.slice(i, i + BATCH).map((to) => sendShopMailNow(to, mail)));
+      const people = await optedIn('email');
+      for (let i = 0; i < people.length; i += BATCH) {
+        const sent = await Promise.all(people.slice(i, i + BATCH).map((to) => sendShopMailNow(to, mail)));
         emailed += sent.filter(Boolean).length;
         failed += sent.filter((ok) => !ok).length;
       }

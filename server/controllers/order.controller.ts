@@ -202,9 +202,9 @@ const announceOrder = async (
   // one to each seller about their own books.
   const priced = (list: typeof reserved) =>
     list.map(({ book, quantity }) => ({ title: book.title, quantity, price: unitPriceOf(book) }));
-  dispatchShopMail(buyer, orderPlacedBuyerEmail(facts, priced(reserved)));
+  dispatchShopMail(buyer, orderPlacedBuyerEmail(facts, priced(reserved)), 'orders');
   for (const seller of new Set(reserved.map(({ book }) => book.sellerEmail))) {
-    dispatchShopMail(seller, orderPlacedSellerEmail(facts, priced(reserved.filter(({ book }) => book.sellerEmail === seller))));
+    dispatchShopMail(seller, orderPlacedSellerEmail(facts, priced(reserved.filter(({ book }) => book.sellerEmail === seller))), 'orders');
   }
 
   const copies = reserved.reduce((sum, { quantity }) => sum + quantity, 0);
@@ -675,10 +675,10 @@ export const updateOrderStatusByOrderNumber = async (
       // Delivered: an e-mail each to the buyer and the sellers, beside the bell.
       if (becomesDelivered && !wasDelivered) {
         const facts = { orderNumber, contactName: existing[0]?.contactName };
-        dispatchShopMail(existing[0]?.buyerEmail, orderDeliveredBuyerEmail(facts, mine));
+        dispatchShopMail(existing[0]?.buyerEmail, orderDeliveredBuyerEmail(facts, mine), 'orders');
         const payableFrom = new Date(Date.now() + RETURN_WINDOW_DAYS * 24 * 60 * 60 * 1000);
         for (const seller of new Set(mine.map((line) => line.sellerEmail))) {
-          dispatchShopMail(seller, orderDeliveredSellerEmail(facts, mine.filter((line) => line.sellerEmail === seller), payableFrom));
+          dispatchShopMail(seller, orderDeliveredSellerEmail(facts, mine.filter((line) => line.sellerEmail === seller), payableFrom), 'orders');
         }
       }
       // When the shop moves it on, the seller hears too.
@@ -792,11 +792,12 @@ export const cancelOrder = async (
     const cancelledIds = new Set(lines.map((line) => String(line._id)));
     const whole = existing.every((line) => line.status === CANCELLED || cancelledIds.has(String(line._id)));
     const facts = { orderNumber };
-    dispatchShopMail(existing[0]?.buyerEmail, orderCancelledEmail('buyer', facts, lines, { by: who, reason, whole }));
+    dispatchShopMail(existing[0]?.buyerEmail, orderCancelledEmail('buyer', facts, lines, { by: who, reason, whole }), 'orders');
     for (const seller of new Set(lines.map((line) => line.sellerEmail))) {
       dispatchShopMail(
         seller,
-        orderCancelledEmail('seller', facts, lines.filter((line) => line.sellerEmail === seller), { by: who, reason, whole })
+        orderCancelledEmail('seller', facts, lines.filter((line) => line.sellerEmail === seller), { by: who, reason, whole }),
+        'orders'
       );
     }
 

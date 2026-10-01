@@ -33,6 +33,7 @@ import type {
   SignInRequest,
   SignUpRequest,
   TwoFactorRequest,
+  UpdateNotificationSettingsRequest,
   UpdateOrderStatusRequest,
   UpdatePriceRequest,
   UpdateProfileRequest,
@@ -101,6 +102,7 @@ export type ContractChecks = [
   // ------------------------------------------------------------------ user
   Expect<Accepts<typeof userSchemas.updateProfile.body, UpdateProfileRequest>>,
   Expect<Accepts<typeof userSchemas.twoFactor.body, TwoFactorRequest>>,
+  Expect<Accepts<typeof userSchemas.notifications.body, UpdateNotificationSettingsRequest>>,
 
   // ----------------------------------------------------------------- admin
   Expect<Accepts<typeof adminSchemas.message.body, AdminMessageRequest>>,

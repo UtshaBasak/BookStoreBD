@@ -59,6 +59,9 @@ const UserSchema = new Schema(
         // Two-step sign-in: after the password, a one-time code sent to the
         // account's e-mail address. Off until the owner turns it on.
         twoFactor: { type: Boolean, default: false },
+        // What they want to hear about, by category and channel; anything
+        // missing is on. See utils/notificationPrefs.ts.
+        notificationPrefs: { type: Schema.Types.Mixed, default: {} },
         wishlist: [{
             type: Schema.Types.ObjectId,
             ref: 'AddBook'

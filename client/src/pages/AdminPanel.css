@@ -1234,3 +1234,8 @@
   align-items: center;
   gap: 8px;
 }
+
+/* The administrator's own notification choices, under the section cards. */
+.admin-settings {
+  max-width: 820px;
+}
