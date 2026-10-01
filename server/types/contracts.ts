@@ -23,6 +23,7 @@ import type {
   CreateOrderRequest,
   CreatePurchaseRequest,
   CreateReturnRequest,
+  CreateWantedRequest,
   DeleteConversationRequest,
   CatalogueParams,
   MarkReadRequest,
@@ -52,6 +53,7 @@ import {
   purchaseSchemas,
   returnSchemas,
   userSchemas,
+  wantedSchemas,
 } from '../schemas/index.js';
 
 /** Fails to compile unless the argument is exactly `true`. */
@@ -106,4 +108,7 @@ export type ContractChecks = [
 
   // ----------------------------------------------------------------- admin
   Expect<Accepts<typeof adminSchemas.message.body, AdminMessageRequest>>,
+
+  // ---------------------------------------------------------------- wanted
+  Expect<Accepts<typeof wantedSchemas.create.body, CreateWantedRequest>>,
 ];

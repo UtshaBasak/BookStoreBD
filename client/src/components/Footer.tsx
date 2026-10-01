@@ -40,6 +40,9 @@ export default function Footer() {
             <Link to="/how-it-works">How BookStoreBD works</Link>
           </li>
           <li>
+            <Link to="/wanted">Wanted board</Link>
+          </li>
+          <li>
             <Link to="/contact">Contact us</Link>
           </li>
         </ul>

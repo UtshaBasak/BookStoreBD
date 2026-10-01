@@ -490,6 +490,26 @@ export const reviewSchemas = {
   },
 };
 
+/** The Wanted board: books people are asking for. */
+export const wantedSchemas = {
+  list: {
+    query: pagedList(50).query.extend({
+      status: z.enum(['open', 'found']).default('open'),
+      sort: z.enum(['popular', 'newest']).default('popular'),
+      mine: z.enum(['1']).optional(),
+    }),
+  },
+  create: {
+    body: z.object({
+      title: z.string().trim().min(2, 'Give the title').max(200),
+      author: z.string().trim().max(120).optional(),
+      isbn: z.string().trim().max(20).regex(/^[0-9Xx\- ]*$/, 'An ISBN is digits, perhaps with an X').optional(),
+      details: z.string().trim().max(300).optional(),
+    }),
+  },
+  byId: { params: objectIdParam },
+};
+
 /** The bell: a page of a person's notifications, and marking them read. */
 // ---------------------------------------------------------------- admin messages
 const audience = z.enum(['users', 'buyers', 'sellers', 'all']);
@@ -575,6 +595,8 @@ export const auditSchemas = {
 
 export type DeleteMeBody = z.infer<typeof userSchemas.deleteMe.body>;
 export type TwoFactorBody = z.infer<typeof userSchemas.twoFactor.body>;
+export type WantedListQuery = z.infer<typeof wantedSchemas.list.query>;
+export type CreateWantedBody = z.infer<typeof wantedSchemas.create.body>;
 export type NotificationSettingsBody = z.infer<typeof userSchemas.notifications.body>;
 export type AuditListQuery = z.infer<typeof auditSchemas.list.query>;
 export type WriteReviewBody = z.infer<typeof reviewSchemas.write.body>;

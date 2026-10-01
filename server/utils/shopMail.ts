@@ -285,6 +285,21 @@ export const welcomeEmail = (username: string): Email =>
     ],
   });
 
+/** A book someone asked for on the Wanted board has been listed. */
+export const wantedFoundEmail = (title: string, author: string, link: string): Email =>
+  noticeEmail({
+    subject: `"${title}" is here`,
+    heading: 'The book you wanted is here',
+    preheader: `${title} has just been listed on BookStoreBD.`,
+    lead: ['Good news: a book you asked for on the Wanted board has just been listed.'],
+    items: [{ title, ...(author ? { detail: `by ${author}` } : {}) }],
+    button: { label: 'See the book', path: link },
+    after: [
+      'Copies can go quickly, so have a look soon.',
+      'You can turn these e-mails off under Notifications in your profile.',
+    ],
+  });
+
 /** Two-step sign-in was turned on or off for this account. */
 export const twoFactorChangedEmail = (enabled: boolean): Email =>
   noticeEmail({

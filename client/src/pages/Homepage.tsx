@@ -295,6 +295,9 @@ export default function Homepage() {
         <Link className="chip" to="/filter?inStock=1">
           In stock now
         </Link>
+        <Link className="chip" to="/wanted">
+          <span aria-hidden="true">🎯</span>&nbsp;Wanted board
+        </Link>
       </nav>
 
       {/* One main landmark, so a screen reader can jump past the header. */}

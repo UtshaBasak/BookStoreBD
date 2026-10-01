@@ -13,6 +13,7 @@ import {
   updateNotificationSettings,
 } from '../controllers/account.controller.js';
 import { sellerRatingOf } from '../controllers/sellerReview.controller.js';
+import { fulfilWanted } from '../utils/wanted.js';
 import AddBook from '../models/AddBook.model.js';
 import Order from '../models/Order.model.js';
 import User from '../models/user.model.js';
@@ -254,7 +255,9 @@ router.post(
       });
 
       await newBook.save();
-      res.status(201).json({ message: 'Book added successfully!', book: newBook });
+      // Anyone waiting for it on the Wanted board hears straight away.
+      const waiting = await fulfilWanted(newBook);
+      res.status(201).json({ message: 'Book added successfully!', book: newBook, waiting });
     } catch (error) {
       log.error({ err: error }, 'AddBook error');
       // Stack traces must never be returned to clients.

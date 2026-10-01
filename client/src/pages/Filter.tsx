@@ -640,6 +640,14 @@ export default function BookFilter() {
                 <p style={{ fontSize: 34, marginBottom: 6 }} aria-hidden="true">🔎</p>
                 <p style={{ fontSize: 18, fontWeight: 700, color: 'var(--color-ink)' }}>No book or author found</p>
                 <p style={{ marginTop: 6 }}>Try a shorter search, or turn a filter or two off.</p>
+                {/* Nobody selling it: ask for it, rather than leave empty-handed. */}
+                <p style={{ marginTop: 14 }}>
+                  Still not here?{' '}
+                  <Link to={`/wanted${searchTerm ? `?ask=${encodeURIComponent(searchTerm)}` : ''}`} className="font-bold underline">
+                    Ask for it on the Wanted board
+                  </Link>{' '}
+                  and hear the moment someone lists it.
+                </p>
               </div>
             ) : (
               booksOnThisPage.map((book) => (

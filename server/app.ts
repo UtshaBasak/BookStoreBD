@@ -18,6 +18,7 @@ import { BOOK_PAGE, renderBookPage, renderSitePage, templateLoader, type Preview
 import auditRouter from './routes/audit.route.js';
 import reviewRouter from './routes/review.route.js';
 import sellerReviewRouter from './routes/sellerReview.route.js';
+import wantedRouter from './routes/wanted.route.js';
 import { CLIENT_DIST, UPLOADS_DIR } from './config/paths.js';
 import { TRUSTED_PROXIES } from './config/trustedProxies.js';
 import { securityHeaders, shareableImages } from './config/securityHeaders.js';
@@ -136,6 +137,7 @@ export const createApp = ({
   app.use(`${API_PREFIX}/upload`, writeLimiter, uploadRouter);
   app.use(`${API_PREFIX}/user`, writeLimiter, userRouter);
   app.use(`${API_PREFIX}/wishlist`, wishlistRouter);
+  app.use(`${API_PREFIX}/wanted`, writeLimiter, wantedRouter);
 
   // ------------------------------------------------------------------------
   // Single-page app

@@ -477,6 +477,43 @@ export interface Page<T> {
   pageCount: number;
 }
 
+/** One book on the Wanted board. */
+export interface WantedItem {
+  _id: Id;
+  title: string;
+  author: string;
+  isbn: string;
+  details: string;
+  /** How many people want it. Who they are is not shown. */
+  count: number;
+  /** Whether the caller is one of them. */
+  wantedByMe: boolean;
+  status: 'open' | 'found';
+  /** The listing that answered it, once found. */
+  foundBook: { _id: Id; title: string } | null;
+  createdAt: IsoDate;
+  foundAt: IsoDate | null;
+}
+
+/** POST /wanted */
+export interface CreateWantedRequest {
+  title: string;
+  author?: string;
+  isbn?: string;
+  details?: string;
+}
+
+/**
+ * What happened to a request: a new entry, joined to one already there, or
+ * not needed because the book is in the shop.
+ */
+export interface CreateWantedResponse {
+  result: 'created' | 'joined' | 'listed';
+  message: string;
+  item?: WantedItem;
+  book?: { _id: Id; title: string };
+}
+
 /** What the three order tables and the returns table ask for. */
 export interface ListParams {
   search?: string;

@@ -49,6 +49,9 @@ import type {
   MessageAudience,
   NotificationPrefs,
   NotificationSettings,
+  WantedItem,
+  CreateWantedRequest,
+  CreateWantedResponse,
 } from '@shared/api.js';
 
 import { apiFetch, apiUrl } from '../config/api.js';
@@ -154,6 +157,8 @@ export const keys = {
   audience: (audience: MessageAudience) => ['admin', 'audience', audience] as const,
   chatHistory: ['chat', 'history'] as const,
   notificationSettings: ['notification-settings'] as const,
+  /** One entry per distinct search, so turning a page keeps the last one. */
+  wanted: (query: string) => ['wanted', query] as const,
 };
 
 // ---------------------------------------------------------------------------
@@ -842,5 +847,38 @@ export const useSaveNotificationSettings = (): UseMutationResult<NotificationSet
     mutationFn: (prefs: NotificationPrefs) =>
       request<NotificationSettings>('/user/me/notifications', json('PUT', { prefs })),
     onSuccess: (settings) => client.setQueryData(keys.notificationSettings, settings),
+  });
+};
+
+/** A page of the Wanted board. */
+export const useWanted = (
+  params: ListParams = {},
+  options: Partial<QueryOptions<Page<WantedItem>>> = {}
+): UseQueryResult<Page<WantedItem>> => useQuery(pagedQuery<WantedItem>('/wanted', keys.wanted, params, options));
+
+/** Asks for a book: a new entry, joined to one already there, or "it is in the shop". */
+export const useCreateWanted = (): UseMutationResult<CreateWantedResponse, Error, CreateWantedRequest> => {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: (body: CreateWantedRequest) => request<CreateWantedResponse>('/wanted', json('POST', body)),
+    onSuccess: () => client.invalidateQueries({ queryKey: ['wanted'] }),
+  });
+};
+
+/** "I want this too", or no longer. */
+export const useToggleWanted = (): UseMutationResult<unknown, Error, { id: Id; want: boolean }> => {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, want }: { id: Id; want: boolean }) => request(`/wanted/${id}/join`, json(want ? 'POST' : 'DELETE')),
+    onSuccess: () => client.invalidateQueries({ queryKey: ['wanted'] }),
+  });
+};
+
+/** An administrator removing a request. */
+export const useRemoveWanted = (): UseMutationResult<MessageResponse, Error, Id> => {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: (id: Id) => request<MessageResponse>(`/wanted/${id}`, json('DELETE')),
+    onSuccess: () => client.invalidateQueries({ queryKey: ['wanted'] }),
   });
 };

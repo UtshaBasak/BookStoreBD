@@ -1,6 +1,6 @@
 import { useRef, useState, type ChangeEvent, type HTMLInputTypeAttribute } from 'react';
 import axios from 'axios';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { FaCamera, FaCheck, FaExclamationTriangle, FaInfoCircle, FaTimes } from 'react-icons/fa';
 
 import './Seller.css';
@@ -49,7 +49,14 @@ const EMPTY_FORM: BookForm = {
 type TextField = Exclude<keyof BookForm, 'category' | 'discountType'>;
 
 const AddBooks = () => {
-  const [Data, setData] = useState<BookForm>(EMPTY_FORM);
+  // From the Wanted board's "Have it? List it": the title and author filled in.
+  const [searchParams] = useSearchParams();
+  const [Data, setData] = useState<BookForm>(() => ({
+    ...EMPTY_FORM,
+    title: searchParams.get('title') ?? '',
+    author: searchParams.get('author') ?? '',
+    isbn: searchParams.get('isbn') ?? '',
+  }));
   const [images, setImages] = useState<File[]>([]);
   const [loading, setLoading] = useState(false);
   const [feedbackMessage, setFeedbackMessage] = useState('');
@@ -226,12 +233,17 @@ const AddBooks = () => {
         images.forEach((img) => formData.append('images', img));
       }
 
-      const res = await axios.post<{ message: string }>(
+      const res = await axios.post<{ message: string; waiting?: number }>(
         `${API_BASE_URL}/user/add-book`,
         formData,
         { headers }
       );
-      setFeedbackMessage(res.data.message);
+      const waiting = res.data.waiting ?? 0;
+      setFeedbackMessage(
+        waiting > 0
+          ? `${res.data.message} ${waiting} ${waiting === 1 ? 'reader was' : 'readers were'} waiting for it on the Wanted board, and have just been told.`
+          : res.data.message
+      );
       setIsError(false);
       setData(EMPTY_FORM);
       setImages([]);

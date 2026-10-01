@@ -18,6 +18,7 @@ const STATIC_PAGES: readonly { path: string; changefreq: string; priority: strin
   { path: '/', changefreq: 'daily', priority: '1.0' },
   { path: '/filter', changefreq: 'daily', priority: '0.9' },
   { path: '/how-it-works', changefreq: 'monthly', priority: '0.6' },
+  { path: '/wanted', changefreq: 'daily', priority: '0.6' },
   { path: '/about', changefreq: 'monthly', priority: '0.5' },
   { path: '/contact', changefreq: 'monthly', priority: '0.5' },
   { path: '/returns', changefreq: 'yearly', priority: '0.3' },
@@ -154,6 +155,7 @@ export const llmsTxt: RequestHandler = (req, res) => {
 - [Second-hand books](${link('/filter?bookType=old')})
 - [In stock](${link('/filter?inStock=1')})
 - [Quick deals](${link('/filter?deals=1&sort=dealPercent')}): books their sellers have discounted, the biggest share off first
+- [Wanted board](${link('/wanted')}): books readers are asking for that nobody has listed yet
 - [Sitemap](${link('/sitemap.xml')}): every book's own page
 
 ## About and policies
