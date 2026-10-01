@@ -76,7 +76,7 @@ It ships three distinct experiences from one codebase:
 - About a hundred single-subject categories in six groups - Academic, Fiction,
   Non-fiction, Kids & teens, Lifestyle & hobbies, Other - from one list,
   [`client/src/config/categories.ts`](client/src/config/categories.ts)
-- Case-insensitive title and author search, filters for type, condition,
+- Case-insensitive search by title, author or ISBN, filters for type, condition,
   category, price, rating, stock and deals, and seven orders: Relevant (deals
   first, the default), biggest % off, biggest ৳ saving, newest, highest rated,
   and price either way

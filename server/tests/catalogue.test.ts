@@ -81,6 +81,15 @@ describe('what it filters on', () => {
     expect(res.body.total).toBe(2);
   });
 
+  it('a search by ISBN, which the homepage search box offers', async () => {
+    await book('Pather Panchali', { isbn: '978-984-8765-01-2' });
+    await book('Something Else', { isbn: '978-984-0000-00-0' });
+
+    const res = await request.get('/filter/booklist?search=8765-01');
+
+    expect(titles(res.body)).toEqual(['Pather Panchali']);
+  });
+
   it('book type', async () => {
     await book('A New One', { bookType: 'new' });
     await book('A Used One', { bookType: 'old', condition: 'good' });

@@ -39,8 +39,8 @@ const buildFilter = (q: CatalogueQuery): Record<string, unknown> => {
 
   if (q.search) {
     const pattern = contains(q.search);
-    // Title or author, which is what somebody typing into one box means.
-    filter.$or = [{ title: pattern }, { author: pattern }];
+    // Title, author or ISBN: the homepage's search box offers all three.
+    filter.$or = [{ title: pattern }, { author: pattern }, { isbn: pattern }];
   }
 
   if (q.bookType) filter.bookType = q.bookType;
