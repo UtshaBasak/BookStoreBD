@@ -40,9 +40,8 @@ const EMPTY: Record<State, [string, string]> = {
  * What sellers are owed, and a record of what they have been paid.
  *
  * Sellers are paid by bKash to the merchant number on their profile, once an
- * order's return window has closed with no return pending or approved. There
- * was no way to do this before: nothing recorded what a seller was owed, where
- * to send it, or whether it had been sent.
+ * order's return window has closed with no return pending or approved. Each
+ * row records what is owed, where to send it, and whether it has been sent.
  */
 export default function SellerPayouts() {
   const [state, setState] = useState<State>('due');

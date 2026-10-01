@@ -18,7 +18,17 @@ import User from '../models/user.model.js';
 import { errorMessage } from '../utils/error.js';
 import AddBook from '../models/AddBook.model.js';
 
-const DEMO_PASSWORD = process.env.SEED_PASSWORD ?? 'Password123!';
+/**
+ * The demo accounts' password, chosen by whoever runs the seed. There is no
+ * default, so no two installations share one.
+ */
+const demoPassword = (): string => {
+  const value = process.env.SEED_PASSWORD?.trim();
+  if (!value) {
+    throw new Error('Set SEED_PASSWORD (server/.env, or .env for Docker) to the password the demo accounts should use.');
+  }
+  return value;
+};
 
 /** Annotated rather than inferred, so `role` stays the union the schema uses. */
 interface SeedAccount {
@@ -158,15 +168,15 @@ const BOOKS: SeedBook[] = [
 const log = (...args: unknown[]): void => console.log('[seed]', ...args);
 
 const seedAccounts = async () => {
-  const hashed = bcryptjs.hashSync(DEMO_PASSWORD, 10);
+  const hashed = bcryptjs.hashSync(demoPassword(), 10);
   let created = 0;
 
   for (const account of ACCOUNTS) {
     const existing = await User.findOne({ email: account.email });
     if (existing) {
-      // A demo seller made before listing needed a bKash merchant number
-      // could not list anything; it gets the demo number, and nothing else
-      // about an existing account is touched.
+      // A demo seller without a bKash merchant number cannot list anything,
+      // so it gets the demo number; nothing else about an existing account is
+      // touched.
       if (account.bkashMerchant && !existing.bkashMerchant) {
         await User.updateOne({ _id: existing._id }, { $set: { bkashMerchant: account.bkashMerchant } });
         log(`${account.email}: demo bKash merchant number added`);
@@ -193,9 +203,7 @@ const seedBooks = async () => {
       country: 'Bangladesh',
       language: 'English',
       sellerEmail: SELLER_EMAIL,
-      // No cover, so the client falls back to its own placeholder. This was a
-      // data-URI described as a transparent pixel; it decodes to half-opaque
-      // green, and every seeded listing rendered as a bright green block.
+      // No cover, so the client falls back to its own placeholder.
       images: [],
     });
     created += 1;
@@ -220,12 +228,9 @@ export const runSeed = async ({ withReset = false } = {}) => {
   await seedBooks();
 
   log('');
-  // Printing the password is the entire point of this script: it is a known
-  // demo value for local accounts, and you cannot sign in without being told
-  // it. A scanner will flag it as clear-text logging regardless.
-  log('Sign in with any of these:');
+  log('Sign in with any of these, using your SEED_PASSWORD:');
   for (const account of ACCOUNTS) {
-    log(`  ${account.role.padEnd(5)}  ${account.email}  /  ${DEMO_PASSWORD}`);
+    log(`  ${account.role.padEnd(5)}  ${account.email}`);
   }
 };
 

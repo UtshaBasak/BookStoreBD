@@ -51,7 +51,7 @@ export default function SignUp() {
         const res = await apiFetch(`${API_BASE_URL}/auth/send-otp`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ email, username: formData.username, purpose: 'register' }) // include purpose
+            body: JSON.stringify({ email, username: formData.username, purpose: 'register' })
         });
         const data = (await res.json()) as ApiError;
         if (res.ok) {
@@ -73,7 +73,6 @@ export default function SignUp() {
         const data = (await res.json()) as ApiError;
         if (res.ok) {
             setOtpMsg('OTP verified. Completing registration...');
-            // Now submit registration
             handleSubmitFinal();
         } else {
             setOtpMsg(data.message || 'Invalid OTP. Try again.');
@@ -86,7 +85,7 @@ export default function SignUp() {
             toast.warning('Please fill in every field.');
             return;
         }
-        // Prevent sending OTP if already in OTP step
+        // A code has already been sent.
         if (step === 'otp') return;
         const context = { email: formData.email, username: formData.username };
         if (!passwordReady(formData.password, context)) {
@@ -114,7 +113,6 @@ export default function SignUp() {
     };
 
     const handleSubmitFinal = async () => {
-        // ...existing code...
         try {
             const res = await apiFetch(`${API_BASE_URL}/auth/signup`, {
                 method: 'POST',
@@ -144,7 +142,6 @@ export default function SignUp() {
         <div className="auth-page aurora">
             <AuthPitch />
 
-            {/* Sign-Up Form */}
             <main className="card auth-card">
                 <Link to="/" className="auth-logo" aria-label={`${site.name} home`}>
                     <Logo size={40} />
@@ -234,7 +231,6 @@ export default function SignUp() {
                             to the <Link to="/terms">terms of service</Link> and{' '}
                             <Link to="/privacy">privacy policy</Link>.
                         </p>
-                        {/* Show error or info message below the button */}
                         {otpMsg && (
                             <p role="status" className={`auth-message ${otpMsg.startsWith('OTP sent') ? 'auth-message-ok' : 'auth-message-error'}`}>
                                 {otpMsg}
@@ -286,7 +282,6 @@ export default function SignUp() {
                         <b>SIGN IN</b>
                     </Link>
                 </p>
-                {/* Go To Home Button */}
                 <Link to="/" className="btn btn-ghost auth-wide">
                     Go To Home
                 </Link>

@@ -1,10 +1,9 @@
 # Production-readiness audit
 
-Where BookStoreBD stands against what a consumer-facing marketplace is expected
-to do, and what to fix in which order.
-
-Everything below was checked against the running application, not read off the
-source. Method, so it can be repeated:
+How BookStoreBD measures against what a consumer-facing marketplace is expected
+to do, what has been done, and the hardening planned next. First audited at
+commit `a1ad1d0`. Every result was measured against the running application.
+To repeat the baseline:
 
 ```bash
 npm run lint && npm run typecheck && npm test && npm run build
@@ -13,14 +12,23 @@ docker compose -f docker-compose.prod.yml up -d --build
 curl -sI http://127.0.0.1:8080/api/book      # response headers
 ```
 
-First audited at commit `a1ad1d0`. Items marked **done** below have since
-landed; the rest stand.
+## Summary
+
+All nine items in the [order of work](#order-of-work) are complete. Planned
+hardening, none of which blocks a launch:
+
+| Item | Priority |
+| --- | --- |
+| [S3](#s3--access-token-in-localstorage) · Hold the access token in memory rather than `localStorage` | Medium |
+| [S7](#s7--bcrypt-cost-factor) · Raise the bcrypt cost factor from 10 to 12 | Low |
+| [P4](#p4--image-storage) · Move covers out of MongoDB; thumbnails at upload | Low |
+| [Interface](#planned-interface-work) · Dialog component, loading and empty states, accessibility, remaining inline styles | Medium |
+| [Business capability](#5--business-capability) · Online payments, seller verification, search indexing, analytics | Product roadmap |
+| Review of the policy pages by someone legally qualified, with the legal entity name | Before scaling |
 
 ---
 
-## 1 · Does it work?
-
-Yes. Nothing is broken.
+## 1 · Functional status
 
 | Check | Result |
 | --- | --- |
@@ -32,38 +40,27 @@ Yes. Nothing is broken.
 | Production stack | browse, detail, cart, wishlist, profile, orders, clear — all `200` |
 | Session lifecycle | sign-in `200` → refresh `200` → replay `401` → logout `204` |
 
-The refresh cookie is scoped to `/api/auth`, rotation works, and a replayed
-token revokes the family. That part is genuinely solid.
-
 ---
 
 ## 2 · Security and privacy
 
-### Findings
+| # | Finding | Severity | Status |
+| --- | --- | --- | --- |
+| S1 | Security response headers | High | Resolved |
+| S2 | Account enumeration on sign-in, sign-up and reset | Medium | Resolved |
+| S3 | Access token kept in `localStorage` | Medium | Planned |
+| S4 | Upload type validation | Medium | Resolved |
+| S5 | Per-code OTP attempt limit | Medium | Resolved |
+| S6 | `X-Powered-By: Express` disclosed | Low | Resolved |
+| S7 | bcrypt cost factor 10 | Low | Planned |
+| P1 | Footer policies with no pages behind them | High (trust, compliance) | Resolved |
+| P2 | Account deletion and data export | Medium | Resolved |
+| P3 | Audit trail for administrator actions | Medium | Resolved |
+| P4 | Covers and chat images stored as base64 in MongoDB by default | Low | Partly resolved |
 
-| # | Finding | Severity |
-| --- | --- | --- |
-| S1 | ~~No security response headers at all~~ **done** | **High** |
-| S2 | ~~Account enumeration on sign-in and password reset~~ **done** | **Medium** |
-| S3 | Access token kept in `localStorage` | **Medium** |
-| S4 | ~~Uploads are not type-checked~~ **done** | **Medium** |
-| S5 | ~~OTP has no per-account attempt limit~~ **done** | **Medium** |
-| S6 | ~~`X-Powered-By: Express` disclosed~~ **done** | Low |
-| S7 | bcrypt cost factor 10 | Low |
-| P1 | ~~Footer advertises policies that do not exist~~ **done** | **High** (trust/compliance) |
-| P2 | ~~No way for a user to delete their account or export their data~~ **done** | **Medium** |
-| P3 | ~~No audit trail for administrator actions~~ **done** | **Medium** |
-| P4 | Covers and chat images stored as base64 in MongoDB by default | Low |
+### S1 · Security response headers
 
-### S1 · No security response headers — **done**
-
-There were none at all. The site could be framed by any origin (clickjacking),
-responses could be MIME-sniffed, referrers leaked full URLs to third parties,
-and there was no second line of defence if a script injection ever landed —
-which matters more than usual here, because the access token sits in
-`localStorage` (S3).
-
-Now sent on every response:
+Sent on every response, including errors:
 
 | Header | Value |
 | --- | --- |
@@ -74,247 +71,135 @@ Now sent on every response:
 | `Strict-Transport-Security` | `max-age=63072000; includeSubDomains` |
 | `Permissions-Policy` | camera, microphone, geolocation, payment, usb all denied |
 
-`helmet` covers the API ([`config/securityHeaders.ts`](../server/config/securityHeaders.ts));
-`nginx.conf` covers the HTML document, because CSP is enforced per document and
-the policy that governs the page is the one sent with `index.html`. **The two
-must stay in step** — there is no mechanism keeping them so, only a comment in
-each pointing at the other.
+`helmet` sets them for the API ([`config/securityHeaders.ts`](../server/config/securityHeaders.ts))
+and `nginx.conf` for the HTML document, since CSP applies per document; a
+comment in each points to the other. A new image host means editing
+`IMAGE_SOURCES` and the `map` block in `nginx.conf`; a cross-origin deployment
+also needs `CLIENT_API_ORIGIN`. The policy needs no `'unsafe-eval'` or inline
+script. `style-src` allows `'unsafe-inline'` for libraries that inject
+`<style>`, a far weaker vector.
 
-The policy needs no `'unsafe-eval'` and no inline-script allowance, which is
-what makes it worth having: the bundle contains no `eval` and `index.html` has
-no inline `<script>`. `style-src` does allow `'unsafe-inline'`, for libraries
-that inject a `<style>` element at runtime; style injection is a far weaker
-vector than script injection.
-
-**Enforced, not report-only.** The audit originally suggested shipping in
-`Report-Only` and reading the reports. That was not necessary: every external
-origin the client loads was enumerated from the source first, and the result
-verified in headless Chrome over the DevTools protocol against the production
-stack — `/`, `/filter` and `/sign-in` each mount React with **zero CSP
-violations**. Re-run that check after adding any third-party script, font or
-image host:
+The CSP is **enforced**, not report-only: every external origin was enumerated
+from the source, and `/`, `/filter` and `/sign-in` mount with **zero CSP
+violations** in headless Chrome. Re-run after adding a script, font or image
+host:
 
 ```bash
 chrome --headless=new --remote-debugging-port=9222 about:blank &
 node scripts/cspcheck.mjs 9222 http://127.0.0.1:8080/ http://127.0.0.1:8080/filter
 ```
 
-A new image host means editing `IMAGE_SOURCES` in `securityHeaders.ts` *and*
-the `map` block in `nginx.conf`. A cross-origin deployment additionally needs
-`CLIENT_API_ORIGIN` set, or the browser blocks every API call.
+Eight tests in `server/tests/securityHeaders.test.ts`.
 
-Eight tests in `server/tests/securityHeaders.test.ts` pin the headers,
-including that they survive on an error response — a header that silently stops
-being sent looks exactly like one that is working.
+### S2 · Account enumeration
 
-### S2 · Account enumeration — **done**
+Sign-in, sign-up and reset answer identically whether or not an address has an
+account, so an address list cannot be narrowed to this shop's customers, the
+first step of credential stuffing. Measured on the production stack:
 
-Sign-in used to distinguish the two failure modes, and reset and sign-up leaked
-the same fact from the other side:
-
-```text
-unknown email        -> 404 {"message":"User not found!"}
-real email, bad pw   -> 401 {"message":"Wrong credentials!"}
-reset, no account    -> 404 {"message":"No account found with this email."}
-sign-up, taken email -> 400 {"message":"This email is already in use."}
-```
-
-Anyone could feed in an address list and learn who shops here — a privacy leak
-in its own right, and the first step of a credential-stuffing run, which begins
-by narrowing millions of leaked addresses down to the ones a site recognises.
-
-Every one of those now answers the same way as its counterpart. Measured
-against the running production stack:
-
-| request | before | after |
+| Request | Before | After |
 | --- | --- | --- |
 | sign-in, real address, wrong password | `401 Wrong credentials!` | `401 Invalid email or password` |
-| sign-in, address with no account | `404 User not found!` | `401 Invalid email or password` |
+| sign-in, no account | `404 User not found!` | `401 Invalid email or password` |
 | reset, real address | `200 OTP sent to email` | `200 If that address has an account, a reset code is on its way.` |
-| reset, address with no account | `404 No account found with this email.` | `200 If that address has an account, a reset code is on its way.` |
+| reset, no account | `404 No account found with this email.` | `200 If that address has an account, a reset code is on its way.` |
 | sign-up, taken address | `400 This email is already in use.` | `200 If that address can be registered, a code is on its way.` |
 | sign-up, free address | `200 OTP sent to email` | `200 If that address can be registered, a code is on its way.` |
 
-Two things the wording alone would not have fixed:
+- **Timing.** With no account, sign-in compares against a throwaway bcrypt
+  hash: **86.7 ms** against **97.1 ms**, within noise. Code delivery is
+  detached from the response (**7.7 ms** against **6.6 ms**), which also keeps
+  the form responsive.
+- **Taken addresses.** Sign-up e-mails the owner that someone tried to
+  register, suggesting sign-in or reset.
+- **Usernames** are public on every listing, so sign-up says when one is taken,
+  by design. The check runs only when a username is supplied, since
+  `findOne({ username: undefined })` drops the key and matches any user.
+- The auth pages show the message as a sentence and do not log form data.
 
-**The clock.** Sign-in returned before reaching bcrypt when there was no such
-account, so an unknown address answered in single-digit milliseconds and a real
-one took about ninety. Identical sentences with a stopwatch attached are still
-an oracle. Sign-in now compares against a throwaway hash when the account does
-not exist, and the two paths measure **86.7 ms** and **97.1 ms** on the running
-stack — the difference is noise. The same problem applied to the code endpoint,
-where one path made an SMTP round trip and the other did not; delivery is now
-detached from the response, which measures **7.7 ms** against **6.6 ms**, and
-makes the form stop hanging on the mail server as a side effect.
+Fourteen tests in `server/tests/enumeration.test.ts` compare known and unknown
+answers side by side, so any divergence fails regardless of wording.
 
-**A taken address still has to be told something.** Rather than issue a code
-that could not be used, sign-up mails the *owner* of the address to say somebody
-tried, and suggests signing in or resetting instead. Useful to them, useless to
-anyone else — and it is a better answer than "This email is already in use" for
-the person who simply forgot they had an account.
+### S3 · Access token in `localStorage`
 
-Usernames are a deliberate exception: they are printed on every listing, so they
-are not a secret, and a sign-up form that will not say a name is taken is
-unusable. That path also had a real bug — `findOne({ username: undefined })`
-drops the key and matches the first user in the collection, so a request with no
-username was told the name was taken.
+*Planned hardening, priority Medium.* The refresh token is httpOnly. The
+15-minute access token is in `localStorage`, readable by a successful script
+injection, which the enforced CSP (S1) already makes much harder. The plan:
+hold the access token in a module variable and re-acquire it from
+`/auth/refresh` on load. `config/api.ts` already shares one in-flight refresh,
+so most of the mechanism exists.
 
-Two smaller things found on the way:
-
-- `SignIn.tsx` ran `console.log(formData)` on every render, which wrote the
-  typed password to the browser console. Removed.
-- Both auth pages showed failures as `alert(JSON.stringify(data))`, so the
-  uniform message would have reached the user as
-  `{"success":false,"statusCode":401,...}`. They now show the sentence. The
-  remaining 38 `alert()` calls are item 4.
-
-Fourteen tests in `server/tests/enumeration.test.ts` compare the known and
-unknown answers side by side rather than asserting any particular sentence, so
-a future edit that reintroduces a difference fails whatever wording it picks.
-
-### S3 · Access token in `localStorage` — Medium
-
-The refresh token is httpOnly and cannot be read by page JavaScript, which is
-the important half and already done. The 15-minute access token is not — any
-successful script injection can lift it.
-
-**Fix.** Keep the access token in a module variable and re-acquire it from
-`/auth/refresh` on load. `config/api.ts` already shares a single in-flight
-refresh, so most of the machinery exists. Worth doing *after* S1, since a CSP
-removes most of the ways an injection lands in the first place.
-
-### S4 · Uploads are not type-checked — **done**
-
-`multer` limited size and count and set no `fileFilter`, so posting a text file
-as a book cover succeeded:
+### S4 · Upload type validation
 
 ```text
 before:  status=201  images: ["data:text/plain;base64,R0lGODlhLW5vdC1yZWFsbHkt…"]
 after:   status=415  {"message":"cover.png is not a PNG, JPEG, WebP or GIF image"}
 ```
 
-Two checks, because one is not enough. A `fileFilter` refuses anything whose
-declared type is not `image/png`, `image/jpeg`, `image/webp` or `image/gif` -
-cheap, and it stops a 5 MB video before it is buffered. Then, after the file is
-in memory, its **first bytes** are read: the `Content-Type` is whatever the
-client chose to send, and a text file called `cover.png` announces itself as an
-image perfectly happily. A PNG header cannot be renamed away.
+A `fileFilter` refuses declared types other than PNG, JPEG, WebP and GIF before
+buffering. The leading bytes are then checked, since `Content-Type` is chosen
+by the client, and the sniffed type is the one stored in the `data:` URI.
+Oversized uploads answer `413 File too large`, and file pickers list exactly
+the four types. Eight tests; on the running stack, a text file gets 415, a PNG
+201, and 6 MB 413.
 
-The sniffed type also replaces the declared one, because the handlers build a
-`data:<type>;base64,…` URI: a PNG announced as a JPEG would otherwise be stored
-with a lie attached to it, and a test pins that.
+### S5 · OTP attempt limit
 
-Found on the way: an upload over the size limit answered **500**. `multer`
-throws an error carrying a `code` rather than a status, so a caller's mistake
-was being reported as a server fault with nothing to say what the limit was. It
-is a 413 with "File too large" now.
+Beyond `authLimiter` (50 requests per IP per 15 minutes), five wrong attempts
+discard a code. The count is on the code's record, so it pools attempts from
+any address and is shared by `verify-otp` and `reset-password`. Wrong, expired,
+discarded and never-issued codes get the same response, so the limit cannot
+confirm a code exists (see S2). Six tests, each confirmed to fail when the
+limit is raised.
 
-The file pickers were `accept="image/*"`, which offers SVG, HEIC and TIFF - all
-of which the server now refuses, so the first anyone would hear of it was an
-error after the upload. They list the four types that are actually accepted.
+Codes live in a MongoDB collection with a TTL index, so they survive restarts
+and are shared across instances (confirmed by issuing in one process and
+redeeming in another). Each is stored as an HMAC under the server's secret, as
+a plain hash of six digits is trivially reversed.
 
-Eight tests, and the attack from the audit was re-run against the running stack:
-415 for the text file, 201 for a real PNG, 413 for 6 MB.
+### S6 · `X-Powered-By`
 
-### S5 · OTP has no per-account attempt limit — **done**
+`app.disable('x-powered-by')`, pinned by a test.
 
-A six-digit code lives for ten minutes in an in-memory `Map`. `authLimiter` caps
-an IP at 50 requests per 15 minutes, but nothing counted failures against the
-*code*, so guesses coming from several addresses were never pooled.
+### S7 · bcrypt cost factor
 
-Five wrong tries and the code is thrown away. The count lives on the record, so
-it follows the code rather than the caller, and `verify-otp` and `reset-password`
-share it: they check one code between them, so five tries is five tries whichever
-door they are tried at.
+*Planned hardening, priority Low.* Passwords are hashed with bcrypt at cost 10.
+The plan: raise it to 12 with a rehash-on-login step, so existing hashes keep
+working and upgrade on next sign-in.
 
-The response does not say why. "Too many attempts" would be friendlier, and it
-would also confirm that a code had been issued for that address at all - which
-is exactly the account enumeration S2 closed. A wrong code, an expired one, a
-discarded one and an address that never had one all answer identically, and a
-test holds two of those responses side by side.
+### P1 · Policy pages
 
-Expired codes are also swept when a new one is issued; the map previously only
-ever lost an entry when somebody touched it.
+The footer links to `/privacy`, `/terms`, `/returns`, `/about` and `/contact`,
+written from the code so they can be checked against it. The privacy policy
+names the stored fields, the single non-tracking cookie, and the third parties
+that see data (Cloudinary, the mail provider, Sentry when enabled). The returns
+policy states the window enforced in `server/config/commerce.ts` (7 days from
+delivery) and the `ReturnRequest` flow; a test fails if page and code disagree.
+Business details live once in [`client/src/config/site.ts`](../client/src/config/site.ts).
+A review by someone legally qualified, with the legal entity name, is
+recommended before scaling.
 
-Six tests, each checked by raising the limit and watching them fail.
+### P2 · Account deletion and data export
 
-**Still to do:** move the store to Redis when the API runs on more than one
-instance. A restart drops every in-flight verification, and a second instance
-cannot see the first one's codes.
+Covers GDPR Articles 15 and 17; both actions are on the profile page under
+"Your data". **`GET /user/me/export`** downloads a JSON file of the account,
+orders placed and received, purchases, returns, cart, wishlist, listings and
+messages, without the password hash (a test asserts no `$2`).
+**`DELETE /user/me`** requires the password again, so a lifted access token
+cannot erase an account; a wrong password answers `403`, as the client treats
+`401` as an expired session.
 
-### S6 · `X-Powered-By` — **done**
-
-`app.disable('x-powered-by')`, alongside S1, and pinned by a test.
-
-### S7 · bcrypt cost 10 — Low
-
-Raise to 12. Existing hashes keep working; they are upgraded on next sign-in if
-you add a rehash-on-login step.
-
-### P1 · The footer advertises policies that do not exist — **done**
-
-The footer listed "Privacy Policies", "Return Policies", "Who we are" and
-contact details as plain `<li>` text with `cursor: pointer`. Nothing was a link
-and no page existed behind any of it — terms that could not be produced on
-request, which for a business taking delivery addresses and phone numbers is
-worse than no footer at all.
-
-Five routes now exist and the footer links to them: `/privacy`, `/terms`,
-`/returns`, `/about` and `/contact`.
-
-The content is written from the code rather than from a template, so it can be
-checked against what the system does:
-
-- The privacy policy names the fields the models actually store, states that
-  exactly one cookie is set and that it is not for tracking, and lists the third
-  parties that see data (Cloudinary, the SMTP provider, Sentry when enabled).
-- The returns policy states the three-day window `BuyerBookList` enforces and
-  the pending/approved/rejected flow the `ReturnRequest` model implements. A
-  test fails if the page and the code disagree about the window.
-
-Business details live in [`client/src/config/site.ts`](../client/src/config/site.ts)
-so they are written once. **The address, phone number and e-mail were carried
-over from the old footer and have not been verified** — that file carries a
-`TODO(owner)` saying so. The policies also need a real legal entity name and a
-review by someone qualified before launch; they describe the system accurately
-but they are not legal advice.
-
-The pages are the first in the codebase written with Tailwind rather than inline
-style objects, and they are responsive. New pages set the standard the rest is
-being moved towards (item 5).
-
-### P2 · No account deletion or data export — **done**
-
-`DELETE /user/:id` was administrator-only: a user could not close their own
-account and could not get a copy of what was held about them. Articles 15 and 17
-of the GDPR, and a visible trust signal regardless of jurisdiction.
-
-**`GET /user/me/export`** returns the account, orders placed, orders received as
-a seller, purchases, return requests, cart, wishlist, listings and messages, as
-a named JSON download rather than a page - it is a file to keep. The password
-hash is not in it, and a test asserts the whole document contains no `$2`.
-
-**`DELETE /user/me`** asks for the password again. This cannot be undone, and an
-access token lifted from a borrowed laptop should not be enough to erase
-somebody's account.
-
-What it does, and why:
-
-| | |
+| Data | Result |
 | --- | --- |
 | account, cart, wishlist | deleted |
-| listings | deleted — a listing with no seller behind it cannot be bought |
+| listings | deleted, as a listing with no seller cannot be bought |
 | orders, purchases, return requests | **kept, anonymised** |
-| messages | **kept, anonymised** — a conversation is two people's, not one's |
+| messages | **kept, anonymised**, as a conversation also belongs to the other person |
 | every session | revoked |
 
-Orders and messages stay because the other side of each one is somebody else's
-history. Deleting a thread takes with it the other person's record of what was
-agreed, which is usually why they still have it; the messages remain, attributed
-to "Deleted user" rather than to an address. What goes is every personal detail:
-the address becomes a tombstone in the `.invalid` domain reserved for exactly
-this, and the contact name, phone and delivery address are emptied. What was
-sold and for how much survives. Run against the live stack:
+The address becomes a tombstone in the reserved `.invalid` domain, contact
+details are emptied, and messages read "Deleted user". Against the running
+stack:
 
 ```text
 {"message":"Your account has been deleted.","ordersAnonymised":1,…}
@@ -328,734 +213,299 @@ contactPhone:    ''
 deliveryAddress: ''
 ```
 
-A wrong password answers **403, not 401** - found by a test that noticed the
-session disappearing. The client reads a 401 as an expired session: it tries a
-refresh and then signs the caller out, so a typo would have logged somebody out
-of the page they were standing on. 401 is for session problems; this is a
-re-check failing.
+Eighteen tests.
 
-Both are on the profile page under "Your data", not buried in a settings menu.
-An account nobody can close is the kind of thing people complain about publicly
-rather than by e-mail. Eighteen tests.
+### P3 · Audit trail
 
-### P3 · No audit trail for admin actions — **done**
-
-An administrator can delete users and change any order's status, and nothing
-recorded who did it. The request log captures the call, but it rotates and
-cannot be queried - it is not where you answer "who deleted this account".
-
-An `AuditLog` collection is written on every privileged change: deleting a user,
-changing an order's status, deleting an order, resolving a return request, and
-somebody closing their own account. Each row carries the actor's id, address and
-role, what was acted on, anything worth knowing later - an order status records
-what it moved *from* as well as to - and the request id, which ties it back to
-the log line for the same call.
-
-The actor's address is copied in rather than referenced: the trail has to still
-read correctly after the account it names has been deleted, which is exactly the
-case a trail exists for. The account-deletion row is written before the account
-goes, while there is still an actor to name.
-
-`GET /api/audit` reads it back, newest first, filterable by action or actor and
-paged. Administrators only - it names who did what, which is precisely what
-should not be public.
-
-A failed write is logged at error level rather than thrown: by then the change
-has already happened, and raising would report a failure for something that
-succeeded. A dropped row is still a hole, so it is loud in the log rather than
-silent.
-
-Eight tests, and the trail was read back from the running stack:
+An `AuditLog` row records every privileged change: deleting a user, changing
+or deleting an order, resolving a return, removing a review, and closing one's
+own account. Each holds the actor's id, address and role, the target, detail
+such as an order's *from* and *to* status, and the request id. The actor's
+address is copied, so the trail stays readable after an account is deleted.
+`GET /api/audit` lists it newest first, filtered and paged, for administrators
+only. A failed write is logged at error level rather than thrown, as the change
+has already succeeded. Eight tests; read back from the running stack:
 
 ```text
 order.status | admin@bookstorebd.local | A4AKZKZDG89XEICL | {from: 'Order Confirmed', to: 'Shipped', lines: 1}
 ```
 
-### P4 · Base64 images in MongoDB — **the bytes no longer travel in JSON**
+### P4 · Image storage
 
-With Cloudinary unconfigured, covers and chat attachments are stored inline on
-the document. That is a deliberate, documented fallback so a fresh clone runs
-with no account, and list endpoints already `$slice` to one image — but in
-production it grows the database quickly and approaches the 16 MB document
-limit.
-
-**This was rated Low, and measuring it showed that was wrong.** A base64 cover
-does not only sit in the database: it travelled inside every JSON response that
-mentioned the book. Measured against a catalogue of 66 listings with
-photographed covers:
+*Partly resolved; remainder planned, priority Low.* Without Cloudinary, covers
+and chat attachments are stored inline by design, so a fresh clone needs no
+account. The larger cost was transfer, which is resolved: responses carry
+`/api/book/<id>/cover/<n>`, served with `Cache-Control` and an `ETag` as a lazy,
+cacheable image request. Covers hosted elsewhere are redirected to. On 66
+listings with photographed covers:
 
 ```text
-GET /api/filter/booklist    7,406,560 bytes    5,734,034 gzipped
+GET /api/filter/booklist        7,406,560 bytes   5,734,034 gzipped   (inline)
+GET /api/filter/booklist            3,098 bytes gzipped               (addresses)
+GET /api/book/<id>/cover/0         92,171 bytes, ETag, 304 on a repeat visit
 ```
 
-Base64 of a JPEG is already-compressed data, so gzip recovered under a quarter
-of it, and a browser cannot cache an image that arrives inside a JSON body -
-every visit paid for all of them again.
-
-**Covers are addresses now.** List and detail responses carry
-`/api/book/<id>/cover/<n>`, and that endpoint serves the bytes with a
-`Cache-Control` and an `ETag`. The same catalogue:
-
-```text
-GET /api/filter/booklist        3,098 bytes gzipped     (was 5,734,034)
-GET /api/book/<id>/cover/0     92,171 bytes, ETag, 304 on a repeat visit
-```
-
-Each cover is then an ordinary image request: fetched only for the cards on
-screen, because they are lazy; cached across navigations; and revalidated with
-a 304 rather than re-downloaded. A cover already hosted elsewhere is left alone
-and redirected to, because a Cloudinary URL was never the problem.
-
-Measured in a browser on an emulated 4G phone, cold cache:
-
-| | homepage | catalogue |
+| Emulated 4G, cold cache | Homepage | Catalogue |
 | --- | --- | --- |
 | transferred | 465 KB | 818 KB |
 | requests | 14 | 16 |
 | first contentful paint | 600 ms | 896 ms |
 
-Most of what is left is the covers themselves - about 90 KB each, because that
-is what a photograph is.
-
-**Still to do.** Configure Cloudinary; the migration script exists. It serves
-resized images in modern formats from a CDN, which is the answer to the 90 KB,
-and it takes the bytes out of the database as this item originally asked. Until
-then a card downloads a full-size photograph to draw it 100px wide - the next
-worthwhile step without Cloudinary would be generating a thumbnail at upload
-time.
+Most of the remainder is the covers, about 90 KB each. Planned: configure
+Cloudinary (the migration script exists) for resized, modern-format images from
+a CDN and out of the database, or generate thumbnails at upload.
 
 ---
 
-## 3 · Product, interface and what comes next
+## 3 · Product and interface
 
-The application is feature-complete and the flows work. What is missing is the
-layer that makes it read as a business rather than a project.
+### Resolved defects
 
-### Things that are actually broken
+- **Placeholder images.** References to `via.placeholder.com`, which no longer
+  resolves, and to a missing `/books/default-book.jpg` use a local SVG through
+  `PLACEHOLDER_IMAGE`, with no network call or CSP entry.
+- **Public book pages.** `/book/:id` is public, as in the API; account-only
+  actions ask for sign-in where used, as does "Chat with Seller".
+- **Multi-book checkout.** Order lines share an order number, so the unique
+  index is compound on `(orderNumber, bookId)`, and `syncIndexes()` on connect
+  updates existing databases. Two tests.
 
-~~**The placeholder image service is dead.**~~ **done.** Six references to
-`via.placeholder.com`, a host that no longer resolves, so every coverless
-listing rendered as a broken image. Replaced by a local SVG in `public/`: no
-network call, no third party to outlive us, and nothing extra to allow in the
-Content-Security-Policy. The five duplicated literals now go through the single
-`PLACEHOLDER_IMAGE` constant that already existed for the purpose.
+### Ratings and reviews
 
-`ui-avatars.com`, the other external image host, was checked and is alive.
+- **Verified purchasers only**: a review requires an order for the book, and
+  carries a **Verified purchase** badge. Sellers cannot review their own books.
+- **One per person per book**, by unique index; a second replaces the first.
+  Authors edit and withdraw; administrator removal is audited.
+- `ratingAverage` and `ratingCount` are denormalised onto the listing, rounded
+  to one decimal, so the catalogue filters and sorts without a join.
+- The book page shows average, count and distribution. The catalogue has a
+  minimum-stars filter, a "Highest rated" sort (ties broken by count), and
+  stars on every card; listings publish an `aggregateRating`.
+- Reviews outlive their author's account, under "Deleted user".
+- **Seller replies**: one per review, from that book's seller only, replacing
+  any earlier reply.
+- **Reports**: once per signed-in user, stored per reporter with reasons.
+  Reporting hides nothing, so it cannot suppress a review. The administrator
+  clears the reports or removes the review.
 
-~~**Ratings are vestigial.**~~ **built.** The catalogue's star filter and its
-"most popular" sort read `rating` and `numReviews`, which no endpoint returned
-and no model stored. Neither control did anything - worse, choosing four stars
-matched zero books, so the catalogue looked empty rather than unfiltered.
+Thirty-seven server and eighteen client tests, and the reply, report and queue
+path driven end to end in Chrome.
 
-The choice was build reviews or drop the controls. They are built.
+### Notifications instead of `alert()`
 
-**Only somebody who bought the book can review it.** That one rule is what makes
-a score worth reading: without it a seller rates their own listings five stars
-from three accounts and a competitor rates them down from three more. The check
-is an order for that book by that account, and every review carries a **Verified
-purchase** badge because of it. A seller cannot review their own listing even
-after buying a copy of it.
+All 38 `alert()` calls go through `useToast` on the mounted `notistack`
+provider: confirmations for 3 s, failures 6 s, in sentence case. A signed-out
+shopper adding to the cart sees "Sign in to use your cart." with a **Sign in**
+button, via `promptSignIn` on five pages. Verified in headless Chrome: the page
+stays usable, the button reaches `/sign-in`, toasts fit 8 px gutters at 390 px,
+and there are no CSP violations. Twelve tests, and `no-alert` is an ESLint
+error. Two `window.confirm` calls remain, each with a documented rule
+exemption, until a dialog component exists.
 
-One review per person per book, enforced by a unique index rather than by a
-check that races: writing a second replaces the first, so nobody weights a score
-by saying the same thing twice. Reviews can be edited and withdrawn by their
-author, and removed by an administrator - which writes an audit row, because an
-administrator deleting somebody's words is exactly what that trail is for.
+### Responsive layout
 
-The score is denormalised onto the listing as `ratingAverage` and `ratingCount`,
-rewritten on every write. That is what lets the catalogue filter and sort on it
-at all: a rating needing a join per book could not have been. It is rounded to
-one decimal: 4.333333 is not more informative than 4.3 and looks like a bug.
+[`scripts/responsivecheck.mjs`](../scripts/responsivecheck.mjs) drives headless
+Chrome and reports overflow, clipped content, small controls and the smallest
+type. All 27 routes were measured at 360, 768 and 1280 px, signed out and in
+every role, with real orders, cart and wishlist.
 
-The book page carries the average, the count, and the **distribution** - five 3s
-and a mix of 1s and 5s both average 3, and only one of those is a book worth
-buying. The catalogue has the star filter back as a floor ("4 and up"), a
-"Highest rated" sort that breaks ties on how many reviews the score rests on,
-and stars on every card. The structured data gains an `aggregateRating`, which
-is what puts stars under a search result.
+| | Before | After |
+| --- | --- | --- |
+| Routes that scrolled sideways | 6 | **0** |
+| Worst overflow (`/chat`, 360 px) | +999 px | **0** |
+| Routes with content clipped and unreachable | 1 | **0** |
+| Controls under 40 px at 360 px | 60 across 11 routes | **0** |
+| Smallest type | 10 px | 12 px |
 
-A review outlives the account that wrote it, under "Deleted user": the next
-buyer's decision rests on it, and a score that fell every time somebody closed
-an account would be worth nothing.
+On the shopper's path at 360 px, `/filter` went from +682 px of overflow and 21
+small controls to none; `/` (13), `/book/:id` (5), `/cart` and `/wishlist` (6)
+went to zero. `/privacy` went from 12 to 2, its text-sized `mailto:` links in
+prose, kept by design.
 
-Nineteen server tests and ten in the browser.
+- **Global styles.** `body` is a block, so the 18 `width: 100vw` workarounds
+  (which count the scrollbar) are `100%`. Starter `button` padding is removed,
+  so icons render full size, and `.scroll-button` overlays the carousel.
+- **Scoped stylesheets.** Vite bundles page stylesheets globally, and unlayered
+  rules beat Tailwind 4's layered utilities, so `UserManagement.css`,
+  `AdminPanel.css` and `Homepage.css` are scoped to their pages.
+- **Layouts.** On a phone the catalogue is one column with a collapsible
+  "Filters" button showing the active count; checkout, the cover column,
+  order tracking and `/seller-books` stack or wrap; chat shows the list, then
+  the conversation; the admin sidebar becomes a strip below 900 px. Tables
+  scroll within `.table-scroll`.
+- **Controls.** Icon controls are real buttons, keyboard-operable, and
+  checkboxes and radios have padded labels (measured as the label's area).
+- **Tokens.** The palette is `@theme` tokens (`bg-brand`, `text-accent`)
+  replacing literals such as `#e65100` (75 uses) and `#8B6F6F` (47). The homepage
+  hero shows `banner.png`. Unused `src/App.css` and `tailwind.config.js` were
+  removed.
 
-### Interface
-
-| Observation | Measured |
+| Interface measurement | Value |
 | --- | --- |
 | Inline `style={{…}}` vs `className` | 648 vs 124 → **639 vs 153** |
-| Responsive breakpoints in the whole app | 2 Tailwind utilities → **19**, 3 media queries |
-| ~~`100vw` usages (cause horizontal scroll)~~ | ~~15~~ **0** |
-| ~~`alert()`~~ / `window.confirm` | ~~38~~ **0** / 2 |
-| `notistack` (installed, provider mounted) | ~~0 uses~~ **13 files** |
+| Responsive breakpoints | 2 Tailwind utilities → **19**, 3 media queries |
+| `100vw` usages | 15 → **0** |
+| `alert()` / `window.confirm` | 38 → **0** / 2 |
+| `notistack` | 0 uses → **13 files** |
 | Inputs vs labels | 49 vs 25 |
 | Images without `alt` | 4 of 21 |
 
-**Not responsive.** The most consequential item on the list, and the one that
-takes the longest. Tailwind 4 is installed and then barely used; layout lives in
-639 inline style objects with fixed pixel widths. For a Bangladeshi book
-marketplace most traffic will be on a phone, and the site was written for a
-desktop viewport.
+### Planned interface work
 
-**Phase 1 is done: nothing scrolls sideways any more.** Measured with
-[`scripts/responsivecheck.mjs`](../scripts/responsivecheck.mjs), which drives
-headless Chrome at three widths and reports what sticks out past the right
-edge, how many controls are too small for a thumb, and the smallest type on the
-page. Reading the CSS cannot answer any of those: a fixed width only overflows
-once it meets a viewport, and `100vw` only overflows once there is a scrollbar.
-
-| page | 360px | 768px | 1280px |
-| --- | --- | --- | --- |
-| `/` | none | ~~+15px~~ none | ~~+15px~~ none |
-| `/filter` | ~~**+682px**~~ none | ~~+289px~~ none | ~~+15px~~ none |
-| `/book/:id` | ~~+4px~~ none | ~~+15px~~ none | ~~+15px~~ none |
-| `/cart`, `/wishlist`, `/profile` | none | ~~+15px~~ none | ~~+15px~~ none |
-
-Three causes, all now gone:
-
-- **`body { display: flex; place-items: center }`**, straight from the Vite
-  starter, made `#root` a flex item that shrank to its content. Eighteen places
-  had reached for `width: 100vw` to get a full-width page back - and `100vw`
-  counts the scrollbar, which is where the flat +15px on every desktop page
-  came from. The body is a block again and all eighteen are `100%`.
-- **`/filter` was built as a fixed 250px sidebar beside a two-column grid**, at
-  every width. Two of those cards do not fit in 360px, and a grid track will not
-  shrink below its content, so the page was 682px wider than the phone showing
-  it. It is now one column on a phone and the sidebar moves above the results.
-- **The book cover column was a flat 300px**, wider than a 360px screen once the
-  page padding is taken off.
-
-Also cleared out on the way: `src/App.css` (the Vite logo-spin template, never
-imported) and `tailwind.config.js` (Tailwind 4 reads its theme from CSS, so the
-file was inert). The palette that was repeated as literals - `#e65100` 75 times,
-`#8B6F6F` 47 - is now `@theme` tokens, so `bg-brand` and `text-accent` work and
-a change of brand colour is one block rather than a find-and-replace across two
-dozen files.
-
-**Phase 2 is done: the pages a shopper uses are usable with a thumb.**
-
-| page, at 360px | controls under 40px, before | after |
-| --- | --- | --- |
-| `/` | 13 | **0** |
-| `/filter` | 21 | **0** |
-| `/book/:id` | 5 | **0** |
-| `/cart`, `/wishlist` | 6 | **0** |
-| `/privacy` | 12 | 2 (`mailto:` links inside prose, which should be text-sized) |
-
-The filter panel now collapses on a phone. It is fourteen category buttons deep,
-and above the results it meant scrolling past the entire thing to reach a single
-book; it is a "Filters" button that says how many are on, and the results are
-the first thing on screen. Beside the results on a desktop, as before.
-
-**What looking at the pages turned up.** Four things that no amount of reading
-the CSS would have found, all of them visible in a screenshot at 360px:
-
-- **The homepage hero was an empty 400px box.** Its `src` was commented out, so
-  the first screen on a phone was a broken image and nothing else. `banner.png`
-  had been sitting unused in `public/` the whole time.
-- **Every icon button rendered its icon as a 2px dot.** The starter's global
-  `button { padding: 0.6em 1.2em }` leaves a 40px-wide icon button about 2px of
-  content box - measured at 2x16px in the browser. The padding is gone; buttons
-  that want it set their own, and every one in this app already did.
-- **`.scroll-button` had no rule anywhere.** The carousel arrows carry
-  `left: 0` / `right: 0` and sit in a relative container, so they were meant to
-  overlay the strip; with no rule they sat in the flow above it, sized entirely
-  by that same starter padding.
-- **A page stylesheet was styling the whole application.** `UserManagement.css`
-  contained a bare `button { background-color: #e74c3c }`, and a stylesheet
-  imported by a page is not scoped to it - Vite puts it in the one bundle. Every
-  button in the application was red underneath, which is most of the reason the
-  rest of the app sets `background` inline on each one. `AdminPanel.css` and
-  `Homepage.css` were restyling `body` the same way. All three are scoped now.
-
-That last one also explains why Tailwind classes were not taking: Tailwind 4
-puts its utilities in a cascade layer, and an unlayered rule beats a layered one
-whatever the specificity says. Any page-level stylesheet left unscoped will
-silently win over the utilities the rest of this work depends on.
-
-**Phase 3 is done: every route, not just the ones a shopper walks through.**
-All 27 routes measured at 360, 768 and 1280 - phone, tablet, laptop - signed out,
-as a buyer, as a seller and as an administrator, with a real order, a full cart
-and a wishlist behind them.
-
-| | before | after |
-| --- | --- | --- |
-| routes that scrolled sideways | 6 | **0** |
-| worst overflow (`/chat`, 360px) | +999px | **0** |
-| routes with content cut off and unreachable | 1 | **0** |
-| controls under 40px at 360px | 60 across 11 routes | **0** |
-| smallest type | 10px | 12px |
-
-The five that were badly broken:
-
-- **`/chat` carried `minWidth: 1000px`** on its message pane - 999px past the
-  edge of a 360px screen, and 148px past a 1280px one. The two panes now take it
-  in turns on a phone, the way every chat application does it: the list until a
-  conversation is picked, then the conversation with a way back.
-- **Checkout was two columns at every width.** 56% of 360px, less 96px of
-  padding, is about 106px to write an address in. One column on a phone now, and
-  the form rows wrap rather than forcing two 203px inputs side by side.
-- **The three order-tracking pages put the card and the order table beside each
-  other**, because their container was a flex row - the CSS even carried a
-  comment wondering about it. +409px. They stack now, and every table in the
-  application sits in a `.table-scroll`, so a table too wide for a phone scrolls
-  inside its own box instead of taking the page with it.
-- **The admin panel was a fixed 250px sidebar beside the content at every
-  width**, leaving 110px of a 360px screen for the table it exists to show. The
-  sidebar becomes a strip across the top below 900px. This one reported *no*
-  overflow, because `overflow-x: hidden` was hiding it - which is why the
-  harness now reports content that is cut off separately from content that
-  scrolls. Hidden overflow does not scroll, it amputates.
-- **`/seller-books` had four controls in a row that could not wrap**, one of them
-  a 300px search box.
-
-Tap targets came from the same few habits: `minHeight: 36` inline (which beats
-any stylesheet), icon controls built as `<span>` or even `<svg>` with an
-`onClick` and a `tabIndex` - focusable, but Enter did nothing, so a keyboard
-user could reach them and not use them - and 13px checkboxes and radios in
-labels with no padding. The harness now measures the area that actually
-responds: for a control inside a `<label>`, the label.
-
-What is deliberately left: the `mailto:` and `tel:` links inside the prose of the
-policy and contact pages are text-sized, which is right for a link in a sentence.
-
-**What is still left.** The inline style objects on pages that work - they carry
-no breakpoints and no tokens, so the next person to change one has to rediscover
-what it does. And the two banners stacked on the homepage are one more than a
-shop needs before its products.
-
-~~**Blocking dialogs for every message.**~~ **done.** 38 `alert()` calls —
-including for routine successes like "Added to cart successfully!" — each one a
-modal box that froze the tab until it was dismissed, could not be styled, and
-could not carry an action. `notistack` was installed and its provider already
-wrapped the app; nothing used it.
-
-All 38 now go through `useToast`, a small wrapper that decides the four kinds
-and how long each stays: a confirmation is read at a glance (3s), a failure
-needs longer (6s). The wording was rewritten with them — sentence case, no
-exclamation marks, and saying what happened rather than shouting about it.
-
-The one that matters commercially: "Please sign in to use cart." was a dead end
-with no way to sign in, shown at the exact moment somebody wanted to buy
-something. It is now "Sign in to use your cart." **with a Sign in button**, and
-`promptSignIn` puts that in one place for the five pages that need it.
-
-Verified in headless Chrome against the production build: the toast appears
-bottom-right with the site's corner radius, the page underneath stays usable
-while it is up (the old `alert()` froze it), the button reaches `/sign-in`, and
-at 390px the message sits inside 8px gutters instead of running off the side.
-No CSP violations.
-
-Twelve tests cover it — nine on the hook, three driving the homepage as a
-signed-out visitor — and `no-alert` is now an ESLint error, which is what stops
-it coming back. Two `window.confirm` calls stay, with the rule disabled and a
-reason given on each: a confirmation needs an answer, and there is no dialog
-component yet.
-
-**The book page was behind a sign-in wall.** `/book/:id` sat inside
-`ProtectedRoute`, so a visitor who clicked any card on the homepage was bounced
-to the sign-in form - while the API had been serving that same listing to anyone
-who asked. A shop that will not show a book without an account cannot sell one,
-and a catalogue no search engine can reach cannot be found (item 6). The route
-is public now; the actions that genuinely need an account ask for it at the
-point they are used, which is what the toasts from item 4 are for.
-
-**Two dead controls, found by using the pages rather than reading them.**
-"Chat with Seller" is rendered to everyone, but the chat window only renders for
-a signed-in visitor - so pressing it did nothing at all, on the page a shopper
-lands on. It asks them to sign in now. The homepage's cover fallback pointed at
-`/books/default-book.jpg`, which is not in `public/`, so every book without a
-cover was a broken image on the busiest page on the site.
-
-**Checkout failed for any basket with two books in it.** Every line of an order
-shares one order number - that is how the tracking page gathers an order back
-together - but `orderNumber` carried a unique index, so the second book collided
-with the first. The request failed with a duplicate key error *after* the first
-book's stock had been taken. Found on the first two-book order placed against a
-clean database. The index is now compound on `(orderNumber, bookId)`, which is
-the integrity the unique flag was reaching for, and `syncIndexes()` runs on
-connect so an existing database drops the stale one rather than going on
-rejecting every multi-book basket. Two tests cover it.
-
-**No design system.** Colours (`#8B6F6F`, `#e65100`, `#43a047`) and spacing are
-repeated as literals across dozens of files. Moving them into Tailwind theme
-tokens is what makes a later redesign a config change rather than a rewrite.
-
-**No loading, empty or error states.** Pages render `Loading...` as text. The
-queries already expose `isPending` and `isError` — skeletons and real empty
-states ("No books match these filters") are available for very little work.
-
-**Accessibility.** Half the inputs have no associated label, four images have
-no alt text, there is no skip link, and focus is not moved on route change. The
-markup is otherwise sound — 96 real `<button>` elements against one clickable
-`<span>`, which is far better than typical.
-
-### Growth and performance
-
-~~**No SEO at all.**~~ **done.** There was no Open Graph, Twitter or canonical
-tag, no `robots.txt`, no sitemap, and one static `<title>` for all 27 routes.
-
-Every page now says what it is. `useSeo` sets the title, description, canonical
-URL, Open Graph and Twitter card per route - about sixty lines rather than a
-helmet dependency, because every route here either wants the full set or is
-behind a sign-in and wants `noIndex`. That last one is set in `ProtectedRoute`
-itself, so every private route is covered, including any added later: a URL that
-answers a crawler with a sign-in form is a wasted result for everyone.
-
-**`/robots.txt` and `/sitemap.xml` are served by the API**, at the root, where a
-crawler looks. Generated rather than static files, for two reasons: the sitemap
-has to list the books that exist right now, and both need absolute URLs on
-whatever domain the site is answering. That origin is taken from the request -
-`X-Forwarded-Proto` and `X-Forwarded-Host`, which nginx already sends - so a
-fresh deployment is correct on any domain without anyone setting a variable.
-`PUBLIC_SITE_URL` overrides it, and should be set once the canonical domain is
-known; it is the only way to be sure a site answering on two hostnames
-advertises one. The Host header comes from the caller, so it is validated rather
-than trusted: a request with a nonsense host gets no sitemap rather than a
-poisoned one.
-
-Nine tests cover what a crawler finds, including that the sitemap lists every
-book, lists nothing that needs an account, and escapes what XML cannot carry.
-
-**Structured data.** The homepage publishes a `WebSite` block with a
-`SearchAction` - the thing that can give a site its own search box in a results
-page - and every listing publishes a `Book` with an `Offer`: price in BDT,
-condition, availability. That is what turns a blue link into a result with a
-price on it. A book title is escaped before it goes in: unescaped, a seller
-could name a book `</script>` and close the block, and a test pins that.
-
-**What this does not do.** The tags are set in the browser. Google renders
-JavaScript and sees them; the link scrapers behind Facebook, WhatsApp, Slack and
-X do not, and read `index.html` alone. That file now carries a full set of
-site-level defaults, so a shared link previews as the shop rather than as a
-blank card - but a *per-book* preview would need the HTML rendered on the
-server. Worth doing, and a separate job. The 404 page is also a soft 404: a
-single-page app answers 200 for every path, so the `noindex` on it is what keeps
-it out of the index.
-
-**The 404 page** was `<h1>404 Not Found</h1>` - a dead end on a shop. It now
-says what happened and offers the homepage and the catalogue.
-
-~~**No code splitting.**~~ **done.** `React.lazy` was unused, so somebody
-reading the homepage on a phone downloaded the checkout, the admin panel and the
-chat before seeing a book. Every route is its own chunk now:
-
-| | before | after |
-| --- | --- | --- |
-| application chunk | 228.31 kB (51.30 kB gzipped) | **64.49 kB (19.55 kB)** |
-| chunks in `dist/assets` | 4 | 32 |
-
-A 72% cut to the code that has to arrive before anything renders. The homepage
-is the one route left eager - it is what most visitors see first, and making
-them wait for a second request to start it would undo the point. A `Suspense`
-fallback covers the moment a chunk is fetched.
-
-~~**No pagination or lazy loading**~~ **done.** The catalogue rendered every
-match at once, each card decoding a base64 cover. Fine at six books, not at six
-hundred.
-
-Twelve to a page now, with a pager and a count. Measured in the browser against
-36 books: 12 cards rendered, 326 DOM nodes, "Showing 1-12 of 36", and the same
-figures on page 2 - the page no longer grows with the catalogue. Every cover in
-a list carries `loading="lazy"` and `decoding="async"`, so the browser stops
-decoding books nobody has scrolled to. The homepage's hero banner is left eager
-on purpose: it is the largest thing on the first screen and what the browser
-measures as the load.
-
-The filtering itself stays in the browser. It is instant, it works once the
-catalogue is loaded, and it was never what made the page heavy. Moving it to
-the API is the next step and a larger one, because the page's state model -
-filters as client-side edits over a URL - would have to move with it. One
-consequence: the page number is not in the URL, so a page of results cannot be
-shared or reached with the back button.
-
-~~**17 `console.*` calls** ship to the production bundle.~~ **done.** Sixteen,
-in the end: fifteen `console.error` and one `console.log` that printed the
-signed-in visitor's address on every visit to the chat.
-
-They go through `reportError` now, which reaches the console in development and
-is stripped from a build entirely - `import.meta.env.DEV` is replaced with a
-literal, so the branch is removed rather than skipped. Confirmed by grepping the
-built chunks: **zero** in the application code, the rest all in React's own
-vendor chunk.
-
-The first attempt was `esbuild: { drop: ['console'] }` in the Vite config, which
-did nothing at all: Vite 8 builds with Rolldown, and that option belongs to
-esbuild. The built bundle said so, which is the only reason it was noticed.
-
-`reportError` is also the one place a browser error reporter would go. There is
-none today, which is the real gap behind this item - a caught error in a
-visitor's browser now goes nowhere at all.
-
-**No analytics.** Nothing records what people search for, where they abandon
-checkout, or which listings convert — the data you would need to decide what to
-build next.
-
-### Business capability, for later
-
-- **Payments.** Cash on delivery only. A real deployment needs a gateway —
-  bKash, Nagad or SSLCommerz for Bangladesh — which also brings a webhook,
-  payment states and reconciliation.
-- **Transactional e-mail.** Nothing is sent on order placement or status
-  change; the only mail is the OTP. Order confirmations are table stakes.
-- **Search.** Substring matching over the full catalogue, filtered in the
-  browser. Moves to a MongoDB text index, then to Atlas Search, well before it
-  becomes slow.
-- **Seller onboarding and payouts.** Anyone signed in can list a book. A
-  marketplace needs verification, a seller agreement and a payout ledger.
-- ~~**Reviews.**~~ Built - see above. ~~What is not built is a way to flag a
-  review, and a reply from the seller.~~ Both are built now.
-
-  **The seller can answer.** One reply per review, from the seller of that book
-  and nobody else - not an administrator either, who would be signing the
-  shop's name to words the shop did not write. A review the seller cannot
-  answer is one they can only argue with by deleting it, which they cannot do
-  and should not be able to. The reply replaces itself rather than stacking, so
-  the last word cannot bury the review, and the seller's name is copied in like
-  the reviewer's so it still reads correctly after the account is gone.
-
-  **Anyone signed in can report one**, once - the count is a row per reporter,
-  not a counter, so the same account cannot push a review up the queue by
-  clicking ten times, and the reasons survive to be read. Reporting hides
-  nothing: the review stays where it is and keeps counting towards the score
-  until somebody decides otherwise. Hiding on report would make it a button for
-  removing an inconvenient review, which is the opposite of the point.
-
-  The administrator's queue has exactly two decisions, because there are only
-  two: clear the reports, or remove the review. Removing writes an audit row, as
-  it already did.
-
-  Eighteen tests on the server, eight in the browser, and the whole path driven
-  end to end in Chrome: the seller replying, a reader reporting, and the queue
-  showing "1 report" with both buttons.
+- **Inline styles** on working pages move to Tailwind classes and theme tokens,
+  making a redesign a configuration change.
+- **Loading, empty and error states.** Pages show `Loading...` as text; the
+  queries already expose `isPending` and `isError` for skeletons and empty
+  states such as "No books match these filters".
+- **Accessibility.** Label every input, add alt text to the four remaining
+  images, add a skip link, and move focus on route change. The markup is
+  otherwise sound: 96 real `<button>` elements against one clickable `<span>`.
+- **A dialog component** for the two `window.confirm` calls, and one homepage
+  banner rather than two.
 
 ---
 
-## Suggested order
+## 4 · Growth and performance
 
-Cheap and high-value first, so each step is shippable on its own.
+### SEO
 
-| Order | Work | Why first |
-| ---: | --- | --- |
-| ~~1~~ | ~~Security headers (S1, S6)~~ **done** | One dependency and a few nginx lines; closed the largest gap |
-| ~~2~~ | ~~Kill the dead placeholder, real footer pages (P1)~~ **done** | Visibly broken and visibly untrustworthy |
-| ~~3~~ | ~~Uniform auth responses (S2)~~ **done** | A few lines; removes a privacy leak |
-| ~~4~~ | ~~Toasts instead of `alert()`~~ **done** | The single biggest change in how the product feels |
-| ~~5~~ | ~~Responsive pass with Tailwind tokens~~ **done** — every route measured at 360, 768 and 1280 | Largest effort, largest payoff; most traffic is mobile |
-| ~~6~~ | ~~SEO metadata, sitemap, `robots.txt`~~ **done** | Growth work, meaningless before the site is presentable |
-| ~~7~~ | ~~Upload validation, OTP attempt limits (S4, S5)~~ **done** | Hardening, once the surface is settled |
-| ~~8~~ | ~~Account deletion and export (P2), audit log (P3)~~ **done** | Compliance before real users arrive |
-| ~~9~~ | ~~Code splitting, lazy images, pagination~~ **done** | Performance, once there is enough content to matter |
+- `useSeo` sets title, description, canonical URL, Open Graph and Twitter card
+  per route, in about sixty lines. `ProtectedRoute` sets `noIndex`, covering
+  every private route, including future ones.
+- The API generates `/robots.txt` and `/sitemap.xml` at the root, listing
+  current books with absolute URLs. The origin comes from `X-Forwarded-Proto`
+  and `X-Forwarded-Host`, validated so a forged host gets no sitemap;
+  `PUBLIC_SITE_URL` overrides it once the domain is fixed. Nine tests,
+  including XML escaping and no private URLs.
+- **Structured data**: a `WebSite` with a `SearchAction` on the homepage, and a
+  `Book` with an `Offer` (BDT price, condition, availability) per listing.
+  Titles are escaped so a listing cannot close the `<script>` block.
+- **Link previews.** Social scrapers do not run JavaScript, so `index.html`
+  carries site defaults and the server writes each book's title, price and
+  cover into the head for `/book/:id` (`server/utils/sharePreview.ts`).
+- **404** offers the homepage and catalogue, with `noindex` because a
+  single-page app answers 200 for every path.
 
-**All nine are done.** Items 1–4 were each an afternoon; item 5 took the longest
-and is the one a visitor notices first.
+### Code splitting
 
-What is left is in the sections above, and none of it blocks a launch:
+Every route except the homepage, the most common first page, is a lazy chunk
+behind a `Suspense` fallback: a 72% reduction in code needed before first
+render.
 
-- **Per-book link previews** need HTML rendered on the server. Google sees the
-  per-route tags today; Facebook and WhatsApp see the site-level defaults.
-- ~~**Server-side filtering and paging** on the catalogue.~~ **Done.** The
-  browse page fetched every listing in the database and filtered, sorted and
-  sliced them in the browser. Measured against 307 listings, the page it needed
-  to draw twelve books:
+| | Before | After |
+| --- | --- | --- |
+| Application chunk | 228.31 kB (51.30 kB gzipped) | **64.49 kB (19.55 kB)** |
+| Chunks in `dist/assets` | 4 | 32 |
 
-  ```text
-  every listing (as it was)   140,180 bytes   23 ms
-  one page (as it is)           5,519 bytes    7 ms
-  ```
+### Pagination and server-side filtering
 
-  and the second number does not grow with the catalogue. Every filter is a
-  named query parameter now, which also retired the `{ filter_key,
-  filter_input }` pair that let a caller name the document path to query.
+The catalogue shows twelve books per page with a pager and count (12 cards, 326
+DOM nodes per page against 36 books). List covers use `loading="lazy"` and
+`decoding="async"`; the homepage hero stays eager. Filtering, sorting and
+paging run in the API, each filter a named query parameter, replacing the
+`{ filter_key, filter_input }` pair that let a caller name the document path.
 
-  The part worth recording: the first version of the indexes left `_id` off the
-  end of each one. The catalogue sorts by `{ <field>, _id }` so books that tie
-  cannot shuffle between pages, and a sort is only served by an index when it
-  is a prefix of that index's keys - so every query still scanned all 307
-  documents and sorted them in memory. All 400-odd tests passed, because the
-  answers were right. `explain()` said `COLLSCAN` and `IN-MEMORY SORT`; with
-  `_id` appended it reads 12 documents examined per page. There is a test on
-  the query plan now, because that is the form the regression would take.
+```text
+                every listing                  one page
+catalogue       140,180 bytes, 23 ms (307)  →  5,519 bytes, 7 ms (constant)
+book table      every listing and user      →  11,811 bytes for 25 rows
+users           10,890,235 bytes (303)      →  3,661 bytes
+returns          9,760,991 bytes (120)      →  9,717 bytes
+orders             495,514 bytes (400)      →  30,450 bytes (25 orders, 49 lines)
+```
 
-  The administrator's book table went the same way, and it was worse: it
-  fetched every listing *and* every user account, the second only to turn an
-  e-mail into a name in the "Owner" column, then searched what it had in the
-  browser. `/book/admin` sends a page and resolves the sellers on it — 11,811
-  bytes for twenty-five rows, one request, and the search reaches the database
-  so it can find a listing that is not on the page you are looking at. With
-  both pages moved, there is no "every listing" endpoint left to call.
+- **Indexes end in `_id`**, because the catalogue sorts by `{ <field>, _id }`
+  for stable pages and an index serves a sort only as a key prefix: 12
+  documents examined per page instead of a collection scan and in-memory sort.
+  Query-plan tests guard the catalogue and admin tables.
+- **User Management** selects only name, e-mail and join date, and filters on
+  `role: 'user'` rather than `$ne: 'admin'`, since an inequality on an index's
+  leading field leaves the sort unindexed: 25 keys read instead of 303.
+- **Return photographs** are served by address to the buyer or an
+  administrator; "View Images" fetches with the session and opens a blob.
+- **Orders page by order**, never splitting a purchase, and each line carries
+  its `returnStatus`.
 
-  User Management was the worst of the three, and not for the reason it looked
-  like. It asked for every account with `select('-password')` — every field
-  except the password — and `profilePicture` is stored as a base64 data URI.
-  Measured against 303 accounts, two thirds of them with a photograph:
+### Chat attachments
 
-  ```text
-  every account, every field but the password   10,890,235 bytes
-  one page of the three columns it draws             3,661 bytes
-  ```
+Attachments are served by address, to the two participants only, through an
+image component that carries the session, and the conversation list comes from
+a summary query. Against 60 messages, a third with a photograph:
 
-  It also sent every user's address and phone number to draw a table of name,
-  e-mail and join date. Those three fields are what it sends now.
+```text
+conversation list    1,097,096 bytes loaded  →    214 bytes sent
+one page of thread     381,729 bytes         →  4,113 bytes
+```
 
-  And the index lesson arrived a second time, in a different disguise. The
-  filter was `role: { $ne: 'admin' }`, which is the natural way to say
-  "everyone else" — but an inequality on the leading field of an index leaves
-  the fields after it unordered, so the sort was blocking again: 303 keys read
-  and sorted in memory. `role: 'user'` selects exactly the same accounts, since
-  the enum has two values, and reads 25 keys in index order. Both tables have a
-  query-plan test now.
+Profile pictures are served the same way, publicly. Attachment bytes stay in
+MongoDB by design, as Cloudinary would place private pictures on public URLs.
+Image-only messages are supported.
 
-  The orders and returns tables followed, and the returns table turned out to
-  be the worst of the lot. A return request carries the buyer's photographs of
-  the defect, as base64, on the document — and the administrator's table
-  downloaded every one of them to draw seven columns of text and a "View
-  Images" button that had no `onClick` and opened nothing. Measured against 120
-  requests and 400 orders:
+### Client error reporting
 
-  ```text
-  every return request   9,760,991 bytes  →   9,717
-  every order line         495,514 bytes  →  30,450   (25 orders, 49 lines)
-  ```
+The client's 16 `console` calls go through `reportError`, which logs in
+development and is compiled out of production (`import.meta.env.DEV` becomes a
+literal; esbuild's `drop` option does not apply under Vite 8's Rolldown). The
+built application chunks contain no `console` calls.
 
-  The photographs are addresses now, behind a check that only the buyer who
-  uploaded one or an administrator may fetch it, and the button opens them —
-  by fetching with the session and handing the tab a blob, because a plain
-  link would arrive with no Authorization header and be refused.
-
-  Two details worth keeping. Orders page by **order**, not by line: a basket of
-  three books is three rows, and a page that cut between them would show part
-  of a purchase. And the buyer's list used to fetch every return request the
-  account had ever made — photographs included — only to work out which books
-  had a return in progress; each line now carries its own `returnStatus`.
-- ~~**Chat attachments**, still base64 in MongoDB.~~ **They no longer travel in
-  JSON.** A picture sent in a conversation is stored on the message as base64,
-  so the thread carried every picture in it, in every page of it - and the
-  conversation list was worse: it loaded every message the account had ever
-  sent or received, attachments and all, to draw a list of names and a last
-  line each, then ran two more queries per conversation. Measured against 60
-  messages, a third of them with a photograph:
-
-  ```text
-  conversation list   1,097,096 bytes loaded  ->    214 bytes sent
-  one page of a thread  381,729 bytes         ->  4,113 bytes
-  ```
-
-  Attachments are addresses now, behind a check that the caller is one of the
-  two people in the thread - which needed an `<img>` that can carry the
-  session, since a tag cannot. Profile pictures went the same way and are
-  public, like the profile endpoint that already returned the same bytes
-  inline.
-
-  The bytes are still in MongoDB. Moving them to Cloudinary would put a private
-  conversation's pictures on a public URL, which is a different decision from
-  the one taken for book covers.
-
-  It also turned out you could not send a picture without typing something:
-  `message` was `required`, and Mongoose's required check rejects an empty
-  string, so an image-only message failed to save and the button answered 500.
-
-- ~~**A browser error reporter.** `reportError` is the seam and it currently
-  goes nowhere in production.~~ **It goes somewhere now.** A page that broke
-  for a real visitor broke silently: the only person who ever saw it was the
-  person it happened to, and they are not the one who can fix it.
-
-  Reports go to `POST /client-error`, which writes them into the same
-  structured log as everything else - with the request id, the URL, the stack
-  and the account when there is one - and forwards them to Sentry when a DSN
-  is configured.
-
-  Not the Sentry browser SDK, deliberately. It is about 30 KB on a site that
-  has spent this whole audit not sending 30 KB, it needs another origin in the
-  Content-Security-Policy, and it is inert until somebody signs up for an
-  account. What it would add - source-mapped stacks, breadcrumbs, alerting -
-  is worth having later and nothing here is in the way of it.
-
-  The bigger half was coverage. Every call site of `reportError` sits inside a
-  `catch`, so the only errors reaching it were ones somebody had already
-  thought about. A render that throws or a promise nobody awaited went
-  nowhere - and those are the ones that white-screen a page. `window.onerror`
-  and `unhandledrejection` are wired now.
-
-  It reports the same failure once per session and stops after twenty, because
-  a render loop should not be ten thousand log lines. Checked against a
-  production build in a browser: twelve thrown errors, three reports, all 204,
-  and three lines in the server log with their stacks.
-- ~~**Redis for the one-time codes**, before the API runs on more than one
-  instance.~~ **Done, and it mattered on one instance too.** They lived in a
-  `Map` in the process, so every restart threw away every code in flight -
-  somebody halfway through signing up or resetting a password got "invalid
-  code" and started again, on every deploy and every time a sleeping instance
-  woke. They are a MongoDB collection with a TTL index now, which also retired
-  the sweep that kept the map from growing. Proved by issuing a code in one
-  process and spending it in another.
-
-  Stored as an HMAC under the server's secret rather than as the code: six
-  digits is a million possibilities, so a plain hash is recovered from a table
-  instantly, and a record that survives a restart is one that can be read out
-  of a backup.
-- **P4**, base64 covers in MongoDB, whenever image hosting is switched on.
-- The **business capability** list below: payments, delivery, reviews, stock
-  reconciliation. Those are products, not fixes.
-
-And two things that are yours rather than mine: the contact details in
-`client/src/config/site.ts` are still the unverified ones carried over from the
-original footer, and the policy pages need a real legal entity name and a review
-by somebody qualified.
+In production, `reportError`, `window.onerror` and `unhandledrejection` post to
+`POST /client-error`, which logs the report with request id, URL, stack and
+account, and forwards it to Sentry when configured. Each failure is reported
+once per session, up to twenty: in a production build, twelve thrown errors
+produced three reports, all `204`. The Sentry browser SDK is not included, by
+design (about 30 KB, an extra CSP origin, inert without an account);
+source-mapped stacks and alerting can be added on the same seam.
 
 ---
 
-## Dead code, removed
+## 5 · Business capability
 
-A pass over the whole project once the nine items were done, looking for what
-nothing uses. Two of the things it turned up were not dead at all.
-
-**A stylesheet kept alive by a dead component.** `Table.tsx` was rendered by
-nothing, but it imported `Table.css`, and nine pages write their own
-`<table className="styled-table">`. The styling for every table in the
-application arrived only as a side effect of an unused file being in the bundle;
-deleting the component would have quietly unstyled all nine. The rules are in
-`index.css` now, next to the pages that actually use them.
-
-**A cart that emptied on the server and not on screen.** Checkout cleared the
-cart with a bare `apiFetch` - no await, no error handling, and no cache
-invalidation - so the badge in every header went on showing items that were no
-longer there. `useClearCart` already existed, unused, and does it properly.
-
-Removed outright:
-
-| | |
+| Capability | Status |
 | --- | --- |
-| `components/Table.tsx`, `BackButton.tsx`, `inputField.tsx` | rendered by nothing |
-| `pages/admin/TransactionHistory.tsx` | an orphan copy; the admin panel imports the one in `pages/` |
-| `assets/react.svg`, `public/vite.svg` | Vite template leftovers |
-| `GET /api/user/test` | answered "Api route is working!" to anyone; `/health` is the endpoint for that |
-| `isSelfOrAdmin` | defined, never called |
-| `_books` state in `Descriptionform` | written, never read |
+| Transactional e-mail | Built: order confirmed, delivered and cancelled; returns requested and decided |
+| Reviews | Built, with seller replies and reporting ([above](#ratings-and-reviews)) |
+| Seller payouts | Built: bKash payouts after the return window, less a 5% fee, recorded with the transaction ID |
+| Search | Server-side, with Bangla-English phonetic matching. Planned: a MongoDB text index, then Atlas Search, as the catalogue grows |
+| Payments | Cash on delivery. Planned: bKash, Nagad or SSLCommerz, with webhooks, payment states and reconciliation |
+| Seller onboarding | Any signed-in user can list. Planned: verification and a seller agreement |
+| Analytics | Planned: searches, checkout abandonment and listing conversion, to guide what to build next |
+
+---
+
+## Order of work
+
+Cheap, high-value items first, so each step shipped on its own. All nine are
+complete; items 1 to 4 took about an afternoon each, and item 5 the longest.
+
+| Order | Work | Rationale |
+| ---: | --- | --- |
+| 1 | Security headers (S1, S6) | One dependency and a few nginx lines; the largest gap |
+| 2 | Local placeholder, policy pages (P1) | Visible trust signals |
+| 3 | Uniform auth responses (S2) | Small change, removes a privacy leak |
+| 4 | Toasts instead of `alert()` | The largest change in how the product feels |
+| 5 | Responsive pass with Tailwind tokens | Largest effort and payoff; most traffic is mobile |
+| 6 | SEO metadata, sitemap, `robots.txt` | Growth work, once the site is presentable |
+| 7 | Upload validation, OTP attempt limits (S4, S5) | Hardening, once the surface is settled |
+| 8 | Account deletion and export (P2), audit log (P3) | Compliance before real users arrive |
+| 9 | Code splitting, lazy images, pagination | Performance, once there is content to matter |
+
+---
+
+## Cleanup
+
+| Removed | Reason |
+| --- | --- |
+| `components/Table.tsx`, `BackButton.tsx`, `inputField.tsx` | not rendered |
+| `pages/admin/TransactionHistory.tsx` | duplicate of the copy in `pages/` |
+| `assets/react.svg`, `public/vite.svg` | Vite template files |
+| `GET /api/user/test` | public test route; `/health` serves that purpose |
+| `isSelfOrAdmin`, `_books` state in `Descriptionform` | unused |
 | commented-out markup in `Descriptionform` and `SignUp` | |
 
-**The rating controls are gone.** A five-star filter, a "Most Popular" sort and
-a "Rating: N/A" line on every card, all reading a field no endpoint returns and
-no model stores. The filter did not merely do nothing: choosing four stars
-matched zero books, which is a dead end that looks like an empty catalogue. The
-sort is "Newest first" now, on `createdAt`, which exists.
+The shared `styled-table` rules, used by nine pages, live in `index.css`.
+Checkout clears the cart through `useClearCart`, so header badges update
+immediately. The favicon is the shop's own mark.
 
-**They came back, on real data.** Ratings and reviews were built straight after
-this - verified purchasers only, one per person, with the star filter and a
-"Highest rated" sort restored on a score that exists. See "Ratings are
-vestigial" above.
-
-**The favicon was Vite's logo**, which is the first thing a visitor sees of the
-shop, in the tab, before the page has rendered. It is the shop's own mark now.
-
----
-
-## Checked and found not to be a problem
-
-Recorded so the next person does not spend the time twice.
-
-**The Socket.IO `400` in the nginx access log.** A polling request with a `sid`
-returns 400 shortly after each connection. It is the stale long-poll being
-closed once the transport upgrades, and the log shows the `101 Switching
-Protocols` that precedes it. Chat works through nginx; the line is noise.
+**Verified as expected behaviour.** The Socket.IO `400` in the nginx access log
+is the stale long-poll closing after the `101 Switching Protocols` upgrade;
+chat works through nginx.

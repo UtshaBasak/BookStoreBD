@@ -25,11 +25,10 @@ export interface BookCardProps {
 /**
  * One book, as every shelf and the catalogue draw it.
  *
- * The cover and the title are real links. The homepage cards were a <div>
- * with an onClick, so a right-click offered nothing to copy or open in a new
- * tab, a middle-click did nothing, and a crawler found no way to the books.
- * The heart and the cart button are buttons beside the links, not inside
- * them: a control inside a link is two things at once to a screen reader.
+ * The cover and the title are real links, so a book can be opened in a new tab
+ * and a crawler can follow them. The heart and the cart button sit beside the
+ * links, not inside them: a control inside a link is two things at once to a
+ * screen reader.
  */
 export default function BookCard({
   book,

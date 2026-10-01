@@ -31,17 +31,14 @@ const manualChunks = (id: string): string | undefined => {
 /*
  * One line while the API starts, instead of a stack trace per request.
  *
- * `npm run dev` starts Vite and the API together. Vite is ready in about two
- * seconds; the API takes several more, and longer still if Docker is only just
- * bringing MongoDB up. An open tab keeps asking in the meantime - every query,
- * and Socket.IO reconnecting - and each refused connection was a three-line
- * `AggregateError [ECONNREFUSED]`. Dozens of them, in a terminal where a real
- * error then has to be found by eye.
+ * `npm run dev` starts Vite and the API together, and Vite is ready first. An
+ * open tab keeps requesting in the meantime, and each refused connection would
+ * otherwise print a multi-line `AggregateError [ECONNREFUSED]`, burying real
+ * errors in the terminal.
  *
  * Refused connections are collapsed into one warning, repeated at most every
- * ten seconds while it lasts. Anything else the proxy reports is left exactly
- * as it was: a 500 from the API, or a proxy error that is not "nothing is
- * listening", is something to see.
+ * ten seconds while it lasts. Every other proxy error, and any response from
+ * the API, is reported as normal.
  */
 const API_TARGET = process.env.VITE_PROXY_TARGET || 'http://localhost:4000';
 const logger = createLogger();

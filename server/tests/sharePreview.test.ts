@@ -133,8 +133,8 @@ describe('GET /book/:id', () => {
 });
 
 describe('every other page', () => {
-  // The build writes '/og-image.jpg', and not every scraper resolves that:
-  // opengraph.xyz showed the homepage with a broken picture.
+  // The build writes '/og-image.jpg', and not every scraper resolves a
+  // relative address against the page.
   it.each(['/', '/filter', '/about'])('gives %s its picture as an absolute address', async (page) => {
     const res = await agent.get(page).set('X-Forwarded-Host', 'books.example.com');
 
@@ -152,8 +152,8 @@ describe('every other page', () => {
 });
 
 describe('the pictures a preview shows', () => {
-  // A preview is drawn on someone else's page. With the site-wide
-  // same-origin policy the browser refused to draw the share card there.
+  // A preview is drawn on someone else's page, where the site-wide
+  // same-origin policy would stop the browser drawing the share card.
   it('may be shown on other sites', async () => {
     writeFileSync(join(dist, 'og-image.jpg'), 'jpeg');
     const book = await createBook({ images: ['data:image/png;base64,iVBORw0KGgo='] });
@@ -188,8 +188,8 @@ describe('the build files', () => {
 });
 
 describe('a file that is not there', () => {
-  // Answering with the app's HTML told a tool the file existed and was
-  // broken: Lighthouse read "<!doctype" as a malformed ai-catalog.json.
+  // Answering with the app's HTML would tell a tool the file existed and was
+  // malformed.
   it.each(['/.well-known/ai-catalog.json', '/assets/index-gone.js', '/manifest.webmanifest'])(
     'is a 404 for %s, not the app',
     async (file) => {

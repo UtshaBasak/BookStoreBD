@@ -1,7 +1,8 @@
 /**
- * An administrator can delete users and change any order's status, and nothing
- * recorded who did it. The request log captures the call, but it rotates and
- * cannot be queried - it is not where you answer "who deleted this account".
+ * The audit trail: an administrator can delete users and change any order's
+ * status, and each such change is recorded. The request log captures the call,
+ * but it rotates and cannot be queried - it is not where you answer "who
+ * deleted this account".
  */
 import { describe, it, expect, beforeAll, afterAll, beforeEach } from 'vitest';
 

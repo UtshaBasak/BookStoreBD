@@ -5,15 +5,12 @@ import HomePage from './pages/Homepage';
 import BackToTop from './components/BackToTop.js';
 
 /*
- * Every page is its own chunk.
+ * Every page is its own chunk, so a visitor on the homepage does not download
+ * the checkout, the admin panel or the chat. Suspense below covers the moment
+ * a route's chunk is fetched.
  *
- * The whole application used to arrive in one file, so somebody reading the
- * homepage on a phone downloaded the checkout, the admin panel and the chat
- * before seeing a book. `lazy` splits each route out and Suspense below
- * covers the moment one is fetched.
- *
- * The homepage is the exception: it is the first thing most visitors see, and
- * making them wait for a second request to start it would undo the point.
+ * The homepage is bundled eagerly: it is the first thing most visitors see, and
+ * a second request before it can render would cost more than it saves.
  */
 const SignIn = lazy(() => import('./pages/SignIn'));
 const SignUp = lazy(() => import('./pages/SignUp'));
@@ -76,10 +73,9 @@ function PublicOnlyRoute({ children }: GuardProps) {
 /*
  * Route guard for protected pages.
  *
- * `noIndex` here rather than on each page: everything behind a sign-in answers
- * a crawler with a sign-in form, which is a wasted search result and a bad
- * first impression. One place covers every private route, including any added
- * later. robots.txt says the same thing from the other side.
+ * `noIndex` is set here rather than on each page: a crawler only ever sees a
+ * sign-in form behind these routes, so none of them belongs in search results.
+ * robots.txt says the same from the server side.
  */
 function ProtectedRoute({ children }: GuardProps) {
   useSeo({ noIndex: true });
@@ -105,10 +101,8 @@ export default function App() {
         {/* Public routes */}
         <Route path="/" element={<HomePage />} />
         <Route path="/book" element={<BookView />} />
-        {/* A shop that will not show a book without an account cannot sell one.
-            Every card on the homepage links here, the API already serves the
-            listing to anyone, and the actions that do need an account - cart,
-            wishlist, chat - ask for it at the point they are used. */}
+        {/* Public, so any visitor can view a book. The actions that need an
+            account - cart, wishlist, chat - ask for it at the point of use. */}
         <Route path="/book/:id" element={<BookView />} />
         <Route path="/filter" element={<Filter />} />
         {/* Information and policy pages, reachable without an account - a

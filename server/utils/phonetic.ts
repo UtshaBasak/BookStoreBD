@@ -1,5 +1,5 @@
 /**
- * A rough sound-alike key, so a search typed in one script finds a book
+ * A sound-alike key, so a search typed in one script finds a book
  * written in the other: "putul nacher itikotha" finds পুতুলনাচের ইতিকথা, and
  * "হ্যারি পটার" finds Harry Potter.
  *

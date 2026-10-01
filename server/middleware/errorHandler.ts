@@ -16,9 +16,9 @@ export const notFoundHandler: RequestHandler = (req, res) => {
 /**
  * What multer throws when a limit is hit.
  *
- * It carries a `code` rather than a status, so without this an upload over the
- * size limit answered 500 - a server error for something the caller did, and
- * nothing to tell them what the limit was.
+ * It carries a `code` rather than a status, so it is mapped here: an upload
+ * over a limit is the caller's to fix, not a server error, and the answer
+ * says what the limit was.
  */
 const MULTER_STATUS: Record<string, number> = {
   LIMIT_FILE_SIZE: 413,

@@ -1,5 +1,5 @@
 /**
- * The shopper's side of the review batch: copies in the cart, stock that runs
+ * The shopper's side: copies in the cart, stock that runs
  * out after, cancelling an order, returning a whole one, a seller's shop, the
  * notifications that go with all of it, and the administrator's lists.
  */

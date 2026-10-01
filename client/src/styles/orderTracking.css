@@ -2,16 +2,14 @@
  * Order tracking. Imported by App.tsx as well as the three tracking pages, so
  * it applies everywhere: every rule is on a class of its own.
  *
- * The first block is what the seller and admin tracking pages still use. The
- * `ot-` block below it is the buyer's page - a card layout and a stepper -
- * and can be adopted by the other two class by class.
+ * The first block styles the seller and admin tracking pages. The `ot-` block
+ * below it styles the buyer's page - a card layout and a stepper - and can be
+ * adopted by the other two class by class.
  */
 .order-tracking-outer {
   min-height: 100vh;
   width: 100%;
-  /* A row, so the card and the order table sat side by side and the page was
-     409px wider than a phone. The comment below says this was already suspected
-     once. The parts of an order belong under each other. */
+  /* A column, so the card and the order table stack and fit a phone's width. */
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -34,7 +32,7 @@
   border: 1px solid var(--color-line);
   border-radius: var(--radius-card);
   box-shadow: var(--shadow-card);
-  /* 36px of padding each side leaves 288px of a 360px screen. */
+  /* Narrow side padding, so a 360px screen keeps room for the content. */
   padding: 32px 20px 24px;
   display: flex;
   flex-direction: column;
@@ -347,8 +345,8 @@
   font-weight: 600;
 }
 
-/* The order's figures under its table, rather than in a footer row that sat
-   off the right-hand edge of a phone. */
+/* The order's figures under its table rather than in a footer row, so they
+   stay in view on a phone. */
 .ot-totals {
   display: grid;
   gap: 4px;
@@ -381,8 +379,8 @@
   font-size: 1.3rem;
 }
 
-/* Headings on one line: "No. of pages" stacked three deep made the header
-   taller than the rows. The table scrolls sideways inside `table-scroll`. */
+/* Headings on one line, so the header is no taller than the rows. The table
+   scrolls sideways inside `table-scroll`. */
 .ot-table th {
   white-space: nowrap;
 }

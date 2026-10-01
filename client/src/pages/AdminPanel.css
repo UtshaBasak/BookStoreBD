@@ -2,7 +2,7 @@
  * The admin area: the panel's layout, and the pieces every admin page shares
  * (page heading, toolbar, search box, table card, status pills). Every rule is
  * scoped to an `admin-` class, because a page's stylesheet is global once it is
- * in the bundle - this file used to restyle `body` for the whole application.
+ * in the bundle.
  *
  * These rules sit outside any cascade layer, so they beat the shared `.btn-*`
  * and `.field` classes in index.css whatever the specificity. None of them sets
@@ -45,7 +45,7 @@
   min-width: 0;
 }
 
-/* The old "Admin Panel" heading, now a small caption under the logo. */
+/* The "Admin Panel" heading, as a small caption under the logo. */
 .admin-brand h2 {
   margin: 0;
   color: rgba(255, 255, 255, 0.62);
@@ -403,7 +403,7 @@
 }
 
 /* `.styled-table button` in index.css is outside any layer and paints every
-   button in a table violet, so a `btn-danger` or `btn-ghost` there came out
+   button in a table violet, which would turn a `btn-danger` or `btn-ghost`
    white-on-violet. `revert-layer` hands these back to the shared classes. */
 .admin-page .styled-table .btn,
 .admin-page .styled-table .btn:hover {
@@ -983,7 +983,7 @@
 }
 
 /* The last column stays in view while the rest of a wide table scrolls under
-   it - the returns table's Approve and Reject were off the side of the card. */
+   it, so row actions such as Approve and Reject are always reachable. */
 .admin-page .styled-table .admin-sticky-end {
   position: sticky;
   right: 0;

@@ -47,12 +47,9 @@ export default function ChatPage() {
         const stop = subscribeToMessages((message) => onMessageRef.current?.(message));
         
         if (userEmail) {
-            // Add logging to debug
-            
             apiFetch(`${API_BASE_URL}/chat/history/${userEmail}`)
                 .then(res => res.json() as Promise<ChatSummary[]>)
                 .then(data => {
-                    // Make sure data is an array before setting
                     setConversations(Array.isArray(data) ? data : []);
                 })
                 .catch(err => {
@@ -76,7 +73,7 @@ export default function ChatPage() {
 
     useEffect(() => {
         if (selectedUser && userEmail) {
-            // Mark messages as read when chat is opened
+            // Opening a conversation marks its messages as read.
             apiFetch(`${API_BASE_URL}/chat/read`, {
                 method: 'POST',
                 headers: {
@@ -88,7 +85,6 @@ export default function ChatPage() {
                 })
             });
 
-            // Use async/await for initial fetch
             const fetchMessages = async () => {
                 setLoading(true);
                 try {
@@ -104,9 +100,10 @@ export default function ChatPage() {
             };
             fetchMessages();
 
-            // Clean up socket listener to prevent message duplication
+            // One handler at a time, swapped with the conversation, so a live
+            // message is never added twice.
             const handleMessage = (data: ChatMessage) => {
-                // Only add message if it's for the current conversation
+                // Only messages belonging to the open conversation.
                 if (
                     (data.sender === userEmail && data.receiver === selectedUser.email) ||
                     (data.sender === selectedUser.email && data.receiver === userEmail)
@@ -119,7 +116,7 @@ export default function ChatPage() {
 
             return () => {
                 onMessageRef.current = null;
-                setMessages([]); // Clear messages when unmounting
+                setMessages([]);
             };
         }
     }, [selectedUser, userEmail]);
@@ -249,16 +246,10 @@ export default function ChatPage() {
                 </div>
             </header>
 
-            {/* Main Content.
-
-                On a phone the two panes take it in turns, the way every chat
-                application does it: the list until a conversation is picked,
-                then the conversation with a way back. Side by side from `lg`,
-                where both fit (see Chat.css). The message pane used to carry
-                `minWidth: 1000px`, which put the page 999px past the edge of a
-                360px screen. */}
+            {/* On a phone the two panes take turns: the list until a
+                conversation is picked, then the conversation with a way back.
+                Side by side from `lg`, where both fit (see Chat.css). */}
             <div className={`chat-shell${selectedUser ? ' has-thread' : ''}`}>
-                {/* Conversations List */}
                 <section className="card chat-list" aria-label="Conversations">
                     <div className="chat-list-head">
                         <h2>Conversations</h2>
@@ -267,7 +258,7 @@ export default function ChatPage() {
                         )}
                     </div>
                     <div className="chat-list-body">
-                        {/* An empty panel says nothing about what to do next. */}
+                        {/* With no conversations, say how to start one. */}
                         {conversations.length === 0 && (
                             <div className="chat-empty">
                                 <span className="chat-empty-icon is-small" aria-hidden="true">
@@ -337,7 +328,6 @@ export default function ChatPage() {
                     </div>
                 </section>
 
-                {/* Message Area */}
                 <section className="card chat-thread" aria-label="Messages">
                     {selectedUser ? (
                         <>
@@ -469,9 +459,8 @@ function initialsOf(name: string) {
 }
 
 /*
- * A photo when there is one, initials on the brand gradient when not. It used
- * to fall back to ui-avatars.com, which meant a request to a third party with
- * the person's name in it, in the old brown.
+ * A photo when there is one, initials on the brand gradient when not. Drawn
+ * locally, so no third-party avatar service receives the person's name.
  */
 function Avatar({ user, className = '' }: { user: ChatSummary; className?: string }) {
     if (user.profilePicture) {

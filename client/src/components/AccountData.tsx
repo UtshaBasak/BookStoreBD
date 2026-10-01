@@ -9,12 +9,10 @@ import { useToast } from '../hooks/useToast.js';
 
 /**
  * The two things every account owner is entitled to: a copy of their data, and
- * a way out.
+ * a way to close the account.
  *
- * On the profile page rather than buried in a settings menu, because a shop
- * that hides these looks like a shop with something to hide - and because an
- * account nobody can close is the kind of thing people complain about publicly
- * rather than by e-mail.
+ * On the profile page rather than in a settings menu, so both are easy to
+ * find.
  */
 export default function AccountData() {
   const navigate = useNavigate();

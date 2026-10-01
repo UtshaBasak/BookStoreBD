@@ -128,9 +128,8 @@ ${urls.join('\n')}
 
 /**
  * `/llms.txt`: what the shop is and where things are, in Markdown, for the AI
- * assistants that read it before a site's pages (https://llmstxt.org). Without
- * it the address answered with the app's HTML shell, which says nothing to a
- * program that does not run it. Served from here rather than as a file so the
+ * assistants that read it before a site's pages (https://llmstxt.org). Served
+ * from here rather than as a file so the
  * links are absolute on whatever domain the request came in on, and the
  * figures come from the rules the API enforces.
  */

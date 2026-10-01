@@ -1,10 +1,8 @@
 /**
  * The response headers a browser uses to constrain what a page may do.
  *
- * There were none at all until these were added: the site could be framed by
- * any origin, responses could be MIME-sniffed, and there was no second line of
- * defence if a script injection ever landed. Pinned here because a header that
- * silently stops being sent looks exactly like one that is working.
+ * Pinned here because a header that silently stops being sent looks exactly
+ * like one that is working.
  */
 import supertest from 'supertest';
 import { beforeAll, describe, expect, it } from 'vitest';
@@ -62,7 +60,7 @@ describe('security headers', () => {
     const directives = policy(res.headers['content-security-policy']);
 
     // The directive that actually stops an injection. If either of these
-    // appears, the policy has stopped being worth anything.
+    // appears, the policy no longer does.
     expect(directives['script-src']).toEqual(["'self'"]);
     expect(directives['object-src']).toEqual(["'none'"]);
     expect(directives['base-uri']).toEqual(["'self'"]);

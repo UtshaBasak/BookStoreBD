@@ -96,8 +96,7 @@ describe('what a report actually contains', () => {
     /*
      * Built at run time, not written out. Sentry also sends the source lines
      * around the frame, so a secret typed as a literal next to the throw would
-     * turn up in those whatever this setting said - which is what the first
-     * version of this test measured, and why it looked like a leak.
+     * turn up in those whatever this setting said, and read as a false leak.
      */
     const secret = ['local', 'variable', 'secret'].join('-');
 

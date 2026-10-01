@@ -2,16 +2,47 @@
 
 # 📚 BookStoreBD
 
-**A MERN marketplace for new and second-hand books — with role-based access, order tracking and real-time buyer–seller chat.**
+**A full-stack marketplace for new and second-hand books in Bangladesh — role-based access, order tracking, real-time buyer–seller chat, and search that works in Bangla and English.**
 
 🌐 **Live site:** [bookstorebd-loum.onrender.com](https://bookstorebd-loum.onrender.com)
 
 [![CI](https://github.com/UtshaBasak/BookStoreBD/actions/workflows/ci.yml/badge.svg)](https://github.com/UtshaBasak/BookStoreBD/actions/workflows/ci.yml)
 [![CodeQL](https://github.com/UtshaBasak/BookStoreBD/actions/workflows/github-code-scanning/codeql/badge.svg)](https://github.com/UtshaBasak/BookStoreBD/actions/workflows/github-code-scanning/codeql)
+[![Docker image](https://github.com/UtshaBasak/BookStoreBD/actions/workflows/docker.yml/badge.svg)](https://github.com/UtshaBasak/BookStoreBD/actions/workflows/docker.yml)
+[![Live site](https://img.shields.io/website?url=https%3A%2F%2Fbookstorebd-loum.onrender.com%2Fhealth&label=live%20site&up_message=online&down_message=starting&up_color=brightgreen&down_color=orange)](https://bookstorebd-loum.onrender.com)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
-[![Node](https://img.shields.io/badge/node-22.13%2B%20%7C%2024%20LTS-brightgreen.svg)](.nvmrc)
 
-[Visit the shop](https://bookstorebd-loum.onrender.com) · [Report a bug](https://github.com/UtshaBasak/BookStoreBD/issues/new?template=bug_report.md) · [Request a feature](https://github.com/UtshaBasak/BookStoreBD/issues/new?template=feature_request.md)
+[![Last commit](https://img.shields.io/github/last-commit/UtshaBasak/BookStoreBD)](https://github.com/UtshaBasak/BookStoreBD/commits/master)
+[![Commit activity](https://img.shields.io/github/commit-activity/m/UtshaBasak/BookStoreBD)](https://github.com/UtshaBasak/BookStoreBD/graphs/commit-activity)
+[![Contributors](https://img.shields.io/github/contributors/UtshaBasak/BookStoreBD)](https://github.com/UtshaBasak/BookStoreBD/graphs/contributors)
+[![Open issues](https://img.shields.io/github/issues/UtshaBasak/BookStoreBD)](https://github.com/UtshaBasak/BookStoreBD/issues)
+[![Pull requests](https://img.shields.io/github/issues-pr/UtshaBasak/BookStoreBD)](https://github.com/UtshaBasak/BookStoreBD/pulls)
+[![Top language](https://img.shields.io/github/languages/top/UtshaBasak/BookStoreBD)](https://github.com/UtshaBasak/BookStoreBD)
+[![Code size](https://img.shields.io/github/languages/code-size/UtshaBasak/BookStoreBD)](https://github.com/UtshaBasak/BookStoreBD)
+[![Stars](https://img.shields.io/github/stars/UtshaBasak/BookStoreBD?style=flat)](https://github.com/UtshaBasak/BookStoreBD/stargazers)
+
+[![Node](https://img.shields.io/badge/node-22.13%2B%20%7C%2024%20LTS-339933?logo=nodedotjs&logoColor=white)](.nvmrc)
+[![GitHub Packages](https://img.shields.io/badge/ghcr.io-bookstorebd-2496ED?logo=docker&logoColor=white)](https://github.com/UtshaBasak/BookStoreBD/pkgs/container/bookstorebd)
+[![Wiki](https://img.shields.io/badge/docs-wiki-6d28d9?logo=github)](https://github.com/UtshaBasak/BookStoreBD/wiki)
+[![Dependabot](https://img.shields.io/badge/Dependabot-enabled-025E8C?logo=dependabot&logoColor=white)](.github/dependabot.yml)
+[![Contributor Covenant](https://img.shields.io/badge/Contributor%20Covenant-2.1-4baaaa.svg)](CODE_OF_CONDUCT.md)
+[![PRs welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](CONTRIBUTING.md)
+
+[![React](https://img.shields.io/badge/React-19-61DAFB?logo=react&logoColor=black)](https://react.dev)
+[![TypeScript](https://img.shields.io/badge/TypeScript-6%20strict-3178C6?logo=typescript&logoColor=white)](https://www.typescriptlang.org)
+[![Vite](https://img.shields.io/badge/Vite-8-646CFF?logo=vite&logoColor=white)](https://vite.dev)
+[![Tailwind CSS](https://img.shields.io/badge/Tailwind%20CSS-4-06B6D4?logo=tailwindcss&logoColor=white)](https://tailwindcss.com)
+[![TanStack Query](https://img.shields.io/badge/TanStack%20Query-5-FF4154?logo=reactquery&logoColor=white)](https://tanstack.com/query)
+[![Express](https://img.shields.io/badge/Express-5-000000?logo=express&logoColor=white)](https://expressjs.com)
+[![MongoDB](https://img.shields.io/badge/MongoDB-Mongoose%209-47A248?logo=mongodb&logoColor=white)](https://www.mongodb.com)
+[![Socket.IO](https://img.shields.io/badge/Socket.IO-4-010101?logo=socketdotio&logoColor=white)](https://socket.io)
+[![Zod](https://img.shields.io/badge/Zod-validation-3E67B1?logo=zod&logoColor=white)](https://zod.dev)
+[![Vitest](https://img.shields.io/badge/tested%20with-Vitest-6E9F18?logo=vitest&logoColor=white)](https://vitest.dev)
+[![Docker](https://img.shields.io/badge/Docker-ready-2496ED?logo=docker&logoColor=white)](Dockerfile)
+[![Render](https://img.shields.io/badge/deployed%20on-Render-46E3B7?logo=render&logoColor=white)](https://render.com)
+[![Cloudinary](https://img.shields.io/badge/images-Cloudinary-3448C5?logo=cloudinary&logoColor=white)](https://cloudinary.com)
+
+[Visit the shop](https://bookstorebd-loum.onrender.com) · [Read the wiki](https://github.com/UtshaBasak/BookStoreBD/wiki) · [Report a bug](https://github.com/UtshaBasak/BookStoreBD/issues/new?template=bug_report.md) · [Request a feature](https://github.com/UtshaBasak/BookStoreBD/issues/new?template=feature_request.md)
 
 </div>
 
@@ -38,168 +69,113 @@
 - [Roadmap](#roadmap)
 - [Coming soon](#coming-soon)
 - [Contributing](#contributing)
+- [History](#history)
 - [License](#license)
 
 ---
 
 ## Overview
 
-BookStoreBD is a full-stack marketplace where readers in Bangladesh can buy and sell
-both new and used books. It is live at <https://bookstorebd-loum.onrender.com>,
-on Render's free plan: after about fifteen idle minutes the service sleeps, and
-the first visit afterwards takes up to a minute while it wakes.
+BookStoreBD is a marketplace where readers in Bangladesh buy and sell new and
+used books, live at <https://bookstorebd-loum.onrender.com>. It runs on
+Render's free tier, so the first visit after a quiet spell can take a few
+seconds while the service starts.
 
-It ships three distinct experiences from one codebase:
+One codebase serves three roles:
 
 | Role | What they can do |
 | --- | --- |
-| **Buyer** | Browse and filter the catalogue, keep a wishlist and cart, check out, track orders, request returns, and chat with sellers |
-| **Seller** | List books with photos and condition details, manage stock and pricing, view orders, and answer buyer messages |
-| **Admin** | Manage users, review every order, moderate listings, and approve or reject return requests |
+| **Buyer** | Browse and filter the catalogue, keep a wishlist and cart, check out, track and cancel orders, request returns, and chat with sellers |
+| **Seller** | List books with photos and condition details, run discounts, manage stock, handle orders, and get paid by bKash |
+| **Admin** | Manage users, orders, listings, returns, payouts and reviews, and message buyers and sellers |
+
+User guides for each role are in the [wiki](https://github.com/UtshaBasak/BookStoreBD/wiki).
 
 ---
 
 ## Features
 
-### Authentication and access control
+### Accounts and security
 
-- Email/password sign-up and sign-in, with passwords hashed using `bcryptjs`
-- A new password must be 12 to 128 characters with a lowercase and an uppercase
-  letter, a number and a symbol; not contain the person's name or e-mail; not
-  be a common password or a run like "aaaa" or "1234"; and not appear in a known
-  data breach (Have I Been Pwned, by k-anonymity). The form ticks each rule off
-  as it is typed. Passwords set before the rules keep working - only a password
-  being set is checked. Rules in [`server/utils/passwordPolicy.ts`](server/utils/passwordPolicy.ts)
-- Stateless JWT sessions; every protected endpoint verifies the token server-side
+- E-mail sign-up verified by one-time code, sign-in, and password reset, with
+  branded e-mails sent through Gmail's API (or SMTP)
+- Strong passwords: 12–128 characters with mixed case, a number and a symbol;
+  never the person's name or e-mail, a common password, a simple run, or one
+  found in a known breach (checked against Have I Been Pwned by k-anonymity).
+  The form shows each rule as it is met. Rules in
+  [`server/utils/passwordPolicy.ts`](server/utils/passwordPolicy.ts)
+- Short-lived JWT access tokens with rotating, httpOnly refresh tokens
 - Role-based authorisation (`user` / `admin`) plus per-resource ownership checks
-- Email verification and password reset via one-time codes, sent as branded HTML
-  e-mails through Gmail's web API (or SMTP where the ports are open)
-- Client route guards for rendering, backed by the server as the real boundary
+- Zod validation on every request, rate limiting, request sanitisation, and a
+  strict Content Security Policy
 
-### Catalogue
+### Catalogue and search
 
-- Full book listings with author, publisher, ISBN, language, page count and condition
-- About a hundred single-subject categories in six groups - Academic, Fiction,
-  Non-fiction, Kids & teens, Lifestyle & hobbies, Other - from one list,
-  [`client/src/config/categories.ts`](client/src/config/categories.ts)
-- Suggestions under every search box as you type: books, sellers, and "search for"
-- Search across Bangla and English: "pather panchali" finds পথের পাঁচালী and
-  "হ্যারি পটার" finds Harry Potter, by a sound-alike key of the consonants
+- Listings with author, publisher, ISBN, language, page count and condition,
+  across about a hundred categories in six groups
+  ([`client/src/config/categories.ts`](client/src/config/categories.ts))
+- Suggestions under every search box as you type: books, sellers, and a full search
+- **Bangla–English search:** "pather panchali" finds পথের পাঁচালী and
+  "হ্যারি পটার" finds Harry Potter, through a sound-alike key
   ([`server/utils/phonetic.ts`](server/utils/phonetic.ts))
-- Sellers found by name on the browse page, each linking to their shop
-- Case-insensitive search by title, author or ISBN, filters for type, condition,
-  category, price, rating, stock and deals, and seven orders: Relevant (deals
-  first, the default), biggest % off, biggest ৳ saving, newest, highest rated,
-  and price either way
-- Multi-image upload straight from the browser to Cloudinary, or stored inline
-  as base64 when image hosting is not configured
-- Twenty books to a page, or 30, 40 or 50, and a box to jump straight to a page
-- Stock tracking: a book that sells out stays in carts, marked sold out and left
-  out of checkout, and a cart asking for more copies than are left is lowered
-  to what there is
-- A shop page for every seller (`/shop/:username`): banner, picture, books
-  listed, copies sold, their rating across every book, and their books to
-  search and sort - reached from the seller's name on any book
+- Search by title, author or ISBN, with filters for type, condition, category,
+  price, rating, stock and deals, seven sort orders, and 20–50 results a page
+- Seller shop pages (`/shop/:username`) with stats, ratings and their books
+- Homepage shelves: Quick deals, Latest, Trending, Top picks for you, Shop by
+  category, Bestsellers, Popular writers, Top rated, Under ৳300 and Recently viewed
 
-### Homepage shelves
+### Shopping and orders
 
-- Quick deals, Latest books, Trending now, Top picks for you, Shop by category,
-  Bestsellers, Most popular, Popular writers, Top rated, Under ৳300, Discover
-  something new, and Recently viewed - all but the last two from one request,
-  `GET /filter/sections`, kept for a minute
-- Top picks come from what the person bought, saved, put in their cart or
-  looked at; Recently viewed is kept in the browser only
-- Every card is a real link, so it opens in a new tab or copies like any other
+- Seller discounts by percentage or amount, shown as a sale price everywhere
+- Wishlist with seven sort orders; a cart that holds several copies and keeps
+  quantities within stock
+- "Notify me when it is back" for sold-out books
+- Checkout with server-priced delivery (70 Tk in Dhaka, 120 Tk elsewhere),
+  promo codes ([`server/config/promotions.ts`](server/config/promotions.ts)),
+  cash on delivery, and an optional note to the seller
+- Order tracking for buyers, sellers and admins, each with its own view and a
+  PDF download laid out for that reader; one-click copy of order numbers
+- Clear cancellation rules for each role, with stock restored automatically
+  ([`server/config/commerce.ts`](server/config/commerce.ts))
+- Returns within 7 days of delivery, for one book or a whole order, with photos
+  and a bKash number for the refund
+- Seller payouts by bKash once the return window closes, less a 5% fee, each
+  recorded with its transaction ID
+- Share any book to Facebook, WhatsApp, X, Telegram or e-mail; shared links
+  preview with the book's title, price and cover
 
-### Commerce
+### Notifications and e-mail
 
-- Quick deals: a seller gives a discount on their own book as a percentage or
-  an amount of taka off (at most 90%). The book carries its sale price, which
-  the catalogue filters and sorts by and checkout charges; the listed price is
-  shown struck through. Rules in [`server/config/pricing.ts`](server/config/pricing.ts)
-- Wishlist and cart, both scoped per user; the wishlist sorts seven ways, and
-  the cart holds several copies of a book, chosen on the book page or in the cart
-- Checkout capturing delivery division, district, address, contact, payment
-  method, and an optional note to the seller
-- A sold-out book can be asked for: the seller hears someone is waiting, and
-  the person asking hears when it is back
-- A share button on every book: Facebook, WhatsApp, X, Telegram, e-mail, the
-  phone's own share sheet, or copy the link
-- Every order number has a copy button, and every order downloads as a PDF laid
-  out for its reader: a receipt for the buyer, a slip with the payout for the
-  seller, the full record for an administrator
-- Delivery charges worked out by the server from the district: 70 Tk in Dhaka, 120 Tk elsewhere
-- Promo codes priced by the server from one list, `server/config/promotions.ts`: `BookStoreBD` (50 Tk off a first order) and `FreeDelivery` (free delivery on 1000 Tk of books), one per order
-- A 16-character order number shared by every line item in a single order
-- Order tracking for buyers, sellers and admins, each with its own view. A
-  seller moves their books up to Shipped; Out for Delivery and Delivered are
-  the shop's
-- Cancelling: the buyer until the seller starts on it, a seller (their own
-  books) until they ship, an administrator until delivery. The stock goes back
-  on sale, cancelled books are left out of every total, and the others in the
-  order are told why. Rules in [`server/config/commerce.ts`](server/config/commerce.ts)
-- Returns within 7 days of delivery, with a defect description, at least one photo and a bKash number for the refund - one book, or a whole order in one request
-- Seller payouts by bKash to the seller's merchant number once an order's return window closes, less a 5% fee, recorded with the bKash transaction ID. Orders still inside the window are listed too, with the date each becomes payable
-
-### Notifications
-
-- A bell in every header, with the unread count and the latest few, and a
-  full page at `/notifications`
-- Everyone in an order hears what concerns them: the buyer, each seller and
-  the administrators are told of a new order, a status change, a cancellation,
-  a book selling out, a return asked for or decided, a payout, a review, a
-  seller's reply, and a reported review
-- Stock and price: a seller hears when a book drops to five or fewer and when
-  it sells out; buyers with it in their cart or on their wishlist hear when it
-  drops to five or fewer, and when its price falls below what it was when they
-  added it; whoever asked for a sold-out book hears when it is back
-- Delivered live over the chat's Socket.IO connection, with a short toast;
-  kept for 90 days
-
-### E-mails
-
-- In the shop's branded design, beside the bell: order confirmed, delivered and
-  cancelled to the buyer and each seller; a return decided to the buyer; a
-  return requested to the seller
-- Sent in the background, so an order never waits on a mail server
+- A notification bell on every page, delivered live over Socket.IO, and a full
+  history at `/notifications`
+- Everyone in an order hears what concerns them: new orders, status changes,
+  cancellations, returns, payouts, reviews and replies
+- Stock and price alerts: low stock and sold-out notices for sellers; low stock
+  and price drops for buyers with the book in their cart or wishlist; a notice
+  when a requested book is back
+- Branded e-mails for confirmed, delivered and cancelled orders, return
+  decisions, and return requests, sent in the background
 
 ### Administration
 
-- Users, transactions, books, returns, payouts, every review and reported
-  reviews, each searchable, filterable, sortable and refreshable
-- The administrator can move an order through every stage, and cancel it
-- Messages: a notification, a branded e-mail or both, to chosen people or to
-  every buyer, every seller or everyone - never to administrators
+- Users, transactions, books, returns, payouts, all reviews and reported
+  reviews — each searchable, filterable, sortable and refreshable
+- Full control of order stages and cancellation
+- **Messages:** a notification, a branded e-mail or both, to chosen people or
+  to every buyer, every seller, or everyone
 
-### Profiles
+### Profiles, chat and discovery
 
-- One profile picture, and two banners: one for the buyer side and one for the
-  seller side, scaled down in the browser before upload and stored on
-  Cloudinary when it is configured
-- The buyer or seller view is kept in the address (`/profile?mode=seller`), so
-  coming back from the seller's pages returns to it
-
-### Real-time chat
-
-- Buyer–seller messaging, saved through the API and delivered live over Socket.IO
-- A connection needs a valid access token, and receives only the messages
-  addressed to its owner
-- Text and image messages, unread counts, and read receipts
-- Conversation history with pagination
-
-### Sharing and discovery
-
-- A shared book link previews as that book — title, price and cover — on
-  Facebook, WhatsApp, Messenger, X and Slack: the server writes the tags into
-  the page it sends, since those scrapers do not run JavaScript
-- `robots.txt`, a sitemap listing every book, and `/llms.txt` for AI assistants
-- Per-page titles, descriptions and schema.org data for search engines
+- Profile picture and separate buyer and seller banners, uploaded to Cloudinary
+- Buyer–seller chat with text and images, unread counts and read receipts
+- `robots.txt`, a sitemap of every book, `/llms.txt`, per-page metadata and
+  schema.org data
 
 ### Design
 
-- Violet and sunset-orange palette, Plus Jakarta Sans, rounded cards and pill
-  buttons, one set of shared classes in [`client/src/index.css`](client/src/index.css)
-- Every page laid out for phones first, and checked at phone and laptop widths
+- Violet and sunset-orange design system with Plus Jakarta Sans, built on
+  shared classes in [`client/src/index.css`](client/src/index.css)
+- Mobile-first layouts, checked at phone and laptop widths
 - Lighthouse: 100 for accessibility, best practices and SEO
 
 ---
@@ -214,12 +190,12 @@ It ships three distinct experiences from one codebase:
 | Backend | Node.js, Express 5 |
 | Database | MongoDB with Mongoose 9 |
 | Real-time | Socket.IO 4 |
-| HTTP clients | Axios and the native `fetch` API |
-| Uploads | Cloudinary direct upload, Multer fallback |
 | Validation | Zod schemas on every request |
-| Hardening | express-rate-limit, request sanitisation |
+| Uploads | Cloudinary direct upload, with a Multer fallback |
 | Email | Gmail REST API (OAuth), or SMTP through Nodemailer |
-| Tooling | ESLint 10 + typescript-eslint, GitHub Actions, CodeQL |
+| Hardening | express-rate-limit, request sanitisation, helmet |
+| Tooling | ESLint 10 + typescript-eslint, Vitest, GitHub Actions, CodeQL, Dependabot |
+| Delivery | Render, Docker, GitHub Packages |
 
 ---
 
@@ -237,120 +213,71 @@ It ships three distinct experiences from one codebase:
          └─────────────────────────────────────────┘
 ```
 
-The client never hardcodes the backend origin. Every request resolves through
-[`client/src/config/api.ts`](client/src/config/api.ts), which reads `VITE_API_URL`
-and otherwise uses `/api` on its own origin — the Vite dev server proxies it in
-development, and in production the API serves the site itself.
+Every request goes through [`client/src/config/api.ts`](client/src/config/api.ts),
+which uses `/api` on the site's own origin (or `VITE_API_URL` when set). The
+Vite dev server proxies it in development; in production the API serves the
+built site itself.
 
 On the server, [`app.ts`](server/app.ts) exports a side-effect-free `createApp()`
-factory (no `listen`, no database connection), while [`index.ts`](server/index.ts)
-owns the bootstrap: validate environment, connect to MongoDB, listen, attach
-Socket.IO, and shut down gracefully on `SIGINT`/`SIGTERM`.
+factory, and [`index.ts`](server/index.ts) owns start-up: validate the
+environment, connect to MongoDB, listen, attach Socket.IO, and shut down
+gracefully on `SIGINT`/`SIGTERM`.
 
 ### One contract, two packages
 
 [`server/shared/api.d.ts`](server/shared/api.d.ts) declares every request and
-response shape the HTTP API uses. Both packages compile against that one file —
-the server directly, the client through a `@shared/*` path in its `tsconfig.json`
-— so a response cannot change on one side without the other failing to
-type-check.
+response shape. The server and the client (through a `@shared/*` path) both
+compile against it, so neither side can change a response without the other
+failing to type-check. It holds types only, so neither package depends on the
+other at run time.
 
-It is a declaration file on purpose: types and nothing else, erased entirely at
-compile time. Neither package gains a runtime dependency on the other.
-
-The request shapes are not written twice either.
-[`server/types/contracts.ts`](server/types/contracts.ts) asserts at compile time
-that everything the client may send is something the endpoint's Zod schema will
-accept, so tightening a schema without updating the contract fails the build
-rather than a request in production.
+[`server/types/contracts.ts`](server/types/contracts.ts) also asserts at
+compile time that everything the client may send is accepted by the
+endpoint's Zod schema.
 
 ---
 
 ## Project structure
 
 ```text
-MernBookstore/
+BookStoreBD/
 ├── client/                      # React + Vite single-page app
 │   ├── public/                  # Favicon, share image, placeholder cover
 │   ├── src/
-│   │   ├── components/          # Reusable UI (chat window, table, spinner…)
+│   │   ├── components/          # Reusable UI
 │   │   ├── fonts/               # Plus Jakarta Sans and the Taka sign, self-hosted
-│   │   ├── config/
-│   │   │   ├── api.ts           # API origin + authenticated fetch/axios
-│   │   │   └── queryClient.ts   # TanStack Query defaults
-│   │   ├── hooks/
-│   │   │   └── queries.ts       # One place for every query and mutation
-│   │   ├── pages/               # Route-level screens
-│   │   │   ├── admin/           # Admin-only screens
-│   │   │   └── buyer/           # Buyer-only screens
+│   │   ├── config/              # API origin, query client, site constants
+│   │   ├── hooks/queries.ts     # Every query and mutation
+│   │   ├── pages/               # Route-level screens (admin/, buyer/, legal/)
 │   │   ├── styles/              # Shared stylesheets
-│   │   ├── utils/               # Live chat subscription, safe image sources
+│   │   ├── utils/               # Password rules, PDFs, sockets, helpers
 │   │   ├── App.tsx              # Router and route guards
-│   │   └── main.tsx             # React entry point
-│   ├── .env.example
-│   ├── eslint.config.js
-│   ├── index.html
-│   ├── tsconfig.json            # Type-check settings (Vite does the building)
+│   │   └── main.tsx             # Entry point
 │   └── vite.config.ts
 │
 ├── server/                      # Express REST API + Socket.IO gateway
-│   ├── config/
-│   │   ├── cors.ts              # Origin allow-list
-│   │   ├── database.ts          # Mongoose connection lifecycle
-│   │   ├── env.ts               # Typed, validated environment config
-│   │   ├── logger.ts            # pino instance and redaction rules
-│   │   ├── paths.ts             # Package root, uploads and client bundle
-│   │   └── sentry.ts            # Optional error reporting
+│   ├── config/                  # Environment, database, logger, CORS, rules
 │   ├── controllers/             # Request handlers, one per domain
-│   ├── middleware/
-│   │   ├── auth.ts              # Token verification, role and owner guards
-│   │   ├── errorHandler.ts      # 404 + centralised error responses
-│   │   ├── rateLimit.ts         # Per-IP request ceilings
-│   │   ├── requestLogger.ts     # One line per request, with a request id
-│   │   ├── validate.ts          # Zod validation for body, query and params
-│   │   └── sanitizeRequest.ts   # Strips Mongo operator keys from input
-│   ├── models/                  # Mongoose schemas, incl. RefreshToken
+│   ├── middleware/              # Auth, validation, rate limits, errors
+│   ├── models/                  # Mongoose schemas
 │   ├── routes/                  # Express routers, one per domain
 │   ├── schemas/                 # One Zod schema per endpoint
-│   │   ├── common.ts            # Shared primitives (email, objectId, ints)
-│   │   └── index.ts             # Grouped by domain, plus inferred types
-│   ├── scripts/
-│   │   └── seed.ts              # Demo accounts and catalogue
-│   ├── shared/
-│   │   └── api.d.ts             # The wire contract, shared with the client
-│   ├── sockets/
-│   │   └── chatSocket.ts        # Authenticated live delivery of chat messages
+│   ├── scripts/                 # Seeding, migrations, Gmail token
+│   ├── shared/api.d.ts          # The wire contract, shared with the client
+│   ├── sockets/                 # Authenticated live delivery
 │   ├── tests/                   # Vitest + Supertest suites
-│   │   ├── helpers/             # App bootstrap and data factories
-│   │   └── setup/               # Shared in-memory MongoDB
-│   ├── types/
-│   │   ├── contracts.ts         # Compile-time schema/contract assertions
-│   │   ├── express.d.ts         # req.user, set by the auth middleware
-│   │   └── vitest.d.ts          # What globalSetup provides to the suites
-│   ├── utils/
-│   │   ├── emailTemplates.ts    # The shop's e-mails, as HTML and plain text
-│   │   ├── error.ts             # Error factory used by controllers
-│   │   ├── mailer.ts            # Gmail API or SMTP, whichever is configured
-│   │   ├── sharePreview.ts      # Per-book link previews in the page head
-│   │   ├── jwt.ts               # Access token signing and verification
-│   │   └── refreshToken.ts      # Issue, rotate and revoke refresh tokens
-│   ├── .env.example
+│   ├── utils/                   # Mail, notifications, search, passwords, PDFs
 │   ├── app.ts                   # createApp() factory
-│   ├── index.ts                 # Bootstrap and graceful shutdown
-│   ├── tsconfig.json            # Type-check settings, including the tests
-│   └── tsconfig.build.json      # What `npm run build` compiles into dist/
+│   └── index.ts                 # Start-up and graceful shutdown
 │
-├── .github/
-│   ├── ISSUE_TEMPLATE/
-│   └── workflows/               # CI (CodeQL runs as GitHub's default setup)
-├── docker-compose.yml           # Dev stack: Mongo + API + Vite
-├── docker-compose.prod.yml      # Production-like: Mongo + API + nginx
-├── render.yaml                  # The Render Blueprint for the live site
-├── docs/                        # The roadmap and the production audit
-├── .editorconfig
-├── .nvmrc
-├── LICENSE
-└── package.json                 # Root scripts that drive both packages
+├── .github/                     # CI, Docker publishing, Dependabot, templates
+├── docs/                        # Engineering roadmap and production review
+├── Dockerfile                   # The single image published to GitHub Packages
+├── docker-compose.yml           # Development stack: MongoDB + API + Vite
+├── docker-compose.prod.yml      # Production-like stack: MongoDB + API + nginx
+├── render.yaml                  # Render Blueprint for the live site
+├── .env.example                 # Settings for Docker Compose
+└── package.json                 # Root scripts for both packages
 ```
 
 ---
@@ -359,14 +286,11 @@ MernBookstore/
 
 ### Prerequisites
 
-- **Node.js 24** (Active LTS) — `nvm use` picks it up from [`.nvmrc`](.nvmrc).
-  Node 22.13+ also works; the floor is `^22.13.0 || >=24.0.0`, which is what
-  Vitest and ESLint between them require. Node 20 reached end of life in
-  April 2026 and is no longer supported here.
+- **Node.js 24** (Active LTS); 22.13+ also works. `nvm use` reads [`.nvmrc`](.nvmrc).
 - **MongoDB** — a local instance or a free [MongoDB Atlas](https://www.mongodb.com/atlas) cluster
-- A **Gmail account** for one-time-code emails: an [App Password](https://support.google.com/accounts/answer/185833)
-  for SMTP locally, or Gmail API credentials (`npm run gmail:token`) where the
-  SMTP ports are blocked, as on Render's free plan
+- **E-mail** for sign-up codes: a Gmail [App Password](https://support.google.com/accounts/answer/185833)
+  for SMTP, or Gmail API credentials (`npm run gmail:token`) where SMTP ports
+  are blocked
 
 ### 1. Clone and install
 
@@ -377,19 +301,18 @@ npm install          # root tooling
 npm run install:all  # client + server dependencies
 ```
 
-### 2. Configure the environment
+### 2. Configure
 
 ```bash
 cp server/.env.example server/.env
 cp client/.env.example client/.env
 ```
 
-Then fill in `server/.env` — at minimum `MONGO`, `JWT_SECRET`, `SMTP_USER` and
-`SMTP_PASS`. Generate the secret with `openssl rand -hex 48`. The server
-refuses to start, with a clear message, if `MONGO` or `JWT_SECRET` is missing
-or if the secret is shorter than 32 characters.
+Fill in `server/.env` with your own values — at minimum `MONGO` and
+`JWT_SECRET` (`openssl rand -hex 48`), plus `SMTP_USER` and `SMTP_PASS` for
+e-mail. The server checks these at start-up and explains anything missing.
 
-### 3. Run both apps
+### 3. Run
 
 ```bash
 npm run dev
@@ -401,38 +324,52 @@ npm run dev
 | API | <http://localhost:4000> |
 | Health | <http://localhost:4000/health> |
 
-To run them separately, use `npm run dev:server` and `npm run dev:client`.
+### 4. Add demo data (optional)
+
+Set `SEED_PASSWORD` in `server/.env` to a password of your choice, then:
+
+```bash
+npm run seed
+```
+
+This creates an administrator, a seller and a buyer
+(`admin@`, `seller@` and `buyer@bookstorebd.local`), all using your
+`SEED_PASSWORD`, and a small catalogue.
 
 ---
 
 ## Running with Docker
 
-Everything the project needs, without installing Node or MongoDB:
+### The published image
+
+Every change on `master` is published to GitHub Packages as one image that
+serves the API and the site together, as the live deployment does:
 
 ```bash
-docker compose up --build            # MongoDB + API + client
-docker compose run --rm seed         # sample accounts and catalogue
+docker run -p 4000:4000 \
+  -e MONGO="mongodb+srv://<your-cluster>/bookstorebd" \
+  -e JWT_SECRET="$(openssl rand -hex 48)" \
+  ghcr.io/utshabasak/bookstorebd
+```
+
+The image contains no configuration or credentials; every setting from
+[`server/.env.example`](server/.env.example) is supplied when it runs.
+
+### Development stack
+
+MongoDB, the API and the client, with hot reload and nothing to install but Docker:
+
+```bash
+cp .env.example .env     # then set JWT_SECRET and SEED_PASSWORD
+docker compose up --build
+docker compose run --rm seed
 ```
 
 | Service | URL |
 | --- | --- |
-| Client (Vite dev server) | <http://localhost:5173> |
+| Client | <http://localhost:5173> |
 | API | <http://localhost:4000> |
 | MongoDB | `mongodb://localhost:27017/bookstorebd` |
-
-The source is bind-mounted, so edits on the host reload inside the containers.
-Both watchers are set to poll, because filesystem events raised on a Windows
-host do not reach a Linux container.
-
-After seeding, sign in as any of:
-
-| Role | Email | Password |
-| --- | --- | --- |
-| admin | `admin@bookstorebd.local` | `Password123!` |
-| seller | `seller@bookstorebd.local` | `Password123!` |
-| buyer | `buyer@bookstorebd.local` | `Password123!` |
-
-Other useful commands:
 
 ```bash
 docker compose run --rm test   # the server suite, against the stack's MongoDB
@@ -441,18 +378,15 @@ docker compose down            # stop, keeping the database
 docker compose down -v         # stop and discard the database
 ```
 
-### Production-like build
-
-To check a real build rather than the dev servers — useful before deploying:
+### Production-like stack
 
 ```bash
 export JWT_SECRET=$(openssl rand -hex 48)
 docker compose -f docker-compose.prod.yml up --build
 ```
 
-The client is built and served by nginx on <http://localhost:8080> with an SPA
-fallback, and the API runs unprivileged with `NODE_ENV=production` and a health
-check. `JWT_SECRET` is required; Compose refuses to start without it.
+The client is served by nginx on <http://localhost:8080> and the API runs
+unprivileged with `NODE_ENV=production` and a health check.
 
 ---
 
@@ -463,127 +397,93 @@ check. `JWT_SECRET` is required; Compose refuses to start without it.
 | Variable | Required | Default | Description |
 | --- | :---: | --- | --- |
 | `MONGO` | ✅ | — | MongoDB connection string |
+| `JWT_SECRET` | ✅ | — | Signs access tokens; at least 32 characters |
 | `PORT` | | `4000` | Port the API listens on |
 | `NODE_ENV` | | `development` | `development` or `production` |
 | `CORS_ORIGINS` | | `http://localhost:5173` | Comma-separated browser origins allowed to call the API |
-| `JWT_SECRET` | ✅ | — | Signs access tokens; must be 32+ chars, else start fails |
 | `JWT_EXPIRES_IN` | | `15m` | Access token lifetime |
 | `REFRESH_TOKEN_TTL_DAYS` | | `30` | Refresh token lifetime |
 | `COOKIE_SECURE` | | on in production | `Secure` flag on the refresh cookie |
 | `COOKIE_SAME_SITE` | | `lax` | `SameSite` on the refresh cookie |
-| `SERVE_CLIENT` | | on in production | Serve `client/dist` from the API process; warns at start-up if there is no build |
-| `CLIENT_API_ORIGIN` | | — | Cross-origin deployments only: added to the CSP `connect-src` so the browser may call the API |
-| `PUBLIC_SITE_URL` | | the request's own origin | Canonical origin for the URLs in `robots.txt`, `sitemap.xml`, `llms.txt`, link previews and e-mails. Set it once the domain is known, so a site answering on two hostnames advertises one |
-| `CLOUDINARY_CLOUD_NAME` | | — | Enables image hosting; unset keeps covers inline |
-| `CLOUDINARY_API_KEY` | | — | Cloudinary API key |
-| `CLOUDINARY_API_SECRET` | | — | Signs uploads. Secret — never commit |
+| `SERVE_CLIENT` | | on in production | Serve `client/dist` from the API process |
+| `CLIENT_API_ORIGIN` | | — | Cross-origin deployments only: added to the CSP `connect-src` |
+| `PUBLIC_SITE_URL` | | the request's origin | Canonical origin for the sitemap, link previews and e-mails |
 | `ADMIN_EMAILS` | | — | Comma-separated e-mails promoted to admin on sign-in |
+| `CLOUDINARY_CLOUD_NAME` | | — | Enables image hosting |
+| `CLOUDINARY_API_KEY` | | — | Cloudinary API key |
+| `CLOUDINARY_API_SECRET` | | — | Signs uploads. Keep it secret |
 | `SMTP_SERVICE` | | `gmail` | Nodemailer service name |
-| `SMTP_USER` | ✅ ¹ | — | SMTP account used as the sender |
-| `SMTP_PASS` | ✅ ¹ | — | SMTP password or app password |
-| `GMAIL_CLIENT_ID` | ¹ | — | Google Cloud OAuth client, for Gmail's web API |
-| `GMAIL_CLIENT_SECRET` | ¹ | — | Its secret. Never commit |
-| `GMAIL_REFRESH_TOKEN` | ¹ | — | From `npm run gmail:token`. With all three set, mail goes over HTTPS instead of SMTP |
-| `LOG_LEVEL` | | `debug` dev / `info` prod | pino level; `silent` under test |
-| `SENTRY_DSN` | | — | Enables error reporting; off entirely when unset |
+| `SMTP_USER` | ✅ ¹ | — | The sender's address |
+| `SMTP_PASS` | ✅ ¹ | — | SMTP or App Password |
+| `GMAIL_CLIENT_ID` | ¹ | — | Google Cloud OAuth client, for Gmail's API |
+| `GMAIL_CLIENT_SECRET` | ¹ | — | Its secret. Keep it secret |
+| `GMAIL_REFRESH_TOKEN` | ¹ | — | From `npm run gmail:token`; with all three set, mail goes over HTTPS |
+| `RETURN_ADDRESS` | | — | Where approved returns are sent, quoted in the approval e-mail |
+| `PASSWORD_BREACH_CHECK` | | on | `off` skips the breached-password check |
+| `LOG_LEVEL` | | `debug` dev / `info` prod | pino level |
+| `SENTRY_DSN` | | — | Enables error reporting |
 | `SENTRY_TRACES_SAMPLE_RATE` | | `0` | Fraction of transactions traced |
-| `SEED_PASSWORD` | | `Password123!` | Password given to the seeded demo accounts |
-| `MAX_UPLOAD_BYTES` | | `5242880` | Per-file upload ceiling (5 MB) |
-| `MAX_UPLOAD_FILES` | | `10` | Files accepted per multi-upload request |
-| `RETURN_ADDRESS` | | — | Where approved returns are sent, quoted in the approval e-mail; blank asks the buyer to reply |
-| `PASSWORD_BREACH_CHECK` | | on | `off` skips the check of new passwords against known breaches (always off under test) |
+| `SEED_PASSWORD` | for seeding | — | Password for the demo accounts `npm run seed` creates |
+| `MAX_UPLOAD_BYTES` | | `5242880` | Per-file upload limit (5 MB) |
+| `MAX_UPLOAD_FILES` | | `10` | Files per multi-upload request |
 
-¹ Required only for the OTP flows (sign-up verification and password reset):
-`SMTP_USER` always (it is the sender), plus either `SMTP_PASS` or the three
-`GMAIL_*` values.
+¹ For e-mail (sign-up codes, password reset, order updates): `SMTP_USER`, plus
+either `SMTP_PASS` or the three `GMAIL_*` values.
 
 ### `client/.env`
 
-| Variable | Required | Default | Description |
-| --- | :---: | --- | --- |
-| `VITE_API_URL` | | empty: `/api` on the same origin | Only for a client deployed apart from the API |
-| `VITE_PROXY_TARGET` | | `http://localhost:4000` | Where the dev server forwards `/api` and `/socket.io` |
+| Variable | Default | Description |
+| --- | --- | --- |
+| `VITE_API_URL` | empty (`/api` on the same origin) | Only for a client deployed apart from the API |
+| `VITE_PROXY_TARGET` | `http://localhost:4000` | Where the dev server forwards `/api` and `/socket.io` |
 
-> Only variables prefixed with `VITE_` reach the browser bundle. Never put a
-> secret in `client/.env`.
+> Only `VITE_`-prefixed variables reach the browser. Never put a secret in `client/.env`.
 
 ---
 
 ## Available scripts
 
-Run these from the repository root:
+Run from the repository root:
 
 | Script | What it does |
 | --- | --- |
-| `npm run install:all` | Installs dependencies in both `client/` and `server/` |
+| `npm run install:all` | Installs dependencies in `client/` and `server/` |
 | `npm run dev` | Runs the API and the client together |
-| `npm run dev:server` | Runs the API alone with hot reload (nodemon + tsx) |
-| `npm run dev:client` | Runs the Vite dev server alone |
+| `npm run dev:server` / `dev:client` | One of them |
 | `npm run build` | Compiles the API to `server/dist` and bundles the client |
-| `npm run build:server` / `build:client` | One package only |
-| `npm run preview` | Serves the built client locally |
-| `npm start` | Starts the API from `server/dist` (build first) |
+| `npm start` | Starts the compiled API |
 | `npm run typecheck` | Type-checks both packages, tests included |
-| `npm run typecheck:server` / `typecheck:client` | One package only |
 | `npm run lint` | Lints both packages |
-| `npm run lint:server` / `lint:client` | One package only |
-| `npm test` | Runs the server and client test suites |
-| `npm run test:server` | Server suite only |
-| `npm run test:client` | Client suite only |
-| `npm run test:watch` | Re-runs on change (inside `client/` or `server/`) |
-| `npm run seed` | Seeds demo data (`-- --reset` empties first) |
-| `npm run migrate:images` | Moves base64 covers to Cloudinary |
-| `npm run gmail:token` | Gets the Gmail API refresh token, once, in a browser |
+| `npm test` | Runs both test suites (`test:server` / `test:client` for one) |
+| `npm run seed` | Seeds demo data (`-- --reset` empties it first) |
+| `npm run migrate:images` | Moves inline covers to Cloudinary |
+| `npm run gmail:token` | Obtains the Gmail API refresh token |
 
-> The API runs from TypeScript sources in development — nodemon watches, `tsx`
-> executes — and from the compiled output in production. `npm run typecheck` is
-> what actually checks the types: neither `tsx` nor Vite does, they only strip
-> them.
+Before opening a pull request:
+
+```bash
+npm run lint && npm run typecheck && npm test && npm run build
+```
 
 ---
 
 ## Observability
 
-The API logs one structured line per request through
-[pino](https://getpino.io), pretty-printed while developing and newline-delimited
-JSON everywhere else.
-
-Every request carries a correlation id, returned as `X-Request-Id` and attached
-to each line logged while handling it. An id supplied upstream is reused, so a
-trace survives a proxy hop. A report of "it broke around 14:32" can then be tied
-to an exact request instead of guessed at from timestamps.
-
-`Authorization` headers, cookies, passwords, OTP codes and tokens are redacted
-before anything is written — logs get shared in issues and pasted into chat far
-more readily than a database does.
-
-```jsonc
-{"level":30,"time":"...","name":"auth","req":{"id":"6b1c…","method":"POST","url":"/auth/signin"},"res":{"statusCode":200},"msg":"POST /auth/signin 200"}
-```
-
-Health checks are excluded, since a container polls them constantly and they
-say nothing useful. Set `LOG_LEVEL` to override the default for the
-environment.
-
-Unhandled 5xx errors are additionally reported to
-[Sentry](https://sentry.io) when `SENTRY_DSN` is set. It is entirely optional —
-with no DSN, nothing is initialised and nothing leaves the process.
-
-On the client, an error boundary wraps the app, so a render error shows a
-recovery screen rather than a blank white page.
+- One structured [pino](https://getpino.io) log line per request, pretty in
+  development and JSON in production
+- A correlation id on every request, returned as `X-Request-Id` and attached to
+  every line logged while handling it
+- Passwords, tokens, cookies and one-time codes redacted before anything is written
+- Unhandled server errors reported to [Sentry](https://sentry.io) when `SENTRY_DSN`
+  is set; browser errors reported to `/client-error`
+- A client error boundary that shows a recovery screen
 
 ---
 
 ## Image hosting
 
-Book covers can be stored two ways, and the app picks automatically.
-
-**Without `CLOUDINARY_*` set** — covers are stored as base64 on the document,
-which is how the project started and what a fresh clone does. No account
-needed.
-
-**With `CLOUDINARY_*` set** — the browser uploads straight to Cloudinary and
-only the URL is stored:
+With `CLOUDINARY_*` set, the browser uploads straight to Cloudinary and the API
+stores only the URL:
 
 ```text
 Browser ──"I want to upload"──▶ API        (signs the request)
@@ -593,38 +493,14 @@ Browser ◀───────── URL + public_id ───────  Cl
 Browser ──"here is the URL"──▶ API         (stores the URL only)
 ```
 
-The bytes never pass through the API, so a ten-image upload costs it two small
-JSON requests instead of several megabytes of memory and request time.
+Returned URLs are checked against the account's own delivery host, and deleting
+a listing removes its images. Without Cloudinary, covers are stored in the
+database, so a fresh clone works with no account.
 
-A returned URL is checked against this account's delivery host before it is
-stored. Without that, a caller could pin any URL they liked to a listing and
-have it served to every visitor. Deleting a listing removes its assets, so the
-account does not fill up with orphans.
-
-To move existing records across:
-
-```bash
-npm run migrate:images:dry              # report only
-npm run migrate:images -- --limit 10    # a cautious first batch
-npm run migrate:images                  # the rest
-```
-
-PowerShell drops the `--` separator when it calls a native command, so
-`-- --dry-run` never reaches the script there and the run silently becomes a
-real one. That is what `migrate:images:dry` is for, and why `--limit` also
-reads `MIGRATE_LIMIT`:
-
-```powershell
-npm run migrate:images:dry
-$env:MIGRATE_LIMIT=10; npm run migrate:images
-```
-
-A run that is about to write says `LIVE RUN` and waits five seconds first, so
-a lost flag is visible rather than silent.
-
-It is idempotent, and a listing is only rewritten once every one of its uploads
-has succeeded — an interrupted run leaves the original base64 intact rather
-than a listing with half its covers missing.
+`npm run migrate:images` moves existing inline covers to Cloudinary. It is
+idempotent, rewrites a listing only once all its uploads succeed, and offers
+`npm run migrate:images:dry` (report only) and `--limit` / `MIGRATE_LIMIT` for
+a gradual first run.
 
 ---
 
@@ -644,123 +520,75 @@ npm run test:client   # client only
 | Database | `mongodb-memory-server` | — |
 | Components | — | Testing Library |
 
-The server suite runs against a **real MongoDB**, started once for the whole
-run and shared by every file; each file connects to its own database on that
-instance, so files stay independent and run in parallel. Nothing external
-needs to be installed or running.
-
-`tests/regressions.test.ts` is worth knowing about: every case in it maps to a
-defect that actually shipped — the cart that stayed full after checkout, the
-authentication bypass, contact details readable by anyone. A failure there
-means a real bug has come back.
-
-Both suites run in CI on every push and pull request.
-
-The server suite is hermetic: `server/.env` is deliberately not read under
-Vitest, and optional integration variables are cleared in each worker. A suite
-that passed or failed depending on whether a developer had configured
-Cloudinary would be worse than no suite at all.
+The server suite runs against a real in-memory MongoDB, with a separate database
+per test file so files run in parallel. It is hermetic: it never reads
+`server/.env`, and needs nothing installed or running.
+[`tests/regressions.test.ts`](server/tests/regressions.test.ts) pins
+behaviour that must never change, such as authorisation boundaries and
+checkout integrity. Both suites run in CI on every push and pull request.
 
 ---
 
 ## API reference
 
-All endpoints live under **`/api`**, with `/health`, `/robots.txt`,
-`/sitemap.xml` and `/llms.txt` at the root.
+Endpoints live under **`/api`**; `/health`, `/robots.txt`, `/sitemap.xml` and
+`/llms.txt` are at the root. The client and API share an origin, so the prefix
+keeps pages such as `/cart` and endpoints such as `/api/cart` apart.
 
-The namespace is not decoration: the client and API share an origin, and
-`/cart`, `/wishlist`, `/book`, `/chat` and `/filter` are each both a page and
-an endpoint. Without it a proxy cannot tell which one a request wants.
-
-Base URL: `http://localhost:5173/api` in development (proxied), or
-`http://localhost:4000/api` straight to the API.
-
-All routes sit behind a per-IP rate limiter (see
-[`server/middleware/rateLimit.ts`](server/middleware/rateLimit.ts)); `/auth` is
-held to a tighter ceiling than the rest. Responses carry `RateLimit-*` headers,
-and an exhausted limit returns `429`.
+All routes are rate-limited per IP, with a tighter limit on `/auth`; responses
+carry `RateLimit-*` headers and an exhausted limit returns `429`.
 
 ### Validation
 
-Every endpoint validates its `body`, `query` and `params` against a Zod schema
-before the handler runs, and the handler then works with the parsed result.
-
-A failure returns `400` listing **every** problem, not just the first:
+Every endpoint validates `body`, `query` and `params` with Zod before the
+handler runs. Unknown keys are stripped and types are narrowed, so a request
+can neither add fields to a document nor pass a query operator. A failure
+returns `400` with every problem:
 
 ```json
 {
   "message": "Validation failed",
   "errors": [
     { "path": "body.email", "message": "Must be a valid email address" },
-    { "path": "body.password", "message": "Password must be at least 8 characters" }
+    { "path": "body.password", "message": "Password is required" }
   ]
 }
 ```
 
-Schemas also strip unknown keys, so a request body cannot smuggle extra fields
-into a document, and type narrowing is what keeps query operators out of
-Mongoose — a field declared `z.string()` can never arrive as `{ "$ne": null }`.
-
 ### Authentication
 
 `POST /auth/signin` and `POST /auth/signup` return a short-lived access token
-in the body, and set a refresh token in an httpOnly cookie:
+and set a refresh token in an httpOnly cookie:
 
 ```json
 { "token": "eyJhbGciOi...", "user": { "id": "...", "username": "...", "email": "...", "role": "user" } }
 ```
 
-Send the access token on every protected request:
-
-```text
-Authorization: Bearer <token>
-```
+Send the access token as `Authorization: Bearer <token>`.
 
 | | Access token | Refresh token |
 | --- | --- | --- |
 | Lifetime | 15 minutes | 30 days |
-| Stored | Response body, then `localStorage` | httpOnly cookie, scoped to `/auth` |
-| Readable by page JavaScript | Yes | **No** |
-| Revocable | No | Yes |
+| Stored | Response body | httpOnly cookie, scoped to `/auth` |
+| Readable by page JavaScript | Yes | No |
+| Revocable | Expires quickly | Yes |
 
-The split is the point. The access token cannot be revoked, so it is short.
-The refresh token lives long enough to keep a session alive, and because it is
-httpOnly an XSS bug cannot lift it. Only its SHA-256 is stored, so a database
-dump yields nothing presentable to `/auth/refresh`.
+`POST /auth/refresh` returns a new access token and rotates the refresh token;
+reusing an exchanged token revokes the whole session family. Only a SHA-256 of
+each refresh token is stored. Logging out or resetting a password revokes
+sessions. The client refreshes on a `401` and retries, sharing one refresh
+across concurrent requests.
 
-`POST /auth/refresh` exchanges the cookie for a new access token and **rotates**
-the refresh token. Presenting an already-exchanged token — the signature of a
-stolen one — revokes the entire token family, ending that session everywhere.
-`POST /auth/logout` revokes the family and clears the cookie. Resetting a
-password revokes every session for the account.
-
-The client refreshes automatically on a `401` and retries the original request,
-sharing one refresh across concurrent requests so rotation cannot trip over
-itself.
-
-Cookies are first-party because the client and API share an origin: the Vite
-dev server proxies the API in development, and nginx does in the production
-compose stack. `SERVE_CLIENT=true` makes the API serve the built client itself,
-for a single-service deployment — run `npm run build` in `client/` first, or the
-API will start, warn that it found no bundle, and serve only itself.
-
-The server resolves the caller from that token and **ignores any identity in
-the request itself**. An `?email=` in a query string is supplied by the caller
-and proves nothing, so it is never used to decide what you may see or change.
+The caller's identity always comes from the token, never from the request.
 
 | Access level | Applies to |
 | --- | --- |
-| **Public** | `/health`, catalogue browsing (`/book`, `/filter/*`), `/auth/*`, a seller's public profile |
-| **Authenticated** | Cart, wishlist, orders, chat, returns, purchases, profile updates, creating a listing |
-| **Owner** | Editing or deleting a listing (seller only), reading or updating an order (buyer or seller only), reading a conversation (participants only) |
-| **Administrator** | Listing and deleting users, every order, approving returns |
+| **Public** | `/health`, catalogue browsing, `/auth/*`, public profiles and shops |
+| **Authenticated** | Cart, wishlist, orders, chat, returns, notifications, profile, creating a listing |
+| **Owner** | Editing a listing, reading or updating an order, reading a conversation |
+| **Administrator** | Users, every order, returns, payouts, reviews, messages |
 
-A rejected token returns `401`; a valid token without the right role returns
-`403`. The client clears the session and redirects to sign-in on a `401`.
-
-Admins are identified by `role` on the user document. `ADMIN_EMAILS` promotes
-listed accounts on their next sign-in, so an existing deployment gains its
-administrator without a migration.
+An invalid token returns `401`; a valid one without the right role returns `403`.
 
 ### Health
 
@@ -772,29 +600,26 @@ administrator without a migration.
 
 | Method | Endpoint | Description |
 | --- | --- | --- |
-| `POST` | `/auth/signup` | Create an account (requires a verified OTP) |
+| `POST` | `/auth/signup` | Create an account (requires a verified one-time code) |
 | `POST` | `/auth/signin` | Sign in with email and password |
 | `POST` | `/auth/send-otp` | Send a one-time code (`purpose`: `register` or `reset`) |
 | `POST` | `/auth/verify-otp` | Verify a one-time code |
-| `POST` | `/auth/reset-password` | Reset a password using a valid OTP; ends every session |
-| `POST` | `/auth/password-check` | Whether a password would be accepted, breach check included: `{ ok, problems, message }` |
-| `POST` | `/auth/refresh` | Rotate the refresh cookie, return a new access token |
+| `POST` | `/auth/reset-password` | Reset a password with a valid code; ends every session |
+| `POST` | `/auth/password-check` | Whether a password would be accepted: `{ ok, problems, message }` |
+| `POST` | `/auth/refresh` | Rotate the refresh cookie and return a new access token |
 | `POST` | `/auth/logout` | Revoke the session and clear the cookie |
 
 ### Users — `/user`
 
 | Method | Endpoint | Description |
 | --- | --- | --- |
-| `GET` | `/user` | One page of non-admin accounts (admin) |
-| `GET` | `/user/test` | Liveness probe for the user router |
-| `GET` | `/user/profile` | Fetch a profile by `?email=` |
-| `PUT` | `/user/profile` | Update a profile (multipart, optional avatar) |
+| `GET` | `/user` | One page of accounts (admin) |
+| `GET` | `/user/profile` | A profile by `?email=` |
+| `PUT` | `/user/profile` | Update your profile (multipart, optional pictures) |
 | `POST` | `/user/add-book` | Create a listing with up to 10 images |
-| `GET` | `/user/:email/avatar` | A profile picture, as an image |
-| `GET` | `/user/:email/banner/:role` | A buyer or seller banner kept inline, as an image |
-| `GET` | `/user/shop/:username` | A seller's shop: who they are and how they do; `404` without books |
-| `POST` | `/user/signup` | Alias of `/auth/signup`, kept for older callers |
-| `POST` | `/user/signin` | Alias of `/auth/signin`, kept for older callers |
+| `GET` | `/user/:email/avatar` | A profile picture |
+| `GET` | `/user/:email/banner/:role` | A buyer or seller banner |
+| `GET` | `/user/shop/:username` | A seller's shop and stats |
 | `DELETE` | `/user/:id` | Delete a user (admin) |
 
 ### Books — `/book` and `/filter`
@@ -802,46 +627,29 @@ administrator without a migration.
 | Method | Endpoint | Description |
 | --- | --- | --- |
 | `GET` | `/book/admin` | One page of every listing (admin) |
-| `GET` | `/book/:id` | Book detail plus related titles |
-| `GET` | `/book/:id/request` | Whether you asked for this sold-out book, and how many have |
-| `POST` | `/book/:id/request` | Ask for a sold-out book to come back; `409` while it is in stock |
-| `DELETE` | `/book/:id/request` | Withdraw that request |
-| `GET` | `/book/requests/mine` | Open requests for each of your books, by id |
+| `GET` | `/book/:id` | Book detail with related titles |
+| `GET` / `POST` / `DELETE` | `/book/:id/request` | Your request for a sold-out book: status, ask, withdraw |
+| `GET` | `/book/requests/mine` | Open requests for each of your books |
 | `GET` | `/book/seller/:email` | Every listing by one seller |
-| `PUT` | `/book/update-stock/:id` | Set stock; carts keep the book, marked sold out at 0 |
-| `PUT` | `/book/update-price/:id` | Set price; drops a taka discount that no longer fits |
-| `PUT` | `/book/discount/:id` | The seller's discount: `{ type: 'percent' \| 'amount', value }` or `{ type: 'none' }` |
+| `PUT` | `/book/update-stock/:id` | Set stock |
+| `PUT` | `/book/update-price/:id` | Set price |
+| `PUT` | `/book/discount/:id` | Set a discount: `{ type: 'percent' \| 'amount', value }` or `{ type: 'none' }` |
 | `DELETE` | `/book/:id` | Delete a listing |
-| `GET` | `/filter/booklist` | One page of the catalogue, filtered |
-| `GET` | `/filter/suggest?q=` | Suggestions while typing: `{ books, sellers }`, with `books` and `sellers` limits |
-| `GET` | `/filter/featured` | The newest few, one per title |
+| `GET` | `/filter/booklist` | One page of the catalogue, filtered and sorted |
+| `GET` | `/filter/suggest?q=` | Search suggestions: `{ books, sellers }` |
+| `GET` | `/filter/featured` | The newest titles |
 | `GET` | `/filter/sections` | Every homepage shelf, writers and category counts |
-| `GET` | `/filter/by-ids?ids=` | Books in the order asked (Recently viewed) |
-| `GET` | `/filter/for-you?seen=` | Top picks, personal when signed in |
+| `GET` | `/filter/by-ids?ids=` | Books in the order given (Recently viewed) |
+| `GET` | `/filter/for-you?seen=` | Personal picks |
 
-The catalogue takes its filters as named query parameters — `search`,
-`bookType`, `condition`, `category` (repeatable), `minPrice`, `maxPrice`
-(both on the sale price), `rating`, `inStock`, `deals`, `sort` (`relevant`,
-the default, `dealPercent`, `dealAmount`, `newest`, `rated`, `priceLowHigh`,
-`priceHighLow`; the two deal orders show discounted books only), `page`,
-`pageSize` — and answers with
-`{ items, total, page, pageSize, pageCount }`. `pageSize` is capped, so no
-request can ask for the whole database.
+The catalogue takes `search`, `bookType`, `condition`, `category` (repeatable),
+`minPrice`, `maxPrice`, `rating` (1–5, a floor), `inStock`, `deals`, `seller`,
+`sort` (`relevant`, `dealPercent`, `dealAmount`, `newest`, `rated`,
+`priceLowHigh`, `priceHighLow`), `page` and `pageSize` (up to 50), and returns
+`{ items, total, page, pageSize, pageCount }`. Order lists page by order rather
+than by line, so a multi-book order is never split across pages.
 
-It replaces a pair of POSTs that took `{ filter_key, filter_input }`: a
-document path chosen by the caller, which needed a whitelist to stop it
-becoming a query operator. Naming each filter removes the question, and a
-search is now a URL you can link to, share and go back to.
-
-The catalogue also takes `seller` (a username) for a seller's shop; `rating`
-is a floor from 1 to 5, and `pageSize` goes up to 50 (20 by default).
-
-The order and return lists take the same three parameters — `search`, `page`,
-`pageSize` — and answer in the same shape. Orders are paged by **order**, not
-by line: a basket of three books is three rows, and a page that cut between
-them would show part of a purchase.
-
-Each admin list adds its own filters and a `sort`:
+Admin lists add their own filters and a `sort`:
 
 | List | Filters | `sort` |
 | --- | --- | --- |
@@ -851,145 +659,103 @@ Each admin list adds its own filters and a `sort`:
 | `/return/requests` | `status` = `pending` \| `approved` \| `rejected` | `newest`, `oldest` |
 | `/order/admin/payouts` | `state` = `due` \| `upcoming` \| `paid` | `oldest`, `newest`, `amountHigh`, `amountLow` |
 | `/review/flagged` | `rating` | `mostReported`, `newest`, `oldest`, `ratingLow`, `ratingHigh` |
-| `/review/all` | `rating`, `replied` = `yes` \| `no`, `reported` = `yes` \| `no` | `newest`, `oldest`, `ratingHigh`, `ratingLow`, `mostReported` |
+| `/review/all` | `rating`, `replied`, `reported` (`yes` \| `no`) | `newest`, `oldest`, `ratingHigh`, `ratingLow`, `mostReported` |
 
 ### Cart and wishlist
 
 | Method | Endpoint | Description |
 | --- | --- | --- |
-| `GET` | `/cart` | The cart, each book with `cartQuantity` (and `cartAdjusted` when it was lowered to the stock) |
-| `POST` | `/cart/add/:id` | Add a book; `{ quantity }` for several copies, `409` past the stock |
-| `PATCH` | `/cart/:id` | Set how many copies: `{ quantity }` |
-| `POST` | `/cart/remove/:id` | Remove a book from the cart |
-| `POST` | `/cart/clear` | Empty a cart, called after checkout |
-| `GET` | `/wishlist?email=` | Items in a user's wishlist |
-| `POST` | `/wishlist/add/:id` | Add a book to the wishlist |
-| `POST` | `/wishlist/remove/:id` | Remove a book from the wishlist |
+| `GET` | `/cart` | The cart, each book with its `cartQuantity` |
+| `POST` | `/cart/add/:id` | Add a book; `{ quantity }` for several copies |
+| `PATCH` | `/cart/:id` | Set the quantity: `{ quantity }` |
+| `POST` | `/cart/remove/:id` | Remove a book |
+| `POST` | `/cart/clear` | Empty the cart after checkout |
+| `GET` | `/wishlist` | Your wishlist |
+| `POST` | `/wishlist/add/:id` | Add a book |
+| `POST` | `/wishlist/remove/:id` | Remove a book |
 
 ### Orders — `/order`
 
 | Method | Endpoint | Description |
 | --- | --- | --- |
-| `POST` | `/order/decrease-stock` | Place an order and atomically reserve stock |
-| `GET` | `/order/buyer` | A page of the caller's orders, with totals |
-| `GET` | `/order/seller` | A page of the caller's sales |
-| `GET` | `/order/admin/all` | A page of every order (admin) |
-| `GET` | `/order/:orderNumber` | One order with its line items and totals |
-| `PATCH` | `/order/status/:orderNumber` | Move an order on: a seller their own books, up to Shipped; an admin anything |
-| `POST` | `/order/:orderNumber/cancel` | Cancel it, `{ reason? }`: the buyer, a seller or an admin, each within their rules |
-| `GET` | `/order/admin/payouts` | What sellers are owed, in their return window, or have been paid (admin) |
+| `POST` | `/order/decrease-stock` | Place an order, reserving stock atomically |
+| `GET` | `/order/buyer` | Your orders, with totals |
+| `GET` | `/order/seller` | Your sales, with payout status |
+| `GET` | `/order/admin/all` | Every order (admin) |
+| `GET` | `/order/:orderNumber` | One order with its lines and totals |
+| `PATCH` | `/order/status/:orderNumber` | Move an order on (seller up to Shipped; admin any stage) |
+| `POST` | `/order/:orderNumber/cancel` | Cancel, `{ reason? }`, within each role's rules |
+| `GET` | `/order/admin/payouts` | Seller payouts: due, upcoming or paid (admin) |
 | `POST` | `/order/admin/payouts/paid` | Record a payout with its bKash transaction ID (admin) |
-| `DELETE` | `/order/:id` | Delete a single line item |
+| `DELETE` | `/order/:id` | Delete a line (admin) |
 
-### Returns and purchases
+### Returns — `/return`
 
 | Method | Endpoint | Description |
 | --- | --- | --- |
-| `POST` | `/return` | Submit a return request, with its photographs; `orderId` repeats for a whole order |
-| `GET` | `/return/requests` | A page of return requests, scoped to the caller |
-| `GET` | `/return/requests/:id/image/:n` | One photograph, to its buyer or an admin |
-| `PATCH` | `/return/requests/:id` | Approve or reject a request (admin) |
+| `POST` | `/return` | Request a return with photos; repeat `orderId` for a whole order |
+| `GET` | `/return/requests` | Return requests, scoped to the caller |
+| `GET` | `/return/requests/:id/image/:n` | One photo, to its buyer or an admin |
+| `PATCH` | `/return/requests/:id` | Approve or reject (admin) |
 
 ### Reviews — `/review`
 
 | Method | Endpoint | Description |
 | --- | --- | --- |
-| `GET` | `/review/:bookId` | A book's reviews, its score, and what you may do |
-| `POST` | `/review/:bookId` | Write or replace your review (buyers only) |
-| `DELETE` | `/review/:bookId` | Withdraw yours; `?email=` for an admin |
-| `POST` | `/review/:id/reply` | The seller's answer to one review |
-| `DELETE` | `/review/:id/reply` | Withdraw that answer |
-| `POST` | `/review/:id/flag` | Report a review, once per person |
-| `GET` | `/review/flagged` | The moderation queue (admin) |
-| `GET` | `/review/all` | Every review, to search and filter (admin) |
-| `DELETE` | `/review/:id/flags` | Clear the reports, keep the review (admin) |
+| `GET` | `/review/:bookId` | A book's reviews and score |
+| `POST` | `/review/:bookId` | Write or update your review (verified buyers) |
+| `DELETE` | `/review/:bookId` | Withdraw your review; `?email=` for an admin |
+| `POST` / `DELETE` | `/review/:id/reply` | The seller's reply |
+| `POST` | `/review/:id/flag` | Report a review |
+| `GET` | `/review/flagged` | Reported reviews (admin) |
+| `GET` | `/review/all` | Every review (admin) |
+| `DELETE` | `/review/:id/flags` | Clear a review's reports (admin) |
 
-Only somebody who bought the book may review it, and only the seller of that
-book may answer — not an administrator, who would be signing the shop's name to
-words the shop did not write. Reporting hides nothing: a review stays where it
-is and keeps counting towards the score until an administrator decides
-otherwise, because anything else makes "report" a button for removing an
-inconvenient review.
+Only buyers of a book can review it, and only its seller can reply. A reported
+review stays visible until an administrator decides.
 
-### Messages — `/admin`
+### Messages, notifications and more
 
 | Method | Endpoint | Description |
 | --- | --- | --- |
-| `GET` | `/admin/message/audience?audience=` | How many a message would reach |
-| `POST` | `/admin/message` | `{ channel: notification \| email \| both, audience: users \| buyers \| sellers \| all, emails?, title, body, link? }` |
-
-### Notifications — `/notification`
-
-| Method | Endpoint | Description |
-| --- | --- | --- |
-| `GET` | `/notification` | A page of yours, newest first, with the unread count; `?unreadOnly=1` |
-| `POST` | `/notification/read` | Mark `{ ids }` read, or all of them without |
-
-### Purchases — `/purchase`
-
-| Method | Endpoint | Description |
-| --- | --- | --- |
-| `GET` | `/purchase?email=` | Purchase history for one user |
-| `POST` | `/purchase` | Record a purchase |
-
-### Uploads — `/upload`
-
-| Method | Endpoint | Description |
-| --- | --- | --- |
-| `GET` | `/upload/signature` | Signs a direct browser upload; `503` when unconfigured |
-
-### Chat — `/chat`
-
-| Method | Endpoint | Description |
-| --- | --- | --- |
-| `GET` | `/chat/messages` | Paginated thread (`?sender=&receiver=&page=&limit=`) |
-| `GET` | `/chat/messages/:id/image` | One attachment, to the two in the thread |
-| `GET` | `/chat/history/:email` | Conversation list with unread counts |
-| `GET` | `/chat/unread/:email` | Total unread message count |
+| `GET` | `/admin/message/audience?audience=` | How many a message would reach (admin) |
+| `POST` | `/admin/message` | Send `{ channel, audience, emails?, title, body, link? }` (admin) |
+| `GET` | `/notification` | Your notifications with the unread count; `?unreadOnly=1` |
+| `POST` | `/notification/read` | Mark `{ ids }` read, or all |
+| `GET` / `POST` | `/purchase` | Purchase history |
+| `GET` | `/upload/signature` | Signs a direct browser upload |
+| `GET` | `/chat/messages` | A conversation, paginated |
+| `GET` | `/chat/messages/:id/image` | One attachment, to its participants |
+| `GET` | `/chat/history/:email` | Conversations with unread counts |
+| `GET` | `/chat/unread/:email` | Total unread messages |
 | `POST` | `/chat/message` | Send text, a picture, or both |
-| `POST` | `/chat/read` | Mark a thread as read |
-| `DELETE` | `/chat/delete` | Delete a conversation between two users |
+| `POST` | `/chat/read` | Mark a conversation read |
+| `DELETE` | `/chat/delete` | Delete a conversation |
+| `POST` | `/client-error` | A browser error report (rate-limited) |
 
-### Client errors — `/client-error`
-
-| Method | Endpoint | Description |
-| --- | --- | --- |
-| `POST` | `/client-error` | A report from somebody's browser |
-
-Open to anyone, because a page breaks for signed-out visitors too, and limited
-to 60 reports per fifteen minutes per address. Reports land in the same
-structured log as everything else, with the request id, and go to Sentry when
-`SENTRY_DSN` is set. The browser de-duplicates and caps its own: the same
-failure is reported once per session, and twenty in total.
-
-### Site files at the root
+### Site files
 
 | Method | Endpoint | Description |
 | --- | --- | --- |
-| `GET` | `/robots.txt` | What crawlers may visit, and where the sitemap is |
-| `GET` | `/sitemap.xml` | Every public page and every book |
-| `GET` | `/llms.txt` | What the shop is and where things are, in Markdown, for AI assistants |
-| `GET` | `/book/:id` | The app, with that book's title, price and cover in the head for link previews |
+| `GET` | `/robots.txt` | Crawler rules and the sitemap's address |
+| `GET` | `/sitemap.xml` | Every public page and book |
+| `GET` | `/llms.txt` | A Markdown summary of the shop for AI assistants |
+| `GET` | `/book/:id` | The page, with the book's preview tags in its head |
 
 ---
 
 ## Real-time events
 
-The Socket.IO gateway is mounted on the same HTTP server as the REST API, on
-the default namespace. A connection must send its access token as
-`auth: { token }`, and is refused with `unauthorized` otherwise; each one is
-placed in its owner's room and nowhere else.
+Socket.IO shares the API's HTTP server. A connection authenticates with its
+access token (`auth: { token }`) and joins only its owner's room. The server
+pushes:
 
-Browsers send nothing over it. A message is saved with `POST /chat/message`,
-and the server then delivers the saved message to its receiver:
+| Event | Payload | Meaning |
+| --- | --- | --- |
+| `receive_message` | `{ _id, sender, receiver, message, image, timestamp, read }` | A new chat message |
+| `notification` | `{ _id, type, title, body, link, read, createdAt }` | A new notification |
 
-| Direction | Event | Payload | Meaning |
-| --- | --- | --- | --- |
-| server → client | `receive_message` | `{ _id, sender, receiver, message, image, timestamp, read }` | A new message for you |
-| server → client | `notification` | `{ _id, type, title, body, link, read, createdAt }` | Something for the bell |
-
-`image` is the address of the attachment (`/api/chat/messages/:id/image`),
-not its bytes.
+Messages are sent with `POST /chat/message`; attachments are delivered as URLs.
 
 ---
 
@@ -997,98 +763,77 @@ not its bytes.
 
 | Model | Collection | Purpose |
 | --- | --- | --- |
-| `UserTable` | `usertables` | Accounts, profile details, avatar |
-| `AddBook` | `addbooks` | Listings: metadata, images, price, stock, seller |
-| `Cart` | `carts` | User → book, unique per pair |
-| `Wishlist` | `wishlists` | User → book, unique per pair |
-| `Order` | `orders` | One document per line item, grouped by `orderNumber` |
+| `UserTable` | `usertables` | Accounts and profiles |
+| `AddBook` | `addbooks` | Listings: details, images, price, stock, seller |
+| `Cart` | `carts` | User → book, with quantity |
+| `Wishlist` | `wishlists` | User → book |
+| `Order` | `orders` | One document per line, grouped by `orderNumber` |
 | `Purchase` | `purchases` | Purchase history |
-| `ReturnRequest` | `returnrequests` | Return requests with defect details and status |
-| `ChatMessage` | `chatmessages` | Messages with read state, indexed by sender/receiver/time |
-| `Notification` | `notifications` | What the bell shows, per person; removed after 90 days |
-| `BookRequest` | `bookrequests` | Somebody waiting for a sold-out book; closed when it is back |
+| `ReturnRequest` | `returnrequests` | Return requests and decisions |
+| `Review` / `ReviewFlag` | `reviews` / `reviewflags` | Reviews, replies and reports |
+| `ChatMessage` | `chatmessages` | Messages with read state |
+| `Notification` | `notifications` | The bell's items, kept for 90 days |
+| `BookRequest` | `bookrequests` | Requests for sold-out books |
+| `RefreshToken` | `refreshtokens` | Hashed, rotating refresh tokens |
 
 ---
 
 ## Deployment
 
-The live site, <https://bookstorebd-loum.onrender.com>, is one
-[Render](https://render.com) Web Service that serves the API and the built site
-from the same origin, described in [`render.yaml`](render.yaml), with its
-database on MongoDB Atlas. Every push to `master` deploys it. Create it with
-**New → Blueprint** and this repository; Render then asks for the secrets.
+The live site runs as a single [Render](https://render.com) web service in
+Singapore, serving the API and the built site from one origin, with MongoDB
+Atlas in the same region. It is described in [`render.yaml`](render.yaml) and
+deploys on every push to `master`.
 
 | Setting | Value |
 | --- | --- |
-| Build command | install `server` and `client` with dev dependencies, then `npm run build` |
-| Start command | `npm start`, which runs `server/dist` |
+| Build | install both packages with dev dependencies, then `npm run build` |
+| Start | `npm start` |
 | Health check | `/health` |
-| Region | Singapore, with the MongoDB Atlas cluster in the same region |
+| Node.js | 24 |
 
-Asked for when the Blueprint is created:
+Secrets — `MONGO`, `ADMIN_EMAILS`, the e-mail settings and the Cloudinary
+keys — are entered in the service's **Environment** page and never stored in
+the repository. Render generates `JWT_SECRET`.
 
-| Variable | What it is |
-| --- | --- |
-| `MONGO` | The Atlas connection string, with `/bookstorebd` as the database |
-| `ADMIN_EMAILS` | The address made administrator on its next sign-in |
-| `SMTP_USER` | The Gmail address one-time codes are sent from |
-| `SMTP_PASS` | A Gmail App Password for it, not the account password |
-| `GMAIL_CLIENT_ID`, `GMAIL_CLIENT_SECRET`, `GMAIL_REFRESH_TOKEN` | Gmail's web API. Render's free plan blocks the SMTP ports, so this is how the live site sends mail |
-| `CLOUDINARY_API_SECRET` | From Cloudinary → Settings → API Keys |
-
-Render's Blueprint matches services by name, and the live service has been
-renamed, so a Blueprint sync would create a second one: change settings in the
-service's own **Environment** page instead.
-
-`JWT_SECRET` is generated by Render. The site's own address is always an allowed
-origin - Render supplies it as `RENDER_EXTERNAL_URL`, and `PUBLIC_SITE_URL` adds a
-custom domain - so `CORS_ORIGINS` is only for other origins.
-
-> One service rather than an API and a static site: same-origin is what makes
-> the httpOnly refresh cookie first-party. Split across two, the cookie does not
-> survive, and everyone is signed out when their 15-minute access token expires.
+A single service keeps the refresh cookie first-party, so sessions persist
+smoothly across access-token renewals.
 
 ---
 
 ## Roadmap
 
-All eight planned upgrades are done. [`docs/ROADMAP.md`](docs/ROADMAP.md)
-records what each one changed and what was learned doing it: automated tests,
-Docker Compose, structured logging, Zod validation, refresh tokens, Cloudinary
-image storage, TanStack Query, and the TypeScript migration.
-
-[`docs/AUDIT.md`](docs/AUDIT.md) is a production-readiness audit measured
-against the running application: security headers, privacy obligations, and the
-interface work between a project and a shop. Every item in its suggested order
-is done. What it still records — the access token in `localStorage` (S3), the
-bcrypt cost (S7), and the business features listed for later — is where to look
-next.
+[`docs/ROADMAP.md`](docs/ROADMAP.md) summarises the engineering upgrades
+completed so far — automated tests, Docker, structured logging, validation,
+refresh tokens, image hosting, TanStack Query and the TypeScript migration.
+[`docs/AUDIT.md`](docs/AUDIT.md) is the production-readiness review, including
+the hardening planned next.
 
 ---
 
 ## Coming soon
 
-What is planned for the near future, beyond the shop as it stands.
-
 | Upgrade | What it brings |
 | --- | --- |
-| 📱 **E-books** | Digital editions alongside printed ones: buy and read on the site, a free preview of the first pages, a personal library of everything bought, and downloads in EPUB and PDF where the publisher allows. Sellers and local publishers can list e-books next to their paperbacks. |
-| 🔄 **Book exchange** | Swap finished books with other readers instead of selling them: list what you have and what you want, get matched with a reader who has it, and trade through the same courier and chat the shop already runs. Exchange credit for a book given, to spend on a book received, so a swap does not need both sides at once. |
-| 💳 **Online payment** | bKash, Nagad and card payments at checkout, next to cash on delivery, with refunds back to the same account. |
-| 🚚 **Live courier tracking** | Delivery status straight from the courier, so an order's progress updates on its own rather than when the seller moves it on. |
-| 🔔 **SMS alerts** | The bell's news by SMS too - an order shipped, a return decided, a price drop on a saved book - and a choice of which alerts and e-mails each person gets. |
-| ⭐ **Seller ratings** | A score for each seller from their buyers, shown on every listing, for trust between people who have never met. |
-| 📲 **Mobile app** | The shop as an installable app for Android and iOS, with the cart, wishlist and chat always to hand. |
+| 📱 **E-books** | Digital editions next to printed ones: read on the site, preview the first pages, keep a personal library, and download EPUB or PDF where allowed |
+| 🔄 **Book exchange** | Swap finished books with other readers, matched by what each has and wants, with exchange credit so a swap needs no exact partner |
+| 💳 **Online payment** | bKash, Nagad and card payments alongside cash on delivery, with refunds to the same account |
+| 🚚 **Live courier tracking** | Delivery status straight from the courier |
+| 🔔 **SMS alerts** | Order and price alerts by SMS, with per-person preferences for alerts and e-mails |
+| ⭐ **Seller ratings** | A rating for each seller from their buyers, shown on every listing |
+| 📲 **Mobile app** | The shop as an installable app for Android and iOS |
 
-These are plans, not promises of a date. Ideas and requests are welcome in the
-[issues](https://github.com/UtshaBasak/BookStoreBD/issues/new?template=feature_request.md).
+Track these on the [roadmap issues](https://github.com/UtshaBasak/BookStoreBD/issues?q=label%3Aroadmap),
+and share ideas through a [feature request](https://github.com/UtshaBasak/BookStoreBD/issues/new?template=feature_request.md).
 
 ---
 
 ## Contributing
 
-Contributions are welcome. See [CONTRIBUTING.md](CONTRIBUTING.md) for the branch
-naming convention, commit style, and the checks that run in CI.
+Contributions are welcome. See [CONTRIBUTING.md](CONTRIBUTING.md) for branch
+naming, commit style and the checks CI runs, and the
+[Code of Conduct](CODE_OF_CONDUCT.md). Please report security issues privately,
+as described in [SECURITY.md](SECURITY.md).
 
 ---
 
@@ -1098,22 +843,18 @@ BookStoreBD began as **MernBookstore**, a university group project by
 [@Prottasha0212](https://github.com/Prottasha0212),
 [@jihadul021](https://github.com/jihadul021),
 [@deeanatrahman](https://github.com/deeanatrahman) and
-[@UtshaBasak](https://github.com/UtshaBasak). The team's version lives on,
-unchanged, at [Prottasha0212/MernBookstore](https://github.com/Prottasha0212/MernBookstore).
+[@UtshaBasak](https://github.com/UtshaBasak). The team's version is preserved at
+[Prottasha0212/MernBookstore](https://github.com/Prottasha0212/MernBookstore).
 
-This repository continues from it with the full history kept, so every commit
-from the group project still carries its author. The tag `team-final` marks the
-team's last commit; everything after it is the continuation:
+This repository continues from it with the full history, so every commit keeps
+its author. The tag `team-final` marks the team's last commit:
 
 ```bash
 git log team-final          # the group project
-git log team-final..master  # what came after
+git log team-final..master  # the continuation
 ```
 
-The two are deployed separately and must keep separate databases. This version
-runs `mongoose.syncIndexes()` at start-up, which drops any index its schemas do
-not define, so pointing it at the original deployment's database would change
-that database.
+The two are deployed separately with separate databases.
 
 ---
 

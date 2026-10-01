@@ -1,10 +1,6 @@
 /**
- * Ratings.
- *
- * The client used to read `book.rating` and `book.numReviews`, which no
- * endpoint returned and no model stored - a star filter that matched nothing
- * and a "most popular" sort that sorted nothing. This is the data those
- * controls were pretending to have.
+ * Ratings: the `rating` and `numReviews` held on each listing, which the star
+ * filter and the "most popular" sort depend on.
  */
 import { describe, it, expect, beforeAll, afterAll, beforeEach } from 'vitest';
 

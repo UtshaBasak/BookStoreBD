@@ -45,7 +45,7 @@ import {
 const log = createLogger('auth');
 
 // One-time codes live in MongoDB with a TTL index rather than in a Map in this
-// process: see utils/otpStore.ts for why that stopped being good enough.
+// process; utils/otpStore.ts explains why.
 
 /**
  * One answer for every sign-in failure, and one answer for every request for a
@@ -127,10 +127,9 @@ const inFlightMail = new Set<Promise<void>>();
 const dispatchEmail = (email: string, mail: Email): void => {
     const sending: Promise<void> = new Promise<void>((resolve) => {
         // Deferred to the next turn so that not even building the transport
-        // runs before the response is written. Measured on the running stack,
-        // doing it inline costs a few milliseconds - small, but it is the only
-        // remaining difference between the path that sends and the path that
-        // does not.
+        // runs before the response is written: inline, its few milliseconds
+        // would be the one remaining difference between the path that sends
+        // and the path that does not.
         setImmediate(() => resolve(sendEmail(email, mail)));
     })
         .catch((err: unknown) => {
@@ -155,9 +154,7 @@ export const mailSettled = async (): Promise<void> => {
  * Issues a one-time code, for signing up or for resetting a password.
  *
  * Every outcome within a purpose answers with the same sentence, so the reply
- * says nothing about whether the address is known here. It used to say a great
- * deal: "This email is already in use" on the way in and "No account found
- * with this email" on the way back.
+ * says nothing about whether the address is known here.
  */
 export const sendOtp = async (
     req: Request<unknown, unknown, SendOtpBody>,
@@ -181,9 +178,9 @@ export const sendOtp = async (
             // every listing, and a sign-up form that will not say a name is
             // taken is unusable. The address is a different matter.
             //
-            // The guard also fixes a real bug: `findOne({ username: undefined })`
-            // strips the key and matches the first user in the collection, so a
-            // request without a username was told the name was taken.
+            // The guard also matters because `findOne({ username: undefined })`
+            // strips the key and matches the first user in the collection, which
+            // would report a missing username as taken.
             if (username && (await User.findOne({ username: String(username) }))) {
                 res.status(400).json({ message: "Username already taken, try another." });
                 return;
@@ -314,11 +311,8 @@ const dummyHash = (): string =>
     (dummyPasswordHash ??= bcryptjs.hashSync(crypto.randomBytes(32).toString('hex'), BCRYPT_ROUNDS));
 
 /**
- * Both ways of failing answer the same, and take the same time.
- *
- * It used to be `404 'User not found!'` for an address with no account and
- * `401 'Wrong credentials!'` for a bad password, which told anyone who asked
- * which addresses have accounts here.
+ * Both ways of failing answer the same, and take the same time, so a failed
+ * sign-in never reveals which addresses have accounts here.
  */
 export const signin = async (
     req: Request<unknown, unknown, SigninBody>,

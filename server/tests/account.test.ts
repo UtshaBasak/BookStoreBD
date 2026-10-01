@@ -1,7 +1,6 @@
 /**
- * A user could not delete their own account and could not get a copy of their
- * data: articles 15 and 17 of the GDPR, and a plain trust signal anywhere else.
- * `DELETE /user/:id` existed but was administrator-only.
+ * A user can delete their own account and download a copy of their data:
+ * articles 15 and 17 of the GDPR, and a plain trust signal anywhere else.
  */
 import { describe, it, expect, beforeAll, afterAll, beforeEach } from 'vitest';
 

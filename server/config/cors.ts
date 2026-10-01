@@ -11,8 +11,8 @@ export const corsOptions: CorsOptions = {
     if (!origin || config.corsOrigins.includes(origin.replace(/\/+$/, ''))) {
       return callback(null, true);
     }
-    // A 403, not the 500 a bare Error became: a site that is not ours asking
-    // is a refusal, not a fault here, and must not be logged or reported as one.
+    // A 403 rather than a 500: a request from another site is a refusal, not a
+    // fault here, and must not be logged or reported as one.
     return callback(
       Object.assign(new Error(`Origin ${origin} is not allowed by CORS`), { statusCode: 403 })
     );

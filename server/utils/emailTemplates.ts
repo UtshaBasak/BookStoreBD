@@ -1,9 +1,6 @@
 /**
- * The e-mails the shop sends, as HTML with a plain-text twin.
- *
- * They were one line of plain text from a bare address - "Your OTP Code",
- * "Your verification code is: 208915" - which looks like the phishing it is
- * meant to protect against, and gave nobody a reason to trust it.
+ * The e-mails the shop sends, as HTML with a plain-text twin, branded so that
+ * a code arrives looking like the shop rather than like phishing.
  *
  * Written for mail clients rather than browsers: tables for layout, every
  * style inline, no web fonts, no images to be blocked. The code is one run of

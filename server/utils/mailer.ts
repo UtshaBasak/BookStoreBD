@@ -3,7 +3,7 @@
  *
  * - Gmail's web API, over HTTPS, when GMAIL_CLIENT_ID, GMAIL_CLIENT_SECRET and
  *   GMAIL_REFRESH_TOKEN are set. Render's free plan blocks the SMTP ports, so
- *   there every send over SMTP timed out: this is how the live site sends.
+ *   this is how the live site sends.
  * - SMTP with an App Password otherwise, which is fine anywhere the ports are
  *   open, such as a developer's machine.
  *

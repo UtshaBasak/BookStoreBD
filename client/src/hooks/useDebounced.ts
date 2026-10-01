@@ -3,9 +3,9 @@ import { useEffect, useState } from 'react';
 /**
  * A value that settles.
  *
- * The price boxes on the browse page are typed into, and every filter is now a
- * request. Without this, "1500" is four requests and three of them are for
- * prices nobody meant - 1, 15 and 150.
+ * Every filter on the browse page is a request. Without this, typing "1500"
+ * into a price box makes four requests, three of them for prices not meant:
+ * 1, 15 and 150.
  */
 export const useDebounced = <T,>(value: T, delay = 350): T => {
   const [settled, setSettled] = useState(value);

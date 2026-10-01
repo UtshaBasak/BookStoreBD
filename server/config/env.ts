@@ -32,10 +32,9 @@ export const config = {
   mongoUri: process.env.MONGO,
   /*
    * The site's own address is always allowed. Browsers send an Origin header
-   * on a same-origin POST too, so with CORS_ORIGINS unset a deployment
-   * allowed only localhost:5173 - and refused every sign-in, order and form on
-   * its own pages. Render supplies RENDER_EXTERNAL_URL; PUBLIC_SITE_URL covers
-   * a custom domain.
+   * on a same-origin POST too, so without it every sign-in, order and form on
+   * the site's own pages would be refused. Render supplies
+   * RENDER_EXTERNAL_URL; PUBLIC_SITE_URL covers a custom domain.
    */
   corsOrigins: [
     ...new Set([
@@ -85,7 +84,7 @@ export const config = {
     .map((email) => email.trim().toLowerCase())
     .filter(Boolean),
   // Optional image hosting. With none of these set the app stores covers as
-  // base64 on the document, exactly as it did before.
+  // base64 on the document.
   cloudinary: {
     cloudName: process.env.CLOUDINARY_CLOUD_NAME,
     apiKey: process.env.CLOUDINARY_API_KEY,
@@ -99,8 +98,8 @@ export const config = {
   },
   /*
    * Gmail's web API, over HTTPS. Used when all three are set, and needed on
-   * Render's free plan, which blocks the SMTP ports - every send timed out.
-   * The refresh token comes from `npm run gmail:token`.
+   * Render's free plan, which blocks the SMTP ports. The refresh token comes
+   * from `npm run gmail:token`.
    */
   gmailApi: {
     clientId: process.env.GMAIL_CLIENT_ID,

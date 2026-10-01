@@ -58,18 +58,13 @@ const AddBooks = () => {
   /**
    * What the last upload of these exact files produced.
    *
-   * The bytes reach Cloudinary before the listing is posted, so a submission
-   * rejected afterwards has already put the images there. Without this, every
-   * retry uploaded them again and left the previous set orphaned in the
-   * account - and made the person wait for it twice.
+   * The images reach Cloudinary before the listing is posted, so a retry after
+   * a rejected submission reuses them instead of uploading (and orphaning) a
+   * second set.
    */
   const uploadedRef = useRef<{ files: File[]; result: UploadResult } | null>(null);
 
-  /**
-   * The session lives under `authToken`, which is what every other request
-   * reads. This page had its own copy looking for `token`, so it sent
-   * `Bearer null` and the API refused every submission.
-   */
+  // The shared helper, so this page reads the same session token as every other request.
   const headers = authHeaders();
 
   // Known only once the profile has loaded; until then, and if it cannot be
@@ -110,23 +105,19 @@ const AddBooks = () => {
   const handleImageChange = (e: ChangeEvent<HTMLInputElement>) => {
     const selectedFiles = Array.from(e.target.files ?? []);
 
-    // Calculate total images after adding new selections
     const totalImages = [...images, ...selectedFiles];
 
-    // Check if attempting to upload more than 10 images
     if (totalImages.length > 10) {
       setFeedbackMessage(`Maximum 10 images allowed. You already have ${images.length} images.`);
       setIsError(true);
-      // Reset file input
       e.target.value = '';
       return;
     }
 
-    // Add new images to existing ones
     setImages(prevImages => [...prevImages, ...selectedFiles]);
     setFeedbackMessage('');
 
-    // Reset the file input to allow selecting the same file again
+    // Cleared so the same file can be selected again.
     e.target.value = '';
   };
 
@@ -136,12 +127,11 @@ const AddBooks = () => {
     setFeedbackMessage('');
     setIsError(false);
 
-    // Only require: title, author, price, bookType, (condition if old), category, and at least one image
+    // Required: title, author, price, book type (and condition if old), a category and an image.
     const requiredFields: TextField[] = ['title', 'author', 'price', 'bookType'];
     if (Data.bookType === 'old') {
       requiredFields.push('condition');
     }
-    // Check only required fields for emptiness (null, undefined, or empty string)
     const emptyFields = requiredFields.filter(
       field => Data[field] === undefined || Data[field] === null || Data[field].toString().trim() === ''
     );
@@ -180,7 +170,7 @@ const AddBooks = () => {
       return;
     }
 
-    // Fill optional fields with 'N/A' if blank
+    // Blank optional fields are sent as 'N/A'.
     const optionalFields: TextField[] = ['publisher', 'country', 'language', 'isbn', 'desc', 'conditionDetails'];
     const filledData: BookForm = { ...Data };
     optionalFields.forEach(field => {
@@ -194,7 +184,7 @@ const AddBooks = () => {
     });
 
     const formData = new FormData();
-    // Only append required fields and optional fields if they are non-empty
+    // Required fields always; optional ones only when non-empty.
     (Object.keys(filledData) as Array<keyof BookForm>).forEach(key => {
       if (key === 'category') {
         if (filledData.category.length > 0) {
@@ -207,15 +197,13 @@ const AddBooks = () => {
       if ((requiredFields as string[]).includes(key)) {
         formData.append(key, value);
       } else if (value !== undefined && value !== null && value.trim() !== '') {
-        // Only append optional fields if not empty
         formData.append(key, value);
       }
-      // If optional field is empty, do not append at all
     });
     try {
       // When image hosting is configured the files go straight to Cloudinary
       // and only the resulting URLs are posted here; otherwise they are sent
-      // to the API and stored inline, as before.
+      // to the API and stored inline.
       const cached = uploadedRef.current;
       const reusable =
         cached !== null &&
@@ -251,8 +239,7 @@ const AddBooks = () => {
       const imageInput = document.getElementById('imageInput');
       if (imageInput instanceof HTMLInputElement) imageInput.value = '';
     } catch (err) {
-      // The API names the field it rejected. Showing only its `message` turned
-      // that into "Validation failed", which named nothing.
+      // Shows the API's detail, which names the rejected field, not just its generic message.
       setFeedbackMessage(`Submission failed: ${apiErrorMessage(err, 'please try again')}`);
       setIsError(true);
     } finally {
@@ -283,9 +270,8 @@ const AddBooks = () => {
         </section>
 
         {/*
-          Said before the form is filled in, not after: the API refuses a
-          listing from a seller it has no way to pay, and finding that out on
-          Submit would waste the whole form and the photographs.
+          Shown before the form is filled in: the API refuses a listing from a
+          seller it has no way to pay, so the seller learns this up front.
         */}
         {needsPayoutNumber && (
           <div role="alert" className='sl-alert'>
@@ -426,8 +412,7 @@ const AddBooks = () => {
                 name="price"
                 value={Data.price}
                 onChange={e => {
-                  // Whole taka: the API takes nothing else, and a decimal was
-                  // only found out about on submit.
+                  // Whole taka only, matching the API, so a decimal is caught while typing.
                   const val = e.target.value.replace(/\D/g, '');
                   setData({ ...Data, price: val });
                   setFeedbackMessage('');
@@ -558,8 +543,6 @@ interface InputFieldProps {
   money?: boolean;
 }
 
-// min and step were passed by the two numeric fields and silently dropped,
-// because this component never forwarded them. They reach the input now.
 const InputField = ({ label, name, value, onChange, placeholder = '', type = 'text', min, step, money = false }: InputFieldProps) => {
   const input = (
     <input

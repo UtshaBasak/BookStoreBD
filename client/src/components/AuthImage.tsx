@@ -20,8 +20,7 @@ interface AuthImageProps {
  * the tag as a blob.
  *
  * The blob's type is checked before it is used: a blob URL loads in this
- * origin, and a `text/html` one in an `<img>` is harmless but in a tab is not,
- * so the habit is worth keeping consistent.
+ * origin, and a `text/html` one is harmless in an `<img>` but not in a tab.
  */
 export default function AuthImage({ src, alt, className, style }: AuthImageProps) {
   const [objectUrl, setObjectUrl] = useState<string | null>(null);

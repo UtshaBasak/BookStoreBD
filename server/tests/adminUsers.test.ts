@@ -1,10 +1,8 @@
 /**
- * The administrator's user table asked for every account with every field but
- * the password - and `profilePicture` is stored as a base64 data URI, so the
- * response carried every user's photograph, their address and their phone
- * number, to draw three columns: name, e-mail, and the date they joined.
- *
- * These pin the page it sends now, and that it sends nothing else.
+ * The administrator's user table draws three columns: name, e-mail and the
+ * date joined. An account also holds a photograph (as a base64 data URI), an
+ * address and a phone number, so these pin that a page of the table carries
+ * only what it draws.
  */
 import { describe, it, expect, beforeAll, afterAll, beforeEach } from 'vitest';
 
@@ -125,7 +123,7 @@ describe('what it searches', () => {
     const res = await request.get('/user?search=example.org').set('Authorization', auth);
 
     // A search that reaches the database finds an account that is not on the
-    // page being looked at, which the old in-browser filter could not.
+    // page being looked at.
     expect(res.body.total).toBe(1);
     expect(res.body.items[0].username).toBe('Rakib Hasan');
   });
@@ -147,11 +145,11 @@ describe('what it refuses', () => {
 });
 
 /**
- * The first version of this filtered with `role: { $ne: 'admin' }`. An
+ * The filter is `role: 'user'` rather than `role: { $ne: 'admin' }`. An
  * inequality on the leading field of an index means the fields after it are no
- * longer in order, so the sort became a blocking one - `explain()` read every
- * key in the collection and sorted them in memory, while every test passed
- * because the answers were right.
+ * longer in order, so the sort becomes a blocking one - every key read and
+ * sorted in memory - while every answer is still right. Only `explain()` shows
+ * the difference.
  */
 describe('how the database answers', () => {
   it('reads a page, not every account', async () => {

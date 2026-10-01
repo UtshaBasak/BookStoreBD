@@ -138,10 +138,8 @@ export default function SellerBookList() {
           </div>
         </section>
 
-        {/* Four controls in a row that does not wrap, one of them a 300px search
-            box: 215px wider than a 360px screen. */}
+        {/* Wraps on a narrow screen, so the search and the buttons always fit. */}
         <div className="sl-toolbar">
-          {/* Search bar */}
           <div className="sl-search">
             <FaSearch aria-hidden="true" />
             <input name="q"
@@ -154,11 +152,9 @@ export default function SellerBookList() {
             />
           </div>
           <div className="sl-toolbar-actions">
-            {/* Refresh button */}
             <button type="button" onClick={fetchBooks} disabled={refreshing} className="btn btn-ghost">
               <FaSyncAlt aria-hidden="true" /> {refreshing ? 'Refreshing...' : 'Refresh'}
             </button>
-            {/* Save All Changes button */}
             <button
               type="button"
               onClick={handleSaveAll}

@@ -1,14 +1,10 @@
 /**
- * One-time codes used to live in a `Map` in the process.
- *
- * That works until the process restarts - which it does on every deploy, and
- * which a sleeping instance does on its own - and every code in flight went
- * with it: somebody halfway through signing up or resetting a password got
- * "invalid code" and had to start again. It also meant a second instance could
- * not see codes issued by the first.
+ * One-time codes live in MongoDB rather than in process memory, so a code in
+ * flight survives a deploy or a restart and every instance sees the codes the
+ * others issued.
  *
  * These pin that the state is in the database, that the code itself is not,
- * and that the rules the Map enforced still hold.
+ * and that a code's expiry, replacement and attempt rules hold.
  */
 import { describe, it, expect, beforeAll, afterAll, beforeEach, vi } from 'vitest';
 

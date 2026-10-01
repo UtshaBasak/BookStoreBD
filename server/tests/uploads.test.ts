@@ -1,8 +1,7 @@
 /**
- * `multer` limited size and count and nothing else, so a text file called
- * `cover.png` was stored as a book cover: unvalidated content in the database,
- * a storage-abuse channel, and a trap for the next person to render one of
- * these without the helper that currently saves us.
+ * Uploads are checked by their own first bytes, not only by size and count,
+ * so a text file called `cover.png` is refused rather than stored as a book
+ * cover: no unvalidated content in the database and no storage-abuse channel.
  */
 import { describe, it, expect, beforeAll, afterAll, beforeEach } from 'vitest';
 

@@ -8,13 +8,10 @@ import { filterSchemas } from '../schemas/index.js';
 const router = express.Router();
 
 /**
- * Both are GETs with their parameters in the query string, which is what they
- * always should have been: a search is a place you can link to, share and go
- * back to, and the browser and any cache in front of this can treat it as one.
- *
- * They replace a pair of POSTs that took `{ filter_key, filter_input }` - a
- * document path chosen by the caller, which needed a whitelist to stop it
- * becoming a query operator.
+ * Both are GETs with their parameters in the query string: a search is a place
+ * you can link to, share and go back to, and the browser and any cache in
+ * front of this can treat it as one. Each filter is a named, typed parameter,
+ * so the caller never chooses a document path.
  */
 router.get('/booklist', validate(filterSchemas.catalogue), Booklist);
 // The search box's suggestions as somebody types: a few books and sellers.

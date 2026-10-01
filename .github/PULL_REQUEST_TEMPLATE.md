@@ -19,7 +19,8 @@
 
 ## Checklist
 
-- [ ] `npm run lint` passes in `client/` and `server/`
-- [ ] `npm run build` passes in `client/`
+- [ ] `npm run lint`, `npm run typecheck`, `npm test` and `npm run build` pass
+- [ ] New behaviour has a test, and a fixed bug has a regression test
 - [ ] No secrets, `.env` files or `node_modules` are committed
 - [ ] New environment variables are documented in the matching `.env.example`
+  and the README

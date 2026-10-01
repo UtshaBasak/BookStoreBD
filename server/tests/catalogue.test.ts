@@ -1,10 +1,7 @@
 /**
- * The browse page used to fetch every listing in the database and then filter,
- * sort and paginate them in the browser. It worked, in the sense that a shop
- * with six books works: every visitor downloaded the whole catalogue to look
- * at twelve of it, and the bill grew with each book added.
- *
- * These pin the filtering, ordering and paging now that MongoDB does it.
+ * The catalogue is filtered, sorted and paged by MongoDB, so a visitor
+ * downloads only the page on screen. These pin the filtering, ordering and
+ * paging.
  */
 import { describe, it, expect, beforeAll, afterAll, beforeEach } from 'vitest';
 
@@ -100,9 +97,8 @@ describe('what it filters on', () => {
   });
 
   it('category, whatever case it was stored in', async () => {
-    // The seed writes 'fiction'; the Add Book form writes 'Fiction'. The page
-    // used to lower-case both sides in the browser, and filtering here has to
-    // match that or half the catalogue disappears.
+    // The seed writes 'fiction'; the Add Book form writes 'Fiction'. Filtering
+    // has to match both, or half the catalogue disappears.
     await book('Lower', { category: ['fiction'] });
     await book('Upper', { category: ['Fiction'] });
     await book('Other', { category: ['science'] });
@@ -238,11 +234,11 @@ describe('the homepage strip', () => {
 /**
  * Paging is only worth having if the database is paging too.
  *
- * The first version of these indexes left `_id` off the end. The catalogue
- * sorts by `{ <field>, _id }` so that books which tie cannot shuffle between
- * pages, and a sort is only served by an index when it is a prefix of that
- * index's keys - so every query scanned the whole collection and sorted the
- * lot in memory. Every test still passed, because the answers were right.
+ * The indexes end in `_id`. The catalogue sorts by `{ <field>, _id }` so that
+ * books which tie cannot shuffle between pages, and a sort is only served by
+ * an index when it is a prefix of that index's keys. Without it every query
+ * would scan the whole collection and sort in memory, while every answer is
+ * still right - so these check the plan, not just the results.
  */
 describe('how the database answers', () => {
   const plan = async (filter: Record<string, unknown>, sort: Record<string, 1 | -1>) => {

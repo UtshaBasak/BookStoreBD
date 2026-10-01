@@ -33,7 +33,7 @@ export type UploadResult = HostedUpload | UnhostedUpload;
  *
  * Returns `{ hosted: true, images, publicIds }` when hosting is configured, or
  * `{ hosted: false }` when it is not — in which case the caller falls back to
- * posting the files to the API as before.
+ * posting the files to the API.
  */
 export const uploadImages = async (
   files: ArrayLike<File> | null | undefined,

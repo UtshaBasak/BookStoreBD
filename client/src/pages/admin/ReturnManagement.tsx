@@ -38,10 +38,9 @@ export default function ReturnManagement() {
   const [sort, setSort] = useState('newest');
 
   /*
-   * This asked for every return request there is, and a request carries the
-   * photographs of the defect as base64 on the document - so seven columns of
-   * text downloaded every picture anybody had ever uploaded, for a button that
-   * did not open them. The pictures are addresses now, and the button works.
+   * Searched and paged by the API. Each request carries its photographs as
+   * addresses rather than inline data, so the table stays light and a picture
+   * is fetched only when it is opened.
    */
   const settledSearch = useDebounced(search);
   const requestsQuery = useReturnRequests({
@@ -77,10 +76,9 @@ export default function ReturnManagement() {
       if (!response.ok) throw new Error(`Could not load that image (${response.status})`);
 
       const blob = await response.blob();
-      // A blob opens in this origin, so what it claims to be matters: a
-      // text/html blob in a tab is script running as the site. The endpoint
-      // only ever serves image types, and this is the check that says so here
-      // rather than trusting that it always will.
+      // A blob opens in this origin, so its type matters: a text/html blob in
+      // a tab would run as the site. The endpoint serves only images; this
+      // check enforces that here as well.
       if (!blob.type.startsWith('image/')) throw new Error('That file is not an image');
 
       const objectUrl = URL.createObjectURL(blob);

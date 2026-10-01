@@ -7,7 +7,7 @@
  * because the shop asked for those too.
  *
  * Only a password being *set* is checked: signing up, resetting and changing
- * it. Signing in is not, so an account made under the old eight-character
+ * it. Signing in is not, so an account made under the earlier eight-character
  * rule keeps working with the password it has.
  *
  * `client/src/utils/passwordPolicy.ts` is a copy of the rules below, so the

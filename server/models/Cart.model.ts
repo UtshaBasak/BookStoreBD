@@ -5,8 +5,7 @@ import { defineModel } from './defineModel.js';
 const CartSchema = new Schema({
   user: { type: Schema.Types.ObjectId, ref: 'UserTable', required: true, index: true },
   book: { type: Schema.Types.ObjectId, ref: 'AddBook', required: true, index: true },
-  // How many copies: one per book used to be all a cart could hold, and the
-  // number was only chosen at checkout.
+  // How many copies of the book.
   quantity: { type: Number, default: 1, min: 1 },
   /** What one copy cost when it was put in the cart, to tell the buyer of a drop below it. */
   priceWhenAdded: { type: Number, default: null },

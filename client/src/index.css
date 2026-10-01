@@ -1,12 +1,10 @@
 @import "tailwindcss";
 
-/* The site's typeface, served from here rather than imported from the
-   @fontsource package, so index.html can preload the Latin file: imported,
-   its address carried a hash nobody could name in advance, and the browser
-   only found out it needed it after downloading and reading the stylesheet -
-   a second round trip before any text could be drawn in it. Latin and Latin
-   Extended only; the site is written in English, and the Taka sign comes from
-   the face below. Plus Jakarta Sans is under the SIL Open Font License
+/* The site's typeface, served from here rather than from the @fontsource
+   package so that index.html can preload the Latin file at a stable address,
+   saving a round trip before text renders. Latin and Latin Extended only; the
+   site is written in English, and the Taka sign comes from the face below.
+   Plus Jakarta Sans is under the SIL Open Font License
    (fonts/OFL-plus-jakarta-sans.txt). */
 @font-face {
   font-family: 'Plus Jakarta Sans Variable';
@@ -27,9 +25,9 @@
     U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
 }
 
-/* Plus Jakarta Sans has no Taka sign, and the fallback drew prices' "৳" at
-   half size. This is that one glyph cut from Noto Sans Bengali (SIL Open
-   Font License), 1 KB, used for nothing else. */
+/* Plus Jakarta Sans has no Taka sign, and fallback fonts draw "৳" at half
+   size. This is that one glyph cut from Noto Sans Bengali (SIL Open Font
+   License), 1 KB, used for nothing else. */
 @font-face {
   font-family: 'Taka';
   src: url('./fonts/taka.woff2') format('woff2');
@@ -39,9 +37,7 @@
 }
 
 /* ------------------------------------------------------------------ theme
-   The look, in one place. It was a muted brown (#8b6f6f), Material Design's
-   deep orange, blue, green and red, and Arial - the palette of a site from
-   another decade. It is electric violet for the brand, a sunset orange for
+   The look, in one place: electric violet for the brand, a sunset orange for
    prices and calls to action, a sunny yellow for highlights, and clean
    near-white surfaces; Plus Jakarta Sans for type; rounded cards, pill
    buttons and soft violet-tinted shadows.
@@ -84,9 +80,8 @@
   line-height: 1.5;
   font-weight: 400;
 
-  /* The site is a light one. `color-scheme: light dark` came from the Vite
-     template and told the browser to paint form controls and scrollbars dark
-     for anyone whose system is in dark mode, over a white page. */
+  /* The site has a light theme only, so form controls and scrollbars stay
+     light even when the system is in dark mode. */
   color-scheme: light;
   color: var(--color-ink);
   background-color: #ffffff;
@@ -110,18 +105,14 @@ html {
 }
 
 body {
-  /* Was `display: flex; place-items: center`, from the Vite starter. That made
-     #root a flex item that shrank to its content, which is why eighteen places
-     across the app had reached for `width: 100vw` to get a full-width page
-     back - and `100vw` counts the scrollbar, so every one of those pages then
-     scrolled sideways by about 15px on a desktop. */
+  /* Block, so #root spans the full width without `100vw`, which counts the
+     scrollbar and causes a sideways scroll on desktop. */
   display: block;
   min-height: 100vh;
   background: var(--color-page);
 
-  /* A page cannot be wider than the window. Defensive rather than a fix: the
-     causes are being removed page by page, and until they all are, a stray
-     fixed width should not produce a sideways scroll on a phone. */
+  /* A defensive guard: a stray fixed width on any page should not produce a
+     sideways scroll on a phone. */
   overflow-x: hidden;
 }
 
@@ -129,11 +120,9 @@ body {
   min-height: 100%;
 }
 
-/* In the base layer, so a link that asks for a colour gets it. Tailwind 4's
-   utilities live in a cascade layer, and a rule outside any layer beats every
-   layered one whatever its specificity - so `text-white` on a link lost to
-   this, and the 404 page's main button was brand-brown text on a brand-brown
-   background: a blank box. Plain links look exactly as they did. */
+/* In the base layer, so utilities such as `text-white` on a link take effect.
+   Tailwind 4's utilities live in a cascade layer, and an unlayered rule beats
+   every layered one whatever its specificity. */
 @layer base {
   a {
     font-weight: 500;
@@ -146,7 +135,7 @@ body {
 }
 
 h1 {
-  /* Was a flat 3.2em, which is 51px on a phone. */
+  /* Scales with the viewport, so a heading stays a sensible size on a phone. */
   font-size: clamp(1.75rem, 1.2rem + 2.5vw, 2.5rem);
   line-height: 1.15;
 }
@@ -167,24 +156,19 @@ video {
   height: auto;
 }
 
-/* Base layer, for the same reason as links: outside it, this beat every class
-   on every button - `text-white`, `bg-*`, `rounded-*`, `border` - so "Download
-   my data" was dark text on a brown button, and eleven others ignored what
-   they asked for. Buttons with no classes of their own are unchanged. */
+/* Base layer, for the same reason as links: utility classes on a button
+   (`text-white`, `bg-*`, `rounded-*`, `border`) must win over these defaults. */
 @layer base {
 button {
   border-radius: 12px;
   border: 1px solid transparent;
-  /* No padding here. The starter's `0.6em 1.2em` left a 40px-wide icon button
-     about 2px of content box, so its icon rendered as a dot - measured at
-     2x16px in the browser. Buttons that want padding set their own, and every
-     one in this app already does. */
+  /* No padding by default, so a small icon button keeps room for its icon.
+     Buttons that want padding set their own. */
   font-size: 1em;
   font-weight: 500;
   font-family: inherit;
-  /* Was #1a1a1a - near-black buttons on a white page, again from the starter.
-     Kept visible rather than transparent so that a button with no styling of
-     its own still reads as a button. */
+  /* Visible rather than transparent, so a button with no styling of its own
+     still reads as a button. */
   background-color: var(--color-brand-tint);
   color: var(--color-ink);
   cursor: pointer;
@@ -211,10 +195,8 @@ button:focus-visible {
   }
 }
 
-/* An icon that acts as a control. These were <span>s carrying an onClick and a
-   tabIndex: focusable, but pressing Enter did nothing at all, and a 22px glyph
-   is about half the width of a thumb. As <button>s the keyboard works for free
-   and the 44px below gives the finger something to aim at. */
+/* An icon that acts as a control. A real <button> or link, so the keyboard
+   works, with a 44px target for a finger (WCAG 2.5.5). */
 .icon-button,
 .icon-link {
   position: relative;
@@ -239,10 +221,7 @@ button:focus-visible {
 }
 
 /* The arrows on the "Similar Books" carousel. They carry `left: 0` / `right: 0`
-   inline and sit in a relatively positioned container, so they were meant to
-   overlay the strip - but no rule for this class existed anywhere, so they sat
-   in the flow above it and were sized entirely by the starter's button padding.
-   With that padding gone they measured 18px wide. */
+   inline and overlay the strip from its relatively positioned container. */
 .scroll-button {
   position: absolute;
   top: 50%;
@@ -262,9 +241,8 @@ button:focus-visible {
   cursor: pointer;
 }
 
-/* A table cannot be narrower than what is in it, so on a phone it takes the
-   whole page sideways with it - the order tracking pages were 409px wider than
-   the screen. The table scrolls inside this instead, and the page stays put. */
+/* A table cannot be narrower than its content, so on a phone it scrolls inside
+   this wrapper and the page itself stays put. */
 .table-scroll {
   max-width: 100%;
   overflow-x: auto;
@@ -272,11 +250,8 @@ button:focus-visible {
 }
 
 /* ------------------------------------------------------------------ tables
-   Nine pages write their own `<table className="styled-table">`. These rules
-   used to live in Table.css, which was imported by a Table component that
-   nothing rendered - so the styling for every table in the application arrived
-   only as a side effect of a dead file being in the bundle. Deleting that
-   component would have quietly unstyled all nine. */
+   Shared by every page that renders `<table className="styled-table">`, so
+   they live in the global stylesheet rather than beside any one component. */
 .styled-table {
   width: 100%;
   border-collapse: separate;
@@ -450,8 +425,7 @@ button:focus-visible {
     text-transform: uppercase;
   }
 
-  /* The deep violet backdrop used by the auth pages and the admin sidebar,
-     where a stock library photograph used to be. */
+  /* The deep violet backdrop used by the auth pages and the admin sidebar. */
   .aurora {
     background:
       radial-gradient(1200px 600px at 10% -10%, rgba(139, 92, 246, 0.55), transparent 60%),
@@ -461,7 +435,7 @@ button:focus-visible {
   }
 }
 
-/* Sticky site header, previously inlined in index.html. */
+/* Sticky site header. */
 .header {
   position: sticky;
   top: 0;
@@ -470,14 +444,10 @@ button:focus-visible {
 }
 
 /* ------------------------------------------------------------------ toasts
-   notistack's own class names. Its defaults are close, but square-cornered and
-   in the browser's font rather than the site's. The narrow-screen rule stops a
-   long message running off the side of a phone, which is where most of the
-   traffic is. */
-/* `div.` rather than the bare class: notistack injects its own styles into the
-   head at run time, after this stylesheet, so at equal specificity theirs win.
-   Measured in a real browser - the corners stayed at notistack's 4px until the
-   element was added to the selector. */
+   notistack's own class names, restyled with the site's corners and font. The
+   narrow-screen rule keeps a long message within a phone's width.
+   `div.` rather than the bare class: notistack injects its styles into the
+   head at run time, after this stylesheet, so equal specificity would lose. */
 div.notistack-MuiContent {
   border-radius: 14px;
   font-family: inherit;
@@ -493,8 +463,8 @@ div.notistack-MuiContent-warning { background-color: #ea580c; }
 div.notistack-MuiContent-default { background-color: #1e1b4b; }
 
 /* The button a toast can carry, such as "Sign in" on the prompt an anonymous
-   visitor gets when they try to add something to the cart. Declared here
-   because the global `button` rule above would otherwise paint it black. */
+   visitor gets when they try to add something to the cart. Declared here so
+   the global `button` rule above does not apply to it. */
 .toast-action {
   background: rgba(255, 255, 255, 0.18);
   border: 1px solid rgba(255, 255, 255, 0.55);
@@ -523,9 +493,8 @@ div.notistack-MuiContent-default { background-color: #1e1b4b; }
   }
 }
 
-/* Controls that are links: they used to be buttons that navigated, and were
-   made links so a right-click can open them in a new tab. A link is
-   underlined by default; none of these ever were. */
+/* Controls that navigate are links, so they can be opened in a new tab, but
+   they keep the look of a control rather than an underlined link. */
 a.btn,
 a.icon-button,
 a.logo-button,

@@ -18,7 +18,7 @@ services:
     volumes:
       - mongo-data:/data/db
     healthcheck:
-      # The API waits for this, otherwise it races MongoDB's first-run setup.
+      # The API waits for this, so it starts after MongoDB's first-run setup.
       test: ['CMD', 'mongosh', '--quiet', '--eval', "db.adminCommand('ping').ok"]
       interval: 10s
       timeout: 5s
@@ -38,10 +38,10 @@ services:
       PORT: '4000'
       # `mongo` is the service name; Compose resolves it on the shared network.
       MONGO: mongodb://mongo:27017/bookstorebd
-      # Development only. Production reads a real secret from the environment.
-      JWT_SECRET: ${JWT_SECRET:-dev-only-secret-not-for-production-0123456789abcdef}
+      # Supplied in .env next to this file (copy .env.example).
+      JWT_SECRET: ${JWT_SECRET:?Set JWT_SECRET in .env - see .env.example}
       JWT_EXPIRES_IN: ${JWT_EXPIRES_IN:-15m}
-      ADMIN_EMAILS: ${ADMIN_EMAILS:-admin@bookstorebd.local}
+      ADMIN_EMAILS: ${ADMIN_EMAILS:-}
       # The browser runs on the host, so the client's origin is localhost.
       CORS_ORIGINS: http://localhost:5173
       # Optional image hosting; unset means covers stay inline.
@@ -56,13 +56,9 @@ services:
     command: ['npm', 'run', 'dev', '--', '--legacy-watch']
     volumes:
       - ./server:/app
-      # Keeps the image's Linux-built node_modules instead of letting the host
-      # directory shadow it.
-      #
-      # This volume is created once from the image and then kept, so after any
-      # dependency change run `docker compose down -v` before `up --build` -
-      # otherwise the container runs against the old node_modules and fails
-      # with "Cannot find package".
+      # Keeps the image's Linux-built node_modules rather than the host's. The
+      # volume persists, so after a dependency change run `docker compose down -v`
+      # before `up --build`, or the container keeps the previous node_modules.
       - /app/node_modules
     depends_on:
       mongo:
@@ -94,8 +90,7 @@ services:
   # mongodb-memory-server has no mongod build for Alpine, so the suite points
   # at the MongoDB service instead. Each test file still uses its own database.
   test:
-    # Same image as the server, so one build refreshes both. Separate images
-    # would leave this one stale whenever dependencies changed.
+    # Shares the server image, so one build keeps both current.
     image: bookstorebd-server:dev
     build:
       context: ./server
@@ -103,7 +98,6 @@ services:
     profiles: ['tools']
     environment:
       MONGO_TEST_URI: mongodb://mongo:27017/
-      JWT_SECRET: ${JWT_SECRET:-dev-only-secret-not-for-production-0123456789abcdef}
     command: ['npm', 'test']
     volumes:
       - ./server:/app
@@ -121,7 +115,8 @@ services:
     profiles: ['tools']
     environment:
       MONGO: mongodb://mongo:27017/bookstorebd
-      JWT_SECRET: ${JWT_SECRET:-dev-only-secret-not-for-production-0123456789abcdef}
+      JWT_SECRET: ${JWT_SECRET:?Set JWT_SECRET in .env - see .env.example}
+      SEED_PASSWORD: ${SEED_PASSWORD:?Set SEED_PASSWORD in .env - see .env.example}
     command: ['npm', 'run', 'seed']
     depends_on:
       mongo:

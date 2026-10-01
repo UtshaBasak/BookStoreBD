@@ -55,11 +55,10 @@ export default function SignIn() {
             if (res.ok) {
                 // The token is what authorises every later request.
                 setSession(data);
-                navigate('/'); // Redirect to homepage after sign in
+                navigate('/');
             } else {
-                // The sentence, not the envelope. Both ways of failing
-                // answer the same on purpose, and `JSON.stringify` used to put
-                // `{"success":false,"statusCode":401,...}` in front of the user.
+                // The API's sentence, not the raw error envelope. A wrong
+                // email and a wrong password answer the same on purpose.
                 toast.error((data as ApiError).message || 'Could not sign you in.');
             }
         } catch (err) {
@@ -75,7 +74,7 @@ export default function SignIn() {
         const res = await apiFetch(`${API_BASE_URL}/auth/send-otp`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ email: forgotEmail, purpose: 'reset' }) // include purpose
+            body: JSON.stringify({ email: forgotEmail, purpose: 'reset' })
         });
         const data = await res.json();
         if (res.ok) {
@@ -122,16 +121,14 @@ export default function SignIn() {
         }
     };
 
-    // Every step of the reset reports back in one line, and the ones that went
-    // well are green. It used to be red for anything short of the last step,
-    // so "OTP sent to your email." read as a failure.
+    // Every step of the reset reports back in one line: green for progress,
+    // red for a failure.
     const forgotOk = /^(OTP sent|OTP verified|Password reset)/.test(forgotMsg);
 
     return (
         <div className="auth-page aurora">
             <AuthPitch />
 
-            {/* Sign-In Form */}
             <main className="card auth-card">
                 <Link to="/" className="auth-logo" aria-label={`${site.name} home`}>
                     <Logo size={40} />
@@ -147,8 +144,7 @@ export default function SignIn() {
                             placeholder="Email"
                             id="email"
                             name="email"
-                            // Without these a password manager cannot offer to
-                            // fill the form, and a browser warns about it.
+                            // Lets a password manager offer to fill the form.
                             autoComplete="username"
                             onChange={handleChange}
                             className="field"
@@ -157,8 +153,7 @@ export default function SignIn() {
                     <div>
                         <div className="auth-label-row">
                             <label htmlFor="password" className="auth-label">Password</label>
-                            {/* A span with an onClick and no tabIndex at all: a
-                                keyboard user could not reach the password reset. */}
+                            {/* A real button, so a keyboard user can reach the password reset. */}
                             <button
                                 type="button"
                                 className="auth-text-button"
@@ -190,13 +185,11 @@ export default function SignIn() {
                        <b> SIGN UP</b>
                     </Link>
                 </p>
-                {/* Go To Home Button */}
                 <Link to="/" className="btn btn-ghost auth-wide">
                     Go To Home
                 </Link>
             </main>
 
-            {/* Forgot Password Modal */}
             {showForgot && (
                 <div className="auth-overlay">
                     <div className="card auth-modal" role="dialog" aria-modal="true" aria-labelledby="forgot-title">

@@ -52,8 +52,8 @@ export default function AdminOrderTrackingPage() {
   const { mutateAsync: updateStatus } = useUpdateOrderStatus(orderNumber);
 
   // The select reflects the order until an admin picks something else. Derived
-  // from the query rather than mirrored into state by an effect, which is what
-  // the cascading-render warning was about.
+  // from the query rather than mirrored into state by an effect, which would
+  // cause a cascading render.
   const [statusOverride, setStatusOverride] = useState<string | null>(null);
   const statusValue = statusOverride ?? order?.status ?? 'Order Confirmed';
 
@@ -94,7 +94,7 @@ export default function AdminOrderTrackingPage() {
         {bar}
         <div className="admin-order-body admin-page">
           {orderQuery.error ? (
-            // A lookup that failed used to leave "Loading..." on screen for ever.
+            // A failed lookup says so, rather than leaving "Loading..." on screen.
             <div className="admin-alert" role="alert">
               Could not load order {orderNumber}: {orderQuery.error.message}
             </div>
@@ -253,7 +253,6 @@ export default function AdminOrderTrackingPage() {
           </section>
         </div>
 
-        {/* Admin Transaction History Style Table */}
         <section className="admin-card admin-panel-card">
           <h3>
             <FaBook aria-hidden="true" />
@@ -298,8 +297,8 @@ export default function AdminOrderTrackingPage() {
               </tbody>
             </table>
           </div>
-          {/* Under the table rather than in its footer, which scrolled off
-              the side of a phone with the last column. */}
+          {/* Under the table rather than in its footer, so the totals stay
+              visible on a phone when the table scrolls sideways. */}
           <dl className="admin-totals">
             <div>
               <dt>Subtotal:</dt>

@@ -1,14 +1,10 @@
 /**
  * Promo codes and vouchers.
  *
- * The first code there was - "BookStore", 50 taka off a first order - lived
- * in the checkout page: the browser checked the code, worked out the discount,
- * remembered in localStorage whether the account had ordered before, and sent
- * the figure, which the server stored as given. Clearing localStorage made
- * every order a first order, and a hand-made request could claim any discount.
- *
- * The rules live here now, and what a code is worth is always worked out by
- * the server. One code per order. The checkout code box is shown while
+ * What a code is worth, and whether an order is an account's first, is always
+ * worked out by the server, so neither a cleared browser nor a hand-made
+ * request can claim a discount. One code per order. The checkout code box is
+ * shown while
  * `promoCodes` is true in `client/src/config/site.ts`; turn it off if this
  * list is ever emptied.
  */
@@ -43,7 +39,7 @@ export const PROMOTIONS: readonly Promotion[] = [
     firstOrderOnly: true,
   },
   {
-    // Free delivery on a large order used to be automatic; it is a code now.
+    // Free delivery on a large order is a code rather than automatic.
     code: 'FreeDelivery',
     description: 'Free delivery on orders of 1000 Tk or more',
     discount: { kind: 'free-delivery' },

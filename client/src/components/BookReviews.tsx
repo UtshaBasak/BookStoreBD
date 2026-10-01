@@ -75,10 +75,9 @@ export default function BookReviews({ bookId }: { bookId: Id | undefined }) {
   };
 
   /*
-   * The form is derived from whatever they said last time, with an override
-   * for what they have typed since - rather than copied into state by an
-   * effect, which is how a form ends up showing a review that has been
-   * changed underneath it. "Edit" then means edit, not "write it again".
+   * The form is derived from the saved review, with an override for what has
+   * been typed since, rather than copied into state by an effect - so it never
+   * shows a stale copy of a review that has changed.
    */
   const [draft, setDraft] = useState<{ rating: number; title: string; body: string } | null>(null);
   const [editing, setEditing] = useState(false);
@@ -155,8 +154,8 @@ export default function BookReviews({ bookId }: { bookId: Id | undefined }) {
             </div>
           </div>
 
-          {/* The spread, because an average of 3.7 hides that a third of
-              buyers hated it. */}
+          {/* The spread, because an average alone can hide how ratings are
+              distributed. */}
           <div className="min-w-45 flex-1">
             {[5, 4, 3, 2, 1].map((star) => {
               const count = data.distribution[star - 1] ?? 0;
@@ -278,8 +277,8 @@ export default function BookReviews({ bookId }: { bookId: Id | undefined }) {
                 {(review.reviewerName || '?').charAt(0).toUpperCase()}
               </span>
               <strong style={{ color: '#111827' }}>{review.reviewerName}</strong>
-              {/* The badge is the whole point of restricting who may write:
-                  it is what makes the score worth reading. */}
+              {/* Only buyers may review, and the badge says so: it is what
+                  makes the score trustworthy. */}
               <span className="badge" style={{ background: '#ecfdf5', color: '#047857' }}>
                 Verified purchase
               </span>
@@ -309,10 +308,7 @@ export default function BookReviews({ bookId }: { bookId: Id | undefined }) {
             )}
 
             <div className="mt-2 flex flex-wrap items-center gap-1 text-sm">
-              {/*
-                * A review the seller cannot answer is one they can only argue
-                * with by deleting it, which they cannot do.
-                */}
+              {/* Sellers cannot delete reviews, so they may reply to them. */}
               {data.isSeller &&
                 (replyTo?.id === review._id ? null : (
                   <button

@@ -45,11 +45,10 @@ export const requireAuth: RequestHandler = async (req, res, next) => {
 /**
  * Anonymous access allowed, but a token that is sent must be good.
  *
- * An expired token was quietly treated as no token, so the answer was the
- * anonymous one - the owner of a profile, back after fifteen minutes, was
- * shown the public version of their own page, without their address, phone
- * or bKash number, and nothing prompted the browser to refresh the session.
- * A 401 is what makes it refresh and ask again.
+ * An expired token gets a 401 rather than the anonymous answer, so the browser
+ * refreshes the session and asks again; otherwise the owner of a profile,
+ * back after fifteen minutes, would be shown the public version of their own
+ * page.
  */
 export const optionalAuth: RequestHandler = async (req, res, next) => {
   try {

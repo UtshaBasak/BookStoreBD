@@ -1,5 +1,5 @@
 /**
- * The third batch: stronger passwords, search across Bangla and English,
+ * Stronger passwords, search across Bangla and English,
  * suggestions, stock and price alerts, asking for a sold-out book, the
  * buyer's note, order and return e-mails, and the administrator's messages.
  */

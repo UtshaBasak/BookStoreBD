@@ -212,8 +212,8 @@ export const updateUserProfile = async (
         if (Object.keys(updateFields).length > 0) updateQuery.$set = updateFields;
         if (Object.keys(unsetFields).length > 0) updateQuery.$unset = unsetFields;
 
-        // Without the password hash. The whole document was sent back, hash
-        // included, to the browser and to anything logging responses there.
+        // Without the password hash, which must never reach the browser or
+        // anything logging responses there.
         const user = await User.findOneAndUpdate(
             { email },
             updateQuery,

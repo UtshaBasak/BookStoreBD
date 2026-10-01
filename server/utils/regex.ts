@@ -3,7 +3,7 @@ const REGEX_SPECIAL_CHARS = new Set(['.', '*', '+', '?', '^', '$', '{', '}', '('
 /**
  * Escapes regex metacharacters in text that came from a request.
  *
- * Two reasons, and both have bitten. A search for "C++" is a syntax error as a
+ * Two reasons. A search for "C++" is a syntax error as a
  * pattern rather than a search for "C++"; and a search for ".*" would
  * otherwise match every record there is, which is a filter doing the opposite
  * of filtering.
@@ -23,9 +23,9 @@ export const contains = (value: string): RegExp => new RegExp(escapeRegex(value)
 /**
  * A case-insensitive exact match.
  *
- * Categories and conditions were stored with whatever capitalisation the form
- * of the day used - 'Fiction' from the current one, 'fiction' from the seed -
- * so an exact match on the stored value finds half of what it should.
+ * Categories and conditions are stored with varying capitalisation - 'Fiction'
+ * from the form, 'fiction' from the seed - so an exact match on the stored
+ * value would find only some of what it should.
  */
 export const sameText = (value: string): RegExp => new RegExp(`^${escapeRegex(value)}$`, 'i');
 

@@ -2,11 +2,9 @@
  * The categories a book can be listed under, in groups.
  *
  * One list for the whole site: the listing form, the filter panel and the
- * homepage menu all read it. They were three copies of fourteen broad
- * buckets - "Science & Technology", "History & Politics" - each of which held
- * several different kinds of book, so choosing one narrowed very little. These
- * are single subjects, grouped so that a long list stays easy to scan. A book
- * can be in several.
+ * homepage menu all read it. Each category is a single subject, so choosing
+ * one narrows the catalogue meaningfully, and the groups keep a long list easy
+ * to scan. A book can be in several.
  *
  * The server matches categories case-insensitively and does not hold a list
  * of its own, so one can be added here without touching the API.

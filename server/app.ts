@@ -70,11 +70,10 @@ export const createApp = ({
    * Who the visitor is, for the rate limits and the log.
    *
    * Cloudflare's and Render's proxies are skipped in X-Forwarded-For, and the
-   * visitor is the first address reading from the right that is neither. It
-   * trusted "one hop" before, and a request crosses several, so req.ip came
-   * out as one of Render's proxies and the limits counted the whole site as
-   * three visitors: one person hammering the sign-in form would have locked
-   * everyone out. See config/trustedProxies.ts.
+   * visitor is the first address reading from the right that is neither. A
+   * request crosses several hops, so trusting only one would make req.ip a
+   * proxy and put every visitor behind it in a single rate-limit bucket. See
+   * config/trustedProxies.ts.
    */
   app.set('trust proxy', TRUSTED_PROXIES);
 
@@ -149,8 +148,8 @@ export const createApp = ({
         express.static(clientDist, {
           index: false,
           // The build names everything under assets/ after its contents, so a
-          // changed file is a new address and the old one can be kept for a
-          // year. It was revalidated on every visit, a round trip per file.
+          // changed file is a new address and the old one can be cached for a
+          // year rather than revalidated on every visit.
           setHeaders: (res, filePath) => {
             if (path.relative(clientDist, filePath).split(path.sep)[0] === 'assets') {
               res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
@@ -193,8 +192,8 @@ export const createApp = ({
         // Nor for a file that is not there. No page of the app has a dot in
         // its address or lives under /.well-known, so these are requests for
         // files - an old asset after a deploy, a manifest a tool is looking
-        // for - and answering with the app's HTML told them it existed and was
-        // broken (Lighthouse read "<!doctype" as a malformed ai-catalog.json).
+        // for - and answering with the app's HTML would tell them it existed
+        // and was malformed (Lighthouse, for one, parses it as a broken file).
         if (/\.[a-z0-9]+$/i.test(req.path) || req.path.startsWith('/.well-known/')) return next();
         res.set('Cache-Control', 'no-cache');
         return res.type('html').send(renderSitePage(template(), publicSiteUrl(req)));
@@ -202,8 +201,7 @@ export const createApp = ({
     } else {
       // Asked to serve the app with nothing to serve. Mounting it anyway would
       // answer every page with a 500 from sendFile, so the API carries on
-      // serving only itself - but doing that *silently* is how this went
-      // unnoticed in Docker the first time, so it is said out loud.
+      // serving only itself, and says so in the log so the gap is visible.
       appLog.warn(
         { clientDist },
         'SERVE_CLIENT is on but no client build was found; the API will not serve the app. ' +

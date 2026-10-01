@@ -34,13 +34,9 @@ import './Profile.css';
 
 export default function Profile() {
     /*
-     * Buyer or seller, kept in the address and on this device.
-     *
-     * It was plain state, starting at 'buyer' on every visit - so going from
-     * the seller profile to the book list or the order list and back landed on
-     * the buyer profile. The address says which one this is, so the back
-     * button returns to it; the device remembers the last one chosen, for
-     * anything that links to /profile without saying.
+     * Buyer or seller, kept in the address and on this device. The address
+     * says which one this is, so the back button returns to it; the device
+     * remembers the last one chosen, for links to /profile that do not say.
      */
     const [searchParams, setSearchParams] = useSearchParams();
     const [profileMode, setMode] = useState<ProfileMode>(() => readProfileMode(searchParams.get('mode')));
@@ -64,7 +60,7 @@ export default function Profile() {
     const { data } = useProfile(userEmail, { enabled: Boolean(userEmail) });
     const profileData: Partial<OwnProfile> = data ?? { email: '', username: '' };
 
-    // Helper: show only if value is not blank/undefined/null
+    // Blank, null and undefined fields are left off the page.
     const showIfFilled = (val: unknown) =>
         val !== undefined && val !== null && String(val).trim() !== '';
 
@@ -142,7 +138,7 @@ export default function Profile() {
                 </Link>
                 <div className="user-options">
                     <NotificationBell />
-                    {/* Cart and Wishlist buttons for buyer profile */}
+                    {/* Cart and wishlist on the buyer side only. */}
                     {profileMode === 'buyer' && (
                         <>
                             <Link to="/wishlist" className="icon-link" style={{ color: '#ff5c35' }} title="Go to Wishlist" aria-label="Go to Wishlist">
@@ -174,7 +170,6 @@ export default function Profile() {
                         </div>
                     )}
                     <div className="pf-hero-body">
-                        {/* Profile Picture Segment */}
                         {showIfFilled(profileData.profilePicture) ? (
                             <img
                                 src={profileData.profilePicture ?? undefined}
@@ -189,14 +184,12 @@ export default function Profile() {
                             </div>
                         )}
 
-                        {/* User Information */}
                         <div className="pf-identity">
                             <p className="pf-kicker">Profile</p>
                             <h1 className="pf-name">{profileData.username || 'Your profile'}</h1>
                             <p className="pf-email">{profileData.email}</p>
                         </div>
 
-                        {/* Profile Mode Switch */}
                         <div className="pf-mode" role="radiogroup" aria-label="Profile mode">
                             <label className={`pf-mode-option ${profileMode === 'buyer' ? 'pf-mode-option-on' : ''}`}>
                                 <input
@@ -258,7 +251,6 @@ export default function Profile() {
                     )
                 )}
 
-                {/* Buttons */}
                 <h2 className="pf-section-title">{isSeller ? 'Your shop' : 'Your account'}</h2>
                 <div className="pf-tiles">
                     {tiles.map((tile) => (

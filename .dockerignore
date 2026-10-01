@@ -1,0 +1,15 @@
+# Build context for the root Dockerfile. Secrets, local data and anything
+# rebuilt inside the image stay out of it.
+**/node_modules
+**/dist
+**/coverage
+**/.env
+**/.env.*
+!**/.env.example
+**/*.log
+server/uploads
+.git
+.github
+docs
+*.md
+!client/**/*.md

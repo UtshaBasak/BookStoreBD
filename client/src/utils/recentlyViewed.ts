@@ -2,8 +2,8 @@
  * The books this browser has looked at, most recent first.
  *
  * Kept in the browser rather than on the account: it works for a visitor who
- * has not signed in, it costs the server nothing, and it is nobody's business
- * but theirs. The homepage shows it as Recently viewed and sends it with the
+ * has not signed in, it costs the server nothing, and it stays private to the
+ * visitor. The homepage shows it as Recently viewed and sends it with the
  * request for Top picks. Storage can be unavailable - a private window, a
  * blocked site - and then the shelf is simply empty.
  */

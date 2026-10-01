@@ -3,12 +3,9 @@
  * in AdminPanel.css.
  *
  * A stylesheet imported by a page is not scoped to it: Vite puts it in the one
- * bundle, and a bare `button { background-color: #ef4444 }` in this file once
- * painted every button in the application red. It also beat the Tailwind
- * utilities, because Tailwind 4 puts its own rules in a cascade layer and an
- * unlayered rule wins over a layered one whatever the specificity. So every
- * rule here stays scoped to `.user-management`, and none sets a button's
- * colour - the old ones overrode `btn-danger`.
+ * bundle, and an unlayered rule beats Tailwind 4's layered utilities whatever
+ * the specificity. So every rule here stays scoped to `.user-management`, and
+ * none sets a button's colour, leaving `btn-danger` and the rest intact.
  */
 
 /* Email addresses are long; on a phone they wrap rather than widening the

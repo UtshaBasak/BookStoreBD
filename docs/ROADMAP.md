@@ -1,93 +1,71 @@
 # Upgrade roadmap
 
-Eight upgrades that move BookStoreBD closer to how a comparable service would
-be built and run in industry. Each is self-contained and lands as its own
-commit, so any one of them can be reverted without unpicking the others.
+Eight upgrades that bring BookStoreBD in line with how a comparable production
+service is built and run, each landed as a self-contained, revertible commit.
+All eight are complete.
+
+**Current baseline.** Lint, type-check, build and boot are green from a clean
+`npm ci`, with zero dependency vulnerabilities in all three package roots.
+**571 tests** (397 server, 174 client) gate every push. CodeQL reports five
+findings, all confirmed false positives.
+
+| Order | Task | Phase | Depends on | Outcome |
+| ---: | --- | --- | --- | --- |
+| 1 | [1 · Automated tests](#1--automated-tests) | Foundation | — | Vitest suites in both packages, gating CI |
+| 2 | [7 · Docker Compose](#7--docker-compose) | Foundation | — | Development and production-like stacks |
+| 3 | [5 · Structured logging](#5--structured-logging-and-error-tracking) | Foundation | — | pino with correlation ids, optional Sentry |
+| 4 | [3 · Zod validation](#3--request-validation-with-zod) | Hardening | 1 | A schema on every endpoint |
+| 5 | [2 · Refresh tokens](#2--refresh-tokens-and-logout) | Hardening | 1 | 15-minute access tokens, rotating refresh, real logout |
+| 6 | [4 · Cloudinary](#4--image-storage-on-cloudinary) | Larger | 1 | Optional signed direct uploads to a CDN |
+| 7 | [6 · TanStack Query](#6--tanstack-query) | Larger | 1 | Shared query cache, zero lint warnings |
+| 8 | [8 · TypeScript](#8--typescript) | Larger | 1, 4 | Both packages under `strict`, one shared contract |
+
+The order is local-first: the project runs cleanly on a laptop before
+deployment work. Task numbers are stable; only the running order differs.
+
+---
 
 ## Known CodeQL findings
 
-**5 findings, all false positives**, to be dismissed in the Security tab rather
-than fixed in code. Recorded here so the list stays short enough that a real
-finding is noticeable.
-
-Measured locally on 22 September 2026 with CodeQL CLI 2.27.0, running the same
-`javascript-code-scanning` suite and `javascript-typescript` language the
-workflow uses, against a copy of the working tree with no `node_modules` in it.
+**Five findings, all false positives**, dismissed in the Security tab rather
+than changed in code. Measured on 22 September 2026 with CodeQL CLI 2.27.0,
+using the workflow's `javascript-code-scanning` suite and
+`javascript-typescript` language on a copy of the working tree without
+`node_modules`.
 
 | Rule | Count | Why it is not a defect |
 | --- | ---: | --- |
 | `js/xss-through-dom` | 3 | `URL.createObjectURL` can only produce a `blob:` URL; CodeQL models it as taint-propagating regardless. The only barriers the query accepts would corrupt a `blob:` or `data:` URL. The three sites are the file pickers in `ChatWindow`, `ChatPage` and `UpdateProfile`. |
-| `js/missing-token-validation` | 1 | The refresh cookie is `SameSite=Lax` and both endpoints that read it are POST, so a browser will not attach it cross-site. Every other endpoint authenticates from the `Authorization` header, which a third-party page cannot set. Pinned by tests asserting the cookie alone authenticates nothing. |
-| `js/insufficient-password-hash` | 1 | `server/utils/breachedPassword.ts` hashes a new password with SHA-1 to look it up in Have I Been Pwned, whose range API is keyed by SHA-1: only the first five characters of the hash are sent. Nothing is stored; passwords are stored as bcrypt hashes. Added 1 October 2026. |
+| `js/missing-token-validation` | 1 | The refresh cookie is `SameSite=Lax` and both endpoints that read it are POST, so a browser will not attach it cross-site. Every other endpoint authenticates from the `Authorization` header, which a third-party page cannot set. Tests assert that the cookie alone authenticates nothing. |
+| `js/insufficient-password-hash` | 1 | `server/utils/breachedPassword.ts` hashes a new password with SHA-1 to look it up in Have I Been Pwned, whose range API is keyed by SHA-1; only the first five characters of the hash are sent. Nothing is stored; passwords are stored as bcrypt hashes. Recorded 1 October 2026. |
 
-### `js/sql-injection` went from 25 to 0
-
-This was the long-standing group, and the note here used to say it could not be
-cleared: "adding a generic narrowing pass to `validate.ts` was tried and did not
-clear them". That was true, and it was the wrong place to try. The schema
-narrows the value several frames earlier, where no analyser can follow it.
-
-Two changes, each verified by re-running the suite rather than hoped for:
-
-**Narrow at the sink.** Every value CodeQL traced from a request into a query
-is now wrapped where the query is built: `String(x)` for text and ids,
-`Number(x)` for the rating. That is not decoration and not analyser-appeasement.
-`String({ $ne: null })` is the literal `"[object Object]"` and `Number({ $gt: 0 })`
-is `NaN` - neither is an operator Mongo will honour, where the object itself is.
-The schemas still do the real validation; this says the same thing in the one
-place the analyser can see, and it is the honest statement of what the code
-relies on.
-
-**One-time codes are filed under a digest.** `otpStore` accounted for nine of
-the twenty-five. It now keys records by an HMAC of the address rather than the
-address, so no request value reaches the query at all - and the collection stops
-being a record of which addresses asked for a code and when, which is worth not
-keeping on its own.
+**`js/sql-injection` was fixed in code.** The schemas narrow request values
+several call frames before the query, beyond what the analyser follows, so the
+code also narrows at the sink. Request-derived values in a query are wrapped in
+`String(x)` or `Number(x)`: `String({ $ne: null })` is `"[object Object]"` and
+`Number({ $gt: 0 })` is `NaN`, neither of which Mongo treats as an operator.
+`otpStore`, nine of the alerts, keys records by an HMAC of the address, so no
+request value reaches its query and the collection does not record who asked
+for a code.
 
 ```text
-                              before   after
-js/sql-injection                  25       0
-js/xss-through-dom                 3       3
-js/missing-token-validation        1       1
-                              ------  ------
-                                  29       4
+                               before   22 Sep   current
+js/sql-injection                   25        0         0
+js/xss-through-dom                  3        3         3
+js/missing-token-validation         1        1         1
+js/insufficient-password-hash       -        -         1
+                               ------   ------    ------
+                                   29        4         5
 ```
 
-### Dismissing what is left
+**Dismissing.** Filter by **Rule** in the Security tab and dismiss each group
+as **False positive** with the reason above. The rules stay enabled, since a
+query filter would hide a real injection as readily as a false one. A large
+refactor can change an alert's fingerprint and reopen it.
 
-Filter by **Rule** in the Security tab and dismiss one group at a time, so each
-dismissal carries a reason that is true of it. Reason: **False positive**.
-
-Do not instead silence the rules with query filters in the CodeQL configuration.
-That would hide a real injection just as effectively as a false one; the point
-of dismissing individual alerts is that the rule stays live.
-
-Expect them back after a large refactor. A dismissal is tied to an alert's
-fingerprint, so when code moves far enough CodeQL opens a fresh alert for the
-same thing.
-
-**DOM text reinterpreted as HTML** (3)
-
-```text
-False positive. The source is URL.createObjectURL, which can only ever produce a
-blob: URL. safeImageSrc additionally allow-lists the scheme before the value
-reaches an <img src>. The only barriers this query accepts would corrupt a blob:
-or data: URL.
-```
-
-**Missing CSRF middleware** (1)
-
-```text
-False positive. The refresh cookie is SameSite=Lax and both endpoints that read
-it are POST, so a browser will not attach it cross-site. Every other endpoint
-authenticates from the Authorization header, which a third-party page cannot
-set. Pinned by tests asserting the cookie alone authenticates nothing.
-```
-
-### Re-measuring
-
-The CLI is not kept on this machine - it is a 663 MB download and about ninety
-seconds:
+**Re-measuring.** The CLI bundle is a 663 MB download and a run takes about
+ninety seconds. Analyse a copy of the working tree, not a `git clone`, which
+would measure the last commit.
 
 ```bash
 curl -sL -o codeql.tar.gz https://github.com/github/codeql-action/releases/download/codeql-bundle-v2.27.0/codeql-bundle-win64.tar.gz
@@ -96,416 +74,164 @@ tar -xzf codeql.tar.gz
 ./codeql/codeql database analyze db javascript-code-scanning.qls --format=sarif-latest --output=out.sarif
 ```
 
-Analyse a copy of the working tree, not a `git clone` of it, or you measure the
-last commit rather than what you just changed - which is a mistake worth making
-only once.
+---
+
+## 1 · Automated tests
+
+Tests underpin every later task: the defects in the initial audit (a 404 on
+`/cart/clear` after checkout, an authentication bypass, PII readable by anyone)
+were invisible to lint, build and CodeQL. The stack is Vitest 5 in both
+packages, Supertest 7 against `createApp()`, mongodb-memory-server 11 for a
+real MongoDB with no external service, and Testing Library 16 with jsdom.
+
+- **Server:** the authorisation matrix (`401` anonymous, `403` wrong role or
+  cross-user, forged tokens rejected), ownership, the cart lifecycle, stock
+  reservation and the oversell `409`, NoSQL injection payloads, and profile PII
+  scoping. `server/tests/regressions.test.ts` pins every audit defect.
+- **Client:** `safeImageSrc`, session helpers, `apiFetch`, the error boundary,
+  and page-level tests for the homepage, catalogue, listing forms and admin.
+- One `mongodb-memory-server` per run, started in `globalSetup` with
+  `launchTimeout: 60000` (the 10 s default can time out on Windows); CI caches
+  the binary. No coverage threshold gates the build, so a red CI always means a
+  failing behaviour.
+
+The suite landed with 66 server and 44 client tests (about 14 s).
 
 ---
 
-**Current baseline.** Lint, type-check, build and boot are green from a clean
-`npm ci`, and all three package roots report zero dependency vulnerabilities.
-CodeQL reports 4 findings, all confirmed false positives and itemised above,
-measured locally with the CLI rather than read off the tab. The twenty-five
-`js/sql-injection` alerts are gone, fixed rather than dismissed. Authentication and
-authorisation are enforced server-side, sessions use short access tokens with
-rotating refresh tokens, and every endpoint that reads a body, query or param
-validates it against a Zod schema. All eight tasks are complete: the whole
-codebase is TypeScript under `strict`, **571 tests** (397 server, 174 client)
-gate every push, `docker compose up` brings the whole stack up with no local
-Node or MongoDB install, the API emits structured logs with a correlation id
-per request, and book covers can be hosted on a CDN instead of living in the
-database.
+## 7 · Docker Compose
+
+`docker compose up` runs MongoDB, the API and the client with no local Node or
+MongoDB, and reproduces a production-like build locally.
+
+- **`docker-compose.yml`** (development): nodemon and the Vite dev server, the
+  source bind-mounted, and a named database volume.
+- **`docker-compose.prod.yml`** (production-like): the bundle served by nginx,
+  the API unprivileged with a health check on `/health`.
+- Multi-stage Dockerfiles with `.dockerignore`. `docker compose run --rm seed`
+  loads demo accounts and a catalogue; `docker compose run --rm test` runs the
+  server suite.
+- `NODE_ENV` is set only in final stages, so dependency stages keep
+  devDependencies. Watchers poll in the containers, as Windows filesystem
+  events do not reach Linux containers. `mongodb-memory-server` has no Alpine
+  build, so in Compose the suite uses `MONGO_TEST_URI`; the host still uses the
+  in-memory server.
 
 ---
 
-## Sequence
+## 5 · Structured logging and error tracking
 
-Ordered for a local-first goal: the project should run smoothly on a laptop
-before any deployment work resumes.
-
-| Order | Task | Phase | Depends on | Risk |
-| ---: | --- | --- | --- | --- |
-| ~~1~~ | ~~[Automated tests](#1--automated-tests--done)~~ **done** | Foundation | — | Low |
-| ~~2~~ | ~~[Docker Compose](#7--docker-compose--done)~~ (task 7) **done** | Foundation | — | Low |
-| ~~3~~ | ~~[Structured logging](#5--structured-logging-and-error-tracking--done)~~ (task 5) **done** | Foundation | — | Low |
-| ~~4~~ | ~~[Zod validation](#3--request-validation-with-zod--done)~~ (task 3) **done** | Hardening | 1 | Medium |
-| ~~5~~ | ~~[Refresh tokens](#2--refresh-tokens-and-logout--done)~~ (task 2) **done** | Hardening | 1 | High |
-| ~~6~~ | ~~[Cloudinary image storage](#4--move-images-out-of-mongodb-cloudinary--done)~~ (task 4) **done** | Larger | 1 | Medium |
-| ~~7~~ | ~~[TanStack Query](#6--tanstack-query-and-the-17-lint-warnings--done)~~ (task 6) **done** | Larger | 1 | Medium-high |
-| ~~8~~ | ~~[TypeScript](#8--typescript--done)~~ **done** | Larger | 1, 4 | High volume |
-
-Task numbers are stable throughout this document — only the running order
-differs from the numbering.
+- `pino` and `pino-http`, with `pino-pretty` in development. `LOG_LEVEL`
+  defaults to `info` in production and `debug` in development.
+- All 27 application `console` calls are named child loggers;
+  `scripts/seed.ts`, a CLI, keeps `console` by design.
+- Each request has a correlation id, returned as `X-Request-Id` and reused from
+  an upstream proxy. The access log skips health checks and records
+  `req.originalUrl`, since Express rewrites `req.url` under a router.
+- `Authorization`, cookies, passwords, OTP codes and tokens are redacted.
+- Sentry is optional: without `SENTRY_DSN` nothing leaves the process. On the
+  client, an error boundary renders a recovery page.
 
 ---
 
-## 1 · Automated tests — done
+## 3 · Request validation with Zod
 
-*Landed. 66 server tests and 44 client tests, ~14s, wired into CI.*
-
-The single biggest gap. Every bug found during the recent audit — a 404 on
-`/cart/clear` after checkout, an authentication bypass, PII readable by
-anyone — would have been caught by a test, and none were caught by lint,
-build or CodeQL.
-
-### Stack
-
-| Tool | Version | Role |
-| --- | --- | --- |
-| Vitest | 5.x | Runner for both packages (supports Vite 8) |
-| Supertest | 7.x | HTTP assertions against `createApp()` |
-| mongodb-memory-server | 11.x | Real MongoDB per test run, no external service |
-| @testing-library/react + jsdom | 16.x | Component tests |
-
-### Server coverage, in priority order
-
-- Auth matrix — token issued on sign-in, `401` anonymous, `403` wrong role,
-  `403` cross-user, forged token rejected
-- Ownership — a seller cannot touch another seller's listing; a buyer cannot
-  read another buyer's order; a non-participant cannot read a conversation
-- Cart lifecycle including `/cart/clear`
-- Order stock reservation and the oversell `409`
-- NoSQL injection payloads rejected on body and query
-- Profile PII scoping: owner sees contact details, nobody else does
-
-### Client coverage
-
-- `safeImageSrc` scheme validation
-- `auth.ts` session helpers
-- `apiFetch` attaches the bearer token and clears the session on `401`
-- Smoke render of two or three pages
-
-### Notes
-
-- `mongodb-memory-server` has been observed timing out at its default 10s
-  launch on Windows. Use a `globalSetup` that starts **one** instance for the
-  whole run with `launchTimeout: 60000`, rather than one per file.
-- The mongod binary is downloaded on first use; cache it in CI.
-- Add the test step to both CI jobs. Do not gate on coverage thresholds
-  initially — a failing build over a coverage percentage on day one trains
-  people to ignore CI.
-
-**Done.** `npm test` runs both suites from the repository root, CI fails on a
-red test, and `server/tests/regressions.test.ts` covers every defect found in
-the audit: the missing `/cart/clear`, the oversell race, the authentication
-bypass, the profile PII leak, and the two chat endpoints that used to fail
-outright.
-
-**Not delivered from the plan above:** the client smoke renders. The client
-suite covers `safeImageSrc`, the session helpers, `apiFetch` and the error
-boundary — four files, no page-level render at all. Worth adding, along with
-the OTP e-mail flow, which needs the SMTP transport stubbed.
-
----
-
-## 7 · Docker Compose — done
-
-*Landed. `docker compose up` brings up MongoDB, the API and the client; both
-stacks were built and exercised end to end.*
-
-`docker compose up` brings up MongoDB, the API and the client together, so
-setup stops depending on what happens to be installed on a given machine.
-
-### Scope
-
-- `docker-compose.yml` — `mongo`, `server`, `client`, with a named volume for
-  database persistence and a health check on `/health`
-- `server/Dockerfile` and `client/Dockerfile` (multi-stage: build, then serve
-  the static bundle)
-- `.dockerignore` for both
-- `server/scripts/seed.ts` — sample books, a buyer, a seller and an admin, so
-  a fresh database is immediately usable
-- README section for the Docker path alongside the existing npm path
-
-**Why it is worth doing before deployment work.** A reproducible
-production-like build locally is the most effective tool for diagnosing the
-Render failure, because it removes "works on my machine" from the equation.
-
-**Done.** Two stacks: `docker-compose.yml` for development (nodemon and the
-Vite dev server, source bind-mounted) and `docker-compose.prod.yml` for a
-production-like build (the bundle served by nginx, the API unprivileged with a
-health check). `docker compose run --rm seed` loads demo accounts and a
-catalogue; `docker compose run --rm test` runs the server suite.
-
-Three things only surfaced by actually running it:
-
-- `NODE_ENV=production` in the shared base stage reached the dependency stages,
-  so `npm ci` skipped devDependencies and the dev image had no nodemon.
-- Filesystem events raised on a Windows host do not reach a Linux container, so
-  neither watcher reloaded. Both now poll, enabled only inside the containers.
-- `mongodb-memory-server` has no mongod build for Alpine's musl libc, so the
-  suite takes `MONGO_TEST_URI` and points at the stack's MongoDB instead.
-
-Baseline note: the host test path is unchanged and still uses the in-memory
-server.
-
----
-
-## 5 · Structured logging and error tracking — done
-
-*Landed. One structured line per request with a correlation id, secrets
-redacted, and optional Sentry reporting.*
-
-### Scope
-
-- `pino` + `pino-http`, with a per-request id and `Authorization` redacted
-- `pino-pretty` for development output only
-- Replace the remaining ad-hoc `console.log` / `console.error` calls
-- Sentry for unhandled server errors and a React error boundary on the client
-
-Log levels via `LOG_LEVEL`, defaulting to `info` in production and `debug` in
-development.
-
-**Done.** All 27 `console` calls in the application replaced with named child
-loggers. Each request carries a correlation id, returned as `X-Request-Id` and
-reused if an upstream proxy supplied one. `Authorization`, cookies, passwords,
-OTP codes and tokens are redacted before anything is written. Health checks are
-excluded from the access log. Sentry is wired but entirely optional: with no
-`SENTRY_DSN` nothing is initialised and nothing leaves the process. On the
-client, an error boundary replaces the blank white page a render error used to
-produce.
-
-One bug found by reading the real output: the access log said `GET /` for every
-routed request, because Express rewrites `req.url` relative to a router's mount
-point. It uses `req.originalUrl` now, and a test pins it.
-
-`scripts/seed.ts` deliberately keeps `console`, being a CLI whose output is read
-by a person.
-
----
-
-## 3 · Request validation with Zod — done
-
-*Landed. Every endpoint validates body, query and params; `utils/sanitize.js`
-is gone.*
-
-One schema per endpoint, applied by a `validate` middleware, returning a
-consistent shape:
+Every endpoint validates body, query and params through
+`middleware/validate.ts` with schemas in `server/schemas/`. Failures share one
+shape:
 
 ```json
 { "message": "Validation failed", "errors": [{ "path": "email", "message": "Invalid email" }] }
 ```
 
-### Scope
-
-- `zod` 4.x, `server/middleware/validate.ts`, `server/schemas/<domain>.ts`
-- Wire into every route that reads a body, query or param
-
-**This partly replaces existing code, deliberately.** The current
-`utils/sanitize.js` helpers (`asTrimmedString`, `asNonNegativeInt`) existed to
-narrow request values so a `{"$ne": null}` object can never reach a Mongoose
-query. Zod's `.string()` and `.number()` give the same guarantee with far
-better error messages, so most of `sanitize.js` retires once schemas are in
-place. `middleware/sanitizeRequest.ts` stays as defence in depth.
-
-Schemas also produce static types through `z.infer`, which is why this comes
-before TypeScript.
-
-**Done.** `middleware/validate.ts` plus `schemas/common.ts` and
-`schemas/index.ts`. All 31 `asTrimmedString` calls removed and
-`utils/sanitize.js` deleted; `middleware/sanitizeRequest.ts` stays as defence
-in depth.
-
-One endpoint was missed at the time and closed later: `POST /user/add-book`
-read a whole multipart body with no schema, because it is the one route whose
-body is assembled from form fields rather than JSON. It has one now, which also
-does the shaping the handler used to do by hand — `category` arrives as an
-array whether it was sent once or five times, and `pages` and `price` as
-numbers.
-
-Two traps found while building it:
-
-- Express 5 defines `req.query` as a getter, so `req.query = parsed` is
-  silently discarded — validation would pass while handlers kept reading raw
-  values. The middleware uses `Object.defineProperty`, and a test fails if that
-  regresses.
-- `z.coerce.number()` accepts `[]`, because `Number([]) === 0`, so `stock: []`
-  would have quietly become 0. The numeric primitives narrow through a union
-  first.
-
-One deliberate behaviour change: an operator object in `filter_input` used to
-coerce to an empty string and return `200` with no results. It now returns
-`400`, which is equally safe and tells the caller why.
+- Zod's `.string()` and `.number()` keep operator objects such as
+  `{"$ne": null}` out of Mongoose queries, with clear errors.
+  `utils/sanitize.js` and its 31 call sites were retired;
+  `middleware/sanitizeRequest.ts` remains as defence in depth.
+- `z.infer` provides static types, which is why this preceded TypeScript.
+- The multipart `POST /user/add-book` has a schema that also normalises
+  `category` to an array and `pages` and `price` to numbers.
+- Express 5 defines `req.query` as a getter, so parsed values are assigned with
+  `Object.defineProperty`; a test guards it.
+- `z.coerce.number()` accepts `[]` (`Number([]) === 0`), so numeric primitives
+  narrow through a union first.
+- An operator object in `filter_input` returns `400` with the reason.
 
 ---
 
-## 2 · Refresh tokens and logout — done
+## 2 · Refresh tokens and logout
 
-*Landed. 15-minute access tokens, rotating refresh tokens in an httpOnly
-cookie, replay detection, and a real logout — all same-origin.*
+Access tokens last 15 minutes (previously 7 days, unrevocable). Sessions use
+an opaque refresh token, stored only as a SHA-256 hash with an expiry, rotated
+on every use, and sent in an httpOnly cookie scoped to `/api/auth`. Presenting
+an exchanged token revokes the whole family. `POST /auth/logout` revokes the
+session; a password reset revokes all of the account's sessions. The client
+retries a `401` once through `/auth/refresh`, sharing one in-flight refresh so
+a busy page does not trip reuse detection.
 
-Today a single access token lives for seven days and cannot be revoked. There
-is no real logout — the client just forgets the token.
+**Same-origin.** An httpOnly refresh cookie works cleanly, and stays
+first-party for Safari ITP, only when client and API share an origin. Both
+shapes are tested:
 
-### Target
+| Shape | How |
+| --- | --- |
+| **Proxy** | The Vite dev server or nginx proxies the API prefixes. |
+| **Single service** | `SERVE_CLIENT=true` makes Express serve `client/dist`, falling through to `index.html`. Used on Render; chosen over a Static Site with an `/api/*` rewrite as the simpler shape, with no CORS. |
 
-- Access token, 15 minutes
-- Refresh token: opaque random value, stored hashed in a `RefreshToken`
-  collection with an expiry, rotated on every use
-- Reuse detection — presenting a rotated token revokes the whole family
-- `POST /auth/refresh` and a real `POST /auth/logout`
-- Client interceptor retries a `401` once through `/auth/refresh`
-
-### Same-origin decision
-
-An httpOnly refresh cookie is the secure option, and it only works
-comfortably when the browser sees the client and API as one origin.
-**Same-origin was chosen**, so this task carries a deployment-shape change.
-Two ways to get there on Render:
-
-| Approach | How | Trade-off |
-| --- | --- | --- |
-| **Express serves the client** *(recommended)* | The API also serves `client/dist` and falls through to `index.html`. One Render Web Service. | Simplest — one service, no CORS at all, cookies work with `SameSite=Lax`. Client and API deploy together. |
-| **Static Site with a rewrite** | Render Static Site rewrites `/api/*` to the API service. | Keeps the two services separate and the CDN in front of the client; one more piece of routing config. |
-
-Locally, the same shape is reproduced with a Vite dev-server proxy, so
-development matches production instead of relying on CORS.
-
-Because the cookie is now first-party, the Safari ITP problem that made the
-cross-site variant risky does not arise.
-
-**Risk is highest of the eight** — a mistake signs everyone out, or worse,
-fails to sign anyone out. Do it after tests exist.
-
-**Done.** Access tokens dropped from 7 days to 15 minutes; sessions are kept
-alive by an opaque refresh token stored only as a SHA-256, rotated on every
-use, in an httpOnly cookie scoped to `/auth`. Presenting an already-exchanged
-token revokes the whole family. `/auth/logout` revokes and clears; a password
-reset revokes every session for the account.
-
-Same-origin was reached through the proxy route rather than by folding the
-client into the API image: the Vite dev server proxies the API prefixes in
-development and nginx does in the production stack, so the browser only ever
-sees one origin. `SERVE_CLIENT=true` additionally makes Express serve
-`client/dist` for a single-service deployment; both shapes were exercised.
-
-Two things worth recording:
-
-- The client shares one in-flight refresh across concurrent requests. Without
-  that, a page firing several requests at once would trigger several refreshes,
-  the second would present an already-rotated token, and the reuse detection
-  would sign the user out for loading a busy page.
-- `client/dist` is not inside the server image, so the first attempt at
-  same-origin quietly did nothing in Docker — `GET /` returned 404 while the
-  tests passed. Serving the client is now gated behind an explicit
-  `SERVE_CLIENT` switch, and when that switch is on with no bundle on disk the
-  API says so at start-up instead of serving nothing in silence. The nginx
-  stack sets `SERVE_CLIENT: 'false'`, because there the bundle is deliberately
-  somewhere else and an unheeded warning on every boot is how warnings stop
-  being read.
+With `SERVE_CLIENT` on and no bundle on disk, the API reports it at start-up.
+The nginx stack sets `SERVE_CLIENT: 'false'` explicitly.
 
 ---
 
-## 4 · Move images out of MongoDB (Cloudinary) — done
+## 4 · Image storage on Cloudinary
 
-*Landed. Signed direct uploads, ownership-checked URLs, asset cleanup on
-delete, and a re-runnable migration.*
+Base64 covers grow documents towards MongoDB's 16 MB limit and cannot be
+cached. List endpoints project `images: { $slice: 1 }`, as lists render only
+the first cover: on 40 books with five covers each, **23.45 MB → 4.70 MB**.
 
-Book covers are currently base64 data URIs stored on the document.
+Cloudinary is optional; with `CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_API_KEY` and
+`CLOUDINARY_API_SECRET` unset, covers are stored inline and a fresh clone runs
+without an account. When configured:
 
-### Two separate problems
+- the browser uploads directly with a signature from the API (the SDK's
+  `api_sign_request`, verified against the live API), so image bytes never
+  pass through the server;
+- documents store the URL and `public_id`, and deleting a listing deletes its
+  assets;
+- each submitted URL must belong to this account's delivery host, and
+  `safeImageSrc` still treats it as untrusted;
+- a re-runnable script migrates existing base64 records.
 
-1. ~~A performance bug that can be fixed immediately.~~ **Done ahead of this
-   task.** `GET /book` returned every book with all of its base64 covers
-   inline. List endpoints now project `images: { $slice: 1 }`, since every
-   list view renders only the first cover; the detail endpoint still returns
-   the full set. Measured on 40 books with 5 covers each: **23.45 MB → 4.70 MB**.
-   Dropping images entirely was not an option — `Homepage.tsx` and
-   `Filter.tsx` render `book.images[0]` straight from the list response.
-2. Documents approach the 16 MB MongoDB limit, nothing is CDN-cached, and the
-   database carries binary weight it should not.
-
-**Target** — Cloudinary (chosen for its free tier and simple direct upload):
-
-- Signed direct upload from the browser; the API returns only a signature, so
-  image bytes never pass through the server
-- Documents store the URL and `public_id`
-- Deleting a listing deletes its Cloudinary assets
-- A migration script converts existing base64 records and is safe to re-run
-- `safeImageSrc` validation stays — the stored URL is still untrusted input
-
-New environment variables: `CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_API_KEY`,
-`CLOUDINARY_API_SECRET`.
-
-**Done.** Entirely optional: with none of them set the app stores covers inline
-exactly as before, so a fresh clone still runs with no account.
-
-Worth recording:
-
-- Cloudinary's own docs describe the signing rule — sorted params, secret
-  appended, then hash — but never say *which* hash. It is SHA-1, confirmed
-  empirically. The SDK's `api_sign_request` does the signing either way, which
-  is the point of not hand-rolling it.
-- The client tells the server which URL to store, so each one is checked
-  against this account's delivery host. Without that a caller could pin any URL
-  to a listing and have it rendered to every visitor.
-- Verified against the real Cloudinary API with a placeholder secret: the
-  rejection quotes the string to sign, which matched exactly. Only the secret
-  was wrong, which is what proves the rest right.
-- `vi.resetModules()` in the tests surfaced that most models registered
-  unguarded, so re-importing one threw `OverwriteModelError`. Two already used
-  the `mongoose.models.X ||` guard; all nine now do.
+Models register through a `mongoose.models.X ||` guard so tests can re-import
+them after `vi.resetModules()`.
 
 ---
 
-## 6 · TanStack Query and the 17 lint warnings — done
+## 6 · TanStack Query
 
-*Landed. Zero warnings, both rules back at `error`, and the API namespaced
-under `/api` after the migration exposed a routing collision.*
+`eslint-plugin-react-hooks` v7 flagged the `useEffect` → `fetch` → `setState`
+pattern 17 times across 15 files. Fetching now goes through
+`@tanstack/react-query`, and lint reports zero warnings with
+`react-hooks/set-state-in-effect` and `react-hooks/immutability` at `error`.
 
-Every page fetches with `useEffect` → `fetch` → `setState`. That pattern is
-what `eslint-plugin-react-hooks` v7 flags 17 times across 15 files, currently
-demoted to warnings so CI can pass.
+- `hooks/queries.ts` holds every query and mutation, with cache keys in one
+  place. Derived state is computed during render.
+- Pages that set state in `.then()` (not flagged by the rule) also use the
+  shared queries: `admin/TransactionHistory`, `Profile`, `UpdateProfile`,
+  `Cart`, `Wishlist`, `Filter`, `BookView` and both order-tracking pages. One
+  request serves each resource across pages, and one invalidation updates all.
+- By design, `ChatPage` and `ChatWindow` fetch directly (paged history, live
+  socket updates), as do the three checkout writes in `Payment`.
 
-### Scope
-
-- `@tanstack/react-query`, one provider at the root
-- Replace the effect-based fetching page by page, roughly 15 files
-- Gains caching, request de-duplication, and real loading and error states,
-  while deleting a good deal of boilerplate
-- Promote `react-hooks/set-state-in-effect` and `react-hooks/immutability`
-  back to `error` once the count reaches zero
-
-**Done.** `npm run lint` reports zero warnings with both rules at `error`.
-`hooks/queries.ts` holds every query and mutation, with the cache keys in one
-place so an invalidation cannot miss by typo. The remaining flagged state is
-computed during render (a `useMemo` for the filtered catalogue, URL-derived
-filters, and React's documented compare-with-previous pattern for resetting a
-chat thread).
-
-**Finished later.** Reaching zero warnings did not mean the pattern was gone:
-the rule only flags a synchronous `setState` in an effect, not one inside a
-`.then()`. Nine pages still fetched in an effect and hand-rolled state that a
-hook in `queries.ts` already provided — `admin/TransactionHistory`, `Profile`,
-`UpdateProfile`, `Cart`, `Wishlist`, `Filter`, `BookView` and both order
-tracking pages. They read from the shared queries now, so opening the cart and
-then the wishlist costs one request for each rather than two, and a toggle
-updates every page showing it through one invalidation.
-
-Still fetching directly, on purpose: `ChatPage` and `ChatWindow`, which page
-through history and take live updates over a socket rather than through the
-cache, and the three writes in `Payment`, which are mutations mid-checkout.
-
-The migration exposed a real bug that predated it. Making the app same-origin
-in task 2 put the API at the root alongside the client routes, and five of them
-collide: `/cart`, `/wishlist`, `/book`, `/chat` and `/filter` are each both a
-page and an endpoint. Opening the cart in a browser returned
-`{"message":"Authentication required"}` instead of the page. The API now lives
-under `/api`, which removes the whole class of collision, and the refresh
-cookie's path moved with it — scoped to `/auth` it would never have been sent
-to `/api/auth/refresh`.
+**API under `/api`.** On one origin, `/cart`, `/wishlist`, `/book`, `/chat` and
+`/filter` would each be both a page and an endpoint. The API is namespaced
+under `/api`, and the refresh cookie scoped to `/api/auth` to match.
 
 ---
 
-## 8 · TypeScript — done
+## 8 · TypeScript
 
-*Landed. Every source file in both packages is TypeScript under `strict`, and
-one shared declaration file is the contract between them.*
-
-Largest effort, largest payoff for how the project reads to an outside
-reviewer.
-
-### What it looks like now
+Every source file in both packages is TypeScript under `strict`.
 
 | | Server | Client |
 | --- | --- | --- |
@@ -514,79 +240,36 @@ reviewer.
 | Run in development by | nodemon + `tsx` | the Vite dev server |
 | Run in production by | `node dist/index.js` | nginx, or the API with `SERVE_CLIENT` |
 
-Relative imports keep their `.js` extension — `./app.js` for `app.ts` — because
-the specifier describes the emitted module. Nothing had to be rewritten to
-introduce the build, and nothing would have to be rewritten to remove it.
+Relative imports keep their `.js` extension (`./app.js` for `app.ts`), as the
+specifier names the emitted module.
 
-### The contract
+**The contract.** `server/shared/api.d.ts` declares every request and response.
+Both packages compile against it, so a shape cannot change on one side alone,
+and as a declaration file it adds no runtime dependency. `schemas/index.ts`
+exports a `z.infer` type per endpoint, and `types/contracts.ts` asserts at
+compile time that everything the client may send is accepted by its schema.
 
-`server/shared/api.d.ts` declares every request and response the HTTP API uses.
-Both packages compile against that one file, so a shape cannot change on one
-side without the other failing to type-check. It is a declaration file on
-purpose: types and nothing else, erased at compile time, so neither package
-gains a runtime dependency on the other.
+**Mismatches resolved during the migration**, none detectable by lint, tests or
+CodeQL:
 
-Request shapes are not written out twice. `schemas/index.ts` exports a
-`z.infer` type per endpoint for the handlers, and `types/contracts.ts` asserts
-at compile time that everything the client may send is something the endpoint's
-schema accepts. Breaking one of those assertions deliberately was the first
-thing done after writing them — it fails the build, as it should.
+- The tracking pages read the order back after a status change, and take the
+  role from the session's `userRole`.
+- The catalogue table shows the seller's `username`.
+- `AddBook`'s `InputField` forwards `min` and `step`.
+- Removed: a `':hover'` key in an inline style, fields Mongoose drops silently
+  (`quantity` on `POST /purchase`, `country` in the seed), and the unused
+  `RefreshToken.isUsable()`.
+- The `/user/signup` and `/user/signin` aliases run the same Zod schemas as
+  `/auth`.
+- The catalogue's rating controls had no data behind them; reviews were built
+  to supply it (see [`AUDIT.md`](AUDIT.md#ratings-and-reviews)).
 
-### Bugs the compiler found
-
-None of these were caught by lint, tests or CodeQL, because none of them are
-syntactically wrong. They are all places where two parts of the code disagreed
-about a shape.
-
-- `PATCH /order/status/:orderNumber` answers with the raw order *lines*, but
-  the buyer and seller tracking pages stored that response as if it were the
-  summarised order. Changing a status blanked the page until the next reload.
-  Both now read the order back.
-- Those same two pages looked for the signed-in role under `localStorage.role`,
-  while the session stores it under `userRole`. The status control they guard
-  was therefore never shown to anyone.
-- The catalogue table mapped sellers with `user.name`, a field the user record
-  does not have, so the column always fell back to the e-mail address.
-- `AddBook` passed `min` and `step` to a local `InputField` that never forwarded
-  them, so the numeric constraints on price and page count did nothing.
-- A `':hover'` key sat inside a React inline style object. React writes style
-  objects onto `element.style`, so a pseudo-selector there has never had any
-  effect.
-- `POST /purchase` passed a `quantity` the Purchase model has no field for, and
-  the seed script passed a `country` the user model has no field for. Mongoose
-  drops unknown paths silently; both are gone.
-- `/user/signup` and `/user/signin`, kept as aliases of the `/auth` routes,
-  were not running the Zod schemas their canonical counterparts run. They are
-  now.
-- `RefreshToken.isUsable()` was dead: the rotation logic needs to distinguish
-  *why* a token is unusable, so it checks the fields directly.
-
-Two things the types could not decide on their own, left as they are and
-recorded here instead: the catalogue's star filter and "most popular" sort read
-`rating` and `numReviews`, which no endpoint returns and no model stores, so
-both currently do nothing — whether to build ratings or drop the controls is a
-product decision, not a typing one.
-
-**One mistake worth recording.** The access-log serializer reads
-`req.remoteAddress`, which looked wrong: a raw Node request keeps the address on
-`req.socket`. Changing it produced a log line with no client address at all,
-because pino-http wraps custom serializers by default and hands them pino's
-*already serialised* request, where `remoteAddress` is exactly right. The test
-written to prove the "fix" is what caught it, and it stayed — the field is now
-pinned by an assertion rather than by nobody looking.
-
-**One real bug of the migration's own making, avoided.** Compiling to `dist/`
-moves the running module one directory deeper, so anything resolved from
-`import.meta.url` — the uploads directory, the client bundle — would have
-silently pointed at `server/dist/...` in production and nowhere in particular.
-`config/paths.ts` finds the package root by walking up to the nearest
-`package.json`, which gives the same answer from source and from a build; both
-were checked.
-
-**Not done, deliberately.** `noUncheckedIndexedAccess` is off. Turning it on
-would add a null check to every array index and object lookup in the codebase
-for very little here, where the indexes are nearly all `map` callbacks and
-lookups the code has just populated.
+**Implementation notes.** The access-log serializer reads `req.remoteAddress`,
+correct because pino-http passes custom serializers the serialised request; a
+test pins it. `config/paths.ts` finds the package root by walking up to
+`package.json`, so paths resolve identically from source and from `dist/`.
+`noUncheckedIndexedAccess` is off by design: most indexes are `map` callbacks
+and lookups of keys just set.
 
 ---
 
@@ -594,13 +277,7 @@ lookups the code has just populated.
 
 - One task per commit, each self-contained and revertible.
 - Before every commit: `npm run lint`, `npm run typecheck`, `npm test`,
-  `npm run build`, and a CodeQL run for anything touching request handling.
-  The type-check is the one that catches a type error — `tsx` and Vite both
-  strip types without looking at them.
-- New environment variables land in the matching `.env.example` **and** the
-  README table in the same commit.
-- New endpoints land in the README API reference in the same commit.
-
-Deployment work stays paused until the project runs cleanly end to end
-locally. Tasks 2 and 7 change the deployment shape, so Render configuration is
-best revisited after both are done.
+  `npm run build`, and a CodeQL run for changes to request handling. Only
+  `npm run typecheck` checks types; `tsx` and Vite strip them.
+- New environment variables go in the matching `.env.example` and the README
+  table, and new endpoints in the README API reference, in the same commit.

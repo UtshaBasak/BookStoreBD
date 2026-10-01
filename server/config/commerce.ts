@@ -2,10 +2,9 @@
  * The shop's rules that cost somebody money: what delivery costs, and how long
  * a buyer has to send a book back.
  *
- * The browser used to decide the delivery charge and the server stored
- * whatever it was sent, so a checkout request could name its own price. It is
- * worked out here now, from the delivery district, and the figure the browser
- * shows is only a preview of it.
+ * The delivery charge is worked out here, from the delivery district, so a
+ * checkout request cannot name its own price; the figure the browser shows is
+ * only a preview of it.
  *
  * The same numbers are quoted to people in `client/src/config/site.ts` - at
  * checkout and in the policy pages. Change one, change the other.
@@ -17,7 +16,7 @@ export const DELIVERY = {
   /** Taka, for everywhere else. */
   outsideDhaka: 120,
 } as const;
-// Free delivery on a large order is the "FreeDelivery" promo code now, in
+// Free delivery on a large order is the "FreeDelivery" promo code in
 // promotions.ts, rather than automatic.
 
 /** Days a buyer has to ask for a return, counted from delivery. */
@@ -69,11 +68,8 @@ export const returnWindowClosedBefore = (now: number = Date.now()): Date =>
   new Date(now - RETURN_WINDOW_DAYS * DAY_MS);
 
 /**
- * "Inside Dhaka" is the district, not the division.
- *
- * Checkout used to charge the inside rate for the whole Dhaka division, which
- * takes in Tangail, Faridpur and Kishoreganj - addresses no courier prices as
- * inside Dhaka.
+ * "Inside Dhaka" is the district, not the division: the division takes in
+ * Tangail, Faridpur and Kishoreganj, which no courier prices as inside Dhaka.
  */
 export const isInsideDhaka = (district: string | undefined): boolean =>
   (district ?? '').trim().toLowerCase() === 'dhaka';
@@ -85,10 +81,8 @@ export const deliveryChargeFor = (district: string | undefined): number =>
  * When an order line stops being returnable, or null if it cannot be returned
  * at all yet.
  *
- * The window opens on delivery. It used to run for three days from the order
- * date, and only in the browser - so a book that took four days to reach
- * Sylhet had lost its return before it arrived, while the server accepted a
- * return for anything, at any time.
+ * The window opens on delivery rather than on the order date, so a slow
+ * delivery never uses it up, and the server enforces it.
  */
 export const returnDeadline = (line: {
   status?: string | null;

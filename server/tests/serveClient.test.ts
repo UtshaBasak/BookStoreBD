@@ -3,10 +3,9 @@
  * origin, which is what keeps the refresh cookie first-party in a one-service
  * deployment.
  *
- * It used to do nothing at all when the bundle was missing, and say nothing
- * about it: the only symptom was a 404 on every page in Docker, while the
- * tests stayed green. These cases pin both halves - that a bundle is served
- * when there is one, and that its absence is announced rather than swallowed.
+ * These cases pin both halves - that a bundle is served when there is one,
+ * and that its absence is announced rather than swallowed, since a silent miss
+ * shows only as a 404 on every page while the tests stay green.
  *
  * No database here; createApp() only assembles middleware.
  */

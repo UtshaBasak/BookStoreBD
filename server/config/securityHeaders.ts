@@ -4,11 +4,9 @@ import type { HelmetOptions } from 'helmet';
 import { config } from './env.js';
 
 /**
- * The response headers a browser uses to constrain what a page may do.
- *
- * Absent entirely until now: the site could be framed by any origin, responses
- * could be MIME-sniffed, full URLs leaked in referrers, and there was no second
- * line of defence if a script injection ever landed.
+ * The response headers a browser uses to constrain what a page may do: no
+ * framing by other origins, no MIME sniffing, no full URLs in third-party
+ * referrers, and a second line of defence against script injection.
  */
 
 /**
@@ -16,10 +14,8 @@ import { config } from './env.js';
  *
  * Enumerated rather than blanket-allowing `https:`, so adding a new one is a
  * deliberate edit. `data:` covers the base64 covers stored on a document when
- * image hosting is off; `blob:` covers an image
- * fetched with a token and shown from memory (`AuthImage`: chat pictures,
- * return photos). The Unsplash and wallpaper hosts went with the photo
- * backdrops the redesign replaced.
+ * image hosting is off; `blob:` covers an image fetched with a token and shown
+ * from memory (`AuthImage`: chat pictures, return photos).
  */
 const IMAGE_SOURCES = [
   "'self'",
@@ -38,15 +34,13 @@ const IMAGE_SOURCES = [
  * Where the page may send a request.
  *
  * `api.cloudinary.com` is here because the browser uploads a cover straight to
- * Cloudinary - the bytes never pass through this API, which is the whole point
- * of the signed upload. Without it the upload is blocked by the policy, and the
- * only sign is a console message, which is how a deployment turns image hosting
- * on and quietly cannot upload anything.
+ * Cloudinary, which is the point of the signed upload. Without it the policy
+ * blocks the upload, with only a console message to show for it.
  *
  * Listed whether or not hosting is configured, so this policy and the one nginx
- * sends with the document stay identical. nginx cannot know what the API's
- * environment holds, and two policies that disagree are worse than one that
- * names a host it is not using.
+ * sends with the document stay identical: nginx cannot see the API's
+ * environment, and two policies that disagree are worse than one that names an
+ * unused host.
  */
 const CLOUDINARY_UPLOAD = 'https://api.cloudinary.com';
 
@@ -108,10 +102,9 @@ export const securityHeaders = (): HelmetOptions => ({
 /**
  * The pictures meant to be shown on other sites: the shop's share card, its
  * icon, the placeholder cover and a book's cover. A link preview is drawn by
- * whoever shows it - a preview tool's page, a chat app's web client - and with
- * the site-wide same-origin policy above, the browser refused to draw them
- * there, so the card came up with a broken picture. Everything else keeps
- * same-origin.
+ * whoever shows it - a preview tool's page, a chat app's web client - and the
+ * site-wide same-origin policy above would stop the browser drawing them
+ * there. Everything else keeps same-origin.
  */
 const SHAREABLE =
   /^\/(?:og-image\.jpg|favicon\.svg|book-placeholder\.svg)$|^\/api\/book\/[0-9a-f]{24}\/cover(?:\/\d+)?$/i;

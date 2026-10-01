@@ -128,8 +128,8 @@ describe('GET /sitemap.xml', () => {
 });
 
 describe('GET /llms.txt', () => {
-  // It answered with the app's HTML shell, which Lighthouse flagged: an llms.txt
-  // has to be Markdown with a title and links.
+  // An llms.txt has to be Markdown with a title and links, not the app's HTML
+  // shell; Lighthouse checks for it.
   it('is Markdown with a title and absolute links', async () => {
     const res = await request.get('/llms.txt').set('X-Forwarded-Host', 'books.example.com');
 

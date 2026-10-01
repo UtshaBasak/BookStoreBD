@@ -107,8 +107,7 @@ export default function ChatWindow({ receiver, receiverName, onClose }: ChatWind
   if (!userEmail || !receiver) return null;
 
   // Same bubbles and composer as the messages page (Chat.css), in a floating
-  // card with a deep-indigo head. Across the width of a phone rather than a
-  // fixed 320px in its corner.
+  // card with a deep-indigo head, spanning the width of a phone.
   return (
     <div className="chat-window" role="region" aria-label={`Chat with ${receiverName}`}>
       {/* Chat Header */}

@@ -52,12 +52,10 @@ import { ApiRequestError } from '../utils/apiError.js';
 import { getUserEmail } from '../utils/auth.js';
 
 /**
- * Data fetching for the whole app.
+ * Data fetching for the whole app, through React Query.
  *
- * Every page used to run its own `useEffect` → `fetch` → `setState`, which
- * meant no caching, no shared state between pages, and a loading flag
- * reimplemented each time. Sharing the query keys below means two pages asking
- * for the cart get one request and the same answer.
+ * Shared query keys give every page the same cache: two pages asking for the
+ * cart make one request and get the same answer.
  */
 
 /** Throws an error carrying the status, so `retry` can act on it. */
@@ -142,10 +140,8 @@ export const keys = {
 // Catalogue
 // ---------------------------------------------------------------------------
 /**
- * One page of every listing, for the administrator's table.
- *
- * That table used to fetch the whole catalogue and the whole user list, then
- * search what it had in the browser.
+ * One page of every listing, for the administrator's table. Searched and paged
+ * by the API, so a search covers the whole catalogue.
  */
 export const useAdminBooks = (
   params: ListParams,
@@ -191,9 +187,8 @@ export const catalogueSearch = (params: CatalogueParams): string => {
 /**
  * One page of the catalogue, filtered and ordered by the API.
  *
- * This used to fetch every listing and do all three in the browser. The page
- * kept the previous results while the next ones arrive, so changing a filter
- * or turning a page dims the grid rather than emptying it.
+ * The previous results stay in place while the next ones arrive, so changing
+ * a filter or turning a page dims the grid rather than emptying it.
  */
 export const useCatalogue = (
   params: CatalogueParams,
@@ -499,9 +494,8 @@ export const useDeleteReview = (id: Id | undefined): UseMutationResult<unknown, 
 // ---------------------------------------------------------------------------
 // Orders and returns
 //
-// All four of these tables used to fetch everything they could see and then
-// search and page in the browser - which meant the search box could only find
-// a row that had already been downloaded.
+// Searched and paged by the API, so a search covers every row, not just the
+// page on screen.
 // ---------------------------------------------------------------------------
 
 /** The three list parameters as a query string, used as the key and the URL. */
@@ -636,9 +630,8 @@ export const useProfile = <TData = ProfileResponse>(
 /**
  * One page of the accounts an administrator may act on.
  *
- * This used to fetch every account with every field except the password -
- * including `profilePicture`, which is stored as a base64 data URI, so the
- * response carried every user's photograph to draw a table of three columns.
+ * The API returns only the table's columns: `profilePicture` is stored as a
+ * base64 data URI and would make every page of the list very large.
  */
 export const useUsers = (
   params: ListParams = {},

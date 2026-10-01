@@ -93,17 +93,17 @@ export default function Wishlist() {
     toggleWishlist({ bookId: id, inWishlist: true });
   };
 
-  // Helper to resolve image src
   const getBookImageSrc = (book: Book): string => {
     const img = book.images?.[0];
     if (!img) return PLACEHOLDER_IMAGE;
     if (img.startsWith('data:image/')) return img;
     // Cloudinary delivers the size the card draws, not the original photograph.
     if (isCloudinary(img)) return sized(img, IMAGE_WIDTHS.card);
-    if (/^https?:\/\//.test(img)) return img; // full URL
+    if (/^https?:\/\//.test(img)) return img;
     // A cover served by the API arrives as a path, not as bytes.
     if (img.startsWith('/')) return img;
-    return `${API_BASE_URL}/uploads/${img}`; // filename
+    // Otherwise a bare filename in the API's uploads folder.
+    return `${API_BASE_URL}/uploads/${img}`;
   };
 
   /** The bar across the top: the shop, home, and the cart. */
@@ -116,7 +116,6 @@ export default function Wishlist() {
       </div>
       <div className="user-options">
         <NotificationBell />
-        {/* Cart */}
         <Link
           to="/cart"
           className="icon-link"
@@ -227,7 +226,6 @@ export default function Wishlist() {
                           {isOld ? 'Used' : 'New'}
                         </span>
                       )}
-                      {/* Stock Out Banner */}
                       {book.stock === 0 && (
                         <span className="badge wishlist-stock-badge" style={{ background: '#fef2f2', color: '#b91c1c' }}>
                           Out Of Stock
@@ -260,7 +258,7 @@ export default function Wishlist() {
                     </div>
 
                     <div className="wishlist-actions">
-                      {/* Cart button only if book is in stock */}
+                      {/* A sold-out book offers a restock request instead of the cart. */}
                       {book.stock > 0 ? (
                         <button
                           type="button"

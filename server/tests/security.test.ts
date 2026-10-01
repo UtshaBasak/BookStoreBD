@@ -13,8 +13,8 @@ afterAll(closeTestContext);
 beforeEach(clearDatabase);
 
 describe('NoSQL injection', () => {
-  // `{"email": {"$ne": null}}` used to make findOne match the first user in
-  // the collection, which was a complete authentication bypass.
+  // Left unchecked, `{"email": {"$ne": null}}` makes findOne match the first
+  // user in the collection: a complete authentication bypass.
   it('cannot be used to sign in without a password', async () => {
     await createUser({ email: 'alice@test.com' });
 
@@ -58,9 +58,8 @@ describe('NoSQL injection', () => {
   it('has no parameter that names a field to query', async () => {
     await createBook({ title: 'Some Book' });
 
-    // The pair this replaced took `filter_key`, which put a document path in
-    // the caller's hands and needed a whitelist to stay safe. Every filter is
-    // its own named parameter now, so an unknown one is simply not a filter.
+    // Every filter is its own named parameter, so the caller never chooses a
+    // document path and an unknown one is simply not a filter.
     const res = await request.get('/filter/booklist?$where=1%20%3D%3D%201&sellerEmail=x@y.z');
 
     expect(res.status).toBe(200);
@@ -100,8 +99,8 @@ describe('regex handling in search', () => {
 });
 
 describe('prototype pollution', () => {
-  // otpStore was a plain object keyed by a request-supplied e-mail, so
-  // verifying an OTP for "__proto__" assigned straight onto Object.prototype.
+  // A plain object keyed by a request-supplied e-mail would let an OTP for
+  // "__proto__" assign straight onto Object.prototype.
   it('a __proto__ e-mail cannot reach Object.prototype', async () => {
     const res = await request.post('/auth/verify-otp').send({ email: '__proto__', code: '123456' });
 
@@ -155,9 +154,8 @@ describe('user listing', () => {
 
     for (const user of res.body.items) {
       expect(user.password).toBeUndefined();
-      // It used to send every field but the password, and `profilePicture` is
-      // a base64 data URI - so a table of three columns carried every user's
-      // photograph, and their address and phone number with it.
+      // Every field but the password would include `profilePicture`, a base64
+      // data URI, and the address and phone number with it.
       expect(user.profilePicture).toBeUndefined();
       expect(user.address).toBeUndefined();
       expect(user.phone).toBeUndefined();

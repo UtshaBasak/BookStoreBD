@@ -16,7 +16,7 @@ const booksInWishlist = async (userId: Types.ObjectId): Promise<LeanBook[]> => {
 
   return entries
     .map((entry) => entry.book)
-    .filter((book): book is LeanBook => book != null) // Remove nulls
+    .filter((book): book is LeanBook => book != null) // books since deleted
     .map(toListBook)
     .map(withCoverUrls);
 };

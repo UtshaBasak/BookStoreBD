@@ -14,10 +14,10 @@
 /**
  * Shown wherever a book has no cover.
  *
- * Served from this origin rather than a placeholder service: the previous one
- * (`via.placeholder.com`) stopped resolving, so every coverless listing
- * rendered as a broken image. A local SVG also needs no network round trip and
- * is allowed by the Content-Security-Policy without listing another host.
+ * Served from this origin rather than a placeholder service, so it never
+ * depends on a third-party host staying up. A local SVG also needs no network
+ * round trip and is allowed by the Content-Security-Policy without listing
+ * another host.
  */
 export const PLACEHOLDER_IMAGE = '/book-placeholder.svg';
 

@@ -12,10 +12,9 @@ const chatSchema = new Schema({
         required: true
     },
     /*
-     * Not `required`: Mongoose's required check rejects an empty string, so a
-     * message with only a picture could not be saved at all - the attachment
-     * button returned a 500 unless you also typed something. The route is what
-     * insists on one or the other.
+     * Not `required`: Mongoose's required check rejects an empty string, which
+     * would refuse a message carrying only a picture. The route insists on one
+     * or the other.
      */
     message: {
         type: String,

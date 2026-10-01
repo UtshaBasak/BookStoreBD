@@ -29,9 +29,8 @@ export const connectDatabase = async (): Promise<Connection> => {
   log.info('MongoDB connected');
 
   // Mongoose only ever adds indexes; one whose definition changes leaves the
-  // old version in place. `orderNumber` was unique until an order was allowed
-  // more than one line, and a database created before that goes on rejecting
-  // the second book in every basket until the stale index is dropped.
+  // old version in place. Syncing drops stale ones, such as a unique index on
+  // `orderNumber` that would reject the second book in a multi-line order.
   try {
     await mongoose.syncIndexes();
   } catch (error) {
@@ -39,9 +38,9 @@ export const connectDatabase = async (): Promise<Connection> => {
     log.error({ err: error }, 'Could not synchronise indexes');
   }
 
-  // Listings from before discounts existed have no sale price, and the
-  // catalogue now filters and sorts by it: without one they would sort last
-  // and fall outside every price range. Their sale price is their price.
+  // The catalogue filters and sorts by sale price, so a listing without one
+  // would sort last and fall outside every price range. Its sale price is its
+  // price.
   try {
     const { default: AddBook } = await import('../models/AddBook.model.js');
     const { modifiedCount } = await AddBook.updateMany({ salePrice: { $exists: false } }, [
@@ -52,13 +51,13 @@ export const connectDatabase = async (): Promise<Connection> => {
     log.error({ err: error }, 'Could not backfill sale prices');
   }
 
-  // And a sound-alike search key (utils/phonetic.ts), which listings from
-  // before it existed do not have. Worked out in code, so one at a time.
+  // Backfills the sound-alike search key (utils/phonetic.ts) on listings that
+  // lack it. Computed in code, so one document at a time.
   try {
     const { default: AddBook } = await import('../models/AddBook.model.js');
     const { bookSearchKey } = await import('../utils/phonetic.js');
     const missing = await AddBook.find(
-      // Missing, or from before keys carried their word-by-word half.
+      // Missing, or without the word-by-word half of the key.
       { $or: [{ searchKey: { $exists: false } }, { searchKey: { $not: /\|/ } }] },
       { title: 1, author: 1 }
     ).lean();

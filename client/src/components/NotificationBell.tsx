@@ -23,11 +23,10 @@ const toasted = new Set<string>();
  * The bell in the header: how many notifications are unread, and the latest
  * of them in a panel.
  *
- * It used to be a button that said "No new notifications" whatever had
- * happened. Now an order placed, a status changed, a return decided, a payout
- * made or a deal on a saved book lands here - live, over the same connection
- * the chat uses, with a small toast when it arrives. Nothing is shown to a
- * visitor who is not signed in.
+ * An order placed, a status changed, a return decided, a payout made or a deal
+ * on a saved book lands here live, over the same connection the chat uses,
+ * with a small toast when it arrives. Nothing is shown to a visitor who is not
+ * signed in.
  */
 export default function NotificationBell() {
   const signedIn = Boolean(getUserEmail());

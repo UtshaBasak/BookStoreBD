@@ -88,11 +88,8 @@ const totalsFor = (lines: readonly LeanOrder[]) => {
  * Paged by **order**, not by line: an order of three books is three rows, and
  * a page that cut between them would show part of a purchase and leave the
  * rest on the next page. So a page of order numbers is chosen first, and then
- * every line belonging to them is fetched.
- *
- * The three tables that use this each fetched every order they could see and
- * then searched and grouped in the browser - which also meant the search box
- * could only find an order that had already been downloaded.
+ * every line belonging to them is fetched. Searching here rather than in the
+ * browser means a search covers every order, not just the page on screen.
  *
  * `$group` is a blocking stage, so this reads the orders the filter matches
  * rather than a page of them. For a buyer or a seller that is their own
@@ -165,7 +162,7 @@ const pageOfOrders = async (
   const orderNumbers = numbers.map((row) => row._id);
 
   // The same filter again, so a search for a title still shows the line that
-  // matched rather than the whole order - which is what the browser did.
+  // matched rather than the whole order.
   const rank = new Map(orderNumbers.map((number, index) => [number, index]));
   const lines = orderNumbers.length
     ? (
@@ -250,9 +247,9 @@ export const decreaseStock = async (
     const { email } = actingUser(req);
 
     /*
-     * A promo code is checked here, and priced here. The browser used to send
-     * the discount itself, which was stored as given. An unknown code is
-     * refused before any stock is reserved, so the buyer can correct it.
+     * A promo code is checked and priced here, never taken from the browser.
+     * An unknown code is refused before any stock is reserved, so the buyer
+     * can correct it.
      */
     const promoCode = req.body.promo?.trim() || '';
     const promotion = promoCode ? findPromotion(promoCode) : undefined;
@@ -311,9 +308,8 @@ export const decreaseStock = async (
     }
 
     /*
-     * Delivery is priced from what was actually reserved, and by the server.
-     * The browser used to send the figure and it was stored as given, so a
-     * checkout request could name its own delivery charge.
+     * Delivery is priced by the server, from what was actually reserved, so a
+     * checkout request cannot name its own delivery charge.
      */
     const booksTotal = reserved.reduce(
       (sum, { book, quantity }) => sum + unitPriceOf(book) * quantity,
@@ -345,7 +341,7 @@ export const decreaseStock = async (
         price: unitPriceOf(book),
         listPrice: book.price,
         quantity,
-        // --- New fields for full order info ---
+        // --- Payment and delivery details ---
         paymentMethod: req.body.paymentMethod || '',
         contactName: req.body.contactName || '',
         contactPhone: req.body.contactPhone || '',
@@ -353,7 +349,7 @@ export const decreaseStock = async (
         deliveryDistrict: req.body.deliveryDistrict || '',
         deliveryAddress: req.body.deliveryAddress || '',
         buyerNote: req.body.buyerNote || '',
-        // ---
+        // --- Charges and discounts ---
         shippingCharge,
         discount,
         promo: applied?.ok ? applied.code : '',
@@ -416,13 +412,9 @@ export const getOrdersByBuyer: RequestHandler = async (req, res) => {
     }
 
     /*
-     * Whether each book on this page has a return in progress.
-     *
-     * The buyer's list used to fetch every return request this account has
-     * ever made, only to turn it into a bookId -> status lookup - and those
-     * requests carry the photographs of the defect, as base64, on the
-     * document. Asking for the books on the page instead makes it one small
-     * query, and one request fewer.
+     * Whether each book on this page has a return in progress, from one small
+     * query for the books on the page: a return request carries its defect
+     * photographs as base64, so fetching every request would be costly.
      */
     const lineIds = lines.map((line) => line._id);
     const bookIds = [...new Set(lines.map((line) => String(line.bookId)))];
@@ -451,8 +443,7 @@ export const getOrdersByBuyer: RequestHandler = async (req, res) => {
           ...book,
           ...totals,
           returnStatus: byLine.get(String(book._id)) ?? byBook.get(String(book.bookId)) ?? null,
-          // Decided here, where it is enforced, rather than worked out again
-          // in the browser from the order date.
+          // Decided here, where it is enforced, so the page and the API agree.
           returnableUntil: deadline && deadline.getTime() > now ? deadline.toISOString() : null,
         });
       }
@@ -625,10 +616,9 @@ export const updateOrderStatusByOrderNumber = async (
     }
 
     /*
-     * The seller who is sending the book, or an administrator. The buyer could
-     * change it too, though no page offered them the control - and now that
-     * the return window opens on delivery, a buyer moving their own order out
-     * of 'Delivered' and back would have restarted it.
+     * The seller who is sending the book, or an administrator - not the buyer:
+     * the return window opens on delivery, so a buyer moving their own order
+     * out of 'Delivered' and back would restart it.
      */
     const { email: actor, role } = actingUser(req);
     const who = viewerRole(existing, actor, role);
@@ -816,7 +806,7 @@ export const cancelOrder = async (
   }
 };
 
-// Add delete order by id
+// Delete an order by id
 export const deleteOrder: RequestHandler = async (req, res) => {
   try {
     const id = req.params.id;
@@ -839,7 +829,6 @@ export const getAllOrders: RequestHandler = async (req, res) => {
     const { lines, ...page } = await pageOfOrders({}, validatedQuery<OrderListQuery>(req));
     res.status(200).json({ items: lines, ...page });
   } catch (err) {
-    // Log the error for debugging
     log.error({ err }, 'Error in getAllOrders');
     res.status(500).json({ message: errorMessage(err) || 'Internal Server Error' });
   }

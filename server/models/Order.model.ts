@@ -4,9 +4,8 @@ import { defineModel } from './defineModel.js';
 
 const OrderSchema = new Schema({
   // One document per book, all the books in a basket sharing one order number:
-  // that is how the tracking page gathers an order back together. So it cannot
-  // be unique on its own - it was, and the second book in a basket collided
-  // with the first, failing checkout after the first book's stock was taken.
+  // that is how the tracking page gathers an order back together, so the
+  // number is not unique on its own.
   orderNumber: { type: String, required: true, index: true },
   status: { type: String, default: 'Order Confirmed' },
   // When the status last became 'Delivered'. The return window counts from
@@ -26,7 +25,7 @@ const OrderSchema = new Schema({
   // The listed price at the time, for showing what the discount saved.
   listPrice: Number,
   quantity: Number,
-  // --- New fields for full order info ---
+  // --- Payment and delivery details ---
   paymentMethod: { type: String, default: '' },
   contactName: { type: String, default: '' },
   contactPhone: { type: String, default: '' },
@@ -35,7 +34,7 @@ const OrderSchema = new Schema({
   deliveryAddress: { type: String, default: '' },
   /** A short note from the buyer to the seller, given at checkout. */
   buyerNote: { type: String, default: '' },
-  // ---
+  // --- Charges and discounts ---
   shippingCharge: { type: Number, default: 0 },
   discount: { type: Number, default: 0 },
   promo: { type: String, default: '' },
@@ -53,8 +52,8 @@ const OrderSchema = new Schema({
   createdAt: { type: Date, default: Date.now },
 });
 
-// A book appears once per order. This is the integrity the unique flag above
-// was reaching for, expressed at the level that is actually true.
+// A book appears once per order: uniqueness belongs to the pair, not to the
+// order number alone.
 OrderSchema.index({ orderNumber: 1, bookId: 1 }, { unique: true });
 
 /*

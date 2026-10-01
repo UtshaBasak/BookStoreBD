@@ -1,7 +1,6 @@
 /*
  * The profile page and the form that edits it. Both sit on the plain page
- * background under the homepage's header, with white cards on top; the
- * photographs of library shelves that used to be behind them are gone.
+ * background under the homepage's header, with white cards on top.
  *
  * Every rule here is outside a cascade layer and so beats the shared `.btn-*`
  * classes: nothing below targets a bare `button` or `a`.
@@ -523,7 +522,7 @@
 .pf-banner-add:hover {
   background: rgba(255, 255, 255, 0.3);
 }
-/* Above the banner, which is now a picture and paints over a plain box. */
+/* Above the banner, which is a picture and would otherwise paint over it. */
 .pf-hero .pf-avatar {
   position: relative;
   z-index: 1;

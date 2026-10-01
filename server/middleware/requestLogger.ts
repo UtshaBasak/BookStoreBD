@@ -60,9 +60,8 @@ export const requestLoggerOptions: Options<IncomingMessage, ServerResponse> = {
       method: req.method,
       url: reqUrl(req),
       // The visitor's address as Express works it out through the trusted
-      // proxy - the one the rate limits count against. The socket's address
-      // is the proxy itself behind Render, so every line named the same
-      // machine and the log could not show whether the limits saw visitors.
+      // proxy - the one the rate limits count against. Behind Render the
+      // socket's address is the proxy itself, the same machine on every line.
       remoteAddress: (req.raw as { ip?: string } | undefined)?.ip ?? req.remoteAddress,
     }),
     res: (res: ServerResponse) => ({ statusCode: res.statusCode }),

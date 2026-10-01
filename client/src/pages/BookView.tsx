@@ -225,7 +225,6 @@ export default function BookView() {
             : null,
     });
 
-    // Scroll handlers for similar books
     const scrollAmount = 320;
     const handleScrollLeft = () => {
         if (scrollRef.current) {
@@ -287,11 +286,11 @@ export default function BookView() {
 
     return (
         <div className="homepage book-page">
-            {/* The homepage's header, rather than an older copy of it. */}
+            {/* The homepage's header. */}
             <header className="header">
                 <div className="logo">
-                    {/* A button, and no reload: the queries refetch on their
-                        own, as on the homepage. */}
+                    {/* A client-side link, with no reload: the queries refetch
+                        on their own, as on the homepage. */}
                     <Link to="/"
                         className="logo-button"
                         aria-label="BookStoreBD home"
@@ -374,17 +373,13 @@ export default function BookView() {
                 </div>
             </header>
 
-            {/* Main Content */}
             <main className="book-page-main">
                 <div className="book-layout">
                     {/* The cover column: full width on a phone, a fixed column
-                        beside the details once there is room. It was 300px at
-                        every width, which is wider than a 360px screen once the
-                        page padding is taken off. */}
+                        beside the details once there is room. */}
                     <div className="book-gallery">
                         <div className="book-cover">
                             <img src={imageSrc(images[shownIndex])} alt={book.title} />
-                            {/* Book type label */}
                             <span
                                 className="badge"
                                 style={{
@@ -422,7 +417,6 @@ export default function BookView() {
                         )}
                     </div>
 
-                    {/* Right Column - Book Info */}
                     <div className="book-details">
                         <div className="card book-summary">
                             {book.category?.length > 0 && (
@@ -448,7 +442,6 @@ export default function BookView() {
                                 <span className="book-price">
                                     <PriceTag book={book} size="lg" />
                                 </span>
-                                {/* Stock Status */}
                                 <span
                                     className="badge"
                                     style={
@@ -489,7 +482,6 @@ export default function BookView() {
                                 </div>
                             )}
 
-                            {/* Cart and Wishlist Buttons */}
                             <div className="book-actions">
                                 {book.stock <= 0 && userEmail !== book.sellerEmail ? (
                                     <RequestBookButton bookId={book._id} sellerEmail={book.sellerEmail} className="btn btn-accent" />
@@ -563,10 +555,8 @@ export default function BookView() {
                                     type="button"
                                     className="btn btn-ghost"
                                     // The chat window only renders for a
-                                    // signed-in visitor, so this button did
-                                    // nothing at all when pressed by anyone
-                                    // else - a dead control on the page a
-                                    // shopper lands on.
+                                    // signed-in visitor, so anyone else is
+                                    // offered a sign-in instead.
                                     onClick={() => {
                                         if (!userEmail) {
                                             toast.info('Sign in to message the seller.', {
@@ -618,7 +608,6 @@ export default function BookView() {
                     </div>
                 </div>
 
-                {/* Similar Books Section */}
                 {book.relatedBooks?.length > 0 && (
                     <section className="popular-section book-similar">
                         <h2>Similar Books</h2>
@@ -684,7 +673,6 @@ export default function BookView() {
                 )}
             </main>
 
-            {/* Chat Window */}
             {showChat && userEmail && book?.sellerEmail && (
                 <ChatWindow
                     receiver={book.sellerEmail}

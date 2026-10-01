@@ -81,13 +81,9 @@ const buildFilter = (q: CatalogueQuery): Record<string, unknown> => {
 };
 
 /**
- * One page of the catalogue.
- *
- * This used to return every listing in the database, and the browse page
- * filtered, sorted and paginated them in the browser. That worked because the
- * shop is small: it meant every visitor downloaded the whole catalogue to look
- * at twelve of it, and the cost grew with every book added. MongoDB can do all
- * three, against indexes, and send twelve.
+ * One page of the catalogue, filtered, sorted and paged by MongoDB against
+ * indexes, so a visitor downloads only the books on screen and the cost does
+ * not grow with the catalogue.
  */
 export const Booklist: RequestHandler = async (req, res) => {
   const q = validatedQuery<CatalogueQuery>(req);
@@ -129,8 +125,7 @@ export const Booklist: RequestHandler = async (req, res) => {
  * The newest few listings, at most one per title.
  *
  * The homepage strip wants ten books, not ten copies of the same textbook from
- * ten sellers. Grouping is what the browser was doing with the whole catalogue
- * in hand; the `$group` does it against the collection instead.
+ * ten sellers; the `$group` collapses them in the database.
  */
 export const Featured = async (
   req: Request,

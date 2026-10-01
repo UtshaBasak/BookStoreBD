@@ -1,10 +1,9 @@
 /**
  * An expired token on a page that also works signed out.
  *
- * It was quietly treated as no token, so the owner of a profile, back after
- * the fifteen-minute access token had lapsed, got the public version of their
- * own page - no address, phone or bKash number - and nothing told the browser
- * to refresh the session. It is a 401 now, which does.
+ * It gets a 401, which tells the browser to refresh the session; treated as
+ * no token, the owner of a profile, back after the fifteen-minute access token
+ * had lapsed, would get the public version of their own page.
  */
 import { describe, it, expect, beforeAll, afterAll, beforeEach } from 'vitest';
 

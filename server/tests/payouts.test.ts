@@ -1,9 +1,9 @@
 /**
  * Sellers are paid by bKash, to a merchant number they give on their profile.
  *
- * There was no way to pay a seller at all: the checkout took the buyer's money
- * (cash, to the courier) and nothing recorded what each seller was owed, where
- * to send it, or whether it had been sent.
+ * Checkout takes the buyer's money (cash, to the courier); these pin the
+ * record of what each seller is owed, where to send it, and whether it has
+ * been sent.
  */
 import { describe, it, expect, beforeAll, afterAll, beforeEach } from 'vitest';
 import mongoose from 'mongoose';
@@ -90,8 +90,8 @@ describe('a seller must be payable before listing', () => {
   });
 
   it('is saved from the profile form as the page sends it, blanks and all', async () => {
-    // The form sends every field. A blank gender was refused, so anyone who
-    // had never set one could not save their profile - or add this number.
+    // The form sends every field, so a blank gender must be accepted, or
+    // anyone without one could not save their profile - or add this number.
     const { auth } = await createSignedInUser(request, { email: SELLER, bkashMerchant: null });
 
     const res = await request
@@ -106,7 +106,7 @@ describe('a seller must be payable before listing', () => {
 
     expect(res.status).toBe(200);
     expect((await User.findOne({ email: SELLER }).lean())?.bkashMerchant).toBe('01812345678');
-    // The answer used to carry the whole account, password hash included.
+    // The answer must not carry the whole account, password hash included.
     expect(res.body.user.password).toBeUndefined();
     expect(JSON.stringify(res.body)).not.toMatch(/\$2[aby]\$/);
   });

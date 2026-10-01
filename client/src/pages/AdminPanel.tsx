@@ -44,7 +44,7 @@ const SECTIONS: Section[] = [
   { to: '/admin/messages', label: 'Messages', icon: FaPaperPlane, blurb: 'Notify or e-mail buyers and sellers.' },
 ];
 
-/** /admin on its own used to be a blank page beside the menu. */
+/** The landing view for /admin: a card for each section. */
 function AdminHome() {
   return (
     <div className="admin-page">
@@ -102,8 +102,7 @@ export default function AdminPanel() {
       {/* Sidebar: a bar across the top on a phone. */}
       <aside className="admin-sidebar aurora">
         <div className="admin-sidebar-top">
-          {/* The logo is the way back to the shop, as on every other page;
-              the "Back to shop" buttons it replaces said the same thing twice. */}
+          {/* The logo is the way back to the shop, as on every other page. */}
           <div className="admin-brand">
             <Link to="/" className="admin-brand-link" aria-label="BookStoreBD home" title="Back to the shop">
               <Logo inverted size={34} />
@@ -138,7 +137,6 @@ export default function AdminPanel() {
           </button>
         </div>
       </aside>
-      {/* Main Content */}
       <main className="admin-main">
         <Routes>
           <Route index element={<AdminHome />} />

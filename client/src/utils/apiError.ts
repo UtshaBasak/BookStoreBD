@@ -34,10 +34,9 @@ export const messageOf = (error: unknown): string =>
 // Rejected forms
 //
 // The API answers one with `{ message: 'Validation failed', errors: [{ path:
-// 'body.pages', message: 'Invalid input' }] }` - it names the field. A page
-// that shows only `message` turns that into "Submission failed: Validation
-// failed", which tells somebody staring at a twelve-field form nothing at all,
-// and there is no way to guess the rest.
+// 'body.pages', message: 'Invalid input' }] }` - it names the field. Showing
+// the fields, not just `message`, tells the person which part of a long form
+// to correct.
 // ---------------------------------------------------------------------------
 
 interface ApiErrorBody {
@@ -46,7 +45,7 @@ interface ApiErrorBody {
   errors?: ValidationIssue[];
 }
 
-/** The body of an axios failure, for the pages that still use it. */
+/** The body of an axios failure, for the pages that use axios. */
 const asBody = (error: unknown): ApiErrorBody | undefined =>
   (error as { response?: { data?: ApiErrorBody } } | undefined)?.response?.data;
 

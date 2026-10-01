@@ -54,13 +54,9 @@ export default function DescriptionForm() {
   };
 
   /*
-   * One form, one submit.
-   *
-   * There were two: the photographs went to /user/upload-images, which handed
-   * back base64 and stored nothing, and the description went to /return
-   * without them. The photograph form had no submit button at all, so even
-   * that never ran - a buyer chose the pictures of the damage and they went
-   * nowhere, and an administrator decided the return with no evidence.
+   * One form, one submit: the description, the refund number and the
+   * photographs travel together to /return, so an administrator always
+   * decides a return with the evidence in front of them.
    */
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
@@ -130,8 +126,8 @@ export default function DescriptionForm() {
     }
   };
 
-  // The deep violet backdrop in place of the stock photograph of a library,
-  // with the form on a white card so what the buyer types is plain to read.
+  // The deep violet backdrop, with the form on a white card so what the buyer
+  // types is plain to read.
   return (
     <div className="aurora min-h-screen w-full px-4 py-6 sm:py-10" style={{ boxSizing: 'border-box' }}>
       <div className="mx-auto w-full" style={{ maxWidth: 620 }}>
@@ -179,8 +175,8 @@ export default function DescriptionForm() {
             What happens next, before they fill anything in: a buyer deciding
             whether to bother should know it costs them nothing to send back.
           */}
-          {/* The app's base styles strip list markers; each line carries a tick
-              instead of the bullet it used to ask back for. */}
+          {/* The app's base styles strip list markers; each line carries an
+              icon instead. */}
           <ul
             className="mt-6 mb-6 grid gap-3 rounded-2xl p-4 text-sm leading-relaxed text-ink-soft"
             style={{ listStyle: 'none', background: '#faf9fe', border: '1px solid #ece8f7' }}

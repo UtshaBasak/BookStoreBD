@@ -4,7 +4,7 @@ import reactHooks from 'eslint-plugin-react-hooks';
 import reactRefresh from 'eslint-plugin-react-refresh';
 import tseslint from 'typescript-eslint';
 
-// Deliberately still JavaScript: a TypeScript config file would need a loader
+// Deliberately JavaScript: a TypeScript config file would need a loader
 // installed purely to read it, for no benefit.
 export default tseslint.config(
   { ignores: ['dist'] },
@@ -46,17 +46,14 @@ export default tseslint.config(
 
       'react-refresh/only-export-components': ['warn', { allowConstantExport: true }],
 
-      // `alert()` blocked the whole tab until it was dismissed, could not be
-      // styled, and announced a successful add-to-cart with the same modal
-      // interruption as a failure. Everything user-facing goes through
-      // `useToast` now, and this is what stops it coming back. The rule also
-      // covers `confirm`, which two call sites still use deliberately - a
-      // confirmation needs an answer, and there is no dialog component yet.
+      // User-facing messages go through `useToast`; `alert()` blocks the tab
+      // and cannot be styled. The rule also covers `confirm`, which a few call
+      // sites use deliberately, with a disable comment, where a confirmation
+      // needs an answer. Planned: a dialog component to replace them.
       'no-alert': 'error',
 
-      // Back at 'error' now that data fetching has moved to TanStack Query and
-      // the remaining derived state is computed during render. These were
-      // demoted to warnings while 17 call sites still fetched inside effects.
+      // Data fetching goes through TanStack Query and derived state is
+      // computed during render, so state is never set inside an effect.
       'react-hooks/set-state-in-effect': 'error',
       'react-hooks/immutability': 'error',
     },

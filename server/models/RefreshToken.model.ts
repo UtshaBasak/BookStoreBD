@@ -15,7 +15,7 @@ const RefreshTokenSchema = new Schema(
       index: true,
     },
 
-    // Every token minted from one sign-in shares a family id. If a already-used
+    // Every token minted from one sign-in shares a family id. If an already-used
     // token is presented again - the signature of a stolen token - the whole
     // family is revoked, which logs that session out everywhere.
     family: { type: String, required: true, index: true },

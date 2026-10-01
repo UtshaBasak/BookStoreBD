@@ -8,7 +8,10 @@ let runSeed: (typeof import('../scripts/seed.js'))['runSeed'];
 let User: (typeof import('../models/user.model.js'))['default'];
 let AddBook: (typeof import('../models/AddBook.model.js'))['default'];
 
+const SEED_PASSWORD = 'Seeded-Demo-Pass-81!';
+
 beforeAll(async () => {
+  process.env.SEED_PASSWORD = SEED_PASSWORD;
   await createTestContext();
   ({ runSeed } = await import('../scripts/seed.js'));
   User = (await import('../models/user.model.js')).default;
@@ -38,8 +41,18 @@ describe('seed', () => {
     await runSeed();
 
     const admin = await User.findOne({ role: 'admin' });
-    expect(admin!.password).not.toBe('Password123!');
+    expect(admin!.password).not.toBe(SEED_PASSWORD);
     expect(admin!.password).toMatch(/^\$2[aby]\$/);
+  });
+
+  it('refuses to run without a password of your own', async () => {
+    delete process.env.SEED_PASSWORD;
+    try {
+      await expect(runSeed()).rejects.toThrow(/SEED_PASSWORD/);
+      expect(await User.countDocuments({})).toBe(0);
+    } finally {
+      process.env.SEED_PASSWORD = SEED_PASSWORD;
+    }
   });
 
   it('is idempotent', async () => {

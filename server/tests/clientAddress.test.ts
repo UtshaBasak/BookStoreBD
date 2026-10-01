@@ -2,9 +2,8 @@
  * The rate limits count visitors, not Render's proxies.
  *
  * Behind Render a request crosses more than one proxy, each on a private
- * address. Trusting "one hop" made req.ip the next proxy along - the live log
- * showed 10.30.119.5, 10.25.98.2 and 10.28.29.130 for every request - so the
- * whole site shared three rate-limit buckets.
+ * address. Trusting only one hop would make req.ip the next proxy along and
+ * put the whole site in a handful of rate-limit buckets.
  *
  * Driven through the robots.txt limiter (120 per window), which needs no
  * database. No database here; createApp() only assembles middleware.
@@ -47,7 +46,7 @@ describe('a visitor behind several proxies', () => {
   });
 
   it('is found behind Cloudflare too, as Render delivers every request', async () => {
-    // What the live log showed: a Cloudflare edge, then Render's proxies.
+    // As production sees it: a Cloudflare edge, then Render's proxies.
     const agent = await freshApp();
     await exhaust(agent, via('198.51.100.1', '172.71.124.150', '10.30.119.5'));
 

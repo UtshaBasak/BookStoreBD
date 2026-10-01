@@ -123,11 +123,9 @@ export default function HomeShelves(actions: ShelfActions) {
           : 'The best-rated books in stock - browse a little and these become yours.',
       })}
 
-      {/* One row, like the other shelves, rather than a wall of tiles
-          pushing everything below it down the page. Drawn once the counts
-          are in: the row snaps to a tile, and when the counted categories
-          arrived in front of the starter ones it kept the starter it had
-          snapped to in view - opening the row a dozen tiles along. */}
+      {/* One row, like the other shelves, rather than a wall of tiles.
+          Drawn once the counts are in, so the row's scroll-snap position
+          does not shift when the counted categories arrive. */}
       {tiles.length > 0 && !sections.isPending && (
         <BookShelf
           id="categories"

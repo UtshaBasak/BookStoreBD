@@ -262,9 +262,9 @@
   min-width: 0;
 }
 
-/* The way back to the list, which only a phone needs. `.icon-button` sets
-   `display` outside any layer, which is why a Tailwind `lg:hidden` on it did
-   nothing and the arrow showed beside the list on a desktop too. */
+/* The way back to the list, which only a phone needs. Hidden here rather than
+   with `lg:hidden`, because `.icon-button` sets `display` outside any layer
+   and would override the utility. */
 @media (min-width: 1024px) {
   .chat-thread-head .chat-back-list {
     display: none;
@@ -478,8 +478,8 @@
 }
 
 /* ------------------------------------------------------ phone and tablet
-   The two panes take it in turns below `lg`, as they always have: the list
-   until a conversation is picked, then the conversation with a way back. */
+   The two panes take it in turns below `lg`: the list until a conversation is
+   picked, then the conversation with a way back. */
 @media (max-width: 1023px) {
   .chat-shell {
     grid-template-columns: minmax(0, 1fr);

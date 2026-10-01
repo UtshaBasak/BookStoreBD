@@ -1,12 +1,9 @@
 /**
- * The three order tables and the returns table each fetched everything they
- * could see and then searched and grouped in the browser - so the search box
- * could only find a row that had already been downloaded, and the returns
- * table downloaded every photograph of every defect to draw a button that did
- * not open them.
+ * The three order tables and the returns table are paged and searched by the
+ * API, so a search covers every row rather than the ones downloaded, and the
+ * returns table links to its photographs rather than carrying them.
  *
- * None of these endpoints had a test on what they returned, only on who could
- * call them, which is why changing the shape broke nothing.
+ * These pin what each endpoint returns, not only who may call it.
  */
 import { describe, it, expect, beforeAll, afterAll, beforeEach } from 'vitest';
 import mongoose from 'mongoose';
@@ -131,7 +128,7 @@ describe('searching orders', () => {
 
     const res = await request.get('/order/buyer?search=panchali').set('Authorization', auth);
 
-    // The browser filter could only ever search what it had downloaded.
+    // The search covers every order, not only the page on screen.
     expect(res.body.total).toBe(1);
     expect(res.body.items[0].title).toBe('Pather Panchali');
   });
@@ -176,8 +173,8 @@ describe("a buyer's line knows whether it is being returned", () => {
 
     const res = await request.get('/order/buyer').set('Authorization', auth);
 
-    // This used to mean downloading every return request the account had ever
-    // made - photographs of every defect included - to build a lookup.
+    // One small query for the books on the page, not every return request
+    // with its photographs.
     expect(res.body.items[0].returnStatus).toBe('pending');
   });
 
@@ -213,7 +210,7 @@ describe('a page of return requests', () => {
     expect(res.body.items[0].images).toEqual([
       `/api/return/requests/${String(created._id)}/image/0`,
     ]);
-    // The whole table used to carry every picture anybody had uploaded.
+    // The table carries addresses, not the pictures.
     expect(JSON.stringify(res.body)).not.toContain('base64');
   });
 
@@ -259,7 +256,7 @@ describe('one photograph from a return request', () => {
       .get(`/return/requests/${String(created._id)}/image/0`)
       .set('Authorization', admin.auth);
 
-    // The button that should have opened this never had anywhere to go.
+    // The address the table's "View Images" button opens.
     expect(res.status).toBe(200);
     expect(res.headers['content-type']).toMatch(/image\/png/);
     expect(res.body).toEqual(PNG_PIXEL);
@@ -347,11 +344,8 @@ describe('one photograph from a return request', () => {
 /**
  * The photographs a buyer uploads.
  *
- * They were being discarded. The form posted them to /user/upload-images,
- * which handed back base64 and stored nothing, and the return request was then
- * created without them - so a buyer was asked to photograph the damage, and an
- * administrator decided the return with no evidence. The upload form did not
- * even have a submit button.
+ * They are stored with the request, so an administrator decides the return on
+ * the evidence.
  */
 describe('submitting a return with its photographs', () => {
   /** A line the buyer has had delivered today, so it is inside the window. */
@@ -472,11 +466,9 @@ describe('submitting a return with its photographs', () => {
 /**
  * Who may return what, and when.
  *
- * The request used to carry a book id and nothing else. The server did not
- * check that the person asking had bought the book, and the three-day limit
- * was worked out only in the browser, from the order date - so a book that
- * took four days to arrive had lost its return before it came, while a
- * hand-made request could return anything at any time.
+ * A request names the buyer's own order line, and the window counts from
+ * delivery and is enforced by the server, so a slow delivery does not cost a
+ * return and a hand-made request cannot return anything at any time.
  */
 describe('the return window', () => {
   const DAY = 24 * 60 * 60 * 1000;
@@ -676,11 +668,9 @@ describe('marking an order delivered', () => {
 });
 
 /**
- * Delivery is priced by the server.
- *
- * The browser sent the charge and it was stored as given - and the browser
- * priced the whole Dhaka division as inside Dhaka, Tangail and Faridpur
- * included.
+ * Delivery is priced by the server, never taken from the browser, and by
+ * district: the rest of the Dhaka division, Tangail and Faridpur included, is
+ * outside Dhaka.
  */
 describe('the delivery charge', () => {
   const checkout = async (body: Record<string, unknown>, price = 300) => {

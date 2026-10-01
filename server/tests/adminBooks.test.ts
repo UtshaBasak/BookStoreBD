@@ -1,11 +1,7 @@
 /**
- * The administrator's book table used to fetch every listing in the database
- * and, to fill its "Owner" column, every user account as well - two unbounded
- * requests to draw twenty-five rows - and then search what it had in the
- * browser.
- *
- * It is a query now. These pin who may ask, what it searches, and that the
- * seller names come back with the page rather than from a second download.
+ * The administrator's book table is paged and searched by the API. These pin
+ * who may ask, what it searches, and that the seller names come back with the
+ * page rather than from a second download.
  */
 import { describe, it, expect, beforeAll, afterAll, beforeEach } from 'vitest';
 
@@ -69,8 +65,7 @@ describe('what it sends', () => {
 
     const res = await request.get('/book/admin').set('Authorization', auth);
 
-    // The column read a field called `name`, which no account has ever had, so
-    // it silently showed the e-mail for everybody.
+    // The seller's handle, from `username`: accounts have no `name` field.
     expect(res.body.items[0].sellerName).toBe('Corner Shop');
   });
 
