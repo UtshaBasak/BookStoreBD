@@ -31,6 +31,12 @@ const digest = (code: string): string =>
   createHmac('sha256', jwtSecret()).update(code).digest('hex');
 
 /**
+ * What a code is for. A sign-in code is filed apart from the codes for signing
+ * up and resetting a password, so one can never be spent as the other.
+ */
+export type CodeScope = 'account' | 'signin';
+
+/**
  * The address a record is filed under.
  *
  * A digest rather than the address, for two reasons. A table of which
@@ -38,8 +44,10 @@ const digest = (code: string): string =>
  * from a request then reaches a query, which is the difference between
  * trusting the schema upstream and not having to.
  */
-const keyFor = (email: string): string =>
-  createHmac('sha256', jwtSecret()).update(`otp:${email}`).digest('hex');
+const keyFor = (email: string, scope: CodeScope = 'account'): string =>
+  createHmac('sha256', jwtSecret())
+    .update(scope === 'account' ? `otp:${email}` : `otp:${scope}:${email}`)
+    .digest('hex');
 
 /** Constant-time, so a comparison cannot be timed a character at a time. */
 const sameDigest = (a: string, b: string): boolean => {
@@ -49,11 +57,11 @@ const sameDigest = (a: string, b: string): boolean => {
 };
 
 /** Issues a code for an address, replacing whatever it had. */
-export const issueCode = async (email: string, code: string): Promise<void> => {
+export const issueCode = async (email: string, code: string, scope?: CodeScope): Promise<void> => {
   await OneTimeCode.findOneAndUpdate(
-    { key: keyFor(email) },
+    { key: keyFor(email, scope) },
     {
-      key: keyFor(email),
+      key: keyFor(email, scope),
       code: digest(code),
       expiresAt: new Date(Date.now() + OTP_TTL_MS),
       verified: false,
@@ -75,15 +83,17 @@ export const issueCode = async (email: string, code: string): Promise<void> => {
  */
 export const consumeOtpAttempt = async (
   email: string,
-  code: string
+  code: string,
+  scope?: CodeScope
 ): Promise<OneTimeCodeAttributes | null> => {
-  const record = await OneTimeCode.findOne({ key: keyFor(email) }).lean();
+  const key = keyFor(email, scope);
+  const record = await OneTimeCode.findOne({ key }).lean();
   if (!record) return null;
 
   // Checked here rather than left to the TTL index, which sweeps about once a
   // minute and would otherwise let a just-expired code through.
   if (record.expiresAt.getTime() <= Date.now()) {
-    await OneTimeCode.deleteOne({ key: keyFor(email) });
+    await OneTimeCode.deleteOne({ key });
     return null;
   }
 
@@ -91,13 +101,13 @@ export const consumeOtpAttempt = async (
     // $inc rather than read-modify-write: two guesses arriving together must
     // both count, or the ceiling is a suggestion.
     const after = await OneTimeCode.findOneAndUpdate(
-      { key: keyFor(email) },
+      { key },
       { $inc: { attempts: 1 } },
       { returnDocument: 'after' }
     ).lean();
 
     if (after && after.attempts >= MAX_OTP_ATTEMPTS) {
-      await OneTimeCode.deleteOne({ key: keyFor(email) });
+      await OneTimeCode.deleteOne({ key });
       log.warn({ attempts: after.attempts }, 'One-time code discarded after repeated failures');
     }
     return null;
@@ -118,6 +128,6 @@ export const hasVerifiedCode = async (email: string): Promise<boolean> => {
 };
 
 /** Done with it: used, or no longer wanted. */
-export const clearCode = async (email: string): Promise<void> => {
-  await OneTimeCode.deleteOne({ key: keyFor(email) });
+export const clearCode = async (email: string, scope?: CodeScope): Promise<void> => {
+  await OneTimeCode.deleteOne({ key: keyFor(email, scope) });
 };

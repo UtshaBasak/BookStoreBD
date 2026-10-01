@@ -19,6 +19,9 @@ import { recordAudit } from '../utils/audit.js';
 import { anonymousEmail, DELETED_USER_NAME } from '../utils/anonymous.js';
 import { createLogger } from '../config/logger.js';
 import { destroyAssets } from '../config/cloudinary.js';
+import { mailConfigured } from '../utils/mailer.js';
+import { dispatchShopMail, twoFactorChangedEmail } from '../utils/shopMail.js';
+import type { TwoFactorBody } from '../schemas/index.js';
 
 const log = createLogger('account');
 
@@ -73,6 +76,57 @@ export const exportMyData: RequestHandler = async (req, res, next) => {
       reviews,
       sellerRatings,
       ratingsReceived,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * Turns two-step sign-in on or off for the caller's account.
+ *
+ * On is one click: the codes go to the address the account was verified with
+ * at sign-up. Off asks for the password, so a session left open on a shared
+ * computer cannot be used to remove the protection. Either way the owner is
+ * told by e-mail.
+ */
+export const setTwoFactor: RequestHandler = async (req, res, next) => {
+  try {
+    const actor = actingUser(req);
+    const { enabled, password = '' } = req.body as TwoFactorBody;
+
+    const user = await User.findById(actor.id);
+    if (!user) {
+      res.status(404).json({ message: 'Account not found' });
+      return;
+    }
+
+    if (enabled && !mailConfigured()) {
+      res.status(503).json({ message: 'Sign-in codes cannot be sent right now, so two-step sign-in cannot be turned on.' });
+      return;
+    }
+    // 403 rather than 401, as for deleting the account: the session is fine.
+    if (!enabled && !bcryptjs.compareSync(password, user.password)) {
+      res.status(403).json({ message: 'That password is not correct' });
+      return;
+    }
+
+    if (Boolean(user.twoFactor) !== enabled) {
+      user.twoFactor = enabled;
+      await user.save();
+      await recordAudit(req, {
+        action: enabled ? 'account.two-factor.on' : 'account.two-factor.off',
+        targetType: 'user',
+        targetId: String(user._id),
+      });
+      dispatchShopMail(user.email, twoFactorChangedEmail(enabled));
+    }
+
+    res.status(200).json({
+      message: enabled
+        ? 'Two-step sign-in is on. Next time you sign in, we will e-mail you a code.'
+        : 'Two-step sign-in is off.',
+      twoFactor: enabled,
     });
   } catch (error) {
     next(error);

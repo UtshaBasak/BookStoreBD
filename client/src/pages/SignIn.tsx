@@ -1,8 +1,8 @@
 import { useState, useEffect, type ChangeEvent, type FormEvent } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { FaBookOpen, FaHeart, FaKey, FaTruck } from 'react-icons/fa';
+import { FaBookOpen, FaEnvelopeOpenText, FaHeart, FaKey, FaTruck } from 'react-icons/fa';
 
-import type { ApiError } from '@shared/api.js';
+import type { ApiError, SignInResponse, TwoFactorChallenge } from '@shared/api.js';
 
 import Logo from '../components/Logo.js';
 import PasswordChecklist from '../components/PasswordChecklist.js';
@@ -18,7 +18,11 @@ import './Auth.css';
 export default function SignIn() {
     const navigate = useNavigate();
     const toast = useToast();
-    const [formData, setFormData] = useState({});
+    const [formData, setFormData] = useState<{ email?: string; password?: string }>({});
+    // Two-step sign-in: the password was right and a code is on its way.
+    const [challenge, setChallenge] = useState<TwoFactorChallenge | null>(null);
+    const [code, setCode] = useState('');
+    const [busy, setBusy] = useState(false);
     const [showForgot, setShowForgot] = useState(false);
     const [forgotEmail, setForgotEmail] = useState('');
     const [forgotOtp, setForgotOtp] = useState('');
@@ -39,9 +43,10 @@ export default function SignIn() {
         });
     };
 
-    const handleSubmit = async (e: FormEvent) => {
-        e.preventDefault();
+    const handleSubmit = async (e?: FormEvent) => {
+        e?.preventDefault();
 
+        setBusy(true);
         try {
             const res = await apiFetch(`${API_BASE_URL}/auth/signin`, {
                 method: 'POST',
@@ -51,8 +56,12 @@ export default function SignIn() {
                 body: JSON.stringify(formData),
             });
 
-            const data = await res.json();
-            if (res.ok) {
+            const data = (await res.json()) as SignInResponse | ApiError;
+            if (res.ok && 'twoFactor' in data) {
+                setChallenge(data);
+                setCode('');
+                toast.info(`A sign-in code is on its way to ${data.sentTo}.`);
+            } else if (res.ok && 'token' in data) {
                 // The token is what authorises every later request.
                 setSession(data);
                 navigate('/');
@@ -66,6 +75,36 @@ export default function SignIn() {
             // something they can act on.
             reportError('Error submitting form:', err);
             toast.error('Could not reach the server. Please check your connection.');
+        } finally {
+            setBusy(false);
+        }
+    };
+
+    const handleVerifyCode = async (e: FormEvent) => {
+        e.preventDefault();
+        if (!/^\d{6}$/.test(code.trim())) {
+            toast.warning('Enter the 6-digit code from the e-mail.');
+            return;
+        }
+        setBusy(true);
+        try {
+            const res = await apiFetch(`${API_BASE_URL}/auth/signin/verify`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email: formData.email, code: code.trim() }),
+            });
+            const data = (await res.json()) as SignInResponse | ApiError;
+            if (res.ok && 'token' in data) {
+                setSession(data);
+                navigate('/');
+            } else {
+                toast.error((data as ApiError).message || 'That code did not work.');
+            }
+        } catch (err) {
+            reportError('Error verifying the sign-in code:', err);
+            toast.error('Could not reach the server. Please check your connection.');
+        } finally {
+            setBusy(false);
         }
     };
 
@@ -133,50 +172,92 @@ export default function SignIn() {
                 <Link to="/" className="auth-logo" aria-label={`${site.name} home`}>
                     <Logo size={40} />
                 </Link>
-                <h1 className="auth-title">Sign In</h1>
-                <p className="auth-sub">Welcome back! Your cart, wishlist and orders are waiting.</p>
+                <h1 className="auth-title">{challenge ? 'Check your e-mail' : 'Sign In'}</h1>
+                <p className="auth-sub">
+                    {challenge
+                        ? `Two-step sign-in is on. Enter the 6-digit code we sent to ${challenge.sentTo}.`
+                        : 'Welcome back! Your cart, wishlist and orders are waiting.'}
+                </p>
 
-                <form onSubmit={handleSubmit} className="auth-form">
-                    <div>
-                        <label htmlFor="email" className="auth-label">Email</label>
-                        <input
-                            type="email"
-                            placeholder="Email"
-                            id="email"
-                            name="email"
-                            // Lets a password manager offer to fill the form.
-                            autoComplete="username"
-                            onChange={handleChange}
-                            className="field"
-                        />
-                    </div>
-                    <div>
-                        <div className="auth-label-row">
-                            <label htmlFor="password" className="auth-label">Password</label>
-                            {/* A real button, so a keyboard user can reach the password reset. */}
-                            <button
-                                type="button"
-                                className="auth-text-button"
-                                onClick={() => setShowForgot(true)}
-                            >
-                                Forgot Password?
-                            </button>
+                {challenge ? (
+                    <form onSubmit={handleVerifyCode} className="auth-form">
+                        <span className="auth-modal-icon" aria-hidden="true" style={{ justifySelf: 'center' }}><FaEnvelopeOpenText /></span>
+                        <div>
+                            <label htmlFor="signin-code" className="auth-label">Sign-in code</label>
+                            <input
+                                id="signin-code"
+                                name="code"
+                                type="text"
+                                inputMode="numeric"
+                                autoComplete="one-time-code"
+                                maxLength={6}
+                                placeholder="6-digit code"
+                                value={code}
+                                onChange={(e) => setCode(e.target.value.replace(/\D/g, ''))}
+                                className="field"
+                                autoFocus
+                            />
                         </div>
-                        <input
-                            type="password"
-                            placeholder="Password"
-                            id="password"
-                            name="password"
-                            autoComplete="current-password"
-                            onChange={handleChange}
-                            className="field"
-                        />
-                    </div>
+                        <button type="submit" className="btn btn-primary auth-wide" disabled={busy}>
+                            {busy ? 'Checking...' : 'Verify and sign in'}
+                        </button>
+                        <button type="button" className="auth-text-button" style={{ justifySelf: 'center' }} disabled={busy} onClick={() => void handleSubmit()}>
+                            Send a new code
+                        </button>
+                        <button
+                            type="button"
+                            className="btn btn-ghost auth-wide"
+                            onClick={() => {
+                                setChallenge(null);
+                                setCode('');
+                            }}
+                        >
+                            Back
+                        </button>
+                    </form>
+                ) : (
+                    <form onSubmit={handleSubmit} className="auth-form">
+                        <div>
+                            <label htmlFor="email" className="auth-label">Email</label>
+                            <input
+                                type="email"
+                                placeholder="Email"
+                                id="email"
+                                name="email"
+                                // Lets a password manager offer to fill the form.
+                                autoComplete="username"
+                                onChange={handleChange}
+                                className="field"
+                            />
+                        </div>
+                        <div>
+                            <div className="auth-label-row">
+                                <label htmlFor="password" className="auth-label">Password</label>
+                                {/* A real button, so a keyboard user can reach the password reset. */}
+                                <button
+                                    type="button"
+                                    className="auth-text-button"
+                                    onClick={() => setShowForgot(true)}
+                                >
+                                    Forgot Password?
+                                </button>
+                            </div>
+                            <input
+                                type="password"
+                                placeholder="Password"
+                                id="password"
+                                name="password"
+                                autoComplete="current-password"
+                                onChange={handleChange}
+                                className="field"
+                            />
+                        </div>
 
-                    <button type="submit" className="btn btn-primary auth-wide">
-                        Sign In
-                    </button>
-                </form>
+                        <button type="submit" className="btn btn-primary auth-wide" disabled={busy}>
+                            Sign In
+                        </button>
+                    </form>
+                )}
 
                 <p className="auth-divider">New here?</p>
                 <p className="auth-switch">

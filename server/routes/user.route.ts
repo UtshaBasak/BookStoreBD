@@ -5,7 +5,7 @@ import {
   getUserProfile,
   updateUserProfile,
 } from '../controllers/user.controller.js';
-import { deleteMyAccount, exportMyData } from '../controllers/account.controller.js';
+import { deleteMyAccount, exportMyData, setTwoFactor } from '../controllers/account.controller.js';
 import { sellerRatingOf } from '../controllers/sellerReview.controller.js';
 import AddBook from '../models/AddBook.model.js';
 import Order from '../models/Order.model.js';
@@ -267,6 +267,8 @@ router.post(
 router.get('/me/export', requireAuth, exportMyData);
 
 router.delete('/me', requireAuth, validate(userSchemas.deleteMe), deleteMyAccount);
+
+router.put('/me/two-factor', requireAuth, validate(userSchemas.twoFactor), setTwoFactor);
 
 // ---------------------------------------------------------------------------
 // Administrator only

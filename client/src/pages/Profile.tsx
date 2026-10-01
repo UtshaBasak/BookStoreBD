@@ -21,6 +21,7 @@ import {
 import type { OwnProfile } from '@shared/api.js';
 
 import AccountData from '../components/AccountData.js';
+import TwoStepSetting from '../components/TwoStepSetting.js';
 import Logo from '../components/Logo.js';
 import NotificationBell from '../components/NotificationBell.js';
 import { signOut } from '../config/api.js';
@@ -283,6 +284,7 @@ export default function Profile() {
                     </button>
                 </div>
 
+                <TwoStepSetting />
                 <AccountData />
             </main>
         </div>

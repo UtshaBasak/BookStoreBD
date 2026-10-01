@@ -430,6 +430,13 @@ export const userSchemas = {
       password: z.string().min(1, 'Your password is required to delete the account').max(200),
     }),
   },
+  /** Two-step sign-in on or off. The password is checked when turning it off. */
+  twoFactor: {
+    body: z.object({
+      enabled: z.boolean(),
+      password: z.string().max(200).optional(),
+    }),
+  },
 };
 
 /** Writing and removing a review. */
@@ -561,6 +568,7 @@ export const auditSchemas = {
 // ---------------------------------------------------------------------------
 
 export type DeleteMeBody = z.infer<typeof userSchemas.deleteMe.body>;
+export type TwoFactorBody = z.infer<typeof userSchemas.twoFactor.body>;
 export type AuditListQuery = z.infer<typeof auditSchemas.list.query>;
 export type WriteReviewBody = z.infer<typeof reviewSchemas.write.body>;
 

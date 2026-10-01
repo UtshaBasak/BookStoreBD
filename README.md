@@ -99,6 +99,9 @@ User guides for each role are in the [wiki](https://github.com/UtshaBasak/BookSt
 
 - E-mail sign-up verified by one-time code, sign-in, and password reset, with
   branded e-mails sent through Gmail's API (or SMTP)
+- Optional two-step sign-in: after the password, a one-time code sent by
+  e-mail. Turned on from the profile in one click; turning it off asks for the
+  password, and either change is confirmed by e-mail
 - Strong passwords: 12–128 characters with mixed case, a number and a symbol;
   never the person's name or e-mail, a common password, a simple run, or one
   found in a known breach (checked against Have I Been Pwned by k-anonymity).
@@ -613,7 +616,8 @@ An invalid token returns `401`; a valid one without the right role returns `403`
 | Method | Endpoint | Description |
 | --- | --- | --- |
 | `POST` | `/auth/signup` | Create an account (requires a verified one-time code) |
-| `POST` | `/auth/signin` | Sign in with email and password |
+| `POST` | `/auth/signin` | Sign in with email and password; with two-step sign-in on, e-mails a code and returns `{ twoFactor: true, sentTo }` |
+| `POST` | `/auth/signin/verify` | Finish a two-step sign-in with `{ email, code }` |
 | `POST` | `/auth/send-otp` | Send a one-time code (`purpose`: `register` or `reset`) |
 | `POST` | `/auth/verify-otp` | Verify a one-time code |
 | `POST` | `/auth/reset-password` | Reset a password with a valid code; ends every session |
@@ -628,6 +632,9 @@ An invalid token returns `401`; a valid one without the right role returns `403`
 | `GET` | `/user` | One page of accounts (admin) |
 | `GET` | `/user/profile` | A profile by `?email=` |
 | `PUT` | `/user/profile` | Update your profile (multipart, optional pictures) |
+| `PUT` | `/user/me/two-factor` | Two-step sign-in on or off: `{ enabled, password? }`, the password to turn it off |
+| `GET` | `/user/me/export` | Download everything the account holds |
+| `DELETE` | `/user/me` | Delete your account: `{ password }` |
 | `POST` | `/user/add-book` | Create a listing with up to 10 images |
 | `GET` | `/user/:email/avatar` | A profile picture |
 | `GET` | `/user/:email/banner/:role` | A buyer or seller banner |

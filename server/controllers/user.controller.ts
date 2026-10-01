@@ -58,6 +58,7 @@ export const getUserProfile = async (
             dateOfBirth: user.dateOfBirth?.toISOString(),
             gender: user.gender,
             role: user.role,
+            twoFactor: Boolean(user.twoFactor),
         };
 
         const body: ProfileResponse = isOwnerOrAdmin ? ownProfile : publicProfile;

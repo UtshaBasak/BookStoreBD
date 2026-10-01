@@ -56,6 +56,9 @@ const UserSchema = new Schema(
         buyerBannerPublicId: { type: String },
         sellerBanner: { type: String },
         sellerBannerPublicId: { type: String },
+        // Two-step sign-in: after the password, a one-time code sent to the
+        // account's e-mail address. Off until the owner turns it on.
+        twoFactor: { type: Boolean, default: false },
         wishlist: [{
             type: Schema.Types.ObjectId,
             ref: 'AddBook'

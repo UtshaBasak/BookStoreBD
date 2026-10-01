@@ -2,6 +2,7 @@ import express from 'express'
 import {
   signup,
   signin,
+  verifySignin,
   sendOtp,
   verifyOtp,
   resetPassword,
@@ -16,6 +17,8 @@ const router = express.Router();
 
 router.post("/signup", validate(authSchemas.signup), signup);
 router.post("/signin", validate(authSchemas.signin), signin);
+// The code that completes a two-step sign-in.
+router.post("/signin/verify", validate(authSchemas.verifyOtp), verifySignin);
 
 // OTP and password reset
 router.post("/send-otp", validate(authSchemas.sendOtp), sendOtp);

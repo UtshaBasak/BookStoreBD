@@ -86,9 +86,9 @@ const textFooter = (): string => {
   return [`Questions? Write to ${SUPPORT}.`, url, `${SHOP}, ${PLACE}`].filter(Boolean).join('\n');
 };
 
-type CodePurpose = 'register' | 'reset';
+type CodePurpose = 'register' | 'reset' | 'signin';
 
-const COPY: Record<CodePurpose, { subject: string; heading: string; lead: string }> = {
+const COPY: Record<CodePurpose, { subject: string; heading: string; lead: string; ignore?: string }> = {
   register: {
     subject: `Your ${SHOP} sign-up code`,
     heading: 'Confirm your e-mail address',
@@ -99,9 +99,16 @@ const COPY: Record<CodePurpose, { subject: string; heading: string; lead: string
     heading: 'Reset your password',
     lead: 'Enter this code on the password reset page to choose a new password.',
   },
+  signin: {
+    subject: `Your ${SHOP} sign-in code`,
+    heading: 'Confirm it is you',
+    lead: 'Your password was just entered on the sign-in page. Enter this code there to finish signing in.',
+    ignore:
+      "If this wasn't you, someone knows your password: reset it from the sign-in page. They cannot sign in without this code.",
+  },
 };
 
-/** A one-time code for signing up or resetting a password. */
+/** A one-time code for signing up, resetting a password, or two-step sign-in. */
 export const codeEmail = (purpose: CodePurpose, code: string): Email => {
   const copy = COPY[purpose];
   const safeCode = escape(code);
@@ -122,7 +129,7 @@ export const codeEmail = (purpose: CodePurpose, code: string): Email => {
         `font-size:14px;color:${MUTED};`
       ),
       paragraph(
-        "If you didn't ask for it, you can ignore this e-mail - nothing happens without the code.",
+        escape(copy.ignore ?? "If you didn't ask for it, you can ignore this e-mail - nothing happens without the code."),
         `font-size:14px;color:${MUTED};`
       ),
     ].join('\n'),
@@ -137,7 +144,7 @@ export const codeEmail = (purpose: CodePurpose, code: string): Email => {
     '',
     `It expires in ${minutes} minutes and can be used once.`,
     `Never share it: ${SHOP} will never ask you for this code.`,
-    "If you didn't ask for it, you can ignore this e-mail.",
+    copy.ignore ?? "If you didn't ask for it, you can ignore this e-mail.",
     '',
     textFooter(),
   ].join('\n');

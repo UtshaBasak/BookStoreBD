@@ -248,6 +248,21 @@ export const returnRequestedSellerEmail = (request: ReturnFacts, titles: readonl
     button: { label: 'Open the order', path: `/seller/order-tracking/${request.orderNumber}` },
   });
 
+/** Two-step sign-in was turned on or off for this account. */
+export const twoFactorChangedEmail = (enabled: boolean): Email =>
+  noticeEmail({
+    subject: enabled ? 'Two-step sign-in is on' : 'Two-step sign-in is off',
+    heading: enabled ? 'Two-step sign-in is on' : 'Two-step sign-in is off',
+    preheader: enabled
+      ? 'From now on, signing in also asks for a code sent to this address.'
+      : 'Signing in now needs only your password.',
+    lead: enabled
+      ? ['From now on, after your password, we will e-mail a one-time code to this address to finish signing in.']
+      : ['Signing in to your account now needs only your password. You can turn two-step sign-in back on from your profile.'],
+    button: { label: 'Open your profile', path: '/profile' },
+    after: ["If you didn't make this change, reset your password from the sign-in page and contact us."],
+  });
+
 /** A message from the shop, written by an administrator. */
 export const adminMessageEmail = (title: string, body: string, link?: string | null): Email =>
   noticeEmail({

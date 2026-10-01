@@ -3,7 +3,7 @@ import crypto from 'crypto';
 import bcryptjs from 'bcryptjs';
 import type { NextFunction, Request, RequestHandler, Response } from 'express';
 
-import type { SessionResponse } from '@shared/api.js';
+import type { SessionResponse, TwoFactorChallenge } from '@shared/api.js';
 
 import User, { type UserDocument } from '../models/user.model.js';
 import { errorHandler, isDuplicateKeyError } from '../utils/error.js';
@@ -336,12 +336,69 @@ export const signin = async (
             return;
         }
 
+        // Two-step sign-in: the password is right, but the session waits for
+        // the code sent to the account's address.
+        if (validUser.twoFactor) {
+            if (!mailConfigured()) {
+                log.error('Two-step sign-in needs e-mail, which is not configured');
+                res.status(503).json({ message: 'Sign-in codes cannot be sent right now. Please try again later.' });
+                return;
+            }
+            const code = generateOTP();
+            await issueCode(validUser.email, code, 'signin');
+            dispatchEmail(validUser.email, codeEmail('signin', code));
+            const challenge: TwoFactorChallenge = {
+                twoFactor: true,
+                sentTo: maskEmail(validUser.email),
+                message: 'Enter the 6-digit code we sent to your e-mail.',
+            };
+            res.status(200).json(challenge);
+            return;
+        }
+
         await applyAdminBootstrap(validUser);
         res.status(200).json(await startSession(res, validUser));
     } catch (error){
         next(error);
     }
 }
+
+/** "r•••@gmail.com": enough to recognise one's own address, not to read it. */
+const maskEmail = (email: string): string => {
+    const [name = '', domain = ''] = email.split('@');
+    return `${name.slice(0, 1)}•••@${domain}`;
+};
+
+/**
+ * The second step of a two-step sign-in: the code from the e-mail.
+ *
+ * A code is only issued after the right password, so the code and the address
+ * together stand for both. Five wrong tries discard it, as with every code.
+ */
+export const verifySignin = async (
+    req: Request<unknown, unknown, VerifyOtpBody>,
+    res: Response,
+    next: NextFunction
+): Promise<void> => {
+    const { email, code } = req.body;
+    try {
+        if (!(await consumeOtpAttempt(email, code, 'signin'))) {
+            res.status(400).json({ message: INVALID_CODE });
+            return;
+        }
+        await clearCode(email, 'signin');
+
+        const user = await User.findOne({ email: String(email) });
+        if (!user) {
+            res.status(400).json({ message: INVALID_CODE });
+            return;
+        }
+        await applyAdminBootstrap(user);
+        res.status(200).json(await startSession(res, user));
+    } catch (error) {
+        next(error);
+    }
+};
 
 /**
  * Whether a password would be accepted, so the sign-up form can say so before

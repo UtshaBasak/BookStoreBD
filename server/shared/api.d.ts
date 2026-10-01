@@ -98,6 +98,25 @@ export interface SignInRequest {
   password: string;
 }
 
+/**
+ * POST /auth/signin with two-step sign-in on: the password was right, and a
+ * code is on its way. POST /auth/signin/verify `{ email, code }` completes it.
+ */
+export interface TwoFactorChallenge {
+  twoFactor: true;
+  /** The address the code went to, partly hidden. */
+  sentTo: string;
+  message: string;
+}
+
+export type SignInResponse = SessionResponse | TwoFactorChallenge;
+
+/** PUT /user/me/two-factor. Turning it off asks for the password. */
+export interface TwoFactorRequest {
+  enabled: boolean;
+  password?: string;
+}
+
 export interface SignUpRequest {
   username: string;
   email: string;
@@ -742,6 +761,8 @@ export interface OwnProfile extends PublicProfile {
   dateOfBirth?: IsoDate | null;
   gender?: 'male' | 'female' | null;
   role: UserRole;
+  /** Whether signing in also asks for a code sent by e-mail. */
+  twoFactor?: boolean;
 }
 
 export type ProfileResponse = PublicProfile | OwnProfile;
