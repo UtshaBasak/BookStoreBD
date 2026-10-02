@@ -99,6 +99,11 @@ User guides for each role are in the [wiki](https://github.com/UtshaBasak/BookSt
 
 - E-mail sign-up verified by one-time code, sign-in, and password reset, with
   branded e-mails sent through Gmail's API (or SMTP)
+- **Continue with Google:** one tap to sign up or sign in, by a server-side
+  OAuth flow with PKCE; an existing account with the same verified address is
+  linked rather than duplicated, and two-step sign-in still applies
+- A Cloudflare Turnstile bot check on sign-in and on sign-up and reset codes,
+  invisible to most people and off until its keys are set
 - Optional two-step sign-in: after the password, a one-time code sent by
   e-mail. Turned on from the profile in one click; turning it off asks for the
   password, and either change is confirmed by e-mail
@@ -111,19 +116,42 @@ User guides for each role are in the [wiki](https://github.com/UtshaBasak/BookSt
 - Role-based authorisation (`user` / `admin`) plus per-resource ownership checks
 - Zod validation on every request, rate limiting, request sanitisation, and a
   strict Content Security Policy
+- **Account protection:** five wrong passwords pause sign-in to that address
+  for 15 minutes; a sign-in from a new browser is e-mailed to the owner;
+  changing the password or bKash number needs the current password and sends a
+  notice; a new password signs out every other device; and the profile can
+  sign out everywhere else
+- **Encryption at rest:** phone numbers, addresses and bKash numbers are
+  stored with AES-256-GCM, so a copy of the database does not reveal them
+  ([`server/utils/fieldCrypto.ts`](server/utils/fieldCrypto.ts))
+- A cookie and storage choice on the first visit: accept all, necessary only,
+  or each group on its own, changeable from the footer at any time
+- [`/.well-known/security.txt`](https://bookstorebd-loum.onrender.com/.well-known/security.txt)
+  for reporting a vulnerability
 
 ### Catalogue and search
 
 - Listings with author, publisher, ISBN, language, page count and condition,
   across about a hundred categories in six groups
   ([`client/src/config/categories.ts`](client/src/config/categories.ts))
-- Suggestions under every search box as you type: books, sellers, and a full search
+- Suggestions under every search box as you type: books, authors, categories
+  and sellers, with the typed part highlighted, Tab to complete, your recent
+  searches and what is popular right now
+- **Voice search** in English or Bangla, through the browser's own speech
+  recognition
 - **Bangla–English search:** "pather panchali" finds পথের পাঁচালী and
   "হ্যারি পটার" finds Harry Potter, through a sound-alike key
   ([`server/utils/phonetic.ts`](server/utils/phonetic.ts))
 - Search by title, author or ISBN, with filters for type, condition, category,
   price, rating, stock and deals, seven sort orders, and 20–50 results a page
 - Seller shop pages (`/shop/:username`) with stats, seller ratings and their books
+- Every book shows how many people have viewed it and how many have it on a
+  wishlist, so buyers can see the demand (each person counts once a day)
+- **Wanted board** (`/wanted`): ask for a book nobody has listed yet, or add
+  your name to someone else's request. A second request for the same book
+  joins the first, matched by ISBN or by a sound-alike title and author. When
+  the book is listed, everyone who asked gets a notification and an e-mail
+  with its link, and the seller sees how many readers were waiting
 - Homepage shelves: Quick deals, Latest, Trending, Top picks for you, Shop by
   category, Bestsellers, Popular writers, Top rated, Under ৳300 and Recently viewed
 
@@ -169,9 +197,27 @@ User guides for each role are in the [wiki](https://github.com/UtshaBasak/BookSt
   when a requested book is back
 - Branded e-mails for confirmed, delivered and cancelled orders, return
   decisions, and return requests, sent in the background
+- **Your choice of what you hear about:** each kind of notification (orders,
+  returns, payouts, reviews, stock and price, deals, the Wanted board,
+  community and shop news) can be turned on or off, in the app and by e-mail
+  separately. Security notices always arrive
+- **A welcome for new members:** a welcome e-mail, and two notifications - a
+  tour of how the site works (`/how-it-works`, an interactive guide for buyers
+  and sellers) and the profile's set-up card, with a progress bar and the next
+  step to finish
+- **Invite friends:** an e-mail saying who invited them and what the shop is,
+  with a link to join; you hear when they do. Limited per day and per address
 
 ### Administration
 
+- **Shop analytics:** sales over time, orders, average order, fees earned and
+  still to come, copies sold, new members and listings, each against the
+  period before; popular categories; a busy-hours grid by weekday and hour;
+  new against second-hand sales; where orders go; best-selling books and top
+  sellers; cancellation, return and promo-code rates; what people search for
+  and cannot find; Wanted board demand; and the most viewed books - over 7,
+  30 or 90 days, 12 months or all time, with plain-language insights and
+  every chart readable as a table
 - Users, transactions, books, returns, payouts, all reviews and reported
   reviews (of books and of sellers) — each searchable, filterable, sortable
   and refreshable
@@ -190,6 +236,8 @@ User guides for each role are in the [wiki](https://github.com/UtshaBasak/BookSt
 
 - Violet and sunset-orange design system with Plus Jakarta Sans, built on
   shared classes in [`client/src/index.css`](client/src/index.css)
+- **Light and dark mode**, following the device or chosen with one tap, with
+  no flash of the wrong colours on load
 - Mobile-first layouts, checked at phone and laptop widths
 - Lighthouse: 100 for accessibility, best practices and SEO
 
@@ -435,6 +483,12 @@ unprivileged with `NODE_ENV=production` and a health check.
 | `GMAIL_REFRESH_TOKEN` | ¹ | — | From `npm run gmail:token`; with all three set, mail goes over HTTPS |
 | `RETURN_ADDRESS` | | — | Where approved returns are sent, quoted in the approval e-mail |
 | `PASSWORD_BREACH_CHECK` | | on | `off` skips the breached-password check |
+| `DATA_ENCRYPTION_KEY` | recommended | — | 32 bytes, base64 (`openssl rand -base64 32`): encrypts phone numbers, addresses and bKash numbers. Keep a copy; then `npm run encrypt:existing` |
+| `TURNSTILE_SITE_KEY` | | — | Cloudflare Turnstile site key; with the secret, turns on the bot check |
+| `TURNSTILE_SECRET_KEY` | | — | Its secret. Keep it secret |
+| `GOOGLE_CLIENT_ID` | | — | A Google OAuth "Web application" client, for Continue with Google |
+| `GOOGLE_CLIENT_SECRET` | | — | Its secret. Keep it secret |
+| `GOOGLE_REDIRECT_URI` | | `<site>/api/auth/google/callback` | Only when the callback address differs from the site's |
 | `LOG_LEVEL` | | `debug` dev / `info` prod | pino level |
 | `SENTRY_DSN` | | — | Enables error reporting |
 | `SENTRY_TRACES_SAMPLE_RATE` | | `0` | Fraction of transactions traced |
@@ -546,8 +600,8 @@ checkout integrity. Both suites run in CI on every push and pull request.
 
 ## API reference
 
-Endpoints live under **`/api`**; `/health`, `/robots.txt`, `/sitemap.xml` and
-`/llms.txt` are at the root. The client and API share an origin, so the prefix
+Endpoints live under **`/api`**; `/health`, `/robots.txt`, `/sitemap.xml`,
+`/llms.txt` and `/.well-known/security.txt` are at the root. The client and API share an origin, so the prefix
 keeps pages such as `/cart` and endpoints such as `/api/cart` apart.
 
 All routes are rate-limited per IP, with a tighter limit on `/auth`; responses
@@ -601,7 +655,7 @@ The caller's identity always comes from the token, never from the request.
 | **Public** | `/health`, catalogue browsing, `/auth/*`, public profiles and shops |
 | **Authenticated** | Cart, wishlist, orders, chat, returns, notifications, profile, creating a listing |
 | **Owner** | Editing a listing, reading or updating an order, reading a conversation |
-| **Administrator** | Users, every order, returns, payouts, reviews and ratings, messages |
+| **Administrator** | Users, every order, returns, payouts, reviews and ratings, messages, analytics |
 
 An invalid token returns `401`; a valid one without the right role returns `403`.
 
@@ -624,6 +678,10 @@ An invalid token returns `401`; a valid one without the right role returns `403`
 | `POST` | `/auth/password-check` | Whether a password would be accepted: `{ ok, problems, message }` |
 | `POST` | `/auth/refresh` | Rotate the refresh cookie and return a new access token |
 | `POST` | `/auth/logout` | Revoke the session and clear the cookie |
+| `POST` | `/auth/logout-others` | End every other session: `{ message, ended }` |
+| `GET` | `/auth/config` | What the sign-in page needs: the bot check's site key and whether Google sign-in is on |
+| `GET` | `/auth/google` | Start Continue with Google (`?next=` a page to return to) |
+| `GET` | `/auth/google/callback` | Google's return; signs in and redirects to the site |
 
 ### Users — `/user`
 
@@ -631,8 +689,10 @@ An invalid token returns `401`; a valid one without the right role returns `403`
 | --- | --- | --- |
 | `GET` | `/user` | One page of accounts (admin) |
 | `GET` | `/user/profile` | A profile by `?email=` |
-| `PUT` | `/user/profile` | Update your profile (multipart, optional pictures) |
+| `PUT` | `/user/profile` | Update your profile (multipart, optional pictures); a new password or bKash number needs `currentPassword` |
 | `PUT` | `/user/me/two-factor` | Two-step sign-in on or off: `{ enabled, password? }`, the password to turn it off |
+| `GET` / `PUT` | `/user/me/notifications` | What you hear about: `{ prefs: { orders: { inApp, email }, … } }` |
+| `GET` / `POST` | `/user/me/invites` | Your invitations, or invite `{ emails, note? }` (up to five) |
 | `GET` | `/user/me/export` | Download everything the account holds |
 | `DELETE` | `/user/me` | Delete your account: `{ password }` |
 | `POST` | `/user/add-book` | Create a listing with up to 10 images |
@@ -655,7 +715,8 @@ An invalid token returns `401`; a valid one without the right role returns `403`
 | `PUT` | `/book/discount/:id` | Set a discount: `{ type: 'percent' \| 'amount', value }` or `{ type: 'none' }` |
 | `DELETE` | `/book/:id` | Delete a listing |
 | `GET` | `/filter/booklist` | One page of the catalogue, filtered and sorted |
-| `GET` | `/filter/suggest?q=` | Search suggestions: `{ books, sellers }` |
+| `GET` | `/filter/suggest?q=` | Search suggestions: `{ books, sellers, authors, categories }` |
+| `GET` | `/filter/popular-searches` | What people searched for most lately |
 | `GET` | `/filter/featured` | The newest titles |
 | `GET` | `/filter/sections` | Every homepage shelf, writers and category counts |
 | `GET` | `/filter/by-ids?ids=` | Books in the order given (Recently viewed) |
@@ -753,10 +814,20 @@ Any order from the seller that was not cancelled entitles a buyer to rate them.
 The score is part of the shop (`sellerRating`) and of the seller's public
 profile.
 
+### Wanted board — `/wanted`
+
+| Method | Endpoint | Description |
+| --- | --- | --- |
+| `GET` | `/wanted` | One page of requests: `status` (`open` \| `found`), `sort` (`popular` \| `newest`), `mine=1`, `search` |
+| `POST` | `/wanted` | Ask for a book: `{ title, author?, isbn?, details? }`; joins the existing request if it is the same book |
+| `POST` / `DELETE` | `/wanted/:id/join` | Add or remove your name |
+| `DELETE` | `/wanted/:id` | Remove a request (admin) |
+
 ### Messages, notifications and more
 
 | Method | Endpoint | Description |
 | --- | --- | --- |
+| `GET` | `/admin/analytics?range=` | The shop's analytics: `7d`, `30d` (default), `90d`, `12m` or `all` (admin) |
 | `GET` | `/admin/message/audience?audience=` | How many a message would reach (admin) |
 | `POST` | `/admin/message` | Send `{ channel, audience, emails?, title, body, link? }` (admin) |
 | `GET` | `/notification` | Your notifications with the unread count; `?unreadOnly=1` |
@@ -779,6 +850,7 @@ profile.
 | `GET` | `/robots.txt` | Crawler rules and the sitemap's address |
 | `GET` | `/sitemap.xml` | Every public page and book |
 | `GET` | `/llms.txt` | A Markdown summary of the shop for AI assistants |
+| `GET` | `/.well-known/security.txt` | Where to report a vulnerability (RFC 9116) |
 | `GET` | `/book/:id` | The page, with the book's preview tags in its head |
 
 ---
@@ -815,6 +887,11 @@ Messages are sent with `POST /chat/message`; attachments are delivered as URLs.
 | `Notification` | `notifications` | The bell's items, kept for 90 days |
 | `BookRequest` | `bookrequests` | Requests for sold-out books |
 | `RefreshToken` | `refreshtokens` | Hashed, rotating refresh tokens |
+| `WantedBook` | `wantedbooks` | Wanted board requests, one per book, with everyone who asked |
+| `Invite` | `invites` | Invitations sent, and whether they joined |
+| `BookView` | `bookviews` | A keyed hash per person and book, for a day, so each view counts once |
+| `SearchLog` | `searchlogs` | What was searched and how many books it found, without who; kept 90 days |
+| `LoginAttempt` | `loginattempts` | Wrong passwords per address (hashed), for the 15-minute pause |
 
 ---
 
@@ -832,8 +909,8 @@ deploys on every push to `master`.
 | Health check | `/health` |
 | Node.js | 24 |
 
-Secrets — `MONGO`, `ADMIN_EMAILS`, the e-mail settings and the Cloudinary
-keys — are entered in the service's **Environment** page and never stored in
+Secrets — `MONGO`, `ADMIN_EMAILS`, the e-mail settings, the Cloudinary
+keys, `DATA_ENCRYPTION_KEY`, and the Turnstile and Google sign-in keys — are entered in the service's **Environment** page and never stored in
 the repository. Render generates `JWT_SECRET`.
 
 A single service keeps the refresh cookie first-party, so sessions persist
@@ -859,7 +936,7 @@ the hardening planned next.
 | 🔄 **Book exchange** | Swap finished books with other readers, matched by what each has and wants, with exchange credit so a swap needs no exact partner |
 | 💳 **Online payment** | bKash, Nagad and card payments alongside cash on delivery, with refunds to the same account |
 | 🚚 **Live courier tracking** | Delivery status straight from the courier |
-| 🔔 **SMS alerts** | Order and price alerts by SMS, with per-person preferences for alerts and e-mails |
+| 🔔 **SMS alerts** | Order and price alerts by SMS, chosen alongside the notification and e-mail settings |
 | 📲 **Mobile app** | The shop as an installable app for Android and iOS |
 | 🤖 **Interactive chatbot** | A book assistant in Bangla and English: finds books from a description, answers delivery and return questions, tracks orders, and hands over to the seller's chat |
 | 🌐 **Bangla interface** | The whole site in Bangla or English, switched with one tap and remembered |
@@ -868,7 +945,7 @@ the hardening planned next.
 | 💡 **Suggested prices** | A fair price for a used book from its condition and similar listings, shown while it is listed |
 | 🏷️ **Seller coupons and bundles** | Shop coupons, short sales and bundle deals such as "buy 3, get 10% off" |
 | 🧹 **Automatic moderation** | Spam, abuse and misleading listings or reviews flagged for an administrator before anyone has to report them |
-| 🎁 **Reward points and referrals** | Points for buying, reviewing and inviting friends, spent as credit at checkout |
+| 🎁 **Reward points** | Points for buying, reviewing and for friends who join through an invite, spent as credit at checkout |
 | 💝 **Gift orders** | Send a book to someone else, with a personal note and gift wrapping |
 
 Track these on the [roadmap issues](https://github.com/UtshaBasak/BookStoreBD/issues?q=label%3Aroadmap),

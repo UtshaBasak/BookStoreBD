@@ -117,7 +117,8 @@ describe('the search box', () => {
     vi.stubGlobal('webkitSpeechRecognition', FakeRecognition);
     const onSubmit = renderField();
     await userEvent.click(screen.getByRole('button', { name: /search by voice/i }));
-    await vi.waitFor(() => expect(onSubmit).toHaveBeenCalledWith('pather panchali'));
+    // Generous: under a full parallel run the fake recogniser's timer can be slow to fire.
+    await vi.waitFor(() => expect(onSubmit).toHaveBeenCalledWith('pather panchali'), { timeout: 5000 });
     expect(screen.getByRole('combobox', { name: 'Search books' })).toHaveValue('pather panchali');
   });
 });
