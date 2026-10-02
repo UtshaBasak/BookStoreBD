@@ -49,7 +49,9 @@ describe('notification choices', () => {
     expect(mine.status).toBe(200);
     expect(mine.body.categories.every((c: { inApp: boolean }) => c.inApp)).toBe(true);
     expect(mine.body.categories.map((c: { id: string }) => c.id)).not.toContain('moderation');
-    expect((await settings(admin.auth)).body.categories.map((c: { id: string }) => c.id)).toContain('moderation');
+    // Only what ever reaches an administrator: no payouts, Wanted board,
+    // invitations or shop news, which they never get.
+    expect((await settings(admin.auth)).body.categories.map((c: { id: string }) => c.id)).toEqual(['orders', 'returns', 'moderation']);
   });
 
   it('keep what was turned off, and only known categories', async () => {

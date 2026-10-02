@@ -185,7 +185,7 @@ export const listInvites: RequestHandler = async (req, res, next) => {
 
 /** The caller's notification choices, with what each category covers. */
 const settingsFor = (role: string, prefs: NotificationPrefs): NotificationSettings => ({
-  categories: CATEGORIES.filter((category) => !category.adminOnly || role === 'admin').map((category) => ({
+  categories: CATEGORIES.filter((category) => category.audience === 'everyone' || category.audience === (role === 'admin' ? 'admins' : 'members')).map((category) => ({
     id: category.id,
     label: category.label,
     description: category.description,

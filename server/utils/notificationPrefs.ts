@@ -16,8 +16,14 @@ export interface CategoryDefinition {
   types: readonly NotificationType[];
   /** Whether anything in this category is ever e-mailed. */
   email: boolean;
-  /** Shown to administrators only. */
-  adminOnly?: boolean;
+  /**
+   * Who it ever reaches, so nobody is offered a switch for something they
+   * never get: buyers and sellers ("members"), administrators, or both.
+   * Administrators hear about orders, cancellations, return requests and
+   * reports - not payouts, the Wanted board, invitations or the shop's own
+   * news, which they write.
+   */
+  audience: 'members' | 'admins' | 'everyone';
 }
 
 export const CATEGORIES: readonly CategoryDefinition[] = [
@@ -27,6 +33,7 @@ export const CATEGORIES: readonly CategoryDefinition[] = [
     description: 'New orders, each step of delivery, and cancellations.',
     types: ['order-placed', 'order-received', 'order-status', 'order-cancelled'],
     email: true,
+    audience: 'everyone',
   },
   {
     id: 'returns',
@@ -34,14 +41,23 @@ export const CATEGORIES: readonly CategoryDefinition[] = [
     description: 'Return requests and decisions.',
     types: ['return-requested', 'return-decided'],
     email: true,
+    audience: 'everyone',
   },
-  { id: 'payouts', label: 'Payouts', description: 'When the shop pays you for sold books.', types: ['payout'], email: true },
+  {
+    id: 'payouts',
+    label: 'Payouts',
+    description: 'When the shop pays you for sold books.',
+    types: ['payout'],
+    email: true,
+    audience: 'members',
+  },
   {
     id: 'reviews',
     label: 'Reviews and ratings',
     description: 'New reviews of your books or shop, and replies to yours.',
     types: ['review', 'review-reply', 'seller-review', 'seller-review-reply'],
     email: false,
+    audience: 'members',
   },
   {
     id: 'stock',
@@ -49,6 +65,7 @@ export const CATEGORIES: readonly CategoryDefinition[] = [
     description: 'Low stock and sold-out listings, and buyers asking for a sold-out book.',
     types: ['stock', 'book-request'],
     email: false,
+    audience: 'members',
   },
   {
     id: 'deals',
@@ -56,6 +73,7 @@ export const CATEGORIES: readonly CategoryDefinition[] = [
     description: 'Discounts and lower prices on books in your cart or wishlist, and books back in stock.',
     types: ['deal', 'price-drop', 'back-in-stock'],
     email: false,
+    audience: 'members',
   },
   {
     id: 'wanted',
@@ -63,6 +81,7 @@ export const CATEGORIES: readonly CategoryDefinition[] = [
     description: 'When a book you asked for on the Wanted board is listed.',
     types: ['wanted-found'],
     email: true,
+    audience: 'members',
   },
   {
     id: 'community',
@@ -70,6 +89,7 @@ export const CATEGORIES: readonly CategoryDefinition[] = [
     description: 'When someone you invited joins.',
     types: ['invite-joined'],
     email: false,
+    audience: 'members',
   },
   {
     id: 'announcements',
@@ -77,6 +97,7 @@ export const CATEGORIES: readonly CategoryDefinition[] = [
     description: 'Messages from the shop: new features, events and offers.',
     types: ['announcement'],
     email: true,
+    audience: 'members',
   },
   {
     id: 'moderation',
@@ -84,7 +105,7 @@ export const CATEGORIES: readonly CategoryDefinition[] = [
     description: 'Reported reviews and ratings waiting for a decision.',
     types: ['review-reported', 'seller-review-reported'],
     email: false,
-    adminOnly: true,
+    audience: 'admins',
   },
 ];
 
