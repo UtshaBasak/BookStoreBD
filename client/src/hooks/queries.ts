@@ -827,13 +827,20 @@ export const useAudienceCount = (audience: MessageAudience): UseQueryResult<Audi
     enabled: audience !== 'users',
   });
 
-/** How the shop is doing over a window, for the dashboard. The last window stays up while the next loads. */
+/**
+ * How the shop is doing over a window, for the dashboard. Fetched again every
+ * minute while the page is open and in view, and on coming back to the tab, so
+ * the figures and the insights follow the shop as it changes. The last window
+ * stays up while the next loads.
+ */
+export const ANALYTICS_REFRESH_MS = 60 * 1000;
 export const useShopAnalytics = (range: AnalyticsRange): UseQueryResult<ShopAnalytics> =>
   useQuery<ShopAnalytics, Error, ShopAnalytics>({
     queryKey: keys.analytics(range),
     queryFn: () => request<ShopAnalytics>(`/admin/analytics?range=${range}`),
     placeholderData: keepPreviousData,
-    staleTime: 60 * 1000,
+    staleTime: 30 * 1000,
+    refetchInterval: ANALYTICS_REFRESH_MS,
   });
 
 /** Sends the administrator's notification or e-mail. */

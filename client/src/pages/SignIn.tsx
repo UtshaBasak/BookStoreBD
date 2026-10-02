@@ -49,7 +49,7 @@ export default function SignIn() {
 
     useEffect(() => {
         if (isAuthenticated()) {
-            navigate(isAdmin() ? '/admin/users' : '/profile', { replace: true });
+            navigate(isAdmin() ? '/admin/analytics' : '/profile', { replace: true });
         }
     }, [navigate]);
 
@@ -58,7 +58,7 @@ export default function SignIn() {
     useEffect(() => {
         if (searchParams.get('google') === 'done') {
             void refreshSession().then((ok) => {
-                if (ok) navigate(isAdmin() ? '/admin/users' : after, { replace: true });
+                if (ok) navigate(isAdmin() ? '/admin/analytics' : after, { replace: true });
                 else toast.error('Could not finish signing in with Google. Please try again.');
             });
             return;
@@ -141,7 +141,7 @@ export default function SignIn() {
             const data = (await res.json()) as SignInResponse | ApiError;
             if (res.ok && 'token' in data) {
                 setSession(data);
-                navigate(isAdmin() ? '/admin/users' : after);
+                navigate(isAdmin() ? '/admin/analytics' : after);
             } else {
                 toast.error((data as ApiError).message || 'That code did not work.');
             }

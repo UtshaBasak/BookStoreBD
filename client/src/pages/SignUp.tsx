@@ -39,7 +39,7 @@ export default function SignUp() {
 
     useEffect(() => {
         if (isAuthenticated()) {
-            navigate(isAdmin() ? '/admin/users' : '/profile', { replace: true });
+            navigate(isAdmin() ? '/admin/analytics' : '/profile', { replace: true });
         }
     }, [navigate]);
 

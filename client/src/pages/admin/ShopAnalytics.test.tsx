@@ -79,6 +79,14 @@ describe('the shop analytics', () => {
     expect(screen.getByText('৳512.50')).toBeInTheDocument();
   });
 
+  it('says how fresh the figures are, and fetches them again on request', async () => {
+    const fetchMock = show();
+    expect(await screen.findByText(/Live: updated \d\d:\d\d, every minute/)).toBeInTheDocument();
+    const before = fetchMock.mock.calls.length;
+    await userEvent.click(screen.getByRole('button', { name: /Refresh now/ }));
+    await waitFor(() => expect(fetchMock.mock.calls.length).toBeGreaterThan(before));
+  });
+
   it('says what the figures mean', async () => {
     show();
     expect(await screen.findByText(/busiest hour is Friday at 9 pm/)).toBeInTheDocument();

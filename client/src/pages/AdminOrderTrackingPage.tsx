@@ -76,7 +76,7 @@ export default function AdminOrderTrackingPage() {
     <header className="aurora admin-order-bar">
       <Logo inverted size={32} />
       <div className="admin-order-bar-actions">
-        <Link to="/admin/users"
+        <Link to="/admin/transactions"
           className="admin-side-button keep-text"
         >
           ← Back to Admin Panel

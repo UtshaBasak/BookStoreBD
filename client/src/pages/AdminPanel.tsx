@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react';
-import { Link, NavLink, Routes, Route, useLocation, useNavigate } from 'react-router-dom';
+import { Link, NavLink, Navigate, Routes, Route, useLocation, useNavigate } from 'react-router-dom';
 import type { IconType } from 'react-icons';
 import './AdminPanel.css';
 import UserManagement from './UserManagement';
@@ -10,10 +10,11 @@ import ReviewModeration from './admin/ReviewModeration';
 import SellerPayouts from './admin/SellerPayouts';
 import AllReviews from './admin/AllReviews';
 import AdminMessages from './admin/AdminMessages';
-import ShopAnalytics, { AnalyticsGlance } from './admin/ShopAnalytics';
+import ShopAnalytics from './admin/ShopAnalytics';
 import {
   FaBook,
   FaChartLine,
+  FaCog,
   FaFlag,
   FaMoneyBillWave,
   FaPaperPlane,
@@ -33,46 +34,36 @@ interface Section {
   to: string;
   label: string;
   icon: IconType;
-  /** One line for the cards on /admin. */
-  blurb: string;
 }
 
 const SECTIONS: Section[] = [
-  { to: '/admin/analytics', label: 'Shop Analytics', icon: FaChartLine, blurb: 'Sales, fees, busy hours and what sells.' },
-  { to: '/admin/users', label: 'User Management', icon: FaUsers, blurb: 'Find an account, or remove one.' },
-  { to: '/admin/transactions', label: 'Transaction History', icon: FaReceipt, blurb: 'Every order, and where it is.' },
-  { to: '/admin/books', label: 'Book List', icon: FaBook, blurb: 'Every listing in the shop.' },
-  { to: '/admin/returns', label: 'Return Management', icon: FaUndoAlt, blurb: 'Approve or refuse a return.' },
-  { to: '/admin/payouts', label: 'Seller Payouts', icon: FaMoneyBillWave, blurb: 'What sellers are owed, and paid.' },
-  { to: '/admin/all-reviews', label: 'Reviews', icon: FaStar, blurb: 'Book reviews and seller ratings.' },
-  { to: '/admin/reviews', label: 'Reported Reviews', icon: FaFlag, blurb: 'Reviews and ratings somebody has reported.' },
-  { to: '/admin/messages', label: 'Messages', icon: FaPaperPlane, blurb: 'Notify or e-mail buyers and sellers.' },
+  { to: '/admin/analytics', label: 'Shop Analytics', icon: FaChartLine },
+  { to: '/admin/users', label: 'User Management', icon: FaUsers },
+  { to: '/admin/transactions', label: 'Transaction History', icon: FaReceipt },
+  { to: '/admin/books', label: 'Book List', icon: FaBook },
+  { to: '/admin/returns', label: 'Return Management', icon: FaUndoAlt },
+  { to: '/admin/payouts', label: 'Seller Payouts', icon: FaMoneyBillWave },
+  { to: '/admin/all-reviews', label: 'Reviews', icon: FaStar },
+  { to: '/admin/reviews', label: 'Reported Reviews', icon: FaFlag },
+  { to: '/admin/messages', label: 'Messages', icon: FaPaperPlane },
+  { to: '/admin/settings', label: 'Settings', icon: FaCog },
 ];
 
-/** The landing view for /admin: a card for each section. */
-function AdminHome() {
+/** The administrator's own settings: what they hear about. */
+function AdminSettings() {
   return (
     <div className="admin-page">
       <header className="admin-page-head">
         <div>
-          <h1 className="admin-page-title">Welcome back 👋</h1>
-          <p className="admin-lede">Pick up where the shop needs you.</p>
+          <h2 className="admin-page-title">
+            <span className="admin-page-icon" aria-hidden="true">
+              <FaCog />
+            </span>
+            Settings
+          </h2>
+          <p className="admin-lede">What you hear about, in the panel and by e-mail.</p>
         </div>
       </header>
-      <AnalyticsGlance />
-      <div className="admin-welcome-grid">
-        {SECTIONS.map(({ to, label, icon: Icon, blurb }) => (
-          <Link key={to} to={to} className="card admin-welcome-card">
-            <span className="admin-page-icon" aria-hidden="true">
-              <Icon />
-            </span>
-            <span>
-              <strong>{label}</strong>
-              <span className="admin-cell-muted">{blurb}</span>
-            </span>
-          </Link>
-        ))}
-      </div>
       <div className="admin-settings">
         <NotificationSettings />
       </div>
@@ -150,7 +141,8 @@ export default function AdminPanel() {
       </aside>
       <main className="admin-main">
         <Routes>
-          <Route index element={<AdminHome />} />
+          {/* The panel opens on how the shop is doing. */}
+          <Route index element={<Navigate to="/admin/analytics" replace />} />
           <Route path="/analytics" element={<ShopAnalytics />} />
           <Route path="/users" element={<UserManagement />} />
           <Route path="/transactions" element={<TransactionHistory />} />
@@ -160,6 +152,7 @@ export default function AdminPanel() {
           <Route path="/all-reviews" element={<AllReviews />} />
           <Route path="/reviews" element={<ReviewModeration />} />
           <Route path="/messages" element={<AdminMessages />} />
+          <Route path="/settings" element={<AdminSettings />} />
         </Routes>
       </main>
     </div>

@@ -171,7 +171,7 @@ User guides for each role are in the [wiki](https://github.com/UtshaBasak/BookSt
 - Returns within 7 days of delivery, for one book or a whole order, with photos
   and a bKash number for the refund
 - Seller payouts by bKash once the return window closes, less a 5% fee, each
-  recorded with its transaction ID
+  recorded with its transaction ID, and the seller notified and e-mailed
 - Share any book to Facebook, WhatsApp, X, Telegram or e-mail; shared links
   preview with the book's title, price and cover
 
@@ -217,7 +217,8 @@ User guides for each role are in the [wiki](https://github.com/UtshaBasak/BookSt
   sellers; cancellation, return and promo-code rates; what people search for
   and cannot find; Wanted board demand; and the most viewed books - over 7,
   30 or 90 days, 12 months or all time, with plain-language insights and
-  every chart readable as a table
+  every chart readable as a table. The panel opens on it, and it refreshes
+  itself every minute while open
 - Users, transactions, books, returns, payouts, all reviews and reported
   reviews (of books and of sellers) — each searchable, filterable, sortable
   and refreshable

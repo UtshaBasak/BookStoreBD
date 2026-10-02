@@ -57,7 +57,7 @@ export default function Profile() {
     // Rendering guards only; the API re-checks both on every request.
     useEffect(() => {
         if (!userEmail) navigate('/sign-in');
-        else if (isAdmin()) navigate('/admin/users', { replace: true });
+        else if (isAdmin()) navigate('/admin/analytics', { replace: true });
     }, [navigate, userEmail]);
 
     // Partial because the API returns only the public fields to anyone who is

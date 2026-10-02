@@ -35,7 +35,7 @@ export const CATEGORIES: readonly CategoryDefinition[] = [
     types: ['return-requested', 'return-decided'],
     email: true,
   },
-  { id: 'payouts', label: 'Payouts', description: 'When the shop pays you for sold books.', types: ['payout'], email: false },
+  { id: 'payouts', label: 'Payouts', description: 'When the shop pays you for sold books.', types: ['payout'], email: true },
   {
     id: 'reviews',
     label: 'Reviews and ratings',

@@ -12,6 +12,7 @@ import { createLogger } from '../config/logger.js';
 import { RETURN_WINDOW_DAYS, returnWindowClosedBefore, sellerFeeFor, sellerPayoutFor } from '../config/commerce.js';
 import { contains } from '../utils/regex.js';
 import { notify } from '../utils/notify.js';
+import { dispatchShopMail, payoutSentEmail } from '../utils/shopMail.js';
 
 const log = createLogger('payout');
 
@@ -159,7 +160,7 @@ export const markPayoutPaid = async (
         sellerPaidAt: null,
         deliveredAt: { $lte: returnWindowClosedBefore() },
       },
-      { _id: 1, price: 1, quantity: 1 }
+      { _id: 1, title: 1, price: 1, quantity: 1 }
     ).lean();
 
     const held = new Set(
@@ -202,6 +203,11 @@ export const markPayoutPaid = async (
       body: `For order ${String(orderNumber)}, by bKash. Transaction ID ${String(reference)}.`,
       link: '/seller-orders',
     });
+    dispatchShopMail(
+      String(sellerEmail),
+      payoutSentEmail({ orderNumber: String(orderNumber), reference: String(reference), paidAt }, payable),
+      'payouts'
+    );
 
     res.json({ message: `Recorded ${amount.toFixed(2)} Tk paid.`, amount, paidAt: paidAt.toISOString() });
   } catch (error) {

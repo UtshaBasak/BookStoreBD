@@ -8,6 +8,7 @@ import { describe, it, expect, beforeAll, afterAll, beforeEach, vi } from 'vites
 import { createTestContext, clearDatabase, closeTestContext, type PrefixedRequest } from './helpers/testApp.js';
 import { createBook, createUserWithToken } from './helpers/factories.js';
 import Notification from '../models/Notification.model.js';
+import Order from '../models/Order.model.js';
 
 const { sendMail } = vi.hoisted(() => {
   process.env.SMTP_USER = 'shop@example.com';
@@ -96,5 +97,43 @@ describe('notification choices', () => {
       .send({ channel: 'both', audience: 'users', emails: [BUYER], title: 'About your order', body: 'It ships tomorrow.' });
     expect(direct.body).toMatchObject({ notified: 1, emailed: 1 });
     expect(await Notification.countDocuments({ recipient: BUYER, type: 'shop-message' })).toBe(1);
+  });
+});
+
+describe('a payout', () => {
+  const payOut = async (sellerPrefs?: Record<string, { inApp: boolean; email: boolean }>) => {
+    const admin = await createUserWithToken({ email: 'admin@test.com', role: 'admin' });
+    const seller = await createUserWithToken({ email: SELLER });
+    if (sellerPrefs) await save(seller.auth, sellerPrefs);
+    const book = await createBook({ sellerEmail: SELLER });
+    await Order.create({
+      orderNumber: 'PAYOUT0000000001',
+      status: 'Delivered',
+      deliveredAt: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000),
+      buyerEmail: BUYER,
+      sellerEmail: SELLER,
+      bookId: book._id,
+      title: 'Gitanjali',
+      price: 1000,
+      quantity: 1,
+    });
+    const res = await request
+      .post('/order/admin/payouts/paid')
+      .set('Authorization', admin.auth)
+      .send({ orderNumber: 'PAYOUT0000000001', sellerEmail: SELLER, reference: '8n7a2b3c4d' });
+    expect(res.status).toBe(200);
+    return (await outbox()).filter((m) => m.to === SELLER);
+  };
+
+  it('is e-mailed to the seller by default, with the amount and transaction ID', async () => {
+    const mail = await payOut();
+    expect(mail.map((m) => m.subject)).toContain('You have been paid 950 Tk for order PAYOUT0000000001');
+    expect((sendMail.mock.calls.at(-1)?.[0] as { text: string }).text).toMatch(/8N7A2B3C4D/);
+  });
+
+  it('is not e-mailed to a seller who turned payout e-mails off, but still notified', async () => {
+    const mail = await payOut({ payouts: { inApp: true, email: false } });
+    expect(mail.filter((m) => /paid/.test(m.subject))).toHaveLength(0);
+    expect(await Notification.countDocuments({ recipient: SELLER, type: 'payout' })).toBe(1);
   });
 });

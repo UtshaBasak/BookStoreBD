@@ -473,21 +473,49 @@
   font-size: 1.3rem;
 }
 
-/* A glance at the month on the admin home. */
-.sa-glance {
-  margin-bottom: 18px;
-}
-.sa-glance-head {
+/* "Live: updated 12:04", under the heading. */
+.sa-updated {
   display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 12px;
-  margin-bottom: 10px;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 10px;
+  margin: 8px 0 0;
+  color: var(--color-ink-muted);
+  font-size: 0.82rem;
 }
-.sa-glance-head h2 {
-  margin: 0;
-  color: var(--color-ink);
-  font-size: 1.05rem;
+.sa-live-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--color-success);
+}
+.sa-live-dot.is-busy {
+  animation: sa-pulse 1s ease-in-out infinite;
+}
+@keyframes sa-pulse {
+  50% {
+    opacity: 0.3;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .sa-live-dot.is-busy {
+    animation: none;
+  }
+}
+.sa-refresh {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 2px 4px;
+  border: 0;
+  background: none;
+  font: inherit;
+  font-size: 0.82rem;
+  cursor: pointer;
+}
+.sa-refresh:disabled {
+  opacity: 0.5;
+  cursor: default;
 }
 
 @media (max-width: 600px) {

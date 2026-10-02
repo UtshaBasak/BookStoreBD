@@ -180,6 +180,32 @@ export const orderDeliveredSellerEmail = (order: OrderFacts, lines: readonly Mai
   });
 };
 
+/** To a seller: the shop has paid them for an order, by bKash. */
+export const payoutSentEmail = (
+  payout: { orderNumber: string; reference: string; paidAt: Date },
+  lines: readonly MailLine[]
+): Email => {
+  const books = booksTotalOf(lines);
+  const paid = taka(books - sellerFeeFor(books));
+  return noticeEmail({
+    subject: `You have been paid ${paid} for order ${payout.orderNumber}`,
+    heading: 'Your payment is on its way',
+    preheader: `${paid} sent to your bKash. Transaction ID ${payout.reference}.`,
+    lead: ['We have sent you the money for your books, by bKash.'],
+    items: itemsOf(lines),
+    facts: [
+      ['Order', payout.orderNumber],
+      ['Books total', taka(books)],
+      [`BookStoreBD fee (${SELLER_FEE_PERCENT}%)`, `- ${taka(sellerFeeFor(books))}`],
+      ['You receive', paid],
+      ['bKash transaction ID', payout.reference],
+      ['Paid on', payout.paidAt.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'Asia/Dhaka' })],
+    ],
+    button: { label: 'See your sales', path: '/seller-orders' },
+    after: ['If it has not reached your bKash account within a day, reply to this e-mail with the transaction ID.'],
+  });
+};
+
 const BY: Record<string, string> = { buyer: 'the buyer', seller: 'the seller', admin: 'BookStoreBD' };
 
 /** To the buyer or a seller: books in the order were cancelled. */

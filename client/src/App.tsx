@@ -70,7 +70,7 @@ function AdminRoute({ children }: GuardProps) {
 function PublicOnlyRoute({ children }: GuardProps) {
   useSeo({ noIndex: true });
   if (!isAuthenticated()) return children;
-  return <Navigate to={isAdmin() ? '/admin/users' : '/profile'} replace />;
+  return <Navigate to={isAdmin() ? '/admin/analytics' : '/profile'} replace />;
 }
 
 /*

@@ -12,6 +12,7 @@ import {
   FaSearch,
   FaShoppingBag,
   FaStore,
+  FaSyncAlt,
   FaUserPlus,
   FaUsers,
 } from 'react-icons/fa';
@@ -137,7 +138,7 @@ export default function ShopAnalytics() {
   const [params, setParams] = useSearchParams();
   const range = (RANGES.find((r) => r.value === params.get('range'))?.value ?? '30d');
   const [measure, setMeasure] = useState<Measure>('revenue');
-  const { data: stats, isPending, isError, error, isFetching } = useShopAnalytics(range);
+  const { data: stats, isPending, isError, error, isFetching, dataUpdatedAt, refetch } = useShopAnalytics(range);
 
   const measureLabel = MEASURES.find((m) => m.value === measure)?.label ?? '';
   const formatMeasure = measure === 'revenue' ? money : count;
@@ -159,6 +160,15 @@ export default function ShopAnalytics() {
           <p className="admin-lede">
             Sales, fees, what sells and when. Sales are book totals without delivery; times are Dhaka time.
           </p>
+          {stats && (
+            <p className="sa-updated" aria-live="polite">
+              <span className={`sa-live-dot${isFetching ? ' is-busy' : ''}`} aria-hidden="true" />
+              {isFetching ? 'Updating…' : `Live: updated ${new Date(dataUpdatedAt).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}, every minute`}
+              <button type="button" className="sa-link sa-refresh" onClick={() => void refetch()} disabled={isFetching}>
+                <FaSyncAlt aria-hidden="true" /> Refresh now
+              </button>
+            </p>
+          )}
         </div>
         <div className="sa-ranges" role="radiogroup" aria-label="Period">
           {RANGES.map(({ value, label }) => (
@@ -417,27 +427,5 @@ export default function ShopAnalytics() {
         </div>
       )}
     </div>
-  );
-}
-
-/** The last 30 days in four figures, at the top of the admin home. */
-export function AnalyticsGlance() {
-  const { data: stats } = useShopAnalytics('30d');
-  if (!stats) return null;
-  return (
-    <section className="sa-glance" aria-labelledby="sa-glance-title">
-      <div className="sa-glance-head">
-        <h2 id="sa-glance-title">The last 30 days</h2>
-        <Link to="/admin/analytics" className="sa-link">
-          All the analytics
-        </Link>
-      </div>
-      <div className="sa-tiles">
-        <Tile icon={FaCoins} label="Sales" kpi={stats.kpis.revenue} format={money} />
-        <Tile icon={FaReceipt} label="Orders" kpi={stats.kpis.orders} format={count} />
-        <Tile icon={FaStore} label="Fees earned" kpi={stats.kpis.feesEarned} format={fee} />
-        <Tile icon={FaUserPlus} label="New members" kpi={stats.kpis.newUsers} format={count} />
-      </div>
-    </section>
   );
 }
