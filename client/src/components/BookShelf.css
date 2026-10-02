@@ -1,5 +1,13 @@
 .shelf {
   padding: 0.5rem clamp(1rem, 3vw, 2.5rem) 1.75rem;
+  /*
+   * A shelf off screen is not laid out or painted until it comes near, which
+   * on a phone was most of the home page's style-and-layout time. The size is
+   * a stand-in until then; once drawn, the browser remembers the real one
+   * ("auto"), so scrolling back does not jump.
+   */
+  content-visibility: auto;
+  contain-intrinsic-size: auto 520px;
 }
 .shelf-head {
   display: flex;

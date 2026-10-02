@@ -331,17 +331,4 @@ describe('the token kept in memory only', () => {
     await apiFetch(`${API_BASE_URL}/filter/booklist`);
     expect(localStorage.getItem('userEmail')).toBeNull();
   });
-
-  it('is added to axios requests too', async () => {
-    const { default: axios } = await import('axios');
-    setSession({ token: 'axios-token', user: { email: 'a@test.com', role: 'user' } });
-    let sent: unknown;
-    await axios.get(`${API_BASE_URL}/cart`, {
-      adapter: (config) => {
-        sent = config.headers.Authorization;
-        return Promise.resolve({ data: {}, status: 200, statusText: 'OK', headers: {}, config });
-      },
-    });
-    expect(sent).toBe('Bearer axios-token');
-  });
 });

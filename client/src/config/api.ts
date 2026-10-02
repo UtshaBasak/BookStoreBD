@@ -1,8 +1,6 @@
-import axios, { type AxiosRequestConfig, type InternalAxiosRequestConfig } from 'axios';
-
 import type { SessionResponse } from '@shared/api.js';
 
-import { authHeaders, clearSession, getToken, getUserEmail, setSession } from '../utils/auth.js';
+import { clearSession, getToken, getUserEmail, setSession } from '../utils/auth.js';
 
 /**
  * Where the API lives.
@@ -147,47 +145,6 @@ export const apiFetch = async (input: RequestInfo | URL, init: RequestInit = {})
 
   return response;
 };
-
-// The same treatment for the pages that use axios.
-axios.defaults.withCredentials = true;
-
-axios.interceptors.request.use(async (cfg: InternalAxiosRequestConfig) => {
-  const url = String(cfg.url ?? '');
-  if (!url.includes(REFRESH_PATH) && !isCredentialCheck(url)) await ensureToken();
-  Object.assign(cfg.headers, authHeaders());
-  return cfg;
-});
-
-/** A config carrying the flag that stops one retry turning into a loop. */
-type RetriedConfig = AxiosRequestConfig & { _retried?: boolean };
-
-axios.interceptors.response.use(
-  (response) => response,
-  async (error: unknown) => {
-    const failure = error as { config?: RetriedConfig; response?: { status?: number } };
-    const original = failure.config;
-    const isRefreshCall = String(original?.url ?? '').includes(REFRESH_PATH);
-
-    const isCredentials = isCredentialCheck(String(original?.url ?? ''));
-
-    if (
-      failure.response?.status === 401 &&
-      original &&
-      !original._retried &&
-      !isRefreshCall &&
-      !isCredentials
-    ) {
-      original._retried = true;
-      if (await refreshSession()) {
-        Object.assign(original.headers ?? {}, authHeaders());
-        return axios(original);
-      }
-      handleUnauthorized();
-    }
-
-    return Promise.reject(error);
-  }
-);
 
 /**
  * Ends the session on the server as well as in this tab.

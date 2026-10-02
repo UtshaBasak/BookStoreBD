@@ -5,7 +5,7 @@ import tailwindcss from '@tailwindcss/vite';
 // Keep the vendor libraries in their own chunks so app code can be re-deployed
 // without busting the whole bundle cache.
 const REACT_CHUNK = ['react', 'react-dom', 'react-router', 'react-router-dom', 'scheduler'];
-const VENDOR_CHUNK = ['axios', 'notistack', 'react-icons'];
+const VENDOR_CHUNK = ['notistack', 'react-icons'];
 // Loaded only when a signed-in page opens the live chat (utils/socket.ts), so
 // kept out of the vendor chunk every visitor downloads.
 const SOCKET_CHUNK = ['socket.io-client', 'socket.io-parser', 'engine.io-client', 'engine.io-parser', '@socket.io/component-emitter'];

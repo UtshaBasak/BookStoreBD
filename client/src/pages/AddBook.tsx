@@ -1,5 +1,4 @@
 import { useRef, useState, type ChangeEvent, type HTMLInputTypeAttribute } from 'react';
-import axios from 'axios';
 import { Link, useSearchParams } from 'react-router-dom';
 import { FaCamera, FaCheck, FaExclamationTriangle, FaInfoCircle, FaTimes } from 'react-icons/fa';
 
@@ -7,11 +6,11 @@ import './Seller.css';
 import FilePreview from '../components/FilePreview.js';
 import Logo from '../components/Logo.js';
 import NotificationBell from '../components/NotificationBell.js';
-import { API_BASE_URL } from '../config/api.js';
+import { API_BASE_URL, apiFetch } from '../config/api.js';
 import { site } from '../config/site.js';
 import { CATEGORY_GROUPS } from '../config/categories.js';
 import { useProfile } from '../hooks/queries.js';
-import { apiErrorMessage } from '../utils/apiError.js';
+import { ApiRequestError, apiErrorMessage } from '../utils/apiError.js';
 import { getUserEmail } from '../utils/auth.js';
 import { isOwnProfile } from '../utils/profile.js';
 import { uploadImages, type UploadResult } from '../utils/uploadImages.js';
@@ -230,16 +229,16 @@ const AddBooks = () => {
         images.forEach((img) => formData.append('images', img));
       }
 
-      const res = await axios.post<{ message: string; waiting?: number }>(
-        `${API_BASE_URL}/user/add-book`,
-        // The token is added by the shared axios setup in config/api.ts.
-        formData
-      );
-      const waiting = res.data.waiting ?? 0;
+      // apiFetch adds the session, as for every other request.
+      const res = await apiFetch(`${API_BASE_URL}/user/add-book`, { method: 'POST', body: formData });
+      const data = (await res.json().catch(() => ({}))) as { message?: string; waiting?: number };
+      if (!res.ok) throw new ApiRequestError(data.message || 'Request failed', res.status, data);
+      const waiting = data.waiting ?? 0;
+      const message = data.message ?? 'Book added.';
       setFeedbackMessage(
         waiting > 0
-          ? `${res.data.message} ${waiting} ${waiting === 1 ? 'reader was' : 'readers were'} waiting for it on the Wanted board, and have just been told.`
-          : res.data.message
+          ? `${message} ${waiting} ${waiting === 1 ? 'reader was' : 'readers were'} waiting for it on the Wanted board, and have just been told.`
+          : message
       );
       setIsError(false);
       setData(EMPTY_FORM);

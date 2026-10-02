@@ -1,7 +1,6 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
 
 import {
-  authHeaders,
   clearSession,
   getToken,
   getUserEmail,
@@ -68,14 +67,17 @@ describe('isAdmin', () => {
   });
 });
 
-describe('authHeaders', () => {
-  it('is empty when signed out', () => {
-    expect(authHeaders()).toEqual({});
+describe('the token', () => {
+  it('is kept in memory, not in localStorage', () => {
+    setSession(session);
+    expect(JSON.stringify({ ...localStorage })).not.toContain('jwt-token-value');
   });
 
-  it('carries the bearer token when signed in', () => {
-    setSession(session);
-    expect(authHeaders()).toEqual({ Authorization: 'Bearer jwt-token-value' });
+  it('removes a copy an older version left in localStorage, on load', async () => {
+    localStorage.setItem('authToken', 'left-behind');
+    vi.resetModules();
+    await import('./auth.js');
+    expect(localStorage.getItem('authToken')).toBeNull();
   });
 });
 

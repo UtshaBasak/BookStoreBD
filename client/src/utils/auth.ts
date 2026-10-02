@@ -83,9 +83,3 @@ export const clearSession = (): void => {
   write(EMAIL_KEY, null);
   write(ROLE_KEY, null);
 };
-
-/** Authorization header for a request, or `{}` without a token. */
-export const authHeaders = (): Record<string, string> => {
-  const token = getToken();
-  return token ? { Authorization: `Bearer ${token}` } : {};
-};

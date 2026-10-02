@@ -161,8 +161,8 @@ Open the PR against `master` and fill in the template.
 - Response types come from `@shared/api.js` — the contract in
   `server/shared/api.d.ts` — rather than being described again per page.
 - Every network call resolves its origin through `src/config/api.ts`, and uses
-  `apiFetch` (or axios, which has an interceptor) so the bearer token is
-  attached. A bare `fetch` to the API will be anonymous and get a `401`.
+  `apiFetch` so the bearer token is attached (it is held in memory and
+  fetched from the refresh cookie when a tab has none yet). A bare `fetch` to the API will be anonymous and get a `401`.
 - Client-side route guards decide what to *render*. They are not a security
   boundary — the server re-checks the token and role on every request.
 - Only variables prefixed with `VITE_` reach the browser bundle — never put a

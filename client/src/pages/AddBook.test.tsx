@@ -13,13 +13,10 @@ import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import axios from 'axios';
 
 import AddBooks from './AddBook.js';
 import { uploadImages } from '../utils/uploadImages.js';
 import { setSession } from '../utils/auth.js';
-
-vi.mock('axios');
 
 // The bytes go straight to Cloudinary from the browser; what is being tested
 // is the request that follows, so this stands in for that round trip.
@@ -31,7 +28,22 @@ vi.mock('../utils/uploadImages.js', () => ({
   }),
 }));
 
-const postMock = vi.mocked(axios.post);
+/** What the page posts to the API, and what the API says back. */
+const postMock = vi.fn<(url: string, init: RequestInit) => { status: number; body: unknown }>();
+const json = (status: number, body: unknown) =>
+  Promise.resolve(new Response(JSON.stringify(body), { status, headers: { 'Content-Type': 'application/json' } }));
+const stubApi = (profile: unknown = { username: 'rahim', email: 'seller@test.com', role: 'user', bkashMerchant: '01710000001' }) =>
+  vi.stubGlobal(
+    'fetch',
+    vi.fn((input: RequestInfo | URL, init?: RequestInit) => {
+      const url = String(input);
+      if (url.includes('/user/add-book')) {
+        const { status, body } = postMock(url, init ?? {});
+        return json(status, body);
+      }
+      return json(200, profile);
+    })
+  );
 const uploadMock = vi.mocked(uploadImages);
 
 const fillAndSubmit = async () => {
@@ -51,13 +63,15 @@ const fillAndSubmit = async () => {
 
 beforeEach(() => {
   postMock.mockReset();
-  postMock.mockResolvedValue({ data: { message: 'Book added successfully!' } });
+  postMock.mockReturnValue({ status: 201, body: { message: 'Book added successfully!' } });
+  stubApi();
   uploadMock.mockClear();
   localStorage.clear();
 });
 
 afterEach(() => {
   localStorage.clear();
+  vi.unstubAllGlobals();
 });
 
 const renderPage = () =>
@@ -107,7 +121,7 @@ describe('a seller with no bKash merchant number', () => {
 });
 
 describe('submitting a listing', () => {
-  it('leaves the session to the shared request setup', async () => {
+  it('sends the session the rest of the app uses', async () => {
     setSession({ token: 'a-real-token' });
     renderPage();
 
@@ -115,13 +129,13 @@ describe('submitting a listing', () => {
 
     await waitFor(() => expect(postMock).toHaveBeenCalledTimes(1));
 
-    const [url, body, options] = postMock.mock.calls[0];
-    expect(String(url)).toMatch(/\/user\/add-book$/);
-    // No header of its own - `Bearer null` is what its own copy used to send.
-    // config/api.ts adds the token to every axios request (tested there).
-    expect(options).toBeUndefined();
+    const [url, init] = postMock.mock.calls[0];
+    expect(url).toMatch(/\/user\/add-book$/);
+    // `Bearer null` is what this page's own copy of the header code used to send.
+    expect(new Headers(init.headers).get('Authorization')).toBe('Bearer a-real-token');
+    expect(await screen.findByText('Book added successfully!')).toBeInTheDocument();
 
-    const form = body as FormData;
+    const form = init.body as FormData;
     expect(form.get('title')).toBe('Pather Panchali');
     expect(form.get('images')).toBe('https://res.cloudinary.com/demo/image/upload/v1/cover.png');
   });
@@ -129,13 +143,9 @@ describe('submitting a listing', () => {
 
   it('repeats the field the API rejected, not just that it failed', async () => {
     setSession({ token: 'a-real-token' });
-    postMock.mockRejectedValue({
-      response: {
-        data: {
-          message: 'Validation failed',
-          errors: [{ path: 'body.pages', message: 'Invalid input' }],
-        },
-      },
+    postMock.mockReturnValue({
+      status: 400,
+      body: { message: 'Validation failed', errors: [{ path: 'body.pages', message: 'Invalid input' }] },
     });
     renderPage();
 
@@ -150,10 +160,9 @@ describe('submitting a listing', () => {
 
   it('does not upload the images a second time when a rejected form is fixed', async () => {
     setSession({ token: 'a-real-token' });
-    postMock.mockRejectedValueOnce({
-      response: {
-        data: { message: 'Validation failed', errors: [{ path: 'body.pages', message: 'Invalid input' }] },
-      },
+    postMock.mockReturnValueOnce({
+      status: 400,
+      body: { message: 'Validation failed', errors: [{ path: 'body.pages', message: 'Invalid input' }] },
     });
     renderPage();
 

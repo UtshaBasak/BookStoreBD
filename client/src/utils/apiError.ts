@@ -9,11 +9,14 @@ import type { ValidationIssue } from '@shared/api.js';
  */
 export class ApiRequestError extends Error {
   readonly status: number;
+  /** The response body, when it was JSON - for the fields a form got wrong. */
+  readonly body: unknown;
 
-  constructor(message: string, status: number) {
+  constructor(message: string, status: number, body?: unknown) {
     super(message);
     this.name = 'ApiRequestError';
     this.status = status;
+    this.body = body;
   }
 }
 
@@ -45,9 +48,11 @@ interface ApiErrorBody {
   errors?: ValidationIssue[];
 }
 
-/** The body of an axios failure, for the pages that use axios. */
+/** The body of a failed request: one thrown as an ApiRequestError, or an axios-shaped error. */
 const asBody = (error: unknown): ApiErrorBody | undefined =>
-  (error as { response?: { data?: ApiErrorBody } } | undefined)?.response?.data;
+  error instanceof ApiRequestError
+    ? (error.body as ApiErrorBody | undefined)
+    : (error as { response?: { data?: ApiErrorBody } } | undefined)?.response?.data;
 
 /**
  * `body.conditionDetails` becomes "Condition details".
