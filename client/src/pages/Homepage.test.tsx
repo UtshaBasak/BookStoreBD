@@ -42,6 +42,10 @@ const renderHomepage = (books: Book[] = [BOOK]) => {
   // page with no books has no "Add to Cart" button to click. The strip asks
   // the API for the newest twelve, rather than filtering the whole catalogue.
   queryClient.setQueryData(keys.featured(12), books);
+  // The shelves wait for both requests, so neither can push the other down.
+  queryClient.setQueryData(keys.sections, {
+    deals: [], trending: [], popular: [], bestsellers: [], topRated: [], budget: [], discover: [], writers: [], categories: [],
+  });
 
   return render(
     <QueryClientProvider client={queryClient}>
@@ -109,6 +113,25 @@ describe('a shop with no books yet', () => {
 
     expect(screen.queryByText('No books on the shelf yet.')).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Scroll Latest books left' })).toBeInTheDocument();
+  });
+});
+
+describe('the first shelves', () => {
+  it('wait for each other, so Quick deals cannot push Latest books down the screen', () => {
+    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    queryClient.setQueryData(keys.featured(12), [BOOK]); // Latest is in; Quick deals is not
+    render(
+      <QueryClientProvider client={queryClient}>
+        <SnackbarProvider>
+          <MemoryRouter>
+            <Homepage />
+          </MemoryRouter>
+        </SnackbarProvider>
+      </QueryClientProvider>
+    );
+
+    expect(screen.queryByRole('heading', { name: /Latest books/ })).not.toBeInTheDocument();
+    expect(document.querySelector('.shelf[aria-busy="true"]')).toBeInTheDocument();
   });
 });
 

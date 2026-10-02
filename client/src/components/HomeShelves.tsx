@@ -77,16 +77,30 @@ export default function HomeShelves(actions: ShelfActions) {
 
   const recentBooks = (recent.data ?? []).filter((book) => book && book._id);
 
+  /*
+   * The first two shelves come from two requests. Drawn as each arrived, Quick
+   * deals could land above an already drawn Latest books and push it down the
+   * screen (Lighthouse's layout shift). One placeholder holds the place until
+   * both are in, and they appear together.
+   */
+  const firstShelvesReady = !sections.isPending && !featured.isPending;
+
   return (
     <>
-      {shelf('deals', s.deals, {
+      {!firstShelvesReady && (
+        <section className="shelf" aria-busy="true">
+          <ShelfSkeleton />
+        </section>
+      )}
+
+      {firstShelvesReady && shelf('deals', s.deals, {
         title: 'Quick deals',
         emoji: '⚡',
         subtitle: 'Discounts from our sellers, the biggest first.',
         seeAllTo: '/filter?deals=1&sort=dealPercent',
       })}
 
-      {shelfEmpty ? (
+      {!firstShelvesReady ? null : shelfEmpty ? (
         <section className="shelf" aria-labelledby="latest-title">
           <h2 id="latest-title" className="shelf-title">
             <span className="shelf-emoji" aria-hidden="true">🆕</span>Latest books
@@ -103,10 +117,6 @@ export default function HomeShelves(actions: ShelfActions) {
         <BookShelf id="latest" title="Latest books" emoji="🆕" subtitle="Just listed, one copy of each." seeAllTo="/filter?sort=newest">
           {row(latest)}
         </BookShelf>
-      ) : featured.isPending ? (
-        <section className="shelf">
-          <ShelfSkeleton />
-        </section>
       ) : null}
 
       {shelf('trending', s.trending, {
