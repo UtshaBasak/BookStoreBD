@@ -27,7 +27,10 @@ import {
 import Logo from '../components/Logo.js';
 import { ThemeToggle } from '../components/ThemeToggle.js';
 import NotificationSettings from '../components/NotificationSettings.js';
-import { isAdmin } from '../utils/auth.js';
+import TwoStepSetting from '../components/TwoStepSetting.js';
+import SessionsSetting from '../components/SessionsSetting.js';
+import { getUserEmail, isAdmin } from '../utils/auth.js';
+import { useNotificationSettings, useProfile } from '../hooks/queries.js';
 import { signOut } from '../config/api.js';
 
 interface Section {
@@ -49,8 +52,19 @@ const SECTIONS: Section[] = [
   { to: '/admin/settings', label: 'Settings', icon: FaCog },
 ];
 
-/** The administrator's own settings: what they hear about. */
+/** The administrator's own settings: what they hear about, and keeping the account safe. */
 function AdminSettings() {
+  // A link from a security e-mail lands on the card it is about, once the
+  // cards above it have their content and will not push it down again.
+  const { hash } = useLocation();
+  const email = getUserEmail();
+  const profile = useProfile(email, { enabled: Boolean(email) });
+  const notifications = useNotificationSettings();
+  const settled = !profile.isPending && !notifications.isPending;
+  useEffect(() => {
+    if (hash && settled) document.getElementById(hash.slice(1))?.scrollIntoView({ block: 'start' });
+  }, [hash, settled]);
+
   return (
     <div className="admin-page">
       <header className="admin-page-head">
@@ -61,11 +75,14 @@ function AdminSettings() {
             </span>
             Settings
           </h2>
-          <p className="admin-lede">What you hear about, in the panel and by e-mail.</p>
+          <p className="admin-lede">What you hear about, and how your account is kept safe.</p>
         </div>
       </header>
       <div className="admin-settings">
         <NotificationSettings />
+        {/* An administrator's account is the one most worth protecting. */}
+        <TwoStepSetting />
+        <SessionsSetting />
       </div>
     </div>
   );

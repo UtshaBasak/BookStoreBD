@@ -55,10 +55,16 @@ export default function Profile() {
     const userEmail = getUserEmail();
 
     // Rendering guards only; the API re-checks both on every request.
+    // An administrator's account settings live in the panel: a link from an
+    // e-mail to the security cards here lands on the same cards there.
+    const { hash } = useLocation();
     useEffect(() => {
         if (!userEmail) navigate('/sign-in');
-        else if (isAdmin()) navigate('/admin/analytics', { replace: true });
-    }, [navigate, userEmail]);
+        else if (isAdmin()) {
+            const toSettings = ['#security', '#two-step'].includes(hash);
+            navigate(toSettings ? `/admin/settings${hash}` : '/admin/analytics', { replace: true });
+        }
+    }, [navigate, userEmail, hash]);
 
     // Partial because the API returns only the public fields to anyone who is
     // not the owner; this page always asks for its own, but the type should
@@ -68,7 +74,6 @@ export default function Profile() {
 
     // A link to the set-up card or two-step sign-in, from a notification or
     // the set-up checklist, lands on it once the page has its content.
-    const { hash } = useLocation();
     useEffect(() => {
         if (data && ['#setup', '#two-step', '#security'].includes(hash)) {
             document.getElementById(hash.slice(1))?.scrollIntoView({ block: 'start' });
