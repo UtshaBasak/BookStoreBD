@@ -37,7 +37,12 @@ export const countView = async (
     const key = createHmac('sha256', jwtSecret()).update(`view:${viewer}:${String(book._id)}`).digest('hex');
     // The unique index is what makes two views at once count once, so it has
     // to exist before the first one.
-    indexReady ??= BookView.init();
+    // If building it fails, views are still counted: the index only matters
+    // for two views of one book in the same instant, and a failure here used
+    // to stop every view being counted until a restart.
+    indexReady ??= BookView.init().catch((error: unknown) => {
+      log.warn({ err: error }, 'Could not build the book-view index; counting without it');
+    });
     await indexReady;
     try {
       const { upsertedCount } = await BookView.updateOne({ key }, { $setOnInsert: { key, createdAt: new Date() } }, { upsert: true });

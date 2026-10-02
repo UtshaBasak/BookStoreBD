@@ -23,7 +23,15 @@ export default async function setup({ provide }: TestProject) {
   }
 
   const mongod = await MongoMemoryServer.create({
-    instance: { launchTimeout: 60000 },
+    instance: {
+      launchTimeout: 60000,
+      // Every test file has its own database, and Mongoose builds each one's
+      // indexes on connect - hundreds at once. MongoDB runs three index builds
+      // at a time by default and queues the rest, so a test that waits for an
+      // index (a TTL, a unique key) could sit in that queue past its timeout
+      // when the whole suite runs in parallel.
+      args: ['--setParameter', 'maxNumActiveUserIndexBuilds=256'],
+    },
   });
 
   provide('mongoUri', mongod.getUri());
