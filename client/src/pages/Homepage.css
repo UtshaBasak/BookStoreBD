@@ -84,7 +84,7 @@
 .search-bar button {
   height: 44px;
   padding: 0 1.2rem;
-  background: linear-gradient(135deg, var(--color-brand), var(--color-brand-light));
+  background: linear-gradient(135deg, var(--color-brand-fill), var(--color-brand-fill-light));
   color: #fff;
   border: none;
   border-radius: 999px;
@@ -151,7 +151,7 @@
 .chip.is-on,
 .chip.is-on:hover,
 .chip.is-on:focus-visible {
-  background: linear-gradient(135deg, var(--color-brand), var(--color-brand-light));
+  background: linear-gradient(135deg, var(--color-brand-fill), var(--color-brand-fill-light));
   border-color: var(--color-brand);
   color: #fff;
   box-shadow: 0 4px 12px rgba(109, 40, 217, 0.25);
@@ -163,7 +163,7 @@
 }
 .chip-strong:hover,
 .chip-strong:focus-visible {
-  background: var(--color-brand);
+  background: var(--color-brand-fill);
   border-color: var(--color-brand);
   color: #fff;
 }

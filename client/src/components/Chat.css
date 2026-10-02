@@ -328,7 +328,7 @@
   border: none;
   border-bottom-left-radius: 18px;
   border-bottom-right-radius: 6px;
-  background: linear-gradient(135deg, var(--color-brand) 0%, var(--color-brand-light) 100%);
+  background: linear-gradient(135deg, var(--color-brand-fill) 0%, var(--color-brand-fill-light) 100%);
   color: #fff;
   box-shadow: 0 6px 16px rgba(109, 40, 217, 0.22);
 }
@@ -467,7 +467,7 @@
   width: 84px;
   height: 84px;
   border-radius: 26px;
-  background: linear-gradient(135deg, var(--color-brand) 0%, #c026d3 60%, var(--color-accent) 100%);
+  background: linear-gradient(135deg, var(--color-brand-fill) 0%, #c026d3 60%, var(--color-accent) 100%);
   color: #fff;
   box-shadow: 0 14px 34px rgba(109, 40, 217, 0.28);
 }

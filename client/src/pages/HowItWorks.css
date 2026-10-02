@@ -103,7 +103,7 @@
 .hw-steps li.is-past + li::before,
 .hw-steps li.is-past::before,
 .hw-steps li.is-current::before {
-  background: var(--color-brand);
+  background: var(--color-brand-fill);
 }
 .hw-steps button {
   position: relative;
@@ -134,7 +134,7 @@
 }
 .hw-steps li.is-past .hw-dot {
   border-color: var(--color-brand);
-  background: var(--color-brand);
+  background: var(--color-brand-fill);
   color: #fff;
 }
 .hw-steps li.is-current .hw-dot {
@@ -208,7 +208,7 @@
   letter-spacing: 0.05em;
   text-transform: uppercase;
 }
-.hw-panel h3 {
+.hw-panel h2 {
   margin: 0.25rem 0 0.5rem;
   font-size: 1.5rem;
 }

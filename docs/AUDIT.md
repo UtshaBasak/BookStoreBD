@@ -57,6 +57,35 @@ hardening, none of which blocks a launch:
 | P2 | Account deletion and data export | Medium | Resolved |
 | P3 | Audit trail for administrator actions | Medium | Resolved |
 | P4 | Covers and chat images stored as base64 in MongoDB by default | Low | Partly resolved |
+| S8 | Personal fields readable in a copy of the database | Medium | Resolved |
+| S9 | Password guessing and automated sign-ups | Medium | Resolved |
+| S10 | Account takeover going unnoticed | Medium | Resolved |
+
+### S8 · Encryption at rest
+
+Phone numbers, addresses and bKash numbers on accounts, and the refund bKash
+number on returns, are stored with AES-256-GCM under `DATA_ENCRYPTION_KEY`
+(`server/utils/fieldCrypto.ts`), so a stolen backup or dump does not reveal
+them. Values are written as `enc:v1:…` and read either way, so records saved
+before the key was set keep working; `npm run encrypt:existing` converts them.
+Tests in `server/tests/fieldCrypto.test.ts`.
+
+### S9 · Bots and password guessing
+
+Cloudflare Turnstile guards sign-in, sign-up codes and reset codes, verified
+on the server with the secret key; a request with no token or a made-up one
+gets `400`. Five wrong passwords for an address pause sign-in to it for 15
+minutes, keyed by an HMAC of the address, and an address with no account locks
+the same way so a lock reveals nothing. Tests in
+`server/tests/captchaAndGoogle.test.ts` and `server/tests/hardening.test.ts`.
+
+### S10 · Noticing a takeover
+
+A sign-in from a browser the account has not used before is e-mailed to the
+owner. Changing the password or the bKash payout number needs the current
+password and sends a notice; a new password ends every other session, and
+**Sign out everywhere else** is on the profile. `/.well-known/security.txt`
+says where to report a vulnerability.
 
 ### S1 · Security response headers
 
@@ -462,13 +491,13 @@ source-mapped stacks and alerting can be added on the same seam.
 
 | Capability | Status |
 | --- | --- |
-| Transactional e-mail | Built: order confirmed, delivered and cancelled; returns requested and decided |
+| Transactional e-mail | Built: order confirmed, delivered and cancelled; returns requested and decided; payouts; welcome, invitations, Wanted board matches and account security notices, each kind with its own on/off choice |
 | Reviews | Built, with seller replies and reporting ([above](#ratings-and-reviews)) |
 | Seller payouts | Built: bKash payouts after the return window, less a 5% fee, recorded with the transaction ID |
 | Search | Server-side, with Bangla-English phonetic matching. Planned: a MongoDB text index, then Atlas Search, as the catalogue grows |
 | Payments | Cash on delivery. Planned: bKash, Nagad or SSLCommerz, with webhooks, payment states and reconciliation |
 | Seller onboarding | Any signed-in user can list. Planned: verification and a seller agreement |
-| Analytics | Planned: searches, checkout abandonment and listing conversion, to guide what to build next |
+| Analytics | Built: sales, fees, categories, busy hours, top books and sellers, rates, searches with no results and Wanted board demand. Planned: checkout abandonment and listing conversion |
 
 ---
 

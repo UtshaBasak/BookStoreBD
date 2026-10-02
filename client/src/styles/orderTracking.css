@@ -255,7 +255,7 @@
   display: none;
 }
 .ot-step.is-done::before {
-  background: linear-gradient(var(--color-brand), var(--color-brand-light));
+  background: linear-gradient(var(--color-brand-fill), var(--color-brand-fill-light));
 }
 
 .ot-dot {
@@ -276,7 +276,7 @@
 }
 .is-done .ot-dot {
   border-color: transparent;
-  background: linear-gradient(135deg, var(--color-brand), var(--color-brand-light));
+  background: linear-gradient(135deg, var(--color-brand-fill), var(--color-brand-fill-light));
   color: #fff;
   box-shadow: 0 4px 12px rgba(109, 40, 217, 0.3);
 }

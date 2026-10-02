@@ -195,7 +195,7 @@
   height: 46px;
   flex: none;
   border-radius: 50%;
-  background: linear-gradient(135deg, var(--color-brand), #c026d3);
+  background: linear-gradient(135deg, var(--color-brand-fill), #c026d3);
   color: #fff;
   font-weight: 800;
   font-size: 1.1rem;

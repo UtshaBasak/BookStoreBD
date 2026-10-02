@@ -67,7 +67,7 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, var(--color-brand), #c026d3);
+  background: linear-gradient(135deg, var(--color-brand-fill), #c026d3);
   color: #fff;
   font-size: 2.2rem;
   font-weight: 800;

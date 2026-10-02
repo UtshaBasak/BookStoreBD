@@ -35,7 +35,7 @@
   background: var(--color-brand-tint);
 }
 .sa-range.is-on {
-  background: var(--color-brand);
+  background: var(--color-brand-fill);
   color: #fff;
 }
 .sa-range:focus-visible {
@@ -319,7 +319,7 @@
   display: block;
   height: 100%;
   border-radius: 4px;
-  background: var(--color-brand);
+  background: var(--color-brand-fill);
 }
 
 /* ----------------------------------------------------------- heatmap */
@@ -434,7 +434,7 @@
   display: block;
   height: 100%;
   border-radius: 3px;
-  background: var(--color-brand);
+  background: var(--color-brand-fill);
 }
 .sa-meter small {
   color: var(--color-ink-muted);

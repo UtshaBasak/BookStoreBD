@@ -253,7 +253,7 @@
 }
 .auth-step-done::before,
 .auth-step-current::before {
-  background: linear-gradient(90deg, var(--color-brand), var(--color-brand-light));
+  background: linear-gradient(90deg, var(--color-brand-fill), var(--color-brand-fill-light));
 }
 .auth-step-current {
   color: var(--color-brand);

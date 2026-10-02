@@ -387,7 +387,7 @@
   height: 20px;
   padding: 0 6px;
   border-radius: 999px;
-  background: var(--color-brand);
+  background: var(--color-brand-fill);
   color: #fff;
   font-size: 0.72rem;
 }
@@ -470,7 +470,7 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, var(--color-brand), #c026d3);
+  background: linear-gradient(135deg, var(--color-brand-fill), #c026d3);
   color: #fff;
   font-weight: 800;
 }

@@ -145,7 +145,13 @@ function Journey({ steps, name }: { steps: readonly Step[]; name: string }) {
       <ol className="hw-steps" aria-label={`${name}, step by step`} onKeyDown={onKey}>
         {steps.map((item, index) => (
           <li key={item.title} className={index < current ? 'is-past' : index === current ? 'is-current' : ''}>
-            <button type="button" onClick={() => go(index)} aria-current={index === current ? 'step' : undefined}>
+            {/* Named in full: on a phone only the number shows. */}
+            <button
+              type="button"
+              onClick={() => go(index)}
+              aria-current={index === current ? 'step' : undefined}
+              aria-label={`Step ${index + 1}: ${item.title}`}
+            >
               <span className="hw-dot" aria-hidden="true">
                 {index < current ? '✓' : index + 1}
               </span>
@@ -163,7 +169,7 @@ function Journey({ steps, name }: { steps: readonly Step[]; name: string }) {
           <p className="hw-count">
             Step {current + 1} of {steps.length}
           </p>
-          <h3>{step.title}</h3>
+          <h2>{step.title}</h2>
           <p>{step.text}</p>
           <ul>
             {step.tips.map((tip) => (

@@ -52,6 +52,11 @@
 
   --color-brand: #6d28d9;
   --color-brand-light: #8b5cf6;
+  /* The same violets for a fill under white text. In light they are the brand
+     colours; dark mode lifts the brand for text and keeps these deep, since no
+     one violet is readable both on the dark page and under white text. */
+  --color-brand-fill: #6d28d9;
+  --color-brand-fill-light: #8b5cf6;
   --color-brand-dark: #5b21b6;
   --color-brand-deep: #1e1b4b;
   --color-brand-tint: #f3efff;
@@ -109,9 +114,11 @@
 :root[data-theme='dark'] {
   color-scheme: dark;
 
-  --color-brand: #8b5cf6;
-  --color-brand-light: #a78bfa;
+  --color-brand: #a78bfa;
+  --color-brand-light: #c4b5fd;
   --color-brand-dark: #c4b5fd;
+  --color-brand-fill: #7c3aed;
+  --color-brand-fill-light: #8b5cf6;
   --color-brand-deep: #120f24;
   --color-brand-tint: #241d3d;
   --color-brand-line: #3a3160;
@@ -376,7 +383,7 @@ button:focus-visible {
 
 .styled-table button {
   padding: 8px 14px;
-  background-color: var(--color-brand);
+  background-color: var(--color-brand-fill);
   color: white;
   border: none;
   border-radius: 999px;
@@ -412,7 +419,7 @@ button:focus-visible {
     transform: translateY(1px);
   }
   .btn-primary {
-    background: linear-gradient(135deg, var(--color-brand) 0%, var(--color-brand-light) 100%);
+    background: linear-gradient(135deg, var(--color-brand-fill) 0%, var(--color-brand-fill-light) 100%);
     color: #fff;
     box-shadow: 0 6px 18px rgba(109, 40, 217, 0.28);
   }

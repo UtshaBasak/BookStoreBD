@@ -248,7 +248,7 @@
   outline-offset: 2px;
 }
 .sl-choice.is-on {
-  background: var(--color-brand);
+  background: var(--color-brand-fill);
   border-color: var(--color-brand);
   color: #fff;
   box-shadow: 0 4px 14px rgba(109, 40, 217, 0.25);
@@ -309,7 +309,7 @@
   height: 56px;
   margin-bottom: 0.3rem;
   border-radius: 18px;
-  background: linear-gradient(135deg, var(--color-brand), var(--color-brand-light));
+  background: linear-gradient(135deg, var(--color-brand-fill), var(--color-brand-fill-light));
   color: #fff;
   font-size: 1.4rem;
   box-shadow: 0 8px 20px rgba(109, 40, 217, 0.3);
@@ -878,7 +878,7 @@ button.sl-link-danger:hover {
   background: var(--color-line);
 }
 .sl-steps li.is-done:not(:last-child)::after {
-  background: linear-gradient(90deg, var(--color-brand), var(--color-brand-light));
+  background: linear-gradient(90deg, var(--color-brand-fill), var(--color-brand-fill-light));
 }
 .sl-step-dot {
   display: inline-flex;
@@ -897,7 +897,7 @@ button.sl-link-danger:hover {
   box-sizing: border-box;
 }
 .sl-steps li.is-done .sl-step-dot {
-  background: linear-gradient(135deg, var(--color-brand), var(--color-brand-light));
+  background: linear-gradient(135deg, var(--color-brand-fill), var(--color-brand-fill-light));
   border-color: transparent;
   color: #fff;
 }

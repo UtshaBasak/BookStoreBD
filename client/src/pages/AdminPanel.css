@@ -165,7 +165,7 @@
 }
 .admin-nav-link.active,
 .admin-nav-link.active:hover {
-  background: linear-gradient(135deg, var(--color-brand) 0%, var(--color-brand-light) 100%);
+  background: linear-gradient(135deg, var(--color-brand-fill) 0%, var(--color-brand-fill-light) 100%);
   border-color: rgba(255, 255, 255, 0.22);
   color: #fff;
   box-shadow: 0 8px 22px rgba(109, 40, 217, 0.45);
@@ -463,7 +463,7 @@
   width: 34px;
   height: 34px;
   border-radius: 50%;
-  background: linear-gradient(135deg, var(--color-brand) 0%, #c026d3 100%);
+  background: linear-gradient(135deg, var(--color-brand-fill) 0%, #c026d3 100%);
   color: #fff;
   font-size: 0.85rem;
   font-weight: 800;
@@ -864,7 +864,7 @@
   background: var(--color-line);
 }
 .admin-step.is-done:not(:last-child)::after {
-  background: linear-gradient(90deg, var(--color-brand), var(--color-brand-light));
+  background: linear-gradient(90deg, var(--color-brand-fill), var(--color-brand-fill-light));
 }
 .admin-step-dot {
   position: relative;
@@ -883,7 +883,7 @@
 }
 .admin-step.is-done .admin-step-dot {
   border-color: transparent;
-  background: linear-gradient(135deg, var(--color-brand), var(--color-brand-light));
+  background: linear-gradient(135deg, var(--color-brand-fill), var(--color-brand-fill-light));
   color: #fff;
 }
 .admin-step.is-done {
@@ -1108,7 +1108,7 @@
 /* The chosen option, spelled out here as well so the panel never depends on
    another page's stylesheet having been loaded first. */
 .am-chips .chip.is-on {
-  background: linear-gradient(135deg, var(--color-brand), var(--color-brand-light));
+  background: linear-gradient(135deg, var(--color-brand-fill), var(--color-brand-fill-light));
   border-color: var(--color-brand);
   color: #fff;
   box-shadow: 0 4px 12px rgba(109, 40, 217, 0.25);

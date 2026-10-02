@@ -616,6 +616,7 @@ export default function BookFilter() {
           )}
 
           {/* Book List: two to a row on a phone, as many as fit above that. */}
+          <h2 className="sr-only">Books</h2>
           <div
             className="results-grid"
             style={{

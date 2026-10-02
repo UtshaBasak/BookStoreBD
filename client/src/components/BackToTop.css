@@ -11,7 +11,7 @@
   padding: 0;
   border: 0;
   border-radius: 50%;
-  background: linear-gradient(135deg, var(--color-brand), var(--color-brand-light));
+  background: linear-gradient(135deg, var(--color-brand-fill), var(--color-brand-fill-light));
   color: #fff;
   font-size: 1.1rem;
   box-shadow: 0 10px 24px rgba(109, 40, 217, 0.35);

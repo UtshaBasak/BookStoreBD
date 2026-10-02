@@ -164,7 +164,7 @@
   transition: transform 0.2s;
 }
 .cb-switch input:checked + span {
-  background: var(--color-brand);
+  background: var(--color-brand-fill);
 }
 .cb-switch input:checked + span::after {
   transform: translateX(20px);

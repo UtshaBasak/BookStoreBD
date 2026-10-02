@@ -70,7 +70,7 @@
   transition: background 0.2s;
 }
 .ns-switch.is-on {
-  background: var(--color-brand);
+  background: var(--color-brand-fill);
 }
 .ns-switch:disabled {
   opacity: 0.6;
