@@ -147,7 +147,7 @@ export default function ConsentBanner() {
       <p>
         We use cookies and similar storage to keep you signed in and the shop secure. With your permission we also
         remember your preferences, personalise suggestions and receive error reports.{' '}
-        <Link to="/privacy#cookies">Learn more</Link>
+        <Link to="/privacy#cookies">How we use cookies</Link>
       </p>
       <div className="cb-actions">
         <button type="button" className="btn btn-primary" onClick={acceptAll}>

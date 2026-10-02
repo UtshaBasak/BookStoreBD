@@ -68,7 +68,8 @@
 }
 .bc-type.is-new {
   background: var(--color-sun);
-  color: var(--color-ink);
+  /* Dark in both themes: the yellow stays yellow, so its text must stay dark. */
+  color: #1e1b4b;
 }
 .bc-type.is-used {
   background: var(--color-surface);

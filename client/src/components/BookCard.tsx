@@ -92,10 +92,10 @@ export default function BookCard({
               </>
             )}
             {/* How wanted it is, at a glance. */}
-            <span
-              className="bc-demand"
-              aria-label={`${countLabel(book.viewCount, 'view', 'views')}, ${countLabel(book.wishlistCount, 'wishlist', 'wishlists')}`}
-            >
+            <span className="bc-demand">
+              <span className="sr-only">
+                {`${countLabel(book.viewCount, 'view', 'views')}, ${countLabel(book.wishlistCount, 'wishlist', 'wishlists')}`}
+              </span>
               {(book.viewCount ?? 0) > 0 && (
                 <span aria-hidden="true">
                   <FaEye /> {compactCount(book.viewCount)}
