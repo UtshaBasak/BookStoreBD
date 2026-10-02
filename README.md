@@ -241,7 +241,13 @@ User guides for each role are in the [wiki](https://github.com/UtshaBasak/BookSt
 - **Light and dark mode**, following the device or chosen with one tap, with
   no flash of the wrong colours on load
 - Mobile-first layouts, checked at phone and laptop widths
-- Lighthouse: 100 for accessibility, best practices and SEO
+- Lighthouse on the live home page, in a fresh browser on 2 October 2026:
+  **98 / 100 / 100 / 100 on mobile** and **100 in every category on desktop**
+  (performance, accessibility, best practices, SEO)
+
+| Mobile | Desktop |
+| :---: | :---: |
+| ![Lighthouse on mobile: performance 98, accessibility 100, best practices 100, SEO 100](docs/images/lighthouse-mobile.webp) | ![Lighthouse on desktop: performance 100, accessibility 100, best practices 100, SEO 100](docs/images/lighthouse-desktop.webp) |
 
 ---
 
