@@ -10,8 +10,10 @@ import ReviewModeration from './admin/ReviewModeration';
 import SellerPayouts from './admin/SellerPayouts';
 import AllReviews from './admin/AllReviews';
 import AdminMessages from './admin/AdminMessages';
+import ShopAnalytics, { AnalyticsGlance } from './admin/ShopAnalytics';
 import {
   FaBook,
+  FaChartLine,
   FaFlag,
   FaMoneyBillWave,
   FaPaperPlane,
@@ -36,6 +38,7 @@ interface Section {
 }
 
 const SECTIONS: Section[] = [
+  { to: '/admin/analytics', label: 'Shop Analytics', icon: FaChartLine, blurb: 'Sales, fees, busy hours and what sells.' },
   { to: '/admin/users', label: 'User Management', icon: FaUsers, blurb: 'Find an account, or remove one.' },
   { to: '/admin/transactions', label: 'Transaction History', icon: FaReceipt, blurb: 'Every order, and where it is.' },
   { to: '/admin/books', label: 'Book List', icon: FaBook, blurb: 'Every listing in the shop.' },
@@ -56,6 +59,7 @@ function AdminHome() {
           <p className="admin-lede">Pick up where the shop needs you.</p>
         </div>
       </header>
+      <AnalyticsGlance />
       <div className="admin-welcome-grid">
         {SECTIONS.map(({ to, label, icon: Icon, blurb }) => (
           <Link key={to} to={to} className="card admin-welcome-card">
@@ -147,6 +151,7 @@ export default function AdminPanel() {
       <main className="admin-main">
         <Routes>
           <Route index element={<AdminHome />} />
+          <Route path="/analytics" element={<ShopAnalytics />} />
           <Route path="/users" element={<UserManagement />} />
           <Route path="/transactions" element={<TransactionHistory />} />
           <Route path="/books" element={<BookList />} />

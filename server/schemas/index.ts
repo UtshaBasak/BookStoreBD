@@ -547,6 +547,7 @@ export const adminSchemas = {
       }),
   },
   audience: { query: z.object({ audience }) },
+  analytics: { query: z.object({ range: z.enum(['7d', '30d', '90d', '12m', 'all']).default('30d') }) },
 };
 
 export const notificationSchemas = {
@@ -665,3 +666,4 @@ export type ProfileQuery = z.infer<typeof userSchemas.profileQuery.query>;
 export type UpdateProfileBody = z.infer<typeof userSchemas.updateProfile.body>;
 export type AdminMessageBody = z.infer<typeof adminSchemas.message.body>;
 export type AudienceQuery = z.infer<typeof adminSchemas.audience.query>;
+export type AnalyticsQuery = z.infer<typeof adminSchemas.analytics.query>;

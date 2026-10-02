@@ -5,7 +5,8 @@ import type { AdminMessageResponse, AudienceCount, MessageAudience } from '@shar
 import User from '../models/user.model.js';
 import { requireAdmin, requireAuth } from '../middleware/auth.js';
 import { validate, validatedQuery } from '../middleware/validate.js';
-import { adminSchemas, type AdminMessageBody, type AudienceQuery } from '../schemas/index.js';
+import { adminSchemas, type AdminMessageBody, type AnalyticsQuery, type AudienceQuery } from '../schemas/index.js';
+import { shopAnalytics } from '../utils/analytics.js';
 import { notify } from '../utils/notify.js';
 import { recipientsWanting } from '../utils/notificationPrefs.js';
 import { adminMessageEmail, sendShopMailNow } from '../utils/shopMail.js';
@@ -13,8 +14,8 @@ import { recordAudit } from '../utils/audit.js';
 import { createLogger } from '../config/logger.js';
 
 /**
- * The administrator's messages: a notification, an e-mail or both, to chosen
- * people or to every buyer, every seller or everyone.
+ * The shop's analytics, and the administrator's messages: a notification, an
+ * e-mail or both, to chosen people or to every buyer, every seller or everyone.
  *
  * "Seller" and "buyer" mean what they mean in User Management: a seller has
  * a bKash merchant number to be paid at, and a buyer does not. Administrators
@@ -36,6 +37,17 @@ const recipientsFor = async (audience: MessageAudience, emails: readonly string[
   };
   return (await User.find(filter, { email: 1 }).lean()).map((user) => user.email);
 };
+
+/** How the shop is doing, for the dashboard: sales, fees, what sells and when. */
+router.get('/analytics', validate(adminSchemas.analytics), async (req: Request, res: Response, next) => {
+  try {
+    const { range } = validatedQuery<AnalyticsQuery>(req);
+    res.set('Cache-Control', 'private, no-store');
+    res.json(await shopAnalytics(range));
+  } catch (error) {
+    next(error);
+  }
+});
 
 /** How many a message would reach, shown before it is sent. */
 router.get('/message/audience', validate(adminSchemas.audience), async (req: Request, res: Response, next) => {

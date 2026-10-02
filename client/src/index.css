@@ -88,6 +88,9 @@
   --color-warn-line: #fed7aa;
   --color-warn-ink: #c2410c;
   --color-accent-line: #ffd6c9;
+  /* Two chart hues that stay apart for colour-blind eyes (checked in OKLab). */
+  --color-chart-1: #2a78d6;
+  --color-chart-2: #eb6834;
   --color-sun-tint: #fefce8;
   --color-sun-line: #fde68a;
   --color-sun-ink: #a16207;
@@ -138,6 +141,8 @@
   --color-warn-line: #6b4320;
   --color-warn-ink: #fdba74;
   --color-accent-line: #6b3324;
+  --color-chart-1: #3987e5;
+  --color-chart-2: #d95926;
   --color-sun-tint: #332c10;
   --color-sun-line: #6b5a1c;
   --color-sun-ink: #fde047;

@@ -10,6 +10,8 @@ import {
 
 import type {
   AdminBookPage,
+  AnalyticsRange,
+  ShopAnalytics,
   AdminUserPage,
   Book,
   BookDetail,
@@ -167,6 +169,7 @@ export const keys = {
   /** Under `catalogue`, with the suggestions. */
   popularSearches: ['catalogue', 'popular-searches'] as const,
   authConfig: ['auth-config'] as const,
+  analytics: (range: AnalyticsRange) => ['admin', 'analytics', range] as const,
 };
 
 // ---------------------------------------------------------------------------
@@ -822,6 +825,15 @@ export const useAudienceCount = (audience: MessageAudience): UseQueryResult<Audi
     queryKey: keys.audience(audience),
     queryFn: () => request<AudienceCount>(`/admin/message/audience?audience=${audience}`),
     enabled: audience !== 'users',
+  });
+
+/** How the shop is doing over a window, for the dashboard. The last window stays up while the next loads. */
+export const useShopAnalytics = (range: AnalyticsRange): UseQueryResult<ShopAnalytics> =>
+  useQuery<ShopAnalytics, Error, ShopAnalytics>({
+    queryKey: keys.analytics(range),
+    queryFn: () => request<ShopAnalytics>(`/admin/analytics?range=${range}`),
+    placeholderData: keepPreviousData,
+    staleTime: 60 * 1000,
   });
 
 /** Sends the administrator's notification or e-mail. */

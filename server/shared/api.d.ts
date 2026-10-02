@@ -1091,6 +1091,71 @@ export interface AudienceCount {
   recipients: number;
 }
 
+/** The window the shop's analytics cover: the last 7, 30 or 90 days, 12 months, or everything. */
+export type AnalyticsRange = '7d' | '30d' | '90d' | '12m' | 'all';
+export type AnalyticsBucket = 'day' | 'week' | 'month';
+
+/** A figure for the window, beside the same figure for the window before it (null for "all"). */
+export interface AnalyticsKpi {
+  value: number;
+  previous: number | null;
+}
+
+/** One point on the sales chart: a day, the week starting on that day, or a month (YYYY-MM). */
+export interface AnalyticsPoint {
+  date: string;
+  /** Book totals in taka, delivery excluded. */
+  revenue: number;
+  orders: number;
+  signups: number;
+  listings: number;
+}
+
+/** GET /admin/analytics - how the shop is doing. Taka throughout; hours and days in Dhaka time. */
+export interface ShopAnalytics {
+  range: AnalyticsRange;
+  bucket: AnalyticsBucket;
+  from: IsoDate;
+  to: IsoDate;
+  /** The shop's share of a sale, in per cent. */
+  feePercent: number;
+  kpis: {
+    revenue: AnalyticsKpi;
+    orders: AnalyticsKpi;
+    averageOrder: AnalyticsKpi;
+    copiesSold: AnalyticsKpi;
+    /** On books delivered and not returned. */
+    feesEarned: AnalyticsKpi;
+    /** On books still on their way. */
+    feesPending: number;
+    newUsers: AnalyticsKpi;
+    newListings: AnalyticsKpi;
+  };
+  series: AnalyticsPoint[];
+  /** The eight that sold the most. A book in two categories counts in both. */
+  categories: { name: string; revenue: number; copies: number }[];
+  /** Orders by weekday (0 is Monday) and hour (0-23). */
+  busyHours: number[][];
+  statuses: { status: string; count: number }[];
+  bookTypes: { type: 'new' | 'old'; revenue: number; copies: number }[];
+  regions: { division: string; orders: number }[];
+  topBooks: { id: Id; title: string; author: string; copies: number; revenue: number }[];
+  topSellers: { email: string; username: string; revenue: number; orders: number }[];
+  /** Shares from 0 to 1: book lines cancelled, delivered lines returned, orders with a promo code. */
+  rates: { cancelled: number; returned: number; promo: number };
+  searches: { total: number; top: { term: string; count: number }[]; unmet: { term: string; count: number }[] };
+  wanted: { open: number; foundInRange: number; top: { id: Id; title: string; author: string; requesterCount: number }[] };
+  /** Today's catalogue, whatever the window. */
+  catalogue: {
+    listings: number;
+    inStock: number;
+    views: number;
+    wishlists: number;
+    mostViewed: { id: Id; title: string; author: string; viewCount: number; wishlistCount: number }[];
+  };
+  people: { buyers: number; sellers: number };
+}
+
 /** One thing somebody was told about, for the bell. */
 export interface NotificationItem {
   _id: Id;

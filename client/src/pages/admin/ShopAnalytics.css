@@ -1,0 +1,500 @@
+/*
+ * The analytics dashboard. Every rule is scoped to `sa-`. Colours come from
+ * the site's tokens, so the charts follow light and dark mode with the rest
+ * of the page.
+ */
+
+.sa-ranges {
+  display: inline-flex;
+  /* One row that scrolls sideways on a phone, rather than a pill split in two. */
+  flex-wrap: nowrap;
+  max-width: 100%;
+  overflow-x: auto;
+  scrollbar-width: none;
+  box-sizing: border-box;
+  gap: 4px;
+  padding: 4px;
+  border: 1px solid var(--color-line);
+  border-radius: 999px;
+  background: var(--color-surface);
+}
+.sa-range {
+  flex: none;
+  min-height: 36px;
+  padding: 6px 14px;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--color-ink-soft);
+  font: inherit;
+  font-size: 0.88rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+.sa-range:hover {
+  background: var(--color-brand-tint);
+}
+.sa-range.is-on {
+  background: var(--color-brand);
+  color: #fff;
+}
+.sa-range:focus-visible {
+  outline: 2px solid var(--color-brand);
+  outline-offset: 2px;
+}
+.sa-ranges.is-small .sa-range {
+  min-height: 30px;
+  padding: 4px 10px;
+  font-size: 0.8rem;
+}
+
+.sa-body {
+  transition: opacity 0.2s;
+}
+.sa-body.is-refreshing {
+  opacity: 0.6;
+}
+
+.sa-empty {
+  margin: 0;
+  padding: 18px 4px;
+  color: var(--color-ink-muted);
+}
+.sa-muted {
+  color: var(--color-ink-muted);
+}
+
+/* ------------------------------------------------------------ figures */
+.sa-tiles {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 12px;
+  margin-bottom: 16px;
+}
+.sa-tile {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 16px;
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-card);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-card);
+  min-width: 0;
+}
+.sa-tile-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--color-ink-muted);
+  font-size: 0.85rem;
+  font-weight: 700;
+}
+.sa-tile-label svg {
+  color: var(--color-brand);
+}
+.sa-tile-value {
+  color: var(--color-ink);
+  font-size: 1.6rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+  overflow-wrap: anywhere;
+}
+.sa-tile small {
+  font-size: 0.78rem;
+  line-height: 1.4;
+}
+
+.sa-change {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--color-ink-muted);
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+.sa-change svg {
+  flex: none;
+  font-size: 0.7rem;
+}
+.sa-change.is-up {
+  color: var(--color-success-dark);
+}
+.sa-change.is-down {
+  color: var(--color-danger-dark);
+}
+
+/* ------------------------------------------------------------- cards */
+.sa-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 340px), 1fr));
+  gap: 16px;
+}
+.sa-card {
+  min-width: 0;
+  padding: 18px;
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-card);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-card);
+}
+.sa-card.is-wide {
+  grid-column: 1 / -1;
+}
+.sa-card-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 12px;
+  margin-bottom: 12px;
+}
+.sa-card-head h3 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  color: var(--color-ink);
+  font-size: 1.02rem;
+  font-weight: 800;
+}
+.sa-card-head h3 svg {
+  color: var(--color-brand);
+}
+.sa-card-note {
+  margin: -4px 0 10px;
+  font-size: 0.85rem;
+}
+.sa-subhead {
+  margin: 18px 0 8px;
+  color: var(--color-ink-soft);
+  font-size: 0.9rem;
+}
+.sa-link {
+  color: var(--color-brand);
+  font-size: 0.85rem;
+  font-weight: 700;
+}
+
+/* ------------------------------------------------------------- trend */
+.sa-trend {
+  position: relative;
+  width: 100%;
+}
+.sa-trend svg {
+  display: block;
+  overflow: visible;
+  touch-action: pan-y;
+}
+.sa-trend svg:focus-visible {
+  outline: 2px solid var(--color-brand);
+  outline-offset: 4px;
+  border-radius: 6px;
+}
+.sa-gridline {
+  stroke: var(--color-line);
+  stroke-width: 1;
+}
+.sa-axis {
+  fill: var(--color-ink-muted);
+  font-size: 11px;
+}
+.sa-line {
+  fill: none;
+  stroke: var(--color-brand);
+  stroke-width: 2;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+}
+.sa-crosshair {
+  stroke: var(--color-ink-faint);
+  stroke-width: 1;
+  stroke-dasharray: 3 3;
+}
+.sa-dot {
+  fill: var(--color-brand);
+  stroke: var(--color-surface);
+  stroke-width: 2;
+}
+.sa-tooltip {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  min-width: 140px;
+  padding: 8px 12px;
+  border: 1px solid var(--color-line);
+  border-radius: 10px;
+  background: var(--color-surface);
+  box-shadow: var(--shadow-card);
+  color: var(--color-ink-muted);
+  font-size: 0.8rem;
+  pointer-events: none;
+}
+.sa-tooltip strong {
+  color: var(--color-ink);
+  font-size: 1rem;
+}
+
+.sa-details {
+  margin-top: 10px;
+  font-size: 0.88rem;
+}
+.sa-details summary {
+  color: var(--color-brand);
+  font-weight: 700;
+  cursor: pointer;
+}
+.sa-table-wrap {
+  max-height: 320px;
+  margin-top: 8px;
+  overflow: auto;
+}
+.sa-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+.sa-table th,
+.sa-table td {
+  padding: 6px 10px;
+  border-bottom: 1px solid var(--color-line);
+  color: var(--color-ink-soft);
+  text-align: right;
+  white-space: nowrap;
+}
+.sa-table th:first-child {
+  text-align: left;
+}
+.sa-table thead th {
+  position: sticky;
+  top: 0;
+  background: var(--color-surface);
+  color: var(--color-ink-muted);
+  font-size: 0.78rem;
+}
+
+/* -------------------------------------------------------------- bars */
+.sa-bars {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.sa-bars li {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-areas: 'label value' 'track track';
+  gap: 4px 12px;
+  font-size: 0.88rem;
+}
+.sa-bar-label {
+  grid-area: label;
+  overflow: hidden;
+  color: var(--color-ink-soft);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.sa-bar-label a {
+  color: inherit;
+}
+.sa-bar-label a:hover {
+  color: var(--color-brand);
+}
+.sa-bar-value {
+  grid-area: value;
+  color: var(--color-ink);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+.sa-bar-track {
+  grid-area: track;
+  height: 8px;
+  border-radius: 4px;
+  background: var(--color-surface-muted);
+  overflow: hidden;
+}
+.sa-bar-fill {
+  display: block;
+  height: 100%;
+  border-radius: 4px;
+  background: var(--color-brand);
+}
+
+/* ----------------------------------------------------------- heatmap */
+.sa-heat {
+  overflow-x: auto;
+}
+.sa-heat-grid {
+  display: grid;
+  grid-template-columns: 34px repeat(24, minmax(14px, 1fr));
+  gap: 3px;
+  min-width: 480px;
+}
+.sa-heat-hour {
+  color: var(--color-ink-muted);
+  font-size: 10px;
+  white-space: nowrap;
+}
+.sa-heat-day {
+  color: var(--color-ink-muted);
+  font-size: 0.75rem;
+  font-weight: 700;
+  line-height: 22px;
+}
+.sa-heat-cell {
+  height: 22px;
+  border-radius: 4px;
+}
+.sa-heat-cell.is-active {
+  outline: 2px solid var(--color-ink);
+  outline-offset: 1px;
+}
+.sa-heat-foot {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 16px;
+  margin-top: 10px;
+  color: var(--color-ink-muted);
+  font-size: 0.82rem;
+}
+.sa-heat-readout {
+  color: var(--color-ink-soft);
+  font-weight: 600;
+}
+.sa-heat-scale {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+.sa-heat-scale span {
+  width: 16px;
+  height: 12px;
+  border-radius: 3px;
+}
+
+/* ------------------------------------------------- split, meters, lists */
+.sa-split {
+  display: flex;
+  gap: 2px;
+  height: 14px;
+  overflow: hidden;
+  border-radius: 4px;
+}
+.sa-split span {
+  min-width: 4px;
+}
+.sa-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 18px;
+  margin: 10px 0 0;
+  padding: 0;
+  list-style: none;
+  color: var(--color-ink-soft);
+  font-size: 0.88rem;
+}
+.sa-legend li {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.sa-swatch {
+  width: 12px;
+  height: 12px;
+  border-radius: 3px;
+}
+
+.sa-meters {
+  display: grid;
+  gap: 14px;
+  margin-top: 20px;
+}
+.sa-meter-head {
+  display: flex;
+  justify-content: space-between;
+  color: var(--color-ink-soft);
+  font-size: 0.88rem;
+}
+.sa-meter-head strong {
+  color: var(--color-ink);
+}
+.sa-meter-track {
+  display: block;
+  height: 6px;
+  margin: 6px 0 4px;
+  border-radius: 3px;
+  background: var(--color-surface-muted);
+  overflow: hidden;
+}
+.sa-meter-track span {
+  display: block;
+  height: 100%;
+  border-radius: 3px;
+  background: var(--color-brand);
+}
+.sa-meter small {
+  color: var(--color-ink-muted);
+  font-size: 0.76rem;
+}
+
+.sa-insights {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin: 0;
+  padding-left: 18px;
+  color: var(--color-ink-soft);
+  font-size: 0.9rem;
+  line-height: 1.5;
+}
+
+.sa-mini-tiles {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+  gap: 10px;
+}
+.sa-mini-tiles div {
+  display: flex;
+  flex-direction: column;
+  padding: 12px;
+  border-radius: 12px;
+  background: var(--color-surface-alt);
+}
+.sa-mini-tiles span {
+  color: var(--color-ink-muted);
+  font-size: 0.8rem;
+}
+.sa-mini-tiles strong {
+  color: var(--color-ink);
+  font-size: 1.3rem;
+}
+
+/* A glance at the month on the admin home. */
+.sa-glance {
+  margin-bottom: 18px;
+}
+.sa-glance-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+.sa-glance-head h2 {
+  margin: 0;
+  color: var(--color-ink);
+  font-size: 1.05rem;
+}
+
+@media (max-width: 600px) {
+  .sa-card {
+    padding: 14px;
+  }
+  .sa-tile-value {
+    font-size: 1.35rem;
+  }
+}
