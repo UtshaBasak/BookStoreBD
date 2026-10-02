@@ -69,8 +69,10 @@ export default function Privacy() {
         <li><strong>Necessary</strong> (always on): one cookie holding your
           session, so you stay signed in - marked <code>httpOnly</code> so page
           scripts cannot read it, limited to the sign-in routes, and expiring
-          after 30 days; a short-lived access token in local storage; the
-          security check on sign-in and sign-up; and your choice about the rest.</li>
+          after 30 days; a short-lived access token in local storage; a random
+          code that lets us recognise this browser, so we can e-mail you when
+          your account is signed in to from one we have not seen; the security
+          check on sign-in and sign-up; and your choice about the rest.</li>
         <li><strong>Preferences</strong>: light or dark mode, your voice search
           language, how lists are sorted and sized, and your recent searches.</li>
         <li><strong>Personalisation</strong>: the books you viewed lately, for
@@ -103,6 +105,12 @@ export default function Privacy() {
           return requests, when image hosting is enabled.</li>
         <li><strong>Google (Gmail)</strong> delivers our e-mail, including the
           one-time codes used for sign-up verification and password resets.</li>
+        <li><strong>Google sign-in</strong>, if you choose Continue with Google:
+          Google tells us your name, e-mail address and profile picture, and that
+          the address is verified. We never see your Google password.</li>
+        <li><strong>Cloudflare Turnstile</strong> runs the security check on
+          sign-in and sign-up, to tell people from bots. It looks at your
+          browser, not at who you are, and we receive only a pass or a fail.</li>
         <li><strong>Sentry</strong>, if error reporting is enabled, receives
           technical details of errors, with credentials stripped out.</li>
       </ul>
@@ -133,8 +141,23 @@ export default function Privacy() {
       <h2>Security</h2>
       <p>Passwords are hashed with bcrypt. Sessions use short-lived tokens that
         are rotated on every use, and a reused token ends the session everywhere.
-        Traffic is encrypted in transit. No system is perfectly secure, but if a
-        breach ever affects your data we will tell you.</p>
+        Traffic is encrypted in transit, and your phone number, address and bKash
+        numbers are encrypted in the database as well, so a stolen copy of it
+        would not reveal them.</p>
+      <ul>
+        <li>After five wrong passwords in a row, signing in to that address is
+          paused for 15 minutes.</li>
+        <li>Changing your password or bKash number needs your current password,
+          and we e-mail you when either changes. A new password signs out every
+          other device.</li>
+        <li>We e-mail you when your account is signed in to from a new browser,
+          and you can sign out everywhere else from your profile.</li>
+        <li>You can turn on two-step sign-in, which also asks for a code sent to
+          your e-mail.</li>
+      </ul>
+      <p>No system is perfectly secure, but if a breach ever affects your data
+        we will tell you. To report a security problem, see our{' '}
+        <a href="/.well-known/security.txt">security contact</a>.</p>
 
       <h2>Age</h2>
       <p>You must be {site.minimumAge} or older to use {site.name}, and we do not

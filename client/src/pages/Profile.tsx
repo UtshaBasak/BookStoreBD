@@ -22,6 +22,7 @@ import type { OwnProfile } from '@shared/api.js';
 
 import AccountData from '../components/AccountData.js';
 import TwoStepSetting from '../components/TwoStepSetting.js';
+import SessionsSetting from '../components/SessionsSetting.js';
 import NotificationSettings from '../components/NotificationSettings.js';
 import ProfileSetup from '../components/ProfileSetup.js';
 import InviteFriends from '../components/InviteFriends.js';
@@ -69,7 +70,7 @@ export default function Profile() {
     // the set-up checklist, lands on it once the page has its content.
     const { hash } = useLocation();
     useEffect(() => {
-        if (data && (hash === '#setup' || hash === '#two-step')) {
+        if (data && ['#setup', '#two-step', '#security'].includes(hash)) {
             document.getElementById(hash.slice(1))?.scrollIntoView({ block: 'start' });
         }
     }, [data, hash]);
@@ -303,6 +304,7 @@ export default function Profile() {
                 <InviteFriends />
                 <NotificationSettings />
                 <TwoStepSetting />
+                <SessionsSetting />
                 <ThemeSetting />
                 <AccountData />
             </main>

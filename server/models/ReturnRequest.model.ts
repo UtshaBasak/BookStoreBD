@@ -1,6 +1,7 @@
 import { Schema, type HydratedDocument, type InferSchemaType } from 'mongoose';
 
 import { defineModel } from './defineModel.js';
+import { encryptedFields } from '../utils/fieldCrypto.js';
 
 const returnRequestSchema = new Schema({
   // The order line being returned, rather than the book, so two purchases of
@@ -42,6 +43,9 @@ returnRequestSchema.index(
   { orderId: 1 },
   { unique: true, partialFilterExpression: { orderId: { $type: 'objectId' } } }
 );
+
+// The refund number, encrypted at rest like a seller's payout number.
+encryptedFields(returnRequestSchema, ['refundBkash']);
 
 export type ReturnRequestAttributes = InferSchemaType<typeof returnRequestSchema>;
 export type ReturnRequestDocument = HydratedDocument<ReturnRequestAttributes>;

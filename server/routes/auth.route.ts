@@ -9,7 +9,9 @@ import {
   passwordCheck,
   refresh,
   logout,
+  logoutOthers,
 } from '../controllers/auth.controller.js';
+import { requireAuth } from '../middleware/auth.js';
 import { finishGoogleSignIn, googleConfigured, startGoogleSignIn } from '../controllers/google.controller.js';
 import { validate } from '../middleware/validate.js';
 import { authSchemas } from '../schemas/index.js';
@@ -39,6 +41,8 @@ router.post("/password-check", validate(authSchemas.passwordCheck), passwordChec
 // so neither takes a schema.
 router.post("/refresh", refresh);
 router.post("/logout", logout);
+// Every other device signed out; this one stays.
+router.post('/logout-others', requireAuth, logoutOthers);
 
 // "Continue with Google": off to Google, and back.
 router.get('/google', startGoogleSignIn);

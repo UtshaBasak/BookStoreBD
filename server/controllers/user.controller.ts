@@ -9,6 +9,9 @@ import { destroyAssets, isCloudinaryConfigured, uploadImage } from '../config/cl
 import type { ProfileQuery, UpdateProfileBody } from '../schemas/index.js';
 import { createLogger } from '../config/logger.js';
 import { sellerRatingOf } from './sellerReview.controller.js';
+import { revokeOtherSessions } from '../utils/refreshToken.js';
+import { readRefreshCookie } from '../utils/authCookies.js';
+import { dispatchShopMail, passwordChangedEmail, payoutNumberChangedEmail } from '../utils/shopMail.js';
 import { newPasswordProblem } from '../utils/breachedPassword.js';
 import { errorMessage, isDuplicateKeyError } from '../utils/error.js';
 
@@ -59,6 +62,7 @@ export const getUserProfile = async (
             gender: user.gender,
             role: user.role,
             twoFactor: Boolean(user.twoFactor),
+            passwordSet: user.passwordSet !== false,
         };
 
         const body: ProfileResponse = isOwnerOrAdmin ? ownProfile : publicProfile;
@@ -144,8 +148,10 @@ export const updateUserProfile = async (
         // Handle password: only update if provided and non-empty. Always hash;
         // storing the raw value here would leave plaintext passwords in the
         // database for every profile update.
-        if (typeof req.body.password === 'string' && req.body.password !== '') {
-            const weak = await newPasswordProblem(req.body.password, {
+        const newPassword = typeof req.body.password === 'string' ? req.body.password : '';
+        const changingPassword = newPassword !== '';
+        if (changingPassword) {
+            const weak = await newPasswordProblem(newPassword, {
                 email,
                 username: typeof body.username === 'string' ? body.username : req.user?.username,
             });
@@ -153,7 +159,7 @@ export const updateUserProfile = async (
                 res.status(400).json({ message: weak });
                 return;
             }
-            updateFields.password = bcryptjs.hashSync(req.body.password, 10);
+            updateFields.password = bcryptjs.hashSync(newPassword, 10);
         }
 
         // Pictures arrive as named files: the one profile picture, and a
@@ -185,6 +191,30 @@ export const updateUserProfile = async (
             res.status(404).json({ message: 'User not found' });
             return;
         }
+        /*
+         * The password, or where the money goes, only with the current
+         * password: an open session on a borrowed phone should not be enough
+         * to take over the account or redirect a seller's payouts. An account
+         * made through Google has no password to give until it sets one.
+         */
+        const changingPayout =
+            typeof updateFields.bkashMerchant === 'string' &&
+            Boolean(currentUser.bkashMerchant) &&
+            updateFields.bkashMerchant !== currentUser.bkashMerchant;
+        const removingPayout = 'bkashMerchant' in unsetFields && Boolean(currentUser.bkashMerchant);
+        if ((changingPassword || changingPayout || removingPayout) && currentUser.passwordSet !== false) {
+            const given = typeof body.currentPassword === 'string' ? body.currentPassword : '';
+            if (!given || !bcryptjs.compareSync(given, currentUser.password)) {
+                // 403, not 401: the session is fine, and a 401 would sign them out.
+                res.status(403).json({
+                    code: 'current-password',
+                    message: given ? 'Your current password is not correct' : 'Enter your current password to change this',
+                });
+                return;
+            }
+        }
+        if (changingPassword) updateFields.passwordSet = true;
+
         if (updateFields.username && updateFields.username !== currentUser.username) {
             const usernameExists = await User.findOne({ username: updateFields.username });
             if (usernameExists) {
@@ -228,6 +258,13 @@ export const updateUserProfile = async (
         }
         // The pictures they replace, once the new ones are saved.
         await destroyAssets(replacedAssets);
+        if (changingPassword) {
+            // Everywhere else signed out, and the owner told: if it was not
+            // them, they know at once, and whoever did it is out.
+            await revokeOtherSessions(currentUser._id, readRefreshCookie(req));
+            dispatchShopMail(currentUser.email, passwordChangedEmail());
+        }
+        if (changingPayout || removingPayout) dispatchShopMail(currentUser.email, payoutNumberChangedEmail(removingPayout));
         res.status(200).json({ message: 'Profile updated successfully', user });
     } catch (error) {
         // Handle duplicate key error (in case of race condition)

@@ -51,6 +51,8 @@ services:
       SMTP_SERVICE: ${SMTP_SERVICE:-gmail}
       SMTP_USER: ${SMTP_USER:-}
       SMTP_PASS: ${SMTP_PASS:-}
+      # Recommended: encrypts phone numbers, addresses and bKash numbers at rest.
+      DATA_ENCRYPTION_KEY: ${DATA_ENCRYPTION_KEY:-}
       # Optional sign-in extras; unset means no bot check and no Google button.
       TURNSTILE_SITE_KEY: ${TURNSTILE_SITE_KEY:-}
       TURNSTILE_SECRET_KEY: ${TURNSTILE_SECRET_KEY:-}

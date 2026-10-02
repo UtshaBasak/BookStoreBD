@@ -62,12 +62,17 @@ export interface ApiError {
   /** Present only on a 400 from the validation middleware. */
   errors?: ValidationIssue[];
   /** A machine-readable reason, where the page can offer a way out of it. */
-  code?: 'payout-number-required';
+  code?: 'payout-number-required' | 'current-password';
 }
 
 /** A plain acknowledgement, such as the answer to a delete. */
 export interface MessageResponse {
   message: string;
+}
+
+/** POST /auth/logout-others: how many other sessions were ended. */
+export interface SignOutOthersResponse extends MessageResponse {
+  ended: number;
 }
 
 // ---------------------------------------------------------------------------
@@ -829,6 +834,8 @@ export interface OwnProfile extends PublicProfile {
   role: UserRole;
   /** Whether signing in also asks for a code sent by e-mail. */
   twoFactor?: boolean;
+  /** False for an account made through Google that has no password of its own yet. */
+  passwordSet?: boolean;
 }
 
 export type ProfileResponse = PublicProfile | OwnProfile;
@@ -836,6 +843,8 @@ export type ProfileResponse = PublicProfile | OwnProfile;
 export interface UpdateProfileRequest {
   username?: string;
   password?: string;
+  /** Needed to change the password or the bKash number. */
+  currentPassword?: string;
   address?: string;
   phone?: string;
   /** Empty clears it. */

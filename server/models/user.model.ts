@@ -1,6 +1,7 @@
 import { Schema, type HydratedDocument, type InferSchemaType } from 'mongoose';
 
 import { defineModel } from './defineModel.js';
+import { encryptedFields } from '../utils/fieldCrypto.js';
 
 const UserSchema = new Schema(
     {
@@ -62,6 +63,12 @@ const UserSchema = new Schema(
         // The Google account it is linked to, once the owner has signed in
         // with Google. Google's own id for them, not a credential.
         googleId: { type: String, index: true, sparse: true },
+        // False for an account made through Google until its owner chooses a
+        // password: there is no current one to ask for before they do.
+        passwordSet: { type: Boolean, default: true },
+        // The browsers this account has been signed in from, as HMACs of a
+        // cookie (utils/deviceAlert.ts), so a new one can be reported.
+        knownDevices: { type: [String], default: [] },
         // What they want to hear about, by category and channel; anything
         // missing is on. See utils/notificationPrefs.ts.
         notificationPrefs: { type: Schema.Types.Mixed, default: {} },
@@ -85,6 +92,10 @@ const UserSchema = new Schema(
  * served by an index when it is a prefix of that index's keys.
  */
 UserSchema.index({ role: 1, createdAt: -1, _id: -1 });
+
+// Encrypted at rest: a copy of the database alone does not give away where
+// someone lives, their phone number, or where their money is paid.
+encryptedFields(UserSchema, ['address', 'phone', 'bkashMerchant']);
 
 export type UserAttributes = InferSchemaType<typeof UserSchema>;
 export type UserDocument = HydratedDocument<UserAttributes>;

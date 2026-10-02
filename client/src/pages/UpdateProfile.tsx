@@ -81,6 +81,18 @@ export default function UpdateProfile() {
         gender: edits.gender ?? stored?.gender ?? '',
     };
 
+    /*
+     * The current password, asked for only when it is needed: to change the
+     * password, or the bKash number sales are paid to. An account made through
+     * Google has none until it sets one.
+     */
+    const [currentPassword, setCurrentPassword] = useState('');
+    const hasOwnPassword = stored?.passwordSet !== false;
+    const storedBkash = stored?.bkashMerchant ?? '';
+    const typedBkash = formData.bkashMerchant.replace(/\D/g, '').replace(/^880/, '0');
+    const bkashChanged = Boolean(storedBkash) && typedBkash !== storedBkash;
+    const needsCurrentPassword = hasOwnPassword && (formData.password !== '' || bkashChanged);
+
     // A freshly picked file wins; otherwise the stored avatar, unless it has
     // been removed in this session.
     const storedPicture = removeProfilePicture ? null : profile?.profilePicture ?? null;
@@ -117,6 +129,11 @@ export default function UpdateProfile() {
             return;
         }
         e.preventDefault();
+        if (needsCurrentPassword && !currentPassword) {
+            setErrorMsg('Enter your current password to change your password or bKash number.');
+            document.getElementById('up-current-password')?.focus();
+            return;
+        }
         try {
             setErrorMsg('');
             const formDataToSend = new FormData();
@@ -131,6 +148,7 @@ export default function UpdateProfile() {
                     formDataToSend.append(key, formData[key] ?? '');
                 }
             });
+            if (needsCurrentPassword) formDataToSend.append('currentPassword', currentPassword);
             if (profilePicture) {
                 formDataToSend.append('profilePicture', profilePicture);
             }
@@ -157,6 +175,10 @@ export default function UpdateProfile() {
                 // A rejected field says which and why, rather than the bare
                 // "Validation failed" the envelope carries.
                 setErrorMsg(errorData.errors?.[0]?.message || errorData.message || 'Failed to update profile.');
+                if (errorData.code === 'current-password') {
+                    setCurrentPassword('');
+                    document.getElementById('up-current-password')?.focus();
+                }
                 return;
             }
             // The profile is cached for half a minute, so the cache is refreshed
@@ -316,7 +338,7 @@ export default function UpdateProfile() {
                         </div>
 
                         <div style={{ marginTop: '1rem' }}>
-                            <label htmlFor="up-password" className="pf-label">New Password:</label>
+                            <label htmlFor="up-password" className="pf-label">{hasOwnPassword ? 'New Password:' : 'Choose a password:'}</label>
                             <input
                                 id="up-password"
                                 type="password"
@@ -329,7 +351,11 @@ export default function UpdateProfile() {
                                 value={formData.password}
                                 aria-describedby="up-password-help"
                             />
-                            <small id="up-password-help" className="pf-help">Leave blank to keep your current password.</small>
+                            <small id="up-password-help" className="pf-help">
+                                {hasOwnPassword
+                                    ? 'Leave blank to keep your current password.'
+                                    : 'You joined with Google. Choose a password to sign in with your e-mail as well.'}
+                            </small>
                             {formData.password && (
                                 <PasswordChecklist password={formData.password} email={formData.email} username={formData.username} />
                             )}
@@ -437,6 +463,28 @@ export default function UpdateProfile() {
                             </small>
                         </div>
                     </section>
+
+                    {/* Asked for only when changing the password or bKash number. */}
+                    {needsCurrentPassword && (
+                        <section className="pf-form-section pf-confirm">
+                            <h2>Confirm it&rsquo;s you</h2>
+                            <label htmlFor="up-current-password" className="pf-label">Current password:</label>
+                            <input
+                                id="up-current-password"
+                                type="password"
+                                name="currentPassword"
+                                autoComplete="current-password"
+                                className="field"
+                                maxLength={200}
+                                value={currentPassword}
+                                onChange={(e) => setCurrentPassword(e.target.value)}
+                                aria-describedby="up-current-password-help"
+                            />
+                            <small id="up-current-password-help" className="pf-help">
+                                Needed to change your password or bKash number, so nobody else can.
+                            </small>
+                        </section>
+                    )}
 
                     {/* Next to the button rather than at the top of the form,
                         so on a phone the error is in view where Save was pressed. */}

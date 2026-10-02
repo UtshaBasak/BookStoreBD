@@ -14,6 +14,7 @@ import {
   rotateRefreshToken,
   revokeFamily,
   revokeAllForUser,
+  revokeOtherSessions,
   hashToken,
 } from '../utils/refreshToken.js';
 import {
@@ -32,6 +33,9 @@ import type {
 import { createLogger } from '../config/logger.js';
 import { welcomeNewMember } from '../utils/welcome.js';
 import { creditInvites } from '../utils/invites.js';
+import { clearFailures, minutesLocked, recordFailure } from '../utils/loginLock.js';
+import { noteDevice, type DeviceRequest } from '../utils/deviceAlert.js';
+import { actingUser } from '../middleware/auth.js';
 import { newPasswordProblem } from '../utils/breachedPassword.js';
 import { passwordProblems } from '../utils/passwordPolicy.js';
 import { alreadyRegisteredEmail, codeEmail, type Email } from '../utils/emailTemplates.js';
@@ -87,9 +91,11 @@ const sessionBody = (user: UserDocument): SessionResponse => ({
 });
 
 /** Starts a session: a new refresh family plus a fresh access token. */
-export const startSession = async (res: Response, user: UserDocument): Promise<SessionResponse> => {
+export const startSession = async (req: DeviceRequest, res: Response, user: UserDocument): Promise<SessionResponse> => {
   const { token: refresh } = await issueRefreshToken(user._id);
   setRefreshCookie(res, refresh);
+  // A browser this account has not been signed in from: its owner is told.
+  await noteDevice(req, res, user);
   return sessionBody(user);
 };
 
@@ -287,7 +293,7 @@ export const signup = async (
         await clearCode(email);
         await welcomeNewMember(newUser);
         await creditInvites(newUser);
-        res.status(201).json(await startSession(res, newUser));
+        res.status(201).json(await startSession(req, res, newUser));
     } catch (error) {
         // Handle duplicate key error (in case of race condition)
         if (isDuplicateKeyError(error)) {
@@ -326,6 +332,15 @@ export const signin = async (
     const email = req.body.email;
     const password = req.body.password;
     try {
+        // Locked after too many wrong passwords, whatever the password now.
+        const wait = await minutesLocked(String(email));
+        if (wait) {
+            res.status(429).json({
+                message: `Too many wrong passwords. Try again in ${wait} ${wait === 1 ? 'minute' : 'minutes'}, or reset your password.`,
+            });
+            return;
+        }
+
         const validUser = await User.findOne({ email: String(email) });
 
         // Compare against a throwaway hash when there is no such account. The
@@ -336,9 +351,11 @@ export const signin = async (
         const validPassword = bcryptjs.compareSync(password, storedHash);
 
         if (!validUser || !validPassword) {
+            await recordFailure(String(email));
             next(errorHandler(401, INVALID_CREDENTIALS));
             return;
         }
+        await clearFailures(String(email));
 
         // Two-step sign-in: the password is right, but the session waits for
         // the code sent to the account's address.
@@ -353,7 +370,7 @@ export const signin = async (
         }
 
         await applyAdminBootstrap(validUser);
-        res.status(200).json(await startSession(res, validUser));
+        res.status(200).json(await startSession(req, res, validUser));
     } catch (error){
         next(error);
     }
@@ -410,7 +427,7 @@ export const verifySignin = async (
             return;
         }
         await applyAdminBootstrap(user);
-        res.status(200).json(await startSession(res, user));
+        res.status(200).json(await startSession(req, res, user));
     } catch (error) {
         next(error);
     }
@@ -502,6 +519,27 @@ export const refresh: RequestHandler = async (req, res, next) => {
 
     setRefreshCookie(res, result.token);
     res.status(200).json(sessionBody(user));
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * Signs out every other device the account is signed in on, keeping this
+ * one: for a lost phone, or a sign-in alert the owner does not recognise.
+ */
+export const logoutOthers: RequestHandler = async (req, res, next) => {
+  try {
+    const user = await User.findById(actingUser(req).id, { _id: 1 });
+    if (!user) {
+      res.status(404).json({ message: 'Account not found' });
+      return;
+    }
+    const ended = await revokeOtherSessions(user._id, readRefreshCookie(req));
+    res.status(200).json({
+      message: ended ? 'Signed out everywhere else.' : 'You were not signed in anywhere else.',
+      ended,
+    });
   } catch (error) {
     next(error);
   }

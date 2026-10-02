@@ -62,6 +62,21 @@ export const revokeAllForUser = async (userId: Types.ObjectId): Promise<number> 
   return modifiedCount;
 };
 
+/**
+ * Signs out every other session: all the user's tokens but the family of the
+ * one presented, so the person making the change stays signed in.
+ */
+export const revokeOtherSessions = async (userId: Types.ObjectId, presentedToken: string | null): Promise<number> => {
+  const current = presentedToken
+    ? await RefreshToken.findOne({ tokenHash: hashToken(presentedToken), user: userId }, { family: 1 }).lean()
+    : null;
+  const { modifiedCount } = await RefreshToken.updateMany(
+    { user: userId, revokedAt: null, ...(current ? { family: { $ne: current.family } } : {}) },
+    { revokedAt: new Date() }
+  );
+  return modifiedCount;
+};
+
 /** Why a presented token was not accepted. Never told to the caller. */
 export type RotationFailureReason = 'missing' | 'unknown' | 'revoked' | 'reused' | 'expired';
 

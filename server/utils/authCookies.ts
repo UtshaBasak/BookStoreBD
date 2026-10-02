@@ -36,5 +36,5 @@ export const clearRefreshCookie = (res: Response): void => {
   res.clearCookie(REFRESH_COOKIE, baseOptions());
 };
 
-export const readRefreshCookie = (req: Request): string | null =>
-  req.cookies?.[REFRESH_COOKIE] ?? null;
+export const readRefreshCookie = (req: Pick<Request, 'cookies'>): string | null =>
+  (req.cookies as Record<string, string> | undefined)?.[REFRESH_COOKIE] ?? null;

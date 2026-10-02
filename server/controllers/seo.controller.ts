@@ -170,3 +170,23 @@ export const llmsTxt: RequestHandler = (req, res) => {
 
   res.type('text/markdown').set('Cache-Control', 'public, max-age=3600').send(text);
 };
+
+/**
+ * `/.well-known/security.txt` (RFC 9116): how to report a vulnerability, for
+ * the researchers and tools that look here first. Valid for a year from each
+ * request, so it never goes stale.
+ */
+export const securityTxt: RequestHandler = (req, res) => {
+  const origin = publicSiteUrl(req);
+  const expires = new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString();
+  const text = [
+    'Contact: https://github.com/UtshaBasak/BookStoreBD/security/advisories/new',
+    'Contact: mailto:support.utsha@gmail.com',
+    `Expires: ${expires}`,
+    'Policy: https://github.com/UtshaBasak/BookStoreBD/security/policy',
+    'Preferred-Languages: en, bn',
+    ...(origin ? [`Canonical: ${origin}/.well-known/security.txt`] : []),
+    '',
+  ].join('\n');
+  res.type('text/plain').set('Cache-Control', 'public, max-age=86400').send(text);
+};

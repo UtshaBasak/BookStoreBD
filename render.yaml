@@ -71,6 +71,9 @@ services:
         sync: false
       - key: CLOUDINARY_API_SECRET
         sync: false
+      # Encryption at rest for phone numbers, addresses and bKash numbers.
+      - key: DATA_ENCRYPTION_KEY
+        sync: false
       # Optional sign-in extras: the Turnstile bot check and Google sign-in.
       - key: TURNSTILE_SITE_KEY
         sync: false

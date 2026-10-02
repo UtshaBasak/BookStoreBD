@@ -11,7 +11,7 @@ import { config } from './config/env.js';
 import { createLogger } from './config/logger.js';
 import { corsOptions } from './config/cors.js';
 import { isApiPath, API_PREFIX } from './config/apiPaths.js';
-import { llmsTxt, robots, sitemap } from './controllers/seo.controller.js';
+import { llmsTxt, robots, securityTxt, sitemap } from './controllers/seo.controller.js';
 import { publicSiteUrl } from './config/siteUrl.js';
 import AddBook from './models/AddBook.model.js';
 import { BOOK_PAGE, renderBookPage, renderSitePage, templateLoader, type PreviewBook } from './utils/sharePreview.js';
@@ -118,6 +118,8 @@ export const createApp = ({
   app.get('/robots.txt', crawlerLimiter, robots);
   app.get('/sitemap.xml', crawlerLimiter, sitemap);
   app.get('/llms.txt', crawlerLimiter, llmsTxt);
+  // Where to report a vulnerability (RFC 9116).
+  app.get('/.well-known/security.txt', crawlerLimiter, securityTxt);
 
   app.use(apiLimiter);
 

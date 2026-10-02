@@ -388,6 +388,8 @@ export const userSchemas = {
     body: z.object({
       username: username.optional(),
       password: password.optional(),
+      /** Needed to change the password or the bKash number. */
+      currentPassword: z.string().max(200).optional(),
       address: shortText.optional(),
       phone: shortText.optional(),
       // Empty clears it; anything else must be a real number.

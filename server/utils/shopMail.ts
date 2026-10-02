@@ -321,6 +321,54 @@ export const wantedFoundEmail = (title: string, author: string, link: string): E
     ],
   });
 
+/** The account was signed in to from a browser it has not been used in before. */
+export const newSignInEmail = (browser: string, when: string): Email =>
+  noticeEmail({
+    subject: 'New sign-in to your BookStoreBD account',
+    heading: 'A new sign-in to your account',
+    preheader: `${browser}, ${when}`,
+    lead: ['Your BookStoreBD account was just signed in to from a browser it has not been used in before.'],
+    facts: [
+      ['Browser', browser],
+      ['When', when],
+    ],
+    button: { label: 'Review your account', path: '/profile#security' },
+    after: [
+      'If this was you, there is nothing to do.',
+      "If it wasn't, reset your password from the sign-in page now, then choose Sign out everywhere else in your profile.",
+    ],
+  });
+
+/** The account's password was changed. */
+export const passwordChangedEmail = (): Email =>
+  noticeEmail({
+    subject: 'Your BookStoreBD password was changed',
+    heading: 'Your password was changed',
+    preheader: 'If this was you, there is nothing to do.',
+    lead: [
+      'The password for your BookStoreBD account was just changed, and every other device signed in to it has been signed out.',
+      'If this was you, there is nothing more to do.',
+    ],
+    button: { label: 'Open your profile', path: '/profile' },
+    after: ["If you didn't change it, reset your password from the sign-in page straight away and write to us."],
+  });
+
+/** The bKash number a seller is paid to was changed or removed. */
+export const payoutNumberChangedEmail = (removed: boolean): Email =>
+  noticeEmail({
+    subject: removed ? 'Your bKash payout number was removed' : 'Your bKash payout number was changed',
+    heading: removed ? 'Your payout number was removed' : 'Your payout number was changed',
+    preheader: 'If this was you, there is nothing to do.',
+    lead: [
+      removed
+        ? 'The bKash number your sales are paid to was just removed from your BookStoreBD account.'
+        : 'The bKash number your sales are paid to was just changed on your BookStoreBD account. Payouts go to the new number from now on.',
+      'If this was you, there is nothing more to do.',
+    ],
+    button: { label: 'Open your profile', path: '/profile?mode=seller' },
+    after: ["If you didn't make this change, reset your password from the sign-in page straight away and write to us."],
+  });
+
 /** Two-step sign-in was turned on or off for this account. */
 export const twoFactorChangedEmail = (enabled: boolean): Email =>
   noticeEmail({

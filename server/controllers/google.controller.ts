@@ -200,6 +200,7 @@ export const finishGoogleSignIn: RequestHandler = async (req, res) => {
         email: identity.email,
         // Nobody knows this one; they can set their own from the profile.
         password: bcryptjs.hashSync(base64url(randomBytes(32)), 10),
+        passwordSet: false,
         googleId: identity.sub,
       });
       await applyAdminBootstrap(user);
@@ -222,7 +223,7 @@ export const finishGoogleSignIn: RequestHandler = async (req, res) => {
     }
 
     await applyAdminBootstrap(user);
-    await startSession(res, user);
+    await startSession(req, res, user);
     // The page picks the session up from the refresh cookie just set.
     res.redirect(303, `/sign-in?google=done&next=${encodeURIComponent(saved.next)}`);
   } catch (error) {
