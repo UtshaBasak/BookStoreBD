@@ -35,12 +35,15 @@ export const listWanted: RequestHandler = async (req, res, next) => {
   try {
     const query = validatedQuery<WantedListQuery>(req);
     const email = req.user?.email;
-    const filter: Record<string, unknown> = { status: query.status };
-    if (query.mine && email) filter['requesters.email'] = email;
+    // Narrowed where the query is built (String, and patterns rather than
+    // strings), so no request value can arrive as an operator - see
+    // docs/ROADMAP.md on js/sql-injection.
+    const filter: Record<string, unknown> = { status: query.status === 'found' ? 'found' : 'open' };
+    if (query.mine && email) filter['requesters.email'] = String(email);
     if (query.search) {
-      const pattern = contains(query.search);
-      const key = keyOf(query.search);
-      filter.$or = [{ title: pattern }, { author: pattern }, { isbn: pattern }, ...(key.length >= 3 ? [{ titleKey: { $regex: key } }] : [])];
+      const pattern = contains(String(query.search));
+      const key = keyOf(String(query.search));
+      filter.$or = [{ title: pattern }, { author: pattern }, { isbn: pattern }, ...(key.length >= 3 ? [{ titleKey: contains(key) }] : [])];
     }
     const sort: Record<string, 1 | -1> =
       query.sort === 'newest' ? { createdAt: -1, _id: -1 } : { requesterCount: -1, createdAt: -1, _id: -1 };
@@ -150,7 +153,7 @@ export const createWanted: RequestHandler = async (req, res, next) => {
 export const joinWanted: RequestHandler<{ id: string }> = async (req, res, next) => {
   try {
     const actor = actingUser(req);
-    const entry = await WantedBook.findOne({ _id: req.params.id, status: 'open' });
+    const entry = await WantedBook.findOne({ _id: String(req.params.id), status: 'open' });
     if (!entry) {
       res.status(404).json({ message: 'That request is no longer open' });
       return;
@@ -175,7 +178,7 @@ export const joinWanted: RequestHandler<{ id: string }> = async (req, res, next)
 export const leaveWanted: RequestHandler<{ id: string }> = async (req, res, next) => {
   try {
     const actor = actingUser(req);
-    const entry = await WantedBook.findById(req.params.id);
+    const entry = await WantedBook.findById(String(req.params.id));
     if (!entry) {
       res.status(404).json({ message: 'Request not found' });
       return;
@@ -197,7 +200,7 @@ export const leaveWanted: RequestHandler<{ id: string }> = async (req, res, next
 /** An administrator removing a request that breaks the rules. */
 export const removeWanted: RequestHandler<{ id: string }> = async (req, res, next) => {
   try {
-    const entry = await WantedBook.findByIdAndDelete(req.params.id);
+    const entry = await WantedBook.findByIdAndDelete(String(req.params.id));
     if (!entry) {
       res.status(404).json({ message: 'Request not found' });
       return;
