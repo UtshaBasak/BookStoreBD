@@ -8,6 +8,7 @@ import { SnackbarProvider } from 'notistack';
 import type { NotificationSettings as Settings } from '@shared/api.js';
 
 import NotificationSettings from './NotificationSettings.js';
+import { setSession } from '../utils/auth.js';
 
 const SETTINGS: Settings = {
   categories: [
@@ -22,7 +23,7 @@ const show = () => {
     return Promise.resolve(new Response(JSON.stringify(body), { status: 200, headers: { 'Content-Type': 'application/json' } }));
   });
   vi.stubGlobal('fetch', fetchMock);
-  localStorage.setItem('authToken', 'a-token');
+  setSession({ token: 'a-token' });
   render(
     <QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}>
       <SnackbarProvider>

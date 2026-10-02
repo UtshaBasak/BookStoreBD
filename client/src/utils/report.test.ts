@@ -80,8 +80,9 @@ describe('in a build', () => {
   });
 
   it('carries the session when there is one, so a report has a name on it', async () => {
-    localStorage.setItem('authToken', 'a-token');
     const { reportError } = await load(false);
+    // The module the freshly loaded reporter reads.
+    (await import('./auth.js')).setSession({ token: 'a-token' });
 
     reportError('Uncaught error', new Error('boom'));
 

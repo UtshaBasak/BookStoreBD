@@ -10,6 +10,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import type { AdminUserPage } from '@shared/api.js';
 
 import UserManagement from './UserManagement.js';
+import { setSession } from '../utils/auth.js';
 
 const ROW = {
   _id: 'user-1',
@@ -62,7 +63,7 @@ const askedFor = async (expected: string): Promise<string> => {
 
 beforeEach(() => {
   asked = [];
-  localStorage.setItem('authToken', 'a-token');
+  setSession({ token: 'a-token' });
 });
 
 afterEach(() => {

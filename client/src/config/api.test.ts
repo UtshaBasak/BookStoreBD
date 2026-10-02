@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach, type Mock } from 'vitest';
 
 import { apiFetch, apiUrl, API_BASE_URL } from './api.js';
-import { setSession, getToken } from '../utils/auth.js';
+import { getToken, setSession } from '../utils/auth.js';
 
 /**
  * The headers apiFetch built for a call.
@@ -248,7 +248,7 @@ describe('a 401 from the sign-in endpoint', () => {
         return Promise.resolve(new Response('{}', { status: 401 }));
       })
     );
-    localStorage.setItem('authToken', 'a-token');
+    setSession({ token: 'a-token' });
 
     const res = await apiFetch(apiUrl('/auth/signin'), { method: 'POST' });
 
@@ -256,7 +256,7 @@ describe('a 401 from the sign-in endpoint', () => {
     // No refresh attempt: a mistyped password is not a session that ran out.
     expect(calls.filter((url) => url.includes('/auth/refresh'))).toHaveLength(0);
     // And the session it had is left alone.
-    expect(localStorage.getItem('authToken')).toBe('a-token');
+    expect(getToken()).toBe('a-token');
   });
 
   it('while an ordinary request still refreshes once', async () => {
@@ -278,10 +278,70 @@ describe('a 401 from the sign-in endpoint', () => {
         );
       })
     );
-    localStorage.setItem('authToken', 'stale');
+    setSession({ token: 'stale' });
 
     await apiFetch(apiUrl('/cart'));
 
     expect(calls.filter((url) => url.includes('/auth/refresh'))).toHaveLength(1);
+  });
+});
+
+describe('the token kept in memory only', () => {
+  it('is never written to localStorage', () => {
+    setSession({ token: 'secret-token', user: { email: 'a@test.com', role: 'user' } });
+    expect(getToken()).toBe('secret-token');
+    expect(Object.values({ ...localStorage })).not.toContain('secret-token');
+    // The e-mail stays, so a reload knows someone is signed in.
+    expect(localStorage.getItem('userEmail')).toBe('a@test.com');
+  });
+
+  it('is fetched from the refresh cookie before the first request after a reload', async () => {
+    localStorage.setItem('userEmail', 'a@test.com');
+    const calls: Array<{ url: string; auth: string | null }> = [];
+    vi.spyOn(globalThis, 'fetch').mockImplementation((url, init) => {
+      calls.push({ url: String(url), auth: headersOf(init)?.get('Authorization') ?? null });
+      return Promise.resolve(
+        String(url).includes('/auth/refresh')
+          ? respond(200, { token: 'from-cookie', user: { email: 'a@test.com', role: 'user' } })
+          : respond(200)
+      );
+    });
+
+    await Promise.all([apiFetch(`${API_BASE_URL}/cart`), apiFetch(`${API_BASE_URL}/wishlist`)]);
+
+    // One refresh for both, and neither request went out without the token.
+    expect(calls.filter((c) => c.url.includes('/auth/refresh'))).toHaveLength(1);
+    expect(calls.filter((c) => !c.url.includes('/auth/refresh')).map((c) => c.auth)).toEqual([
+      'Bearer from-cookie',
+      'Bearer from-cookie',
+    ]);
+  });
+
+  it('is not asked for when nobody is signed in', async () => {
+    const fetchMock = vi.spyOn(globalThis, 'fetch').mockResolvedValue(respond(200));
+    await apiFetch(`${API_BASE_URL}/filter/booklist`);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('shows the page signed out once the cookie is refused', async () => {
+    localStorage.setItem('userEmail', 'a@test.com');
+    vi.spyOn(globalThis, 'fetch').mockImplementation((url) =>
+      Promise.resolve(String(url).includes('/auth/refresh') ? respond(401) : respond(200))
+    );
+    await apiFetch(`${API_BASE_URL}/filter/booklist`);
+    expect(localStorage.getItem('userEmail')).toBeNull();
+  });
+
+  it('is added to axios requests too', async () => {
+    const { default: axios } = await import('axios');
+    setSession({ token: 'axios-token', user: { email: 'a@test.com', role: 'user' } });
+    let sent: unknown;
+    await axios.get(`${API_BASE_URL}/cart`, {
+      adapter: (config) => {
+        sent = config.headers.Authorization;
+        return Promise.resolve({ data: {}, status: 200, statusText: 'OK', headers: {}, config });
+      },
+    });
+    expect(sent).toBe('Bearer axios-token');
   });
 });

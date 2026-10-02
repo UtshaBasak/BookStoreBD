@@ -2,7 +2,7 @@
  * Adding a book failed for everybody, and the page said only "Submission
  * failed".
  *
- * The session is stored under `authToken`. This page kept its own copy of the
+ * The session token was stored under `authToken`. This page kept its own copy of the
  * header-building code, reading `token` - a key nothing has written since the
  * session moved into utils/auth - so every submission went out as
  * `Bearer null` and the API refused it. The upload to Cloudinary happened
@@ -17,6 +17,7 @@ import axios from 'axios';
 
 import AddBooks from './AddBook.js';
 import { uploadImages } from '../utils/uploadImages.js';
+import { setSession } from '../utils/auth.js';
 
 vi.mock('axios');
 
@@ -89,7 +90,7 @@ describe('a seller with no bKash merchant number', () => {
   afterEach(() => vi.unstubAllGlobals());
 
   it('is told before filling the form in, with a way to add one', async () => {
-    localStorage.setItem('authToken', 'a-token');
+    setSession({ token: 'a-token' });
     localStorage.setItem('userEmail', 'seller@test.com');
     profileWithout();
     renderPage();
@@ -106,8 +107,8 @@ describe('a seller with no bKash merchant number', () => {
 });
 
 describe('submitting a listing', () => {
-  it('sends the session the rest of the app stores', async () => {
-    localStorage.setItem('authToken', 'a-real-token');
+  it('leaves the session to the shared request setup', async () => {
+    setSession({ token: 'a-real-token' });
     renderPage();
 
     await fillAndSubmit();
@@ -116,29 +117,18 @@ describe('submitting a listing', () => {
 
     const [url, body, options] = postMock.mock.calls[0];
     expect(String(url)).toMatch(/\/user\/add-book$/);
-    // `Bearer null` is what this page used to send.
-    expect((options as { headers: Record<string, string> }).headers).toMatchObject({
-      Authorization: 'Bearer a-real-token',
-    });
+    // No header of its own - `Bearer null` is what its own copy used to send.
+    // config/api.ts adds the token to every axios request (tested there).
+    expect(options).toBeUndefined();
 
     const form = body as FormData;
     expect(form.get('title')).toBe('Pather Panchali');
     expect(form.get('images')).toBe('https://res.cloudinary.com/demo/image/upload/v1/cover.png');
   });
 
-  it('sends no authorization at all when signed out, rather than a broken one', async () => {
-    renderPage();
-
-    await fillAndSubmit();
-
-    await waitFor(() => expect(postMock).toHaveBeenCalledTimes(1));
-
-    const headers = (postMock.mock.calls[0][2] as { headers: Record<string, string> }).headers;
-    expect(headers.Authorization).toBeUndefined();
-  });
 
   it('repeats the field the API rejected, not just that it failed', async () => {
-    localStorage.setItem('authToken', 'a-real-token');
+    setSession({ token: 'a-real-token' });
     postMock.mockRejectedValue({
       response: {
         data: {
@@ -159,7 +149,7 @@ describe('submitting a listing', () => {
   });
 
   it('does not upload the images a second time when a rejected form is fixed', async () => {
-    localStorage.setItem('authToken', 'a-real-token');
+    setSession({ token: 'a-real-token' });
     postMock.mockRejectedValueOnce({
       response: {
         data: { message: 'Validation failed', errors: [{ path: 'body.pages', message: 'Invalid input' }] },
@@ -179,7 +169,7 @@ describe('submitting a listing', () => {
   });
 
   it('says which required fields are missing instead of posting', async () => {
-    localStorage.setItem('authToken', 'a-real-token');
+    setSession({ token: 'a-real-token' });
     renderPage();
 
     await userEvent.click(screen.getByRole('button', { name: 'Submit' }));

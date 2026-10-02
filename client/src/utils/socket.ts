@@ -1,7 +1,7 @@
 import type { Socket } from 'socket.io-client';
 import type { ChatMessage, NotificationItem } from '@shared/api.js';
 
-import { getToken } from './auth.js';
+import { ensureToken } from '../config/api.js';
 
 /**
  * The live connection: chat messages and notifications for the signed-in
@@ -30,7 +30,10 @@ const connect = (): Promise<Socket | undefined> =>
     .then(({ io }) => {
       const base = import.meta.env.VITE_API_URL as string | undefined;
       const origin = base ? new URL(base, window.location.href).origin : window.location.origin;
-      const live = io(origin, { auth: (send) => send({ token: getToken() ?? '' }) });
+      const live = io(origin, {
+        // Fetched for each (re)connection: a new tab has none until it asks.
+        auth: (send) => void ensureToken().then((token) => send({ token: token ?? '' })),
+      });
       live.on('connect_error', () => {
         if (live.active) return; // the library is already retrying
         clearTimeout(retry);

@@ -2,7 +2,7 @@ import axios, { type AxiosRequestConfig, type InternalAxiosRequestConfig } from 
 
 import type { SessionResponse } from '@shared/api.js';
 
-import { authHeaders, clearSession, getToken, setSession } from '../utils/auth.js';
+import { authHeaders, clearSession, getToken, getUserEmail, setSession } from '../utils/auth.js';
 
 /**
  * Where the API lives.
@@ -58,23 +58,49 @@ const handleUnauthorized = (): void => {
  */
 let refreshInFlight: Promise<boolean> | null = null;
 
-export const refreshSession = (): Promise<boolean> => {
-  refreshInFlight ??= fetch(apiUrl(REFRESH_PATH), {
+const exchangeCookie = (): Promise<boolean> =>
+  fetch(apiUrl(REFRESH_PATH), {
     method: 'POST',
     credentials: 'include',
   })
     .then(async (res) => {
+      // Refused outright: the session is over, so stop drawing the page as
+      // signed in. (A network failure says nothing, and changes nothing.)
+      if (res.status === 401) clearSession();
       if (!res.ok) return false;
       const data = (await res.json()) as SessionResponse;
       setSession(data);
       return true;
     })
-    .catch(() => false)
-    .finally(() => {
-      refreshInFlight = null;
-    });
+    .catch(() => false);
+
+/** The browser's lock manager, where there is one (every current browser). */
+const locks = (): LockManager | undefined =>
+  typeof navigator !== 'undefined' && 'locks' in navigator ? navigator.locks : undefined;
+
+/*
+ * Tabs share the refresh cookie but not their tokens, so two tabs opened
+ * together would each refresh at once - and the second would present a cookie
+ * the first had just exchanged, which reads as replay. A lock across tabs puts
+ * them in a queue: each refreshes with the cookie as the one before left it.
+ */
+export const refreshSession = (): Promise<boolean> => {
+  const manager = locks();
+  refreshInFlight ??= (manager ? manager.request('bookstorebd-refresh', exchangeCookie) : exchangeCookie()).finally(() => {
+    refreshInFlight = null;
+  });
 
   return refreshInFlight;
+};
+
+/**
+ * A token for this tab, fetched from the refresh cookie when someone is signed
+ * in but this tab has none yet - after a reload, or in a new tab. Resolves to
+ * null when signed out.
+ */
+export const ensureToken = async (): Promise<string | null> => {
+  if (!getToken() && getUserEmail()) await refreshSession();
+  return getToken();
 };
 
 /**
@@ -91,6 +117,10 @@ export const apiFetch = async (input: RequestInfo | URL, init: RequestInit = {})
     return fetch(input, { ...init, headers, credentials: 'include' });
   };
 
+  // A reload starts without a token: get one first, rather than send a
+  // request bound to fail.
+  if (!String(input).includes(REFRESH_PATH) && !isCredentialCheck(input)) await ensureToken();
+
   let response = await send();
 
   if (
@@ -98,10 +128,11 @@ export const apiFetch = async (input: RequestInfo | URL, init: RequestInit = {})
     !String(input).includes(REFRESH_PATH) &&
     !isCredentialCheck(input)
   ) {
+    const hadToken = Boolean(getToken());
     const refreshed = await refreshSession();
     if (refreshed) {
       response = await send();
-    } else if (getToken()) {
+    } else if (hadToken) {
       /*
        * The session has ended. A public endpoint - a book's reviews, a
        * seller's name - answers a stale token with 401 so that a live session
@@ -120,7 +151,9 @@ export const apiFetch = async (input: RequestInfo | URL, init: RequestInit = {})
 // The same treatment for the pages that use axios.
 axios.defaults.withCredentials = true;
 
-axios.interceptors.request.use((cfg: InternalAxiosRequestConfig) => {
+axios.interceptors.request.use(async (cfg: InternalAxiosRequestConfig) => {
+  const url = String(cfg.url ?? '');
+  if (!url.includes(REFRESH_PATH) && !isCredentialCheck(url)) await ensureToken();
   Object.assign(cfg.headers, authHeaders());
   return cfg;
 });
@@ -159,7 +192,7 @@ axios.interceptors.response.use(
 /**
  * Ends the session on the server as well as in this tab.
  *
- * Clearing localStorage alone would leave the refresh cookie valid, so the
+ * Forgetting the token here alone would leave the refresh cookie valid, so the
  * session could simply be resumed. The local state is cleared either way, so a
  * network failure still signs the user out here.
  */

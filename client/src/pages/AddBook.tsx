@@ -12,7 +12,7 @@ import { site } from '../config/site.js';
 import { CATEGORY_GROUPS } from '../config/categories.js';
 import { useProfile } from '../hooks/queries.js';
 import { apiErrorMessage } from '../utils/apiError.js';
-import { authHeaders, getUserEmail } from '../utils/auth.js';
+import { getUserEmail } from '../utils/auth.js';
 import { isOwnProfile } from '../utils/profile.js';
 import { uploadImages, type UploadResult } from '../utils/uploadImages.js';
 
@@ -70,9 +70,6 @@ const AddBooks = () => {
    * second set.
    */
   const uploadedRef = useRef<{ files: File[]; result: UploadResult } | null>(null);
-
-  // The shared helper, so this page reads the same session token as every other request.
-  const headers = authHeaders();
 
   // Known only once the profile has loaded; until then, and if it cannot be
   // read, the API is left to say so rather than blocking a seller who has one.
@@ -235,8 +232,8 @@ const AddBooks = () => {
 
       const res = await axios.post<{ message: string; waiting?: number }>(
         `${API_BASE_URL}/user/add-book`,
-        formData,
-        { headers }
+        // The token is added by the shared axios setup in config/api.ts.
+        formData
       );
       const waiting = res.data.waiting ?? 0;
       setFeedbackMessage(

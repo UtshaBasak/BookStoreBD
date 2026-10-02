@@ -6,6 +6,7 @@ import { MemoryRouter } from 'react-router-dom';
 import { SnackbarProvider } from 'notistack';
 
 import WantedBoard from './WantedBoard.js';
+import { setSession } from '../utils/auth.js';
 
 vi.mock('socket.io-client', () => ({ io: () => ({ on: vi.fn(), off: vi.fn(), emit: vi.fn(), disconnect: vi.fn() }) }));
 
@@ -29,7 +30,7 @@ const show = (answer: unknown) => {
     return json({ items: [], unread: 0, total: 0, page: 1, pageSize: 5, pageCount: 1 });
   });
   vi.stubGlobal('fetch', fetchMock);
-  localStorage.setItem('authToken', 'header.eyJlbWFpbCI6ImFAYi5jIiwicm9sZSI6InVzZXIifQ.sig');
+  setSession({ token: 'header.eyJlbWFpbCI6ImFAYi5jIiwicm9sZSI6InVzZXIifQ.sig' });
   render(
     <QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}>
       <SnackbarProvider>

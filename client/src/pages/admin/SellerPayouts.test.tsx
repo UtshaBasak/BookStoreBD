@@ -12,6 +12,7 @@ import { MemoryRouter } from 'react-router-dom';
 import type { PayoutPage, PayoutRow } from '@shared/api.js';
 
 import SellerPayouts from './SellerPayouts.js';
+import { setSession } from '../../utils/auth.js';
 
 const ROW: PayoutRow = {
   orderNumber: 'ORDER00000000001',
@@ -70,7 +71,7 @@ const renderPage = () =>
 
 beforeEach(() => {
   sent = [];
-  localStorage.setItem('authToken', 'a-token');
+  setSession({ token: 'a-token' });
 });
 afterEach(() => {
   vi.unstubAllGlobals();

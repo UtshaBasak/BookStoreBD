@@ -7,6 +7,7 @@ import { MemoryRouter } from 'react-router-dom';
 import type { ShopAnalytics as Stats } from '@shared/api.js';
 
 import ShopAnalytics from './ShopAnalytics.js';
+import { setSession } from '../../utils/auth.js';
 
 const busyHours = Array.from({ length: 7 }, () => Array.from({ length: 24 }, () => 0));
 busyHours[4][21] = 6; // Friday, 9 pm
@@ -53,7 +54,7 @@ const show = () => {
     Promise.resolve(new Response(JSON.stringify(STATS), { status: 200, headers: { 'Content-Type': 'application/json' } }))
   );
   vi.stubGlobal('fetch', fetchMock);
-  localStorage.setItem('authToken', 'a-token');
+  setSession({ token: 'a-token' });
   render(
     <QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}>
       <MemoryRouter initialEntries={['/admin/analytics']}>

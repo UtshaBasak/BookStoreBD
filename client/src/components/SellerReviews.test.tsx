@@ -12,6 +12,7 @@ import { SnackbarProvider } from 'notistack';
 import type { SellerReviewSummary } from '@shared/api.js';
 
 import SellerReviews from './SellerReviews.js';
+import { setSession } from '../utils/auth.js';
 
 const SELLER_ID = 'seller-1';
 
@@ -58,7 +59,7 @@ const show = (body: SellerReviewSummary) => {
 };
 
 beforeEach(() => {
-  localStorage.setItem('authToken', 'a-token');
+  setSession({ token: 'a-token' });
 });
 afterEach(() => {
   vi.unstubAllGlobals();

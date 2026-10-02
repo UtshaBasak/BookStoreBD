@@ -2,6 +2,8 @@ import '@testing-library/jest-dom/vitest';
 import { afterEach, beforeEach, vi } from 'vitest';
 import { cleanup } from '@testing-library/react';
 
+import { clearSession } from '../utils/auth.js';
+
 // jsdom's object-URL support varies by version (absent in 29, throws on any
 // Blob in 30), so it is stubbed unconditionally rather than behind a feature
 // check. These tests cover what the code does with the URL, not jsdom's blob
@@ -18,4 +20,6 @@ beforeEach(() => {
 
 afterEach(() => {
   cleanup();
+  // The token lives in memory, so it outlasts localStorage.clear().
+  clearSession();
 });

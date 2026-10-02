@@ -15,6 +15,7 @@ import { SnackbarProvider } from 'notistack';
 
 import DescriptionForm from './Descriptionform.js';
 import { uploadImages } from '../utils/uploadImages.js';
+import { setSession } from '../utils/auth.js';
 
 const navigate = vi.fn();
 vi.mock('react-router-dom', async () => {
@@ -67,7 +68,7 @@ beforeEach(() => {
   navigate.mockClear();
   uploadMock.mockClear();
   uploadMock.mockResolvedValue({ hosted: false });
-  localStorage.setItem('authToken', 'a-token');
+  setSession({ token: 'a-token' });
 });
 
 afterEach(() => {

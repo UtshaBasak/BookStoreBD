@@ -18,6 +18,7 @@ import { MemoryRouter } from 'react-router-dom';
 import type { Page, ReturnRequest } from '@shared/api.js';
 
 import ReturnManagement from './ReturnManagement.js';
+import { setSession } from '../../utils/auth.js';
 
 const IMAGE_URL = '/api/return/requests/req-1/image/0';
 
@@ -82,7 +83,7 @@ const renderPage = () => {
 
 beforeEach(() => {
   asked = [];
-  localStorage.setItem('authToken', 'a-token');
+  setSession({ token: 'a-token' });
   vi.stubGlobal('open', vi.fn());
   URL.createObjectURL = vi.fn(() => 'blob:fake');
   URL.revokeObjectURL = vi.fn();

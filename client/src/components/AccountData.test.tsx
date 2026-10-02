@@ -10,6 +10,7 @@ import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { SnackbarProvider } from 'notistack';
 
 import AccountData from './AccountData.js';
+import { getToken, setSession } from '../utils/auth.js';
 
 const show = () =>
   render(
@@ -27,7 +28,7 @@ const ok = (body: unknown) =>
   new Response(JSON.stringify(body), { status: 200, headers: { 'Content-Type': 'application/json' } });
 
 beforeEach(() => {
-  localStorage.setItem('authToken', 'a-token');
+  setSession({ token: 'a-token' });
   localStorage.setItem('userEmail', 'someone@test.com');
   // jsdom has no download machinery; the test is about the request and what
   // happens after it, not about the browser writing a file.
@@ -90,7 +91,7 @@ describe('deleting your account', () => {
     expect((init as RequestInit).method).toBe('DELETE');
     expect(JSON.parse(String((init as RequestInit).body))).toEqual({ password: 'hunter2' });
     // The session goes with the account.
-    expect(localStorage.getItem('authToken')).toBeNull();
+    expect(getToken()).toBeNull();
   });
 
   it('says what went wrong and keeps the session when the password is refused', async () => {
@@ -107,7 +108,7 @@ describe('deleting your account', () => {
     await userEvent.click(screen.getByRole('button', { name: /for good/i }));
 
     expect(await screen.findByRole('alert')).toHaveTextContent(/not correct/i);
-    expect(localStorage.getItem('authToken')).toBe('a-token');
+    expect(getToken()).toBe('a-token');
   });
 
   it('can be backed out of', async () => {

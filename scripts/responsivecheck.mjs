@@ -11,13 +11,16 @@
  *   node responsivecheck.mjs <port> <base-url> <route> [<route> ...]
  *
  * Environment:
- *   AUTH_TOKEN, AUTH_EMAIL, AUTH_ROLE   seeded into localStorage, for the
- *                                       routes behind a sign-in guard. Mint the
- *                                       token immediately before the run: an
- *                                       access token lasts fifteen minutes, and
- *                                       an expired one signs the app out to
+ *   AUTH_REFRESH, AUTH_EMAIL, AUTH_ROLE for the routes behind a sign-in guard:
+ *                                       the value of the `refreshToken` cookie
+ *                                       from a sign-in, set as that cookie, and
+ *                                       the e-mail and role seeded into
+ *                                       localStorage. The app keeps its access
+ *                                       token in memory and fetches one from
+ *                                       the cookie, as after a reload. A used
+ *                                       or expired cookie signs the app out to
  *                                       `/sign-in`, so every route measures the
- *                                       sign-in page. The `page` column names
+ *                                       sign-in page; the `page` column names
  *                                       what was actually measured, which is
  *                                       how to spot it.
  *   WIDTHS                              comma-separated, default 360,390,768,1280
@@ -93,9 +96,15 @@ await call('Page.navigate', { url: base });
 await sleep(1500);
 await evaluate('localStorage.clear()');
 
-if (process.env.AUTH_TOKEN) {
+if (process.env.AUTH_REFRESH) {
+  await call('Network.setCookie', {
+    name: 'refreshToken',
+    value: process.env.AUTH_REFRESH,
+    url: new URL('/api/auth', base).href,
+    path: '/api/auth',
+    httpOnly: true,
+  });
   await evaluate(`
-    localStorage.setItem('authToken', ${JSON.stringify(process.env.AUTH_TOKEN)});
     localStorage.setItem('userEmail', ${JSON.stringify(process.env.AUTH_EMAIL ?? '')});
     localStorage.setItem('userRole', ${JSON.stringify(process.env.AUTH_ROLE ?? 'user')});
   `);

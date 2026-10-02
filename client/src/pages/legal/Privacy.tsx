@@ -69,7 +69,8 @@ export default function Privacy() {
         <li><strong>Necessary</strong> (always on): one cookie holding your
           session, so you stay signed in - marked <code>httpOnly</code> so page
           scripts cannot read it, limited to the sign-in routes, and expiring
-          after 30 days; a short-lived access token in local storage; a random
+          after 30 days; your e-mail address and account type in local storage,
+          so a reload knows you are signed in; a random
           code that lets us recognise this browser, so we can e-mail you when
           your account is signed in to from one we have not seen; the security
           check on sign-in and sign-up; and your choice about the rest.</li>

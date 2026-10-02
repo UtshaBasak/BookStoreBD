@@ -14,6 +14,7 @@ import { SnackbarProvider } from 'notistack';
 import type { ReviewSummary } from '@shared/api.js';
 
 import BookReviews from './BookReviews.js';
+import { setSession } from '../utils/auth.js';
 
 const BOOK_ID = 'book-1';
 
@@ -70,7 +71,7 @@ const show = (body: ReviewSummary) => {
 };
 
 beforeEach(() => {
-  localStorage.setItem('authToken', 'a-token');
+  setSession({ token: 'a-token' });
 });
 
 afterEach(() => {

@@ -4,6 +4,7 @@ import userEvent from '@testing-library/user-event';
 import { SnackbarProvider } from 'notistack';
 
 import SessionsSetting from './SessionsSetting.js';
+import { setSession } from '../utils/auth.js';
 
 afterEach(() => {
   vi.unstubAllGlobals();
@@ -21,7 +22,7 @@ describe('signing out everywhere else', () => {
       )
     );
     vi.stubGlobal('fetch', fetchMock);
-    localStorage.setItem('authToken', 'a-token');
+    setSession({ token: 'a-token' });
     render(
       <SnackbarProvider>
         <SessionsSetting />
