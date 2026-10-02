@@ -17,6 +17,8 @@
  */
 process.env.JWT_SECRET ??= 'test-secret-long-enough-for-the-32-char-minimum';
 process.env.ADMIN_EMAILS ??= 'admin@test.com';
+// Cost 10 rather than 12: the same checks, without a quarter-second per hash.
+process.env.BCRYPT_ROUNDS ??= '10';
 
 const OPTIONAL_INTEGRATION_VARS = [
   'CLOUDINARY_CLOUD_NAME',

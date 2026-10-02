@@ -14,6 +14,7 @@ import { readRefreshCookie } from '../utils/authCookies.js';
 import { dispatchShopMail, passwordChangedEmail, payoutNumberChangedEmail } from '../utils/shopMail.js';
 import { newPasswordProblem } from '../utils/breachedPassword.js';
 import { errorMessage, isDuplicateKeyError } from '../utils/error.js';
+import { hashPassword } from '../utils/passwordHash.js';
 
 const log = createLogger('user');
 
@@ -159,7 +160,7 @@ export const updateUserProfile = async (
                 res.status(400).json({ message: weak });
                 return;
             }
-            updateFields.password = bcryptjs.hashSync(newPassword, 10);
+            updateFields.password = hashPassword(newPassword);
         }
 
         // Pictures arrive as named files: the one profile picture, and a

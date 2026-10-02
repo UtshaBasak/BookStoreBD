@@ -1,6 +1,5 @@
 import { createHash, createHmac, randomBytes, timingSafeEqual } from 'crypto';
 
-import bcryptjs from 'bcryptjs';
 import type { Request, RequestHandler, Response } from 'express';
 
 import User from '../models/user.model.js';
@@ -11,6 +10,7 @@ import { publicSiteUrl } from '../config/siteUrl.js';
 import { creditInvites } from '../utils/invites.js';
 import { welcomeNewMember } from '../utils/welcome.js';
 import { applyAdminBootstrap, beginTwoStep, startSession } from './auth.controller.js';
+import { hashPassword } from '../utils/passwordHash.js';
 
 const log = createLogger('google');
 
@@ -199,7 +199,7 @@ export const finishGoogleSignIn: RequestHandler = async (req, res) => {
         username: await usernameFor(identity.name, identity.email),
         email: identity.email,
         // Nobody knows this one; they can set their own from the profile.
-        password: bcryptjs.hashSync(base64url(randomBytes(32)), 10),
+        password: hashPassword(base64url(randomBytes(32))),
         passwordSet: false,
         googleId: identity.sub,
       });

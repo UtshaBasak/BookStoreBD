@@ -9,7 +9,6 @@
  *   npm run seed -- --reset
  */
 import mongoose from 'mongoose';
-import bcryptjs from 'bcryptjs';
 
 import type { BookType, UserRole } from '@shared/api.js';
 
@@ -17,6 +16,7 @@ import { assertRequiredEnv, mongoUri } from '../config/env.js';
 import User from '../models/user.model.js';
 import { errorMessage } from '../utils/error.js';
 import AddBook from '../models/AddBook.model.js';
+import { hashPassword } from '../utils/passwordHash.js';
 
 /**
  * The demo accounts' password, chosen by whoever runs the seed. There is no
@@ -168,7 +168,7 @@ const BOOKS: SeedBook[] = [
 const log = (...args: unknown[]): void => console.log('[seed]', ...args);
 
 const seedAccounts = async () => {
-  const hashed = bcryptjs.hashSync(demoPassword(), 10);
+  const hashed = hashPassword(demoPassword());
   let created = 0;
 
   for (const account of ACCOUNTS) {

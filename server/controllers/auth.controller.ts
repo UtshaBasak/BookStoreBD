@@ -1,6 +1,8 @@
 import crypto from 'crypto';
 
 import bcryptjs from 'bcryptjs';
+
+import { hashPassword, upgradeHashIfNeeded } from '../utils/passwordHash.js';
 import type { NextFunction, Request, RequestHandler, Response } from 'express';
 
 import type { SessionResponse, TwoFactorChallenge } from '@shared/api.js';
@@ -68,12 +70,6 @@ const RESET_CODE_SENT = 'If that address has an account, a reset code is on its 
 const REGISTER_CODE_SENT = 'If that address can be registered, a code is on its way.';
 const INVALID_CODE = 'Invalid or expired code';
 
-/**
- * Must match the cost used for every real password below: the dummy compare in
- * `signin` only hides an unknown account if it takes the same time as a real
- * one.
- */
-const BCRYPT_ROUNDS = 10;
 
 /**
  * The body carries the short-lived access token and the details needed to
@@ -286,7 +282,7 @@ export const signup = async (
                 return;
             }
         }
-        const hashedPassword = bcryptjs.hashSync(password, BCRYPT_ROUNDS);
+        const hashedPassword = hashPassword(password);
         const newUser = new User ({username,email,password:hashedPassword});
         await newUser.save();
         await applyAdminBootstrap(newUser);
@@ -315,10 +311,11 @@ let dummyPasswordHash: string | undefined;
 /**
  * A hash of a random string nobody will ever type, used to give the
  * unknown-account path the same cost as a wrong password. Computed on first use
- * rather than at import, so start-up does not pay for it.
+ * rather than at import, so start-up does not pay for it, and at today's cost,
+ * which is what every account's hash becomes as its owner signs in.
  */
 const dummyHash = (): string =>
-    (dummyPasswordHash ??= bcryptjs.hashSync(crypto.randomBytes(32).toString('hex'), BCRYPT_ROUNDS));
+    (dummyPasswordHash ??= hashPassword(crypto.randomBytes(32).toString('hex')));
 
 /**
  * Both ways of failing answer the same, and take the same time, so a failed
@@ -356,6 +353,11 @@ export const signin = async (
             return;
         }
         await clearFailures(String(email));
+        // A hash from before the cost went up is made again now, while the
+        // password is at hand.
+        await upgradeHashIfNeeded(validUser, password, (hash) =>
+            User.updateOne({ _id: validUser._id }, { $set: { password: hash } })
+        );
 
         // Two-step sign-in: the password is right, but the session waits for
         // the code sent to the account's address.
@@ -479,7 +481,7 @@ export const resetPassword = async (
         res.status(400).json({ message: INVALID_CODE });
         return;
     }
-    user.password = bcryptjs.hashSync(newPassword, BCRYPT_ROUNDS);
+    user.password = hashPassword(newPassword);
     await user.save();
     await clearCode(email);
 

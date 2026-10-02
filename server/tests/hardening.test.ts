@@ -5,6 +5,7 @@
  * browser, and a way to sign out everywhere else.
  */
 import { describe, it, expect, beforeAll, afterAll, beforeEach, vi } from 'vitest';
+import bcryptjs from 'bcryptjs';
 
 import { createTestContext, clearDatabase, closeTestContext, type PrefixedRequest } from './helpers/testApp.js';
 import { createUser, PASSWORD } from './helpers/factories.js';
@@ -153,5 +154,51 @@ describe('security.txt', () => {
     expect(res.status).toBe(200);
     expect(res.text).toMatch(/^Contact: https:\/\/github\.com\/UtshaBasak\/BookStoreBD\/security\/advisories\/new$/m);
     expect(res.text).toMatch(/^Expires: \d{4}-/m);
+  });
+});
+
+describe('the password hash', () => {
+  it('is made again at today’s cost when its owner signs in, and keeps working', async () => {
+    await createUser({ email: EMAIL }); // hashed at cost 10, as before
+    const before = (await User.findOne({ email: EMAIL }).lean())?.password ?? '';
+    expect(bcryptjs.getRounds(before)).toBe(10);
+
+    process.env.BCRYPT_ROUNDS = '12';
+    try {
+      expect((await signIn()).status).toBe(200);
+      const after = (await User.findOne({ email: EMAIL }).lean())?.password ?? '';
+      expect(bcryptjs.getRounds(after)).toBe(12);
+      expect(bcryptjs.compareSync(PASSWORD, after)).toBe(true);
+      // Once is enough: the next sign-in leaves it alone.
+      expect((await signIn()).status).toBe(200);
+      expect((await User.findOne({ email: EMAIL }).lean())?.password).toBe(after);
+    } finally {
+      process.env.BCRYPT_ROUNDS = '10';
+    }
+  });
+
+  it('is left alone after a wrong password', async () => {
+    await createUser({ email: EMAIL });
+    const before = (await User.findOne({ email: EMAIL }).lean())?.password;
+    process.env.BCRYPT_ROUNDS = '12';
+    try {
+      expect((await signIn('Wrong-Password-1!')).status).toBe(401);
+      expect((await User.findOne({ email: EMAIL }).lean())?.password).toBe(before);
+    } finally {
+      process.env.BCRYPT_ROUNDS = '10';
+    }
+  });
+
+  it('defaults to cost 12', async () => {
+    const { bcryptRounds } = await import('../utils/passwordHash.js');
+    const saved = process.env.BCRYPT_ROUNDS;
+    delete process.env.BCRYPT_ROUNDS;
+    try {
+      expect(bcryptRounds()).toBe(12);
+      process.env.BCRYPT_ROUNDS = '4'; // out of range: ignored
+      expect(bcryptRounds()).toBe(12);
+    } finally {
+      process.env.BCRYPT_ROUNDS = saved;
+    }
   });
 });
