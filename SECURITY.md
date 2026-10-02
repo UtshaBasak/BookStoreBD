@@ -67,8 +67,8 @@ overdue.
 These findings are already recorded, with the reasoning:
 
 - [`docs/AUDIT.md`](docs/AUDIT.md): the production-readiness audit, including
-  its planned hardening, such as moving the access token out of `localStorage`
-  (S3) and raising the bcrypt cost (S7).
+  the hardening done and still planned, such as storing images outside the
+  database (P4).
 - [`docs/ROADMAP.md`](docs/ROADMAP.md#known-codeql-findings): CodeQL results
   confirmed as false positives.
 

@@ -19,11 +19,9 @@ hardening, none of which blocks a launch:
 
 | Item | Priority |
 | --- | --- |
-| [S3](#s3--access-token-in-localstorage) · Hold the access token in memory rather than `localStorage` | Medium |
-| [S7](#s7--bcrypt-cost-factor) · Raise the bcrypt cost factor from 10 to 12 | Low |
 | [P4](#p4--image-storage) · Move covers out of MongoDB; thumbnails at upload | Low |
 | [Interface](#planned-interface-work) · Dialog component, loading and empty states, accessibility, remaining inline styles | Medium |
-| [Business capability](#5--business-capability) · Online payments, seller verification, search indexing, analytics | Product roadmap |
+| [Business capability](#5--business-capability) · Online payments, seller verification, search indexing, checkout analytics | Product roadmap |
 | Review of the policy pages by someone legally qualified, with the legal entity name | Before scaling |
 
 ---
@@ -48,11 +46,11 @@ hardening, none of which blocks a launch:
 | --- | --- | --- | --- |
 | S1 | Security response headers | High | Resolved |
 | S2 | Account enumeration on sign-in, sign-up and reset | Medium | Resolved |
-| S3 | Access token kept in `localStorage` | Medium | Planned |
+| S3 | Access token kept in `localStorage` | Medium | Resolved |
 | S4 | Upload type validation | Medium | Resolved |
 | S5 | Per-code OTP attempt limit | Medium | Resolved |
 | S6 | `X-Powered-By: Express` disclosed | Low | Resolved |
-| S7 | bcrypt cost factor 10 | Low | Planned |
+| S7 | bcrypt cost factor 10 | Low | Resolved |
 | P1 | Footer policies with no pages behind them | High (trust, compliance) | Resolved |
 | P2 | Account deletion and data export | Medium | Resolved |
 | P3 | Audit trail for administrator actions | Medium | Resolved |
@@ -151,12 +149,19 @@ answers side by side, so any divergence fails regardless of wording.
 
 ### S3 · Access token in `localStorage`
 
-*Planned hardening, priority Medium.* The refresh token is httpOnly. The
-15-minute access token is in `localStorage`, readable by a successful script
-injection, which the enforced CSP (S1) already makes much harder. The plan:
-hold the access token in a module variable and re-acquire it from
-`/auth/refresh` on load. `config/api.ts` already shares one in-flight refresh,
-so most of the mechanism exists.
+*Resolved.* The 15-minute access token lived in `localStorage`, readable by a
+successful script injection. It is now held in a module variable in
+`client/src/utils/auth.ts` and never written to storage; any copy left by an
+older version is deleted on load. Only the e-mail and role stay in
+`localStorage`, as rendering hints the server never trusts.
+
+A reload or a new tab starts without a token, and `ensureToken()` in
+`config/api.ts` fetches one from the httpOnly refresh cookie before the first
+request that needs it (the socket connection too). Tabs share the cookie but
+not their tokens, so refreshes are queued across tabs with the Web Locks API:
+two tabs never present the same cookie at once, which the server would treat
+as replay. Signing out, or in as someone else, in one tab drops the token in
+the others through the `storage` event. Tests in `client/src/config/api.test.ts`.
 
 ### S4 · Upload type validation
 
@@ -192,9 +197,12 @@ a plain hash of six digits is trivially reversed.
 
 ### S7 · bcrypt cost factor
 
-*Planned hardening, priority Low.* Passwords are hashed with bcrypt at cost 10.
-The plan: raise it to 12 with a rehash-on-login step, so existing hashes keep
-working and upgrade on next sign-in.
+*Resolved.* New hashes are made at cost 12 (`server/utils/passwordHash.ts`),
+four times the work of 10 for anyone trying guesses against a stolen hash.
+Hashes made at 10 keep working, and are made again at 12 the first time their
+owner signs in, since only then is the password at hand. The unknown-account
+dummy compare uses today's cost. `BCRYPT_ROUNDS` (10-14) overrides it; the
+test suite uses 10, for speed. Tests in `server/tests/hardening.test.ts`.
 
 ### P1 · Policy pages
 

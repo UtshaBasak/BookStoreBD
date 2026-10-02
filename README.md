@@ -112,7 +112,8 @@ User guides for each role are in the [wiki](https://github.com/UtshaBasak/BookSt
   found in a known breach (checked against Have I Been Pwned by k-anonymity).
   The form shows each rule as it is met. Rules in
   [`server/utils/passwordPolicy.ts`](server/utils/passwordPolicy.ts)
-- Short-lived JWT access tokens with rotating, httpOnly refresh tokens
+- Short-lived JWT access tokens, held in memory only, with rotating, httpOnly
+  refresh tokens
 - Role-based authorisation (`user` / `admin`) plus per-resource ownership checks
 - Zod validation on every request, rate limiting, request sanitisation, and a
   strict Content Security Policy
@@ -484,6 +485,7 @@ unprivileged with `NODE_ENV=production` and a health check.
 | `GMAIL_REFRESH_TOKEN` | ¹ | — | From `npm run gmail:token`; with all three set, mail goes over HTTPS |
 | `RETURN_ADDRESS` | | — | Where approved returns are sent, quoted in the approval e-mail |
 | `PASSWORD_BREACH_CHECK` | | on | `off` skips the breached-password check |
+| `BCRYPT_ROUNDS` | | `12` | bcrypt cost for new password hashes, 10 to 14; older hashes upgrade at sign-in |
 | `DATA_ENCRYPTION_KEY` | recommended | — | 32 bytes, base64 (`openssl rand -base64 32`): encrypts phone numbers, addresses and bKash numbers. Keep a copy; then `npm run encrypt:existing` |
 | `TURNSTILE_SITE_KEY` | | — | Cloudflare Turnstile site key; with the secret, turns on the bot check |
 | `TURNSTILE_SECRET_KEY` | | — | Its secret. Keep it secret |
@@ -639,15 +641,18 @@ Send the access token as `Authorization: Bearer <token>`.
 | | Access token | Refresh token |
 | --- | --- | --- |
 | Lifetime | 15 minutes | 30 days |
-| Stored | Response body | httpOnly cookie, scoped to `/auth` |
-| Readable by page JavaScript | Yes | No |
+| Stored | The tab's memory only, never browser storage | httpOnly cookie, scoped to `/auth` |
+| Readable by page JavaScript | Only the app's own code, while the tab is open | No |
 | Revocable | Expires quickly | Yes |
 
 `POST /auth/refresh` returns a new access token and rotates the refresh token;
 reusing an exchanged token revokes the whole session family. Only a SHA-256 of
 each refresh token is stored. Logging out or resetting a password revokes
 sessions. The client refreshes on a `401` and retries, sharing one refresh
-across concurrent requests.
+across concurrent requests. A reload or a new tab starts without an access
+token and fetches one from the cookie before its first request; a lock across
+tabs (the Web Locks API) queues their refreshes, so two tabs never present the
+same cookie at once.
 
 The caller's identity always comes from the token, never from the request.
 
