@@ -10,8 +10,10 @@
  *   /image/upload/f_auto,q_auto,c_limit,w_400/v123/folder/id.jpg
  *
  * `f_auto` serves WebP or AVIF to a browser that takes them, `q_auto` picks a
- * quality the eye cannot fault, and `c_limit` never scales an image *up* - a
- * small cover stays its own size rather than being stretched.
+ * quality the eye cannot fault (`q_auto:eco` for thumbnails, a little smaller
+ * still, where the difference does not show at that size), and `c_limit` never
+ * scales an image *up* - a small cover stays its own size rather than being
+ * stretched.
  *
  * Anything that is not a Cloudinary URL is returned untouched: a
  * base64 cover, a placeholder, or the API's own cover endpoint.
@@ -63,7 +65,29 @@ export const sized = (url: string, width: number): string => {
   // set on top, which changes the URL without changing the picture.
   if (/^[a-z]+_[^/]+\//.test(tail)) return url;
 
-  return `${head}f_auto,q_auto,c_limit,w_${width}/${tail}`;
+  const quality = width <= THUMBNAIL_MAX ? 'q_auto:eco' : 'q_auto';
+  return `${head}f_auto,${quality},c_limit,w_${width}/${tail}`;
+};
+
+/** Up to this width a picture is a thumbnail, and takes the smaller quality setting. */
+const THUMBNAIL_MAX = 400;
+
+/** The widths a card's cover is offered in, for the browser to choose from. */
+const CARD_WIDTHS = [160, 240, 320, 400] as const;
+
+/**
+ * How wide a card's cover is drawn: two cards to a phone's row (each image a
+ * little under 40% of the screen), and about 240px at most on anything wider.
+ */
+export const CARD_SIZES = '(max-width: 640px) 40vw, 240px';
+
+/**
+ * A `srcset` for a card's cover, so a phone downloads the size it draws rather
+ * than one for a laptop. Undefined for anything Cloudinary cannot resize.
+ */
+export const cardSrcSet = (url: string | undefined): string | undefined => {
+  if (!url || !isCloudinary(url) || sized(url, CARD_WIDTHS[0]) === url) return undefined;
+  return CARD_WIDTHS.map((width) => `${sized(url, width)} ${width}w`).join(', ');
 };
 
 export default sized;

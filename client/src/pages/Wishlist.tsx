@@ -17,7 +17,7 @@ import PriceTag from '../components/PriceTag.js';
 import { getUserEmail } from '../utils/auth.js';
 import { flagsFor } from '../utils/bookFlags.js';
 import { PLACEHOLDER_IMAGE } from '../utils/safeImageSrc.js';
-import { isCloudinary, sized, IMAGE_WIDTHS } from '../utils/imageUrl.js';
+import { cardSrcSet, isCloudinary, sized, CARD_SIZES, IMAGE_WIDTHS } from '../utils/imageUrl.js';
 import { priceOf } from '../utils/pricing.js';
 import { allowed } from '../utils/consent.js';
 
@@ -214,6 +214,8 @@ export default function Wishlist() {
                         loading="lazy"
                         decoding="async"
                         src={getBookImageSrc(book)}
+                        srcSet={cardSrcSet(book.images?.[0])}
+                        sizes={CARD_SIZES}
                         alt=""
                       />
                     </Link>

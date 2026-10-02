@@ -5,15 +5,25 @@
  */
 import { describe, expect, it } from 'vitest';
 
-import { isCloudinary, sized, IMAGE_WIDTHS } from './imageUrl.js';
+import { cardSrcSet, isCloudinary, sized, IMAGE_WIDTHS } from './imageUrl.js';
 
 const UPLOADED = 'https://res.cloudinary.com/demo/image/upload/v1712345678/bookstorebd/books/abc.jpg';
 
 describe('sized', () => {
   it('asks for a modern format, an automatic quality and the width being drawn', () => {
     expect(sized(UPLOADED, IMAGE_WIDTHS.card)).toBe(
-      'https://res.cloudinary.com/demo/image/upload/f_auto,q_auto,c_limit,w_400/v1712345678/bookstorebd/books/abc.jpg'
+      'https://res.cloudinary.com/demo/image/upload/f_auto,q_auto:eco,c_limit,w_400/v1712345678/bookstorebd/books/abc.jpg'
     );
+    // A book's own page shows the cover large, at full automatic quality.
+    expect(sized(UPLOADED, IMAGE_WIDTHS.detail)).toContain('/f_auto,q_auto,c_limit,w_800/');
+  });
+
+  it('offers a card cover in several widths, for the browser to pick the one it draws', () => {
+    const set = cardSrcSet(UPLOADED) ?? '';
+    expect(set.split(', ').map((entry) => entry.split(' ')[1])).toEqual(['160w', '240w', '320w', '400w']);
+    expect(set).toContain('c_limit,w_160/v1712345678/bookstorebd/books/abc.jpg 160w');
+    expect(cardSrcSet('/book-placeholder.svg')).toBeUndefined();
+    expect(cardSrcSet('https://res.cloudinary.com/demo/image/upload/w_100/v1/x.jpg')).toBeUndefined();
   });
 
   it('never scales a small cover up', () => {

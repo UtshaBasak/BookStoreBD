@@ -45,7 +45,7 @@ import QuantityStepper from '../components/QuantityStepper.js';
 import { getUserEmail } from '../utils/auth.js';
 import { flagsFor } from '../utils/bookFlags.js';
 import { PLACEHOLDER_IMAGE } from '../utils/safeImageSrc.js';
-import { isCloudinary, sized, IMAGE_WIDTHS } from '../utils/imageUrl.js';
+import { cardSrcSet, isCloudinary, sized, CARD_SIZES, IMAGE_WIDTHS } from '../utils/imageUrl.js';
 import { reportError } from '../utils/report.js';
 import PriceTag from '../components/PriceTag.js';
 import { priceOf } from '../utils/pricing.js';
@@ -661,6 +661,8 @@ export default function BookView() {
                                                 loading="lazy"
                                                 decoding="async"
                                                 src={sized(relatedBook.images?.[0] || PLACEHOLDER_IMAGE, IMAGE_WIDTHS.card)}
+                                                srcSet={cardSrcSet(relatedBook.images?.[0])}
+                                                sizes={CARD_SIZES}
                                                 alt={relatedBook.title}
                                             />
                                             <span

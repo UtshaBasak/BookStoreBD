@@ -9,7 +9,7 @@ import { Stars } from './Stars.js';
 import { compactCount, countLabel } from '../utils/compactCount.js';
 import { hasDeal } from '../utils/pricing.js';
 import { PLACEHOLDER_IMAGE } from '../utils/safeImageSrc.js';
-import { sized, IMAGE_WIDTHS } from '../utils/imageUrl.js';
+import { cardSrcSet, sized, CARD_SIZES, IMAGE_WIDTHS } from '../utils/imageUrl.js';
 
 const capitalise = (value: string): string => value.charAt(0).toUpperCase() + value.slice(1);
 
@@ -50,6 +50,8 @@ export default function BookCard({
         <Link to={href} className="bc-cover-link" aria-hidden="true" tabIndex={-1}>
           <img
             src={sized(book.images?.[0] || PLACEHOLDER_IMAGE, IMAGE_WIDTHS.card)}
+            srcSet={cardSrcSet(book.images?.[0])}
+            sizes={CARD_SIZES}
             alt=""
             loading="lazy"
             decoding="async"
