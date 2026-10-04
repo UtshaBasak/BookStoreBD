@@ -2,7 +2,7 @@
 
 # 📚 BookStoreBD
 
-**A full-stack marketplace for new and second-hand books in Bangladesh — role-based access, order tracking, real-time buyer–seller chat, and search that works in Bangla and English.**
+**A full-stack marketplace for new and second-hand books in Bangladesh — built with MERN and TypeScript, it has role-based access, Bangla–English search, voice search, order tracking, real-time buyer–seller chat, a wanted board, reviews, admin analytics, dark mode and many more!**
 
 🌐 **Live site:** [bookstorebd-loum.onrender.com](https://bookstorebd-loum.onrender.com)
 
