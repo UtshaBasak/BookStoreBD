@@ -115,7 +115,7 @@ describe('app sign-in', () => {
     vi.stubGlobal(
       'fetch',
       vi.fn((input: string | URL | Request, init?: RequestInit) =>
-        String(input).startsWith('https://challenges.cloudflare.com')
+        new URL(String(input)).origin === 'https://challenges.cloudflare.com'
           ? Promise.resolve(new Response(JSON.stringify({ success: String(init?.body).includes('response=good') })))
           : realFetch(input, init)
       )

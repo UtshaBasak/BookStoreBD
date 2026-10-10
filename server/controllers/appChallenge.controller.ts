@@ -25,7 +25,8 @@ export const appChallengePage: RequestHandler = (req, res, next) => {
     next();
     return;
   }
-  const theme = req.query.theme === 'dark' || req.query.theme === 'light' ? req.query.theme : 'auto';
+  // Literals only: nothing from the request is written into the page.
+  const theme = req.query.theme === 'dark' ? 'dark' : req.query.theme === 'light' ? 'light' : 'auto';
   const background = theme === 'dark' ? '#0f0d18' : '#f8f7fc';
   const html = `<!doctype html>
 <html lang="en">

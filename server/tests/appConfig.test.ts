@@ -58,7 +58,8 @@ const github = (answer: (url: string) => Response | Promise<Response>) => {
     'fetch',
     vi.fn((input: string | URL | Request, init?: RequestInit) => {
       const url = String(input);
-      if (!url.startsWith('https://api.github.com') && !url.startsWith('https://github.com')) return realFetch(input, init);
+      const { origin } = new URL(url);
+      if (origin !== 'https://api.github.com' && origin !== 'https://github.com') return realFetch(input, init);
       calls.push(url);
       return Promise.resolve(answer(url));
     })
