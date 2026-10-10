@@ -49,6 +49,6 @@
   },
   "homepage": "https://github.com/UtshaBasak/BookStoreBD#readme",
   "devDependencies": {
-    "concurrently": "^10.0.5"
+    "concurrently": "^10.0.6"
   }
 }
