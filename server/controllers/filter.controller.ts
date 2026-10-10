@@ -469,6 +469,9 @@ export const PopularSearches: RequestHandler = async (_req, res) => {
   }
 };
 
+/** The fields a suggestion reads from a book. */
+type SuggestBook = Pick<LeanBook, '_id' | 'title' | 'author' | 'images' | 'price' | 'salePrice' | 'discountPercent' | 'stock'>;
+
 /**
  * What the search box offers while somebody types: a few books and sellers.
  *
@@ -489,7 +492,9 @@ export const Suggest: RequestHandler = async (req, res) => {
           )
             .sort({ createdAt: -1 })
             .limit(60)
-            .lean()
+            // Named rather than inferred: a `$slice` projection is not an
+            // inclusion Mongoose's types can see, so `images` would vanish.
+            .lean<SuggestBook[]>()
         : Promise.resolve([]),
       sellerHits(text, sellerLimit),
       authorHits(text, 2),
