@@ -1178,3 +1178,118 @@ export interface NotificationPage {
   pageSize: number;
   pageCount: number;
 }
+
+// ---------------------------------------------------------------------------
+// Android app (/api/v1/app)
+//
+// The app calls the same endpoints as the website, under /api/v1, plus these.
+// It names itself on every request with `X-Client: android/<versionCode>`.
+// ---------------------------------------------------------------------------
+
+/** The newest APK on GitHub Releases. */
+export interface AppRelease {
+  versionName: string;
+  /** Derived from the version name as the build does: 1.2.3 is 10203. */
+  versionCode: number;
+  apkUrl: string;
+  apkSize: number;
+  /** Lower-case hex; the app checks the download against it before installing. */
+  sha256: string;
+  /** The release notes, in Markdown. */
+  notes: string;
+  pageUrl: string;
+  publishedAt: IsoDate | null;
+}
+
+/** GET /api/v1/app/config - everything the app needs before its first screen. */
+export interface AppConfig {
+  android: {
+    /** Older builds are answered 426 with `code: 'app-update-required'`. Zero serves every build. */
+    minVersionCode: number;
+    latest: AppRelease | null;
+  };
+  auth: {
+    /** Cloudflare Turnstile's site key, when the bot check is on. */
+    captchaSiteKey: string | null;
+    /** The page that runs the bot check in a web view, when it is on. */
+    challengeUrl: string | null;
+    google: boolean;
+    /** The web client the app asks Google for an ID token for (Credential Manager's server client id). */
+    googleClientId: string | null;
+  };
+  shop: {
+    currency: 'BDT';
+    delivery: { insideDhaka: number; outsideDhaka: number; daysInsideDhaka: number; daysOutsideDhaka: number };
+    returnWindowDays: number;
+    sellerFeePercent: number;
+    categories: { name: string; emoji: string; items: string[] }[];
+    divisions: { name: string; districts: string[] }[];
+  };
+  links: { site: string; privacy: string; terms: string; returns: string; howItWorks: string };
+}
+
+/**
+ * The phone a session starts on. `publicKey` is the public half of a P-256
+ * key made in the phone's keystore (base64 SPKI); every refresh is signed
+ * with its private half.
+ */
+export interface AppDevice {
+  publicKey: string;
+  /** Shown to the owner, e.g. "Samsung Galaxy A15". */
+  name: string;
+  /** A random id made when the app was installed. */
+  installId: string;
+}
+
+/** POST /api/v1/app/auth/signin */
+export interface AppSignInRequest extends SignInRequest {
+  device: AppDevice;
+}
+
+/** POST /api/v1/app/auth/signin/verify */
+export interface AppVerifySignInRequest extends VerifyOtpRequest {
+  device: AppDevice;
+}
+
+/** POST /api/v1/app/auth/signup */
+export interface AppSignUpRequest extends SignUpRequest {
+  device: AppDevice;
+}
+
+/** GET /api/v1/app/auth/nonce */
+export interface AppNonceResponse {
+  nonce: string;
+}
+
+/** POST /api/v1/app/auth/google - an ID token from Credential Manager, requested with that nonce. */
+export interface AppGoogleSignInRequest {
+  idToken: string;
+  nonce: string;
+  device: AppDevice;
+}
+
+/**
+ * The app's session. The refresh token has no cookie to travel in, so it is
+ * here; the app keeps it encrypted with the Android keystore.
+ */
+export interface AppSessionResponse extends SessionResponse {
+  refreshToken: string;
+  refreshExpiresAt: IsoDate;
+}
+
+/** Google sign-in with two-step sign-in on: the code goes to `email`, completed at /signin/verify. */
+export interface AppTwoFactorChallenge extends TwoFactorChallenge {
+  email?: string;
+}
+
+export type AppSignInResponse = AppSessionResponse | AppTwoFactorChallenge;
+
+/**
+ * POST /api/v1/app/auth/refresh, /logout and /logout-others. A refresh also
+ * carries `X-Device-Timestamp` (milliseconds) and `X-Device-Signature`: an
+ * ECDSA P-256 SHA-256 signature, base64 DER, over the method, the path, the
+ * timestamp and the SHA-256 hex of the refresh token, one per line.
+ */
+export interface AppRefreshRequest {
+  refreshToken: string;
+}

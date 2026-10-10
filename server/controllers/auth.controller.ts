@@ -5,7 +5,7 @@ import bcryptjs from 'bcryptjs';
 import { hashPassword, upgradeHashIfNeeded } from '../utils/passwordHash.js';
 import type { NextFunction, Request, RequestHandler, Response } from 'express';
 
-import type { SessionResponse, TwoFactorChallenge } from '@shared/api.js';
+import type { AppSessionResponse, SessionResponse, TwoFactorChallenge } from '@shared/api.js';
 
 import User, { type UserDocument } from '../models/user.model.js';
 import { errorHandler, isDuplicateKeyError } from '../utils/error.js';
@@ -26,12 +26,14 @@ import {
 } from '../utils/authCookies.js';
 import RefreshToken from '../models/RefreshToken.model.js';
 import type {
+  AppRefreshBody,
   ResetPasswordBody,
   SendOtpBody,
   SigninBody,
   SignupBody,
   VerifyOtpBody,
 } from '../schemas/index.js';
+import { verifyDeviceSignature } from '../utils/deviceKey.js';
 import { createLogger } from '../config/logger.js';
 import { welcomeNewMember } from '../utils/welcome.js';
 import { creditInvites } from '../utils/invites.js';
@@ -86,8 +88,49 @@ const sessionBody = (user: UserDocument): SessionResponse => ({
   },
 });
 
-/** Starts a session: a new refresh family plus a fresh access token. */
-export const startSession = async (req: DeviceRequest, res: Response, user: UserDocument): Promise<SessionResponse> => {
+/**
+ * The phone an Android sign-in comes from, put on `res.locals.appDevice` by
+ * the app's routes (routes/app.route.ts). Its absence means the website.
+ */
+export interface AppSessionDevice {
+  /** The public half of the phone's keystore key: base64 SPKI, P-256. */
+  publicKey: string;
+  name: string;
+  installId: string;
+}
+
+const appDeviceOf = (res: Response): AppSessionDevice | undefined =>
+  (res.locals as { appDevice?: AppSessionDevice }).appDevice;
+
+/** The app's session: the same body as the website's, plus the refresh token, which has no cookie to travel in. */
+const appSessionBody = (user: UserDocument, issued: { token: string; expiresAt: Date }): AppSessionResponse => ({
+  ...sessionBody(user),
+  refreshToken: issued.token,
+  refreshExpiresAt: issued.expiresAt.toISOString(),
+});
+
+/**
+ * Starts a session: a new refresh family plus a fresh access token.
+ *
+ * For the website the refresh token goes into the httpOnly cookie. For the
+ * Android app it is returned in the body, bound to the phone's key, and the
+ * app keeps it encrypted with the Android keystore.
+ */
+export const startSession = async (
+  req: DeviceRequest,
+  res: Response,
+  user: UserDocument
+): Promise<SessionResponse | AppSessionResponse> => {
+  const device = appDeviceOf(res);
+  if (device) {
+    const issued = await issueRefreshToken(user._id, undefined, {
+      client: 'android',
+      deviceKey: device.publicKey,
+      deviceName: device.name,
+    });
+    await noteDevice(req, res, user, { installId: device.installId, deviceName: device.name });
+    return appSessionBody(user, issued);
+  }
   const { token: refresh } = await issueRefreshToken(user._id);
   setRefreshCookie(res, refresh);
   // A browser this account has not been signed in from: its owner is told.
@@ -560,6 +603,84 @@ export const logout: RequestHandler = async (req, res, next) => {
     clearRefreshCookie(res);
     // Always 204, whether or not there was a session to end.
     res.status(204).end();
+  } catch (error) {
+    next(error);
+  }
+};
+
+// ------------------------------------------------------------------ Android app
+//
+// The app has no cookie jar, so its refresh token travels in the request body,
+// and every refresh is signed with a key in the phone's keystore. These
+// endpoints accept only Android tokens, and the website's only website tokens.
+
+const SESSION_EXPIRED = 'Session expired, please sign in again';
+
+/** The path the app signed: the API prefix and all, without a query. */
+const signedPath = (req: Request): string => `${req.baseUrl}${req.path}`;
+
+/** Exchanges an Android refresh token, signed by its phone, for a new session. */
+export const appRefresh: RequestHandler = async (req, res, next) => {
+  try {
+    const { refreshToken } = req.body as AppRefreshBody;
+    const result = await rotateRefreshToken(refreshToken, {
+      client: 'android',
+      provesDevice: (deviceKey) =>
+        verifyDeviceSignature({
+          deviceKey,
+          signature: req.get('x-device-signature'),
+          timestamp: req.get('x-device-timestamp'),
+          method: req.method,
+          path: signedPath(req),
+          refreshToken,
+        }),
+    });
+
+    if (!result.ok) {
+      log.info({ reason: result.reason }, 'App refresh rejected');
+      res.status(401).json({ message: SESSION_EXPIRED });
+      return;
+    }
+
+    const user = await User.findById(result.userId);
+    if (!user) {
+      await revokeFamily(result.family);
+      res.status(401).json({ message: SESSION_EXPIRED });
+      return;
+    }
+
+    res.status(200).json(appSessionBody(user, result));
+  } catch (error) {
+    next(error);
+  }
+};
+
+/** Ends the app session that presents this token. Always 204, like the website's. */
+export const appLogout: RequestHandler = async (req, res, next) => {
+  try {
+    const { refreshToken } = req.body as AppRefreshBody;
+    const stored = await RefreshToken.findOne({ tokenHash: hashToken(refreshToken), client: 'android' });
+    if (stored) await revokeFamily(stored.family);
+    res.status(204).end();
+  } catch (error) {
+    next(error);
+  }
+};
+
+/** Signs out every other device, keeping the phone that asks. */
+export const appLogoutOthers: RequestHandler = async (req, res, next) => {
+  try {
+    const user = await User.findById(actingUser(req).id, { _id: 1 });
+    if (!user) {
+      res.status(404).json({ message: 'Account not found' });
+      return;
+    }
+    const { refreshToken } = req.body as AppRefreshBody;
+    const ended = await revokeOtherSessions(user._id, refreshToken);
+    res.status(200).json({
+      message: ended ? 'Signed out everywhere else.' : 'You were not signed in anywhere else.',
+      ended,
+    });
   } catch (error) {
     next(error);
   }

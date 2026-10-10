@@ -12,7 +12,29 @@
  */
 export const API_PREFIX = '/api';
 
-export const ROOT_PATHS: readonly string[] = ['/health', '/robots.txt', '/sitemap.xml', '/llms.txt', '/.well-known/security.txt'];
+/**
+ * The same API, versioned, for clients that cannot all be updated at once: the
+ * Android app calls only these paths. Version 1 only ever gains fields and
+ * endpoints; a change that would break an installed app goes to /api/v2, with
+ * v1 kept alongside it (docs/API-VERSIONING.md).
+ */
+export const API_V1_PREFIX = `${API_PREFIX}/v1`;
+
+/**
+ * Served from the root rather than under the API prefix. The App Links file
+ * must be at that address for Android to find it, and the app's security check
+ * is a page on this site because Turnstile only runs on its registered host.
+ */
+export const ROOT_PATHS: readonly string[] = [
+  '/health',
+  '/robots.txt',
+  '/sitemap.xml',
+  '/llms.txt',
+  '/.well-known/security.txt',
+  '/.well-known/assetlinks.json',
+  '/app/challenge',
+  '/app/challenge.js',
+];
 
 /** True when a path belongs to the API rather than to a client-side route. */
 export const isApiPath = (pathname: string): boolean =>

@@ -25,6 +25,24 @@ const RefreshTokenSchema = new Schema(
 
     // Set when this token is exchanged, so replay can be detected.
     rotatedAt: { type: Date, default: null },
+
+    // The hash of the token this one was exchanged for.
+    replacedBy: { type: String, default: null },
+
+    /*
+     * Which kind of client holds it. A website session lives in an httpOnly
+     * cookie; an Android session is sent in request bodies and tied to a key in
+     * the phone's keystore. Each is accepted only by its own endpoints, so a
+     * script on the website can never turn its cookie into a token it could
+     * carry away.
+     */
+    client: { type: String, enum: ['web', 'android'], default: 'web' },
+
+    // Android only: the public half of the phone's key (base64 SPKI, P-256).
+    deviceKey: { type: String, default: null },
+
+    // Android only: the phone, as the app describes it, for the owner's lists.
+    deviceName: { type: String, default: '' },
   },
   { timestamps: true }
 );

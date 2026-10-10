@@ -58,6 +58,7 @@ hardening, none of which blocks a launch:
 | S8 | Personal fields readable in a copy of the database | Medium | Resolved |
 | S9 | Password guessing and automated sign-ups | Medium | Resolved |
 | S10 | Account takeover going unnoticed | Medium | Resolved |
+| S11 | Sessions for the Android app, which has no cookie jar | Medium | Resolved |
 
 ### S8 · Encryption at rest
 
@@ -84,6 +85,41 @@ owner. Changing the password or the bKash payout number needs the current
 password and sends a notice; a new password ends every other session, and
 **Sign out everywhere else** is on the profile. `/.well-known/security.txt`
 says where to report a vulnerability.
+
+### S11 · Android app sessions
+
+The Android app cannot hold the httpOnly refresh cookie, so it signs in at
+`/api/v1/app/auth/*` and receives the refresh token in the response body. The
+rules are the website's (Turnstile, the five-try lock, two-step sign-in,
+uniform failure messages); what changes is how the token is protected:
+
+- **Bound to the phone.** At sign-in the app makes a P-256 key pair in the
+  Android keystore, where the private key cannot be read out, and sends the
+  public key. Every refresh is signed with it, over the method, path, a
+  timestamp within five minutes and a hash of the token
+  (`server/utils/deviceKey.ts`). A refresh token copied off the phone is no
+  use without the key.
+- **Kept apart from the website's.** Each stored token records whether it
+  belongs to the website or the app, and each endpoint accepts only its own
+  kind. A script injected into the website cannot exchange its cookie for a
+  token it could carry away, and an app token cannot be planted as a cookie.
+- **Weak connections.** A refresh whose answer is lost is retried with the old
+  token, which would otherwise read as theft and end the session. From the
+  same phone, correctly signed, within 60 seconds, and only while the token
+  issued in its place is unused, the retry replaces that token instead. Any
+  other reuse ends the whole session family, as on the website.
+- **Google sign-in** takes an ID token from Credential Manager. Unlike the
+  website's redirect, the token comes from the phone, so its signature is
+  checked against Google's published keys (`jose`), with the issuer, audience,
+  expiry, a verified address and a single-use nonce issued by this server.
+- **New-device e-mails** use a random installation id in place of the device
+  cookie, and name the phone.
+- **The bot check** is the same Turnstile, on a page of this site
+  (`/app/challenge`) that the app opens in a web view; no inline script, under
+  the site's Content Security Policy.
+- Password resets and **Sign out everywhere else** end app sessions too.
+
+Tests in `server/tests/appSession.test.ts` and `server/tests/appGoogle.test.ts`.
 
 ### S1 · Security response headers
 

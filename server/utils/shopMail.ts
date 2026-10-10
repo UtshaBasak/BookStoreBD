@@ -347,15 +347,19 @@ export const wantedFoundEmail = (title: string, author: string, link: string): E
     ],
   });
 
-/** The account was signed in to from a browser it has not been used in before. */
-export const newSignInEmail = (browser: string, when: string): Email =>
+/** The account was signed in to from a browser, or a phone with the app, it has not been used in before. */
+export const newSignInEmail = (browser: string, when: string, kind: 'browser' | 'app' = 'browser'): Email =>
   noticeEmail({
     subject: 'New sign-in to your BookStoreBD account',
     heading: 'A new sign-in to your account',
     preheader: `${browser}, ${when}`,
-    lead: ['Your BookStoreBD account was just signed in to from a browser it has not been used in before.'],
+    lead: [
+      kind === 'app'
+        ? 'Your BookStoreBD account was just signed in to from the Android app, on a phone it has not been used on before.'
+        : 'Your BookStoreBD account was just signed in to from a browser it has not been used in before.',
+    ],
     facts: [
-      ['Browser', browser],
+      [kind === 'app' ? 'Device' : 'Browser', browser],
       ['When', when],
     ],
     button: { label: 'Review your account', path: '/profile#security' },

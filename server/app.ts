@@ -10,8 +10,11 @@ import helmet from 'helmet';
 import { config } from './config/env.js';
 import { createLogger } from './config/logger.js';
 import { corsOptions } from './config/cors.js';
-import { isApiPath, API_PREFIX } from './config/apiPaths.js';
-import { llmsTxt, robots, securityTxt, sitemap } from './controllers/seo.controller.js';
+import { isApiPath, API_PREFIX, API_V1_PREFIX } from './config/apiPaths.js';
+import { assetLinks, llmsTxt, robots, securityTxt, sitemap } from './controllers/seo.controller.js';
+import { appChallengePage, appChallengeScript } from './controllers/appChallenge.controller.js';
+import appRouter, { appAuthRouter } from './routes/app.route.js';
+import { requireSupportedApp } from './middleware/appClient.js';
 import { publicSiteUrl } from './config/siteUrl.js';
 import AddBook from './models/AddBook.model.js';
 import { BOOK_PAGE, renderBookPage, renderSitePage, templateLoader, type PreviewBook } from './utils/sharePreview.js';
@@ -121,26 +124,48 @@ export const createApp = ({
   // Where to report a vulnerability (RFC 9116).
   app.get('/.well-known/security.txt', crawlerLimiter, securityTxt);
 
+  // Android App Links, before the general limiter for the same reason as the
+  // crawler files: Android's verifier is not the traffic it exists to stop.
+  app.get('/.well-known/assetlinks.json', crawlerLimiter, assetLinks);
+
   app.use(apiLimiter);
 
-  app.use(`${API_PREFIX}/auth`, authLimiter, authRouter);
-  app.use(`${API_PREFIX}/admin`, writeLimiter, adminRouter);
-  app.use(`${API_PREFIX}/audit`, auditRouter);
-  app.use(`${API_PREFIX}/book`, bookRouter);
-  app.use(`${API_PREFIX}/cart`, cartRouter);
-  app.use(`${API_PREFIX}/chat`, writeLimiter, chatRouter);
-  app.use(`${API_PREFIX}/client-error`, clientErrorRouter);
-  app.use(`${API_PREFIX}/filter`, filterRouter);
-  app.use(`${API_PREFIX}/notification`, notificationRouter);
-  app.use(`${API_PREFIX}/order`, orderRouter);
-  app.use(`${API_PREFIX}/purchase`, purchaseRouter);
-  app.use(`${API_PREFIX}/return`, writeLimiter, returnRouter);
-  app.use(`${API_PREFIX}/review`, writeLimiter, reviewRouter);
-  app.use(`${API_PREFIX}/seller-review`, writeLimiter, sellerReviewRouter);
-  app.use(`${API_PREFIX}/upload`, writeLimiter, uploadRouter);
-  app.use(`${API_PREFIX}/user`, writeLimiter, userRouter);
-  app.use(`${API_PREFIX}/wishlist`, wishlistRouter);
-  app.use(`${API_PREFIX}/wanted`, writeLimiter, wantedRouter);
+  // The Android app's bot check, a page on this site (see the controller).
+  app.get('/app/challenge', appChallengePage);
+  app.get('/app/challenge.js', appChallengeScript);
+
+  // Every endpoint, once. The limiters are the same instances whichever prefix
+  // a request arrives under, so the two prefixes share one budget.
+  const api = express.Router();
+  api.use('/auth', authLimiter, authRouter);
+  api.use('/admin', writeLimiter, adminRouter);
+  api.use('/audit', auditRouter);
+  api.use('/book', bookRouter);
+  api.use('/cart', cartRouter);
+  api.use('/chat', writeLimiter, chatRouter);
+  api.use('/client-error', clientErrorRouter);
+  api.use('/filter', filterRouter);
+  api.use('/notification', notificationRouter);
+  api.use('/order', orderRouter);
+  api.use('/purchase', purchaseRouter);
+  api.use('/return', writeLimiter, returnRouter);
+  api.use('/review', writeLimiter, reviewRouter);
+  api.use('/seller-review', writeLimiter, sellerReviewRouter);
+  api.use('/upload', writeLimiter, uploadRouter);
+  api.use('/user', writeLimiter, userRouter);
+  api.use('/wishlist', wishlistRouter);
+  api.use('/wanted', writeLimiter, wantedRouter);
+
+  // /api/v1: the versioned API the Android app calls, with the app's own
+  // endpoints beside it. Registered before /api, which would otherwise see
+  // these requests first as an unknown `/v1/...` path.
+  app.use(API_V1_PREFIX, requireSupportedApp);
+  app.use(`${API_V1_PREFIX}/app/auth`, authLimiter, appAuthRouter);
+  app.use(`${API_V1_PREFIX}/app`, appRouter);
+  app.use(API_V1_PREFIX, api);
+
+  // /api: the website's, exactly as before.
+  app.use(API_PREFIX, api);
 
   // ------------------------------------------------------------------------
   // Single-page app

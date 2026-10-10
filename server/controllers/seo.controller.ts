@@ -4,6 +4,7 @@ import AddBook from '../models/AddBook.model.js';
 import { publicSiteUrl } from '../config/siteUrl.js';
 import { createLogger } from '../config/logger.js';
 import { DELIVERY, RETURN_WINDOW_DAYS, SELLER_FEE_PERCENT } from '../config/commerce.js';
+import { androidCertFingerprints, androidPackageName } from '../config/android.js';
 
 const log = createLogger('seo');
 
@@ -189,4 +190,23 @@ export const securityTxt: RequestHandler = (req, res) => {
     '',
   ].join('\n');
   res.type('text/plain').set('Cache-Control', 'public, max-age=86400').send(text);
+};
+
+/**
+ * `/.well-known/assetlinks.json`: Android App Links. It tells Android that the
+ * BookStoreBD app, signed with these certificates, may open this site's links
+ * - a shared book or shop opens in the app when it is installed, and on the
+ * website otherwise. See config/android.ts.
+ */
+export const assetLinks: RequestHandler = (_req, res) => {
+  res.set('Cache-Control', 'public, max-age=3600').json([
+    {
+      relation: ['delegate_permission/common.handle_all_urls'],
+      target: {
+        namespace: 'android_app',
+        package_name: androidPackageName(),
+        sha256_cert_fingerprints: androidCertFingerprints(),
+      },
+    },
+  ]);
 };

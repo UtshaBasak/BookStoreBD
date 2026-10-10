@@ -498,6 +498,10 @@ unprivileged with `NODE_ENV=production` and a health check.
 | `GOOGLE_CLIENT_ID` | | — | A Google OAuth "Web application" client, for Continue with Google |
 | `GOOGLE_CLIENT_SECRET` | | — | Its secret. Keep it secret |
 | `GOOGLE_REDIRECT_URI` | | `<site>/api/auth/google/callback` | Only when the callback address differs from the site's |
+| `ANDROID_MIN_VERSION_CODE` | | `0` | The oldest Android build the API serves (1.2.3 is 10203); older builds are asked to update |
+| `ANDROID_CERT_SHA256` | | the release certificate | Signing-certificate fingerprints for App Links, comma-separated |
+| `ANDROID_PACKAGE_NAME` | | `io.github.utshabasak.bookstorebd` | The Android app's package name |
+| `ANDROID_RELEASES_REPO` | | `UtshaBasak/BookStoreBD-Android` | Where the app's update check looks for releases |
 | `LOG_LEVEL` | | `debug` dev / `info` prod | pino level |
 | `SENTRY_DSN` | | — | Enables error reporting |
 | `SENTRY_TRACES_SAMPLE_RATE` | | `0` | Fraction of transactions traced |
@@ -615,6 +619,11 @@ keeps pages such as `/cart` and endpoints such as `/api/cart` apart.
 
 All routes are rate-limited per IP, with a tighter limit on `/auth`; responses
 carry `RateLimit-*` headers and an exhausted limit returns `429`.
+
+The same endpoints also answer under **`/api/v1`**, the versioned API the
+[Android app](https://github.com/UtshaBasak/BookStoreBD-Android) calls. Version
+1 only gains endpoints and fields, so installed apps keep working; the rules
+are in [`docs/API-VERSIONING.md`](docs/API-VERSIONING.md).
 
 ### Validation
 
@@ -855,6 +864,34 @@ profile.
 | `DELETE` | `/chat/delete` | Delete a conversation |
 | `POST` | `/client-error` | A browser error report (rate-limited) |
 
+### Android app — `/v1/app`
+
+The app uses the endpoints above under `/api/v1`, plus these. It names itself
+on every request with `X-Client: android/<versionCode>`; builds older than
+`ANDROID_MIN_VERSION_CODE` are answered `426` with `code: "app-update-required"`.
+
+| Method | Endpoint | Description |
+| --- | --- | --- |
+| `GET` | `/v1/app/config` | Minimum and latest app versions (from GitHub Releases, cached), sign-in options, categories, delivery areas and charges |
+| `POST` | `/v1/app/auth/signin` | Sign in, with the phone's `device`; the bot check and two-step sign-in apply as on the website |
+| `POST` | `/v1/app/auth/signin/verify` | Finish a two-step sign-in |
+| `POST` | `/v1/app/auth/signup` | Create an account (requires a verified one-time code) |
+| `GET` | `/v1/app/auth/nonce` | A single-use nonce for one Google sign-in |
+| `POST` | `/v1/app/auth/google` | Sign in or up with a Google ID token from Android's Credential Manager |
+| `POST` | `/v1/app/auth/refresh` | Rotate the refresh token, signed by the phone's key |
+| `POST` | `/v1/app/auth/logout` | End the app session |
+| `POST` | `/v1/app/auth/logout-others` | End every other session, keeping this phone |
+
+App sessions differ from the website's in where the refresh token lives, not
+in the rules:
+
+| | Website | Android app |
+| --- | --- | --- |
+| Refresh token | httpOnly cookie | Response body, kept encrypted with the Android keystore |
+| Bound to | The browser's cookie jar | A P-256 key in the phone's keystore, which signs every refresh |
+| A retried refresh | Ends the session (tabs queue with Web Locks) | Allowed once within 60 seconds, from the same phone, if the token it replaced was never used |
+| Accepted by | `/auth/refresh` and `/auth/logout` only | `/v1/app/auth/*` only |
+
 ### Site files
 
 | Method | Endpoint | Description |
@@ -863,6 +900,8 @@ profile.
 | `GET` | `/sitemap.xml` | Every public page and book |
 | `GET` | `/llms.txt` | A Markdown summary of the shop for AI assistants |
 | `GET` | `/.well-known/security.txt` | Where to report a vulnerability (RFC 9116) |
+| `GET` | `/.well-known/assetlinks.json` | Android App Links: shared book and shop links open in the app |
+| `GET` | `/app/challenge` | The Turnstile bot check, as a page the Android app opens in a web view |
 | `GET` | `/book/:id` | The page, with the book's preview tags in its head |
 
 ---
@@ -949,7 +988,7 @@ the hardening planned next.
 | 💳 **Online payment** | bKash, Nagad and card payments alongside cash on delivery, with refunds to the same account |
 | 🚚 **Live courier tracking** | Delivery status straight from the courier |
 | 🔔 **SMS alerts** | Order and price alerts by SMS, chosen alongside the notification and e-mail settings |
-| 📲 **Mobile app** | The shop as an installable app for Android and iOS |
+| 📲 **Mobile app** | The shop as a native Android app, in progress at [BookStoreBD-Android](https://github.com/UtshaBasak/BookStoreBD-Android); iOS later |
 | 🤖 **Interactive chatbot** | A book assistant in Bangla and English: finds books from a description, answers delivery and return questions, tracks orders, and hands over to the seller's chat |
 | 🌐 **Bangla interface** | The whole site in Bangla or English, switched with one tap and remembered |
 | 📅 **Pre-orders** | Reserve new releases before they arrive, especially around the Ekushey Boi Mela |

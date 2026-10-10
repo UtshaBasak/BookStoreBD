@@ -2,7 +2,7 @@ import { createHash, createHmac, randomBytes, timingSafeEqual } from 'crypto';
 
 import type { Request, RequestHandler, Response } from 'express';
 
-import User from '../models/user.model.js';
+import User, { type UserDocument } from '../models/user.model.js';
 import { API_PREFIX } from '../config/apiPaths.js';
 import { config, jwtSecret } from '../config/env.js';
 import { createLogger } from '../config/logger.js';
@@ -132,12 +132,40 @@ const usernameFor = async (name: string, email: string): Promise<string> => {
 };
 
 /** What Google says about the person, from the ID token it just handed over. */
-interface GoogleIdentity {
+export interface GoogleIdentity {
   email: string;
   emailVerified: boolean;
   name: string;
   sub: string;
 }
+
+/**
+ * The account a verified Google address signs in to: the one already
+ * registered with it, linked to Google if it was not yet, or a new one with
+ * the same welcome as any other and no password until its owner sets one.
+ * Shared by the website's redirect and the Android app.
+ */
+export const googleAccountFor = async (identity: GoogleIdentity): Promise<UserDocument> => {
+  let user = await User.findOne({ email: identity.email });
+  if (!user) {
+    user = await User.create({
+      username: await usernameFor(identity.name, identity.email),
+      email: identity.email,
+      // Nobody knows this one; they can set their own from the profile.
+      password: hashPassword(base64url(randomBytes(32))),
+      passwordSet: false,
+      googleId: identity.sub,
+    });
+    await applyAdminBootstrap(user);
+    await welcomeNewMember(user);
+    await creditInvites(user);
+    log.info('New account through Google');
+  } else if (!user.googleId) {
+    user.googleId = identity.sub;
+    await user.save();
+  }
+  return user;
+};
 
 /**
  * The token came straight from Google's token endpoint over TLS, in exchange
@@ -193,24 +221,7 @@ export const finishGoogleSignIn: RequestHandler = async (req, res) => {
     }
     if (!identity.emailVerified) return fail(res, 'unverified');
 
-    let user = await User.findOne({ email: identity.email });
-    if (!user) {
-      user = await User.create({
-        username: await usernameFor(identity.name, identity.email),
-        email: identity.email,
-        // Nobody knows this one; they can set their own from the profile.
-        password: hashPassword(base64url(randomBytes(32))),
-        passwordSet: false,
-        googleId: identity.sub,
-      });
-      await applyAdminBootstrap(user);
-      await welcomeNewMember(user);
-      await creditInvites(user);
-      log.info('New account through Google');
-    } else if (!user.googleId) {
-      user.googleId = identity.sub;
-      await user.save();
-    }
+    const user = await googleAccountFor(identity);
 
     res.clearCookie(STATE_COOKIE, cookieOptions());
 

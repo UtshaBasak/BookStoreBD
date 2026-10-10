@@ -71,6 +71,35 @@ export const authSchemas = {
   },
 };
 
+// ---------------------------------------------------------------- Android app
+/**
+ * The phone a session starts on: the public half of a P-256 key made in its
+ * keystore (base64 SPKI), its name for the owner's e-mails, and a random id
+ * made when the app was installed.
+ */
+const appDevice = z.object({
+  publicKey: z.string().regex(/^[A-Za-z0-9+/]+={0,2}$/, 'Must be base64').min(80).max(512),
+  name: z.string().trim().min(1).max(80),
+  installId: z.string().regex(/^[\w-]{20,64}$/, 'Must be an installation id'),
+});
+
+/** An Android refresh token: the same opaque string as the website's cookie. */
+const refreshToken = z.string().min(20).max(200);
+
+export const appSchemas = {
+  signin: { body: authSchemas.signin.body.extend({ device: appDevice }) },
+  signinVerify: { body: authSchemas.verifyOtp.body.extend({ device: appDevice }) },
+  signup: { body: authSchemas.signup.body.extend({ device: appDevice }) },
+  google: {
+    body: z.object({
+      idToken: z.string().min(20).max(4096),
+      nonce: z.string().min(20).max(200),
+      device: appDevice,
+    }),
+  },
+  refresh: { body: z.object({ refreshToken }) },
+};
+
 // ---------------------------------------------------------------- book
 export const bookSchemas = {
   byId: { params: objectIdParam },
@@ -620,6 +649,9 @@ export type SigninBody = z.infer<typeof authSchemas.signin.body>;
 export type SendOtpBody = z.infer<typeof authSchemas.sendOtp.body>;
 export type VerifyOtpBody = z.infer<typeof authSchemas.verifyOtp.body>;
 export type ResetPasswordBody = z.infer<typeof authSchemas.resetPassword.body>;
+export type AppDeviceBody = z.infer<typeof appDevice>;
+export type AppGoogleBody = z.infer<typeof appSchemas.google.body>;
+export type AppRefreshBody = z.infer<typeof appSchemas.refresh.body>;
 
 export type IdParams = z.infer<typeof objectIdParam>;
 export type EmailParams = z.infer<typeof emailParam>;

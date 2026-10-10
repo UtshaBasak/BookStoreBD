@@ -58,11 +58,28 @@ export const describeBrowser = (agent: string): string => {
 /** What is needed from the request: the cookie, and the browser's description. */
 export type DeviceRequest = Pick<Request, 'cookies' | 'get'>;
 
-/** Notes the browser a session is starting in, and e-mails the owner if it is new. Never throws. */
-export const noteDevice = async (req: DeviceRequest, res: Response, user: UserDocument): Promise<void> => {
+/**
+ * The Android app, which has no cookie jar: a random id made when the app was
+ * installed, and the phone's name as the app reports it.
+ */
+export interface AppDevice {
+  installId: string;
+  deviceName: string;
+}
+
+/** "Samsung Galaxy A15", with anything that is not part of a name taken out. */
+export const describeAppDevice = (deviceName: string): string =>
+  deviceName.replace(/[^\p{L}\p{N} ()+._-]/gu, '').trim().slice(0, 60) || 'An Android phone';
+
+/**
+ * Notes the browser - or, for the app, the installation - a session is
+ * starting in, and e-mails the owner if it is new. Never throws.
+ */
+export const noteDevice = async (req: DeviceRequest, res: Response, user: UserDocument, app?: AppDevice): Promise<void> => {
   try {
-    let deviceId = (req.cookies as Record<string, string> | undefined)?.[DEVICE_COOKIE];
-    if (!deviceId || !/^[\w-]{20,64}$/.test(deviceId)) {
+    if (app && !/^[\w-]{20,64}$/.test(app.installId)) return;
+    let deviceId = app ? app.installId : (req.cookies as Record<string, string> | undefined)?.[DEVICE_COOKIE];
+    if (!app && (!deviceId || !/^[\w-]{20,64}$/.test(deviceId))) {
       deviceId = randomBytes(24).toString('base64url');
       res.cookie(DEVICE_COOKIE, deviceId, {
         httpOnly: true,
@@ -72,14 +89,19 @@ export const noteDevice = async (req: DeviceRequest, res: Response, user: UserDo
         maxAge: YEAR_MS,
       });
     }
-    const print = fingerprint(deviceId);
+    const print = fingerprint(app ? `app:${deviceId}` : String(deviceId));
     const known = (user.knownDevices ?? []) as string[];
     if (known.includes(print)) return;
 
     await User.updateOne({ _id: user._id }, { $push: { knownDevices: { $each: [print], $slice: -MAX_KNOWN } } });
     if (known.length) {
       const when = new Date().toLocaleString('en-GB', { timeZone: 'Asia/Dhaka', dateStyle: 'medium', timeStyle: 'short' });
-      dispatchShopMail(user.email, newSignInEmail(describeBrowser(String(req.get('user-agent') ?? '')), `${when} (Dhaka time)`));
+      dispatchShopMail(
+        user.email,
+        app
+          ? newSignInEmail(describeAppDevice(app.deviceName), `${when} (Dhaka time)`, 'app')
+          : newSignInEmail(describeBrowser(String(req.get('user-agent') ?? '')), `${when} (Dhaka time)`)
+      );
     }
   } catch (error) {
     log.warn({ err: error }, 'Could not check the device');

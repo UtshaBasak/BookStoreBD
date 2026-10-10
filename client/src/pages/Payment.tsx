@@ -15,6 +15,7 @@ import { isOwnProfile } from '../utils/profile.js';
 import { safeImageSrc, PLACEHOLDER_IMAGE } from '../utils/safeImageSrc.js';
 import { sized, IMAGE_WIDTHS } from '../utils/imageUrl.js';
 import { deliveryChargeFor, site } from '../config/site.js';
+import { DIVISIONS, DIVISION_DISTRICTS } from '../config/locations.js';
 import Logo from '../components/Logo.js';
 import { priceOf } from '../utils/pricing.js';
 import './Homepage.css';
@@ -177,19 +178,8 @@ export default function Payment() {
   const { mutate: setCartQuantity, isPending: savingQuantity } = useSetCartQuantity();
   const { mutate: toggleCart } = useToggleCart();
 
-  const divisions = [
-    "Dhaka", "Chattogram", "Khulna", "Rajshahi", "Barisal", "Sylhet", "Rangpur", "Mymensingh"
-  ];
-  const divisionDistricts: Record<string, string[]> = {
-    Dhaka: ["Dhaka", "Faridpur", "Gazipur", "Gopalganj", "Kishoreganj", "Madaripur", "Manikganj", "Munshiganj", "Narayanganj", "Narsingdi", "Rajbari", "Shariatpur", "Tangail"],
-    Chattogram: ["Chattogram", "Cox's Bazar", "Cumilla", "Brahmanbaria", "Chandpur", "Feni", "Lakshmipur", "Noakhali", "Khagrachari", "Rangamati", "Bandarban"],
-    Khulna: ["Khulna", "Bagerhat", "Chuadanga", "Jashore", "Jhenaidah", "Kushtia", "Magura", "Meherpur", "Narail", "Satkhira"],
-    Rajshahi: ["Rajshahi", "Bogra", "Joypurhat", "Naogaon", "Natore", "Chapai Nawabganj", "Pabna", "Sirajganj"],
-    Barisal: ["Barisal", "Barguna", "Bhola", "Jhalokathi", "Patuakhali", "Pirojpur"],
-    Sylhet: ["Sylhet", "Habiganj", "Moulvibazar", "Sunamganj"],
-    Rangpur: ["Rangpur", "Dinajpur", "Gaibandha", "Kurigram", "Lalmonirhat", "Nilphamari", "Panchagarh", "Thakurgaon"],
-    Mymensingh: ["Mymensingh", "Jamalpur", "Netrokona", "Sherpur"]
-  };
+  const divisions = DIVISIONS;
+  const divisionDistricts = DIVISION_DISTRICTS;
 
   useEffect(() => {
     const onStorage = () => setUser(getUserProfile());
