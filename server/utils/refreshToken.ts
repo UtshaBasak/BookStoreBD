@@ -2,6 +2,7 @@ import { createHash, randomBytes, randomUUID } from 'crypto';
 
 import type { Types } from 'mongoose';
 
+import PushDevice from '../models/PushDevice.model.js';
 import RefreshToken from '../models/RefreshToken.model.js';
 import { config } from '../config/env.js';
 import { createLogger } from '../config/logger.js';
@@ -70,12 +71,16 @@ export const issueRefreshToken = async (
   return { token, family, expiresAt };
 };
 
-/** Revokes every token in a family. Used on logout and on replay. */
+/**
+ * Revokes every token in a family. Used on logout and on replay. A phone
+ * signed in with that session stops getting push notifications as well.
+ */
 export const revokeFamily = async (family: string): Promise<number> => {
   const { modifiedCount } = await RefreshToken.updateMany(
     { family, revokedAt: null },
     { revokedAt: new Date() }
   );
+  await PushDevice.deleteMany({ family });
   return modifiedCount;
 };
 
@@ -84,6 +89,7 @@ export const revokeAllForUser = async (userId: Types.ObjectId): Promise<number> 
     { user: userId, revokedAt: null },
     { revokedAt: new Date() }
   );
+  await PushDevice.deleteMany({ user: userId });
   return modifiedCount;
 };
 
@@ -99,6 +105,7 @@ export const revokeOtherSessions = async (userId: Types.ObjectId, presentedToken
     { user: userId, revokedAt: null, ...(current ? { family: { $ne: current.family } } : {}) },
     { revokedAt: new Date() }
   );
+  await PushDevice.deleteMany({ user: userId, ...(current ? { family: { $ne: current.family } } : {}) });
   return modifiedCount;
 };
 

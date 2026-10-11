@@ -4,15 +4,18 @@ import type { AppConfig } from '@shared/api.js';
 
 import { appRefresh, appLogout, appLogoutOthers, signin, signup, verifySignin } from '../controllers/auth.controller.js';
 import { appGoogleConfigured, appGoogleSignIn, issueAppNonce } from '../controllers/appGoogle.controller.js';
-import { requireAuth } from '../middleware/auth.js';
+import { actingUser, requireAuth } from '../middleware/auth.js';
 import { validate } from '../middleware/validate.js';
-import { appSchemas, type AppDeviceBody } from '../schemas/index.js';
+import { appSchemas, type AppDeviceBody, type AppPushBody } from '../schemas/index.js';
 import { captchaSiteKey, requireCaptcha } from '../utils/captcha.js';
 import { latestAppRelease } from '../utils/appRelease.js';
 import { androidMinVersionCode } from '../config/android.js';
 import { DELIVERY, RETURN_WINDOW_DAYS, SELLER_FEE_PERCENT } from '../config/commerce.js';
 import { CATEGORY_GROUPS, DELIVERY_DAYS, DELIVERY_DIVISIONS } from '../config/reference.js';
 import { publicSiteUrl } from '../config/siteUrl.js';
+import RefreshToken from '../models/RefreshToken.model.js';
+import { hashToken } from '../utils/refreshToken.js';
+import { pushConfigured, registerPushDevice } from '../utils/push.js';
 
 /**
  * What only the Android app uses, under /api/v1/app. Everything else the app
@@ -53,6 +56,30 @@ router.get('/config', async (req, res, next) => {
       },
     };
     res.set('Cache-Control', 'no-cache').json(body);
+  } catch (error) {
+    next(error);
+  }
+});
+
+/**
+ * The phone's push token, for the session it is signed in with. The refresh
+ * token names the session, and has to be the caller's own and still live, so
+ * a token can only ever be filed under a session its sender holds. Signing
+ * out removes it (utils/refreshToken.ts).
+ */
+router.post('/push', requireAuth, validate(appSchemas.push), async (req, res, next) => {
+  try {
+    const { refreshToken, pushToken } = req.body as AppPushBody;
+    const session = await RefreshToken.findOne(
+      { tokenHash: hashToken(refreshToken), client: 'android', revokedAt: null, expiresAt: { $gt: new Date() } },
+      { user: 1, family: 1 }
+    ).lean();
+    if (!session || String(session.user) !== actingUser(req).id) {
+      res.status(401).json({ message: 'Session expired, please sign in again' });
+      return;
+    }
+    await registerPushDevice(session.user, session.family, pushToken);
+    res.status(200).json({ message: 'Push notifications are on for this phone.', enabled: pushConfigured() });
   } catch (error) {
     next(error);
   }

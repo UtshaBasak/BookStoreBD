@@ -98,6 +98,17 @@ export const appSchemas = {
     }),
   },
   refresh: { body: z.object({ refreshToken }) },
+  /** The phone's Firebase Cloud Messaging token, with its session's refresh token to say which session it is. */
+  push: {
+    body: z.object({
+      refreshToken,
+      pushToken: z
+        .string()
+        .min(20)
+        .max(4096)
+        .regex(/^[\w:.-]+$/, 'Not a push token'),
+    }),
+  },
 };
 
 // ---------------------------------------------------------------- book
@@ -592,6 +603,7 @@ export const notificationSchemas = {
   },
   // No ids: all of them.
   markRead: { body: z.object({ ids: z.array(objectId).max(100).optional() }) },
+  byId: { params: objectIdParam },
 };
 
 /**
@@ -652,6 +664,7 @@ export type ResetPasswordBody = z.infer<typeof authSchemas.resetPassword.body>;
 export type AppDeviceBody = z.infer<typeof appDevice>;
 export type AppGoogleBody = z.infer<typeof appSchemas.google.body>;
 export type AppRefreshBody = z.infer<typeof appSchemas.refresh.body>;
+export type AppPushBody = z.infer<typeof appSchemas.push.body>;
 
 export type IdParams = z.infer<typeof objectIdParam>;
 export type EmailParams = z.infer<typeof emailParam>;

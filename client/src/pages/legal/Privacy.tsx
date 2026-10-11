@@ -114,6 +114,12 @@ export default function Privacy() {
           browser, not at who you are, and we receive only a pass or a fail.</li>
         <li><strong>Sentry</strong>, if error reporting is enabled, receives
           technical details of errors, with credentials stripped out.</li>
+        <li><strong>Firebase Cloud Messaging</strong> (Google), if you use our
+          Android app and allow notifications, delivers a signal to your phone
+          that something new is waiting. The signal carries only a reference
+          number, never the text of a notification or a message: the app then
+          fetches the details from us directly. Signing out of the app stops
+          it.</li>
       </ul>
       <p>We do not sell personal data, and we do not share it for advertising.</p>
 

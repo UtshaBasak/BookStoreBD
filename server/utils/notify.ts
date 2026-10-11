@@ -4,6 +4,7 @@ import Notification from '../models/Notification.model.js';
 import User from '../models/user.model.js';
 import { createLogger } from '../config/logger.js';
 import { deliverToUser } from '../sockets/chatSocket.js';
+import { push } from './push.js';
 import { categoryOf, recipientsWanting } from './notificationPrefs.js';
 
 const log = createLogger('notify');
@@ -16,8 +17,9 @@ export interface NotificationInput {
 }
 
 /**
- * Tells these people about something: stored for the bell, and pushed live to
- * any page they have open.
+ * Tells these people about something: stored for the bell, pushed live to any
+ * page they have open, and to the phones they are signed in on (as an id only;
+ * see utils/push.ts).
  *
  * Never throws. A notification is a courtesy on top of something that has
  * already happened - an order placed, a status changed - and failing to send
@@ -50,6 +52,7 @@ export const notify = async (
     for (const doc of saved) {
       deliverToUser(doc.recipient, 'notification', toWire(doc));
     }
+    push(saved.map((doc) => ({ email: doc.recipient, data: { kind: 'notification', id: String(doc._id) } })));
   } catch (error) {
     log.warn({ err: error, type: input.type }, 'Could not send a notification');
   }

@@ -191,6 +191,9 @@ User guides for each role are in the [wiki](https://github.com/UtshaBasak/BookSt
 
 - A notification bell on every page, delivered live over Socket.IO, and a full
   history at `/notifications`
+- Push notifications on the Android app through Firebase Cloud Messaging:
+  data-only messages carrying a kind and an id, so no personal text passes
+  through Google; the app fetches the details itself
 - Everyone in an order hears what concerns them: new orders, status changes,
   cancellations, returns, payouts, reviews, seller ratings and replies
 - Stock and price alerts: low stock and sold-out notices for sellers; low stock
@@ -502,6 +505,7 @@ unprivileged with `NODE_ENV=production` and a health check.
 | `ANDROID_CERT_SHA256` | | the release certificate | Signing-certificate fingerprints for App Links, comma-separated |
 | `ANDROID_PACKAGE_NAME` | | `io.github.utshabasak.bookstorebd` | The Android app's package name |
 | `ANDROID_RELEASES_REPO` | | `UtshaBasak/BookStoreBD-Android` | Where the app's update check looks for releases |
+| `FIREBASE_SERVICE_ACCOUNT` | | — | A Firebase service-account key (the JSON, as the value), for push notifications to the Android app. Keep it secret |
 | `LOG_LEVEL` | | `debug` dev / `info` prod | pino level |
 | `SENTRY_DSN` | | — | Enables error reporting |
 | `SENTRY_TRACES_SAMPLE_RATE` | | `0` | Fraction of transactions traced |
@@ -852,6 +856,7 @@ profile.
 | `GET` | `/admin/message/audience?audience=` | How many a message would reach (admin) |
 | `POST` | `/admin/message` | Send `{ channel, audience, emails?, title, body, link? }` (admin) |
 | `GET` | `/notification` | Your notifications with the unread count; `?unreadOnly=1` |
+| `GET` | `/notification/:id` | One of your notifications (the Android app fetches it when a push arrives) |
 | `POST` | `/notification/read` | Mark `{ ids }` read, or all |
 | `GET` / `POST` | `/purchase` | Purchase history |
 | `GET` | `/upload/signature` | Signs a direct browser upload |
@@ -881,6 +886,7 @@ on every request with `X-Client: android/<versionCode>`; builds older than
 | `POST` | `/v1/app/auth/refresh` | Rotate the refresh token, signed by the phone's key |
 | `POST` | `/v1/app/auth/logout` | End the app session |
 | `POST` | `/v1/app/auth/logout-others` | End every other session, keeping this phone |
+| `POST` | `/v1/app/push` | This phone's push token `{ refreshToken, pushToken }`, filed under its session; signing out removes it |
 
 App sessions differ from the website's in where the refresh token lives, not
 in the rules:

@@ -11,6 +11,7 @@ import { validate, validatedQuery } from '../middleware/validate.js';
 import { serveStoredImage } from '../utils/serveImage.js';
 import { API_PREFIX } from '../config/apiPaths.js';
 import { deliverChatMessage } from '../sockets/chatSocket.js';
+import { push } from '../utils/push.js';
 import {
   chatSchemas,
   type ChatMessagesQuery,
@@ -243,6 +244,8 @@ router.post(
         };
         res.status(201).json(wire);
         deliverChatMessage(wire);
+        // The receiver's phones get the message's id; the app fetches the thread.
+        push([{ email: receiver, data: { kind: 'chat', id: wire._id } }]);
     } catch (error) {
         log.error({ err: error }, 'Chat message error');
         res.status(500).json({ message: errorMessage(error) });

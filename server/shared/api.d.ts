@@ -1168,6 +1168,28 @@ export interface NotificationItem {
   createdAt: IsoDate;
 }
 
+/** POST /api/v1/app/push - the phone's Firebase Cloud Messaging token, for its session. */
+export interface AppPushRequest {
+  refreshToken: string;
+  pushToken: string;
+}
+
+export interface AppPushResponse {
+  message: string;
+  /** False while the server has no Firebase key, so nothing will arrive yet. */
+  enabled: boolean;
+}
+
+/**
+ * What a push to the app carries, as FCM data: the kind of thing and its id,
+ * nothing a person wrote. The app fetches the rest: GET /notification/:id, or
+ * the conversations for a chat message.
+ */
+export interface AppPushData {
+  kind: 'notification' | 'chat';
+  id: Id;
+}
+
 /** GET /notification */
 export interface NotificationPage {
   items: NotificationItem[];

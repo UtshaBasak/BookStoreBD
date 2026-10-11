@@ -5,7 +5,7 @@ import type { NotificationPage } from '@shared/api.js';
 import Notification from '../models/Notification.model.js';
 import { actingUser, requireAuth } from '../middleware/auth.js';
 import { validate, validatedQuery } from '../middleware/validate.js';
-import { notificationSchemas, type MarkNotificationsBody, type NotificationListQuery } from '../schemas/index.js';
+import { notificationSchemas, type IdParams, type MarkNotificationsBody, type NotificationListQuery } from '../schemas/index.js';
 import { toWire } from '../utils/notify.js';
 
 const router = express.Router();
@@ -39,6 +39,25 @@ router.get('/', validate(notificationSchemas.list), async (req, res, next) => {
       pageCount: Math.max(1, Math.ceil(total / pageSize)),
     };
     res.json(body);
+  } catch (error) {
+    next(error);
+  }
+});
+
+/**
+ * One of the caller's notifications. The Android app asks for it when a push
+ * arrives, since the push itself carries only the id.
+ */
+router.get('/:id', validate(notificationSchemas.byId), async (req, res, next) => {
+  try {
+    const { email } = actingUser(req);
+    const { id } = req.params as unknown as IdParams;
+    const doc = await Notification.findOne({ _id: id, recipient: email }).lean();
+    if (!doc) {
+      res.status(404).json({ message: 'Notification not found' });
+      return;
+    }
+    res.json(toWire(doc));
   } catch (error) {
     next(error);
   }
