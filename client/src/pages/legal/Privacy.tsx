@@ -60,6 +60,10 @@ export default function Privacy() {
         <li>That a book was viewed, as a code that cannot be traced back to you,
           for a day, so each person counts once in the book's view count.</li>
       </ul>
+      <p>Scanning a book's barcode in our Android app uses the camera only while
+        the scanner is open. The picture is read on your phone to find the ISBN
+        and is never stored or sent anywhere; only the ISBN is used, as a search
+        or in the listing you are writing.</p>
 
       <h2 id="cookies">Cookies and storage</h2>
       <p>We use no advertising or analytics cookies, and we do not track you
