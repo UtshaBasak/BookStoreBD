@@ -46,27 +46,37 @@ export default function SellerBookList() {
 
   const handleSaveAll = async () => {
     setLoading(true);
+    // Each change is checked: what the server refused stays in the table to fix, rather than being reported as saved.
+    const failed: Record<Id, { price?: string; stock?: string }> = {};
     try {
-      const updates = Object.entries(edit);
-      for (const [id, changes] of updates) {
+      for (const [id, changes] of Object.entries(edit)) {
+        const kept: { price?: string; stock?: string } = {};
         if (changes.price !== undefined) {
-          await apiFetch(`${API_BASE_URL}/book/update-price/${id}`, {
+          const res = await apiFetch(`${API_BASE_URL}/book/update-price/${id}`, {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ price: parseInt(changes.price, 10) })
           });
+          if (!res.ok) kept.price = changes.price;
         }
         if (changes.stock !== undefined) {
-          await apiFetch(`${API_BASE_URL}/book/update-stock/${id}`, {
+          const res = await apiFetch(`${API_BASE_URL}/book/update-stock/${id}`, {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ stock: parseInt(changes.stock, 10) })
           });
+          if (!res.ok) kept.stock = changes.stock;
         }
+        if (kept.price !== undefined || kept.stock !== undefined) failed[id] = kept;
       }
       fetchBooks();
-      setEdit({});
-      toast.success('All changes saved.');
+      setEdit(failed);
+      const count = Object.keys(failed).length;
+      if (count) {
+        toast.error(`${count} ${count === 1 ? 'book' : 'books'} could not be saved. Check the values and try again.`);
+      } else {
+        toast.success('All changes saved.');
+      }
     } catch {
       toast.error('Could not save your changes.');
     } finally {
