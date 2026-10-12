@@ -8,11 +8,12 @@
  * The plain-text part carries everything the HTML does, for clients that show
  * no HTML and for anything that reads mail as text.
  */
+import { SHOP_LOCATION, SUPPORT_EMAIL } from '../config/contact.js';
 import { OTP_TTL_MS } from './otpStore.js';
 
 const SHOP = 'BookStoreBD';
-const SUPPORT = 'support.utsha@gmail.com';
-const PLACE = 'Dhaka, Bangladesh';
+const SUPPORT = SUPPORT_EMAIL;
+const PLACE = SHOP_LOCATION;
 
 const BRAND = '#6d28d9';
 const BRAND_DARK = '#5b21b6';

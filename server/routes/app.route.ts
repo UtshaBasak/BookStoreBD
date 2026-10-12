@@ -12,6 +12,7 @@ import { latestAppRelease } from '../utils/appRelease.js';
 import { androidMinVersionCode } from '../config/android.js';
 import { DELIVERY, RETURN_WINDOW_DAYS, SELLER_FEE_PERCENT } from '../config/commerce.js';
 import { advertisedPromotions } from '../config/promotions.js';
+import { SHOP_LOCATION, SUPPORT_EMAIL } from '../config/contact.js';
 import { CATEGORY_GROUPS, DELIVERY_DAYS, DELIVERY_DIVISIONS } from '../config/reference.js';
 import { publicSiteUrl } from '../config/siteUrl.js';
 import RefreshToken from '../models/RefreshToken.model.js';
@@ -55,7 +56,10 @@ router.get('/config', async (req, res, next) => {
         terms: `${site}/terms`,
         returns: `${site}/returns`,
         howItWorks: `${site}/how-it-works`,
+        about: `${site}/about`,
+        contact: `${site}/contact`,
       },
+      contact: { email: SUPPORT_EMAIL, location: SHOP_LOCATION },
     };
     res.set('Cache-Control', 'no-cache').json(body);
   } catch (error) {

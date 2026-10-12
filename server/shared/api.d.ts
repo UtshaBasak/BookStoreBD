@@ -1252,7 +1252,9 @@ export interface AppConfig {
       freeDelivery: { code: string; description: string; minBooksTotal: number } | null;
     };
   };
-  links: { site: string; privacy: string; terms: string; returns: string; howItWorks: string };
+  links: { site: string; privacy: string; terms: string; returns: string; howItWorks: string; about: string; contact: string };
+  /** How to reach the shop, as the website's footer and contact page give it. */
+  contact: { email: string; location: string };
 }
 
 /**

@@ -98,6 +98,14 @@ describe('the app configuration', () => {
     expect(res.body.android).toEqual({ minVersionCode: 0, latest: null });
   });
 
+  it('says how to reach the shop and where its information pages are', async () => {
+    const res = await request.get('/api/v1/app/config');
+
+    expect(res.body.contact).toEqual({ email: 'support.utsha@gmail.com', location: 'Dhaka, Bangladesh' });
+    expect(res.body.links.about).toMatch(/\/about$/);
+    expect(res.body.links.contact).toMatch(/\/contact$/);
+  });
+
   it('names the codes checkout tells shoppers about', async () => {
     const res = await request.get('/api/v1/app/config');
 
