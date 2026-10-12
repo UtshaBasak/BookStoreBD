@@ -11,6 +11,7 @@ import { captchaSiteKey, requireCaptcha } from '../utils/captcha.js';
 import { latestAppRelease } from '../utils/appRelease.js';
 import { androidMinVersionCode } from '../config/android.js';
 import { DELIVERY, RETURN_WINDOW_DAYS, SELLER_FEE_PERCENT } from '../config/commerce.js';
+import { advertisedPromotions } from '../config/promotions.js';
 import { CATEGORY_GROUPS, DELIVERY_DAYS, DELIVERY_DIVISIONS } from '../config/reference.js';
 import { publicSiteUrl } from '../config/siteUrl.js';
 import RefreshToken from '../models/RefreshToken.model.js';
@@ -46,6 +47,7 @@ router.get('/config', async (req, res, next) => {
         sellerFeePercent: SELLER_FEE_PERCENT,
         categories: CATEGORY_GROUPS.map((group) => ({ ...group, items: [...group.items] })),
         divisions: Object.entries(DELIVERY_DIVISIONS).map(([name, districts]) => ({ name, districts: [...districts] })),
+        promotions: advertisedPromotions(),
       },
       links: {
         site,

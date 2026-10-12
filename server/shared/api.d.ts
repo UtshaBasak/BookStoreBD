@@ -1246,6 +1246,11 @@ export interface AppConfig {
     sellerFeePercent: number;
     categories: { name: string; emoji: string; items: string[] }[];
     divisions: { name: string; districts: string[] }[];
+    /** The codes checkout tells shoppers about, while they run; null when none is. */
+    promotions: {
+      firstOrder: { code: string; description: string } | null;
+      freeDelivery: { code: string; description: string; minBooksTotal: number } | null;
+    };
   };
   links: { site: string; privacy: string; terms: string; returns: string; howItWorks: string };
 }

@@ -105,3 +105,32 @@ export const applyPromotion = (
 
   return { ...accepted, discount, freeDelivery: false };
 };
+
+/** What a running code is, as shoppers are told about it at checkout. */
+export interface AdvertisedPromotion {
+  code: string;
+  description: string;
+}
+
+/**
+ * The codes checkout tells shoppers about - the first-order code and the
+ * free-delivery code - when they are running, for the Android app (the
+ * website names them in client/src/config/site.ts).
+ */
+export const advertisedPromotions = (
+  now: Date = new Date(),
+  promotions: readonly Promotion[] = PROMOTIONS
+): {
+  firstOrder: AdvertisedPromotion | null;
+  freeDelivery: (AdvertisedPromotion & { minBooksTotal: number }) | null;
+} => {
+  const running = promotions.filter(
+    (promo) => (!promo.startsAt || now >= promo.startsAt) && (!promo.endsAt || now <= promo.endsAt)
+  );
+  const first = running.find((promo) => promo.firstOrderOnly);
+  const free = running.find((promo) => promo.discount.kind === 'free-delivery');
+  return {
+    firstOrder: first ? { code: first.code, description: first.description } : null,
+    freeDelivery: free ? { code: free.code, description: free.description, minBooksTotal: free.minBooksTotal ?? 0 } : null,
+  };
+};

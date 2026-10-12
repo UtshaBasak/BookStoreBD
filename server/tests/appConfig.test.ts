@@ -10,6 +10,7 @@ import { latestAppRelease, resetAppReleaseCache, toAppRelease } from '../utils/a
 import { versionCodeFor } from '../config/android.js';
 import { CATEGORY_GROUPS, DELIVERY_DIVISIONS } from '../config/reference.js';
 import { DELIVERY, RETURN_WINDOW_DAYS } from '../config/commerce.js';
+import { advertisedPromotions, type Promotion } from '../config/promotions.js';
 
 let request: PrefixedRequest;
 beforeAll(async () => {
@@ -95,6 +96,31 @@ describe('the app configuration', () => {
     expect(res.body.shop.divisions).toEqual(Object.entries(DELIVERY_DIVISIONS).map(([name, districts]) => ({ name, districts })));
     expect(res.body.links.privacy).toMatch(/\/privacy$/);
     expect(res.body.android).toEqual({ minVersionCode: 0, latest: null });
+  });
+
+  it('names the codes checkout tells shoppers about', async () => {
+    const res = await request.get('/api/v1/app/config');
+
+    expect(res.body.shop.promotions.firstOrder).toEqual({ code: 'BookStoreBD', description: '50 Tk off your first order' });
+    expect(res.body.shop.promotions.freeDelivery).toEqual({
+      code: 'FreeDelivery',
+      description: 'Free delivery on orders of 1000 Tk or more',
+      minBooksTotal: 1000,
+    });
+  });
+
+  it('leaves out codes that are not running', () => {
+    const ended: Promotion[] = [
+      {
+        code: 'OLD',
+        description: 'Gone',
+        discount: { kind: 'free-delivery' },
+        minBooksTotal: 500,
+        endsAt: new Date('2026-01-01T00:00:00Z'),
+      },
+    ];
+
+    expect(advertisedPromotions(new Date('2026-10-12T00:00:00Z'), ended)).toEqual({ firstOrder: null, freeDelivery: null });
   });
 
   it('offers the bot check and Google only when they are set up', async () => {
