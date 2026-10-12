@@ -194,6 +194,6 @@ export const forgetPushCredentials = (): void => {
  * token changes, keeps exactly one row.
  */
 export const registerPushDevice = async (user: Types.ObjectId, family: string, token: string): Promise<void> => {
-  await PushDevice.deleteMany({ token, family: { $ne: family } });
+  await PushDevice.deleteMany({ token: { $eq: token }, family: { $ne: family } });
   await PushDevice.findOneAndUpdate({ family }, { $set: { token, user } }, { upsert: true, setDefaultsOnInsert: true });
 };
