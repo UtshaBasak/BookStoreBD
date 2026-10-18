@@ -63,6 +63,10 @@ const NOT_PURCHASED: Record<ReviewKind, string> = {
   book: 'Only somebody who has bought this book can review it.',
   seller: 'Only somebody who has bought from this seller can rate them.',
 };
+const NOT_DELIVERED: Record<ReviewKind, string> = {
+  book: 'You can review this book once it has been delivered.',
+  seller: 'You can rate this seller once your order from them has been delivered.',
+};
 
 /** Reply, Report and the like: words rather than buttons, but a thumb's width. */
 const TEXT_BUTTON =
@@ -236,6 +240,8 @@ export default function Reviews({ kind, id }: { kind: ReviewKind; id: Id | undef
             </>
           ) : data.reason === 'not-purchased' ? (
             NOT_PURCHASED[kind]
+          ) : data.reason === 'not-delivered' ? (
+            NOT_DELIVERED[kind]
           ) : (
             BLOCKED[data.reason]
           )}

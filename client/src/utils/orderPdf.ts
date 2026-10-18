@@ -1,4 +1,4 @@
-import type { OrderDetail, OrderLine } from '@shared/api.js';
+import type { OrderDetail, OrderDetailLine } from '@shared/api.js';
 
 import { site } from '../config/site.js';
 import { CANCELLED } from './orderTotals.js';
@@ -54,14 +54,14 @@ const box = (title: string, inner: string) =>
   `<div style="flex:1;min-width:0;padding:14px 16px;border:1px solid ${LINE};border-radius:12px;">
   <div style="margin:0 0 8px;font-size:11px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:${BRAND};">${escape(title)}</div>${inner}</div>`;
 
-const lineCells = (line: OrderLine, withSeller: boolean): string[] => {
+const lineCells = (line: OrderDetailLine, withSeller: boolean): string[] => {
   const quantity = Number(line.quantity) || 1;
   const price = Number(line.price) || 0;
   const cancelled = line.status === CANCELLED;
   return [
     `<strong>${escape(line.title || 'A book')}</strong><br><span style="color:${MUTED};font-size:12px;">${escape(line.author || '')}${
       withSeller ? ` · sold by ${escape(line.sellerEmail)}` : ''
-    }${cancelled ? ' · cancelled' : ''}</span>`,
+    }${cancelled ? ' · cancelled' : line.returnStatus === 'approved' ? ' · returned' : ''}</span>`,
     String(quantity),
     taka(price),
     taka(price * quantity),
@@ -73,7 +73,10 @@ export const orderPdfHtml = (order: OrderDetail, role: PdfRole, viewerEmail?: st
   const all = order.books ?? [];
   const lines = role === 'seller' ? all.filter((line) => line.sellerEmail === viewerEmail) : all;
   const live = lines.filter((line) => line.status !== CANCELLED);
-  const booksTotal = live.reduce((sum, line) => sum + (Number(line.price) || 0) * (Number(line.quantity) || 1), 0);
+  // A seller is not paid for a book that came back, so the slip leaves it
+  // out of what they receive, as the orders page does.
+  const counted = role === 'seller' ? live.filter((line) => line.returnStatus !== 'approved') : live;
+  const booksTotal = counted.reduce((sum, line) => sum + (Number(line.price) || 0) * (Number(line.quantity) || 1), 0);
   const fee = Math.round(booksTotal * site.sellerFeePercent) / 100;
 
   const title = role === 'seller' ? 'Seller order slip' : role === 'admin' ? 'Order record' : 'Order receipt';
@@ -106,7 +109,7 @@ export const orderPdfHtml = (order: OrderDetail, role: PdfRole, viewerEmail?: st
     role === 'seller'
       ? totals(
           [
-            ['Your books', taka(booksTotal)],
+            [counted.length < live.length ? 'Your books (not returned)' : 'Your books', taka(booksTotal)],
             [`${site.name} fee (${site.sellerFeePercent}%)`, `- ${taka(fee)}`],
             ['You receive', taka(booksTotal - fee)],
           ],

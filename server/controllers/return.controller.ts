@@ -15,6 +15,7 @@ import { serveStoredImage } from '../utils/serveImage.js';
 import { API_PREFIX } from '../config/apiPaths.js';
 import { createLogger } from '../config/logger.js';
 import { recordAudit } from '../utils/audit.js';
+import { isDuplicateKeyError } from '../utils/error.js';
 import { RETURN_WINDOW_DAYS, returnDeadline } from '../config/commerce.js';
 import { adminEmails, notify } from '../utils/notify.js';
 import { dispatchShopMail, returnDecidedEmail, returnRequestedSellerEmail } from '../utils/shopMail.js';
@@ -60,6 +61,12 @@ export const returnBook = async (
         });
         return;
       }
+      // Paid out means the sale is settled; one that reached this point
+      // (an order moved back to Delivered by hand) goes to the shop instead.
+      if (line.sellerPaidAt) {
+        res.status(409).json({ message: `The sale of ${name} has been settled, so please write to us about a return.` });
+        return;
+      }
       if (already.has(String(line._id))) {
         res.status(409).json({
           message: lines.length > 1 ? `A return has already been requested for ${name}.` : 'A return has already been requested for this book.',
@@ -83,6 +90,8 @@ export const returnBook = async (
     // Copied from the order rather than the listing, which may since have
     // been edited or taken down. One request per book, so each can be decided
     // on its own, all carrying the same description and photographs.
+    // A request sent twice at once trips the one-request-per-line index,
+    // which is the same answer as the check above.
     const created = await ReturnRequest.insertMany(
       lines.map((line) => ({
         orderId: line._id,
@@ -97,10 +106,16 @@ export const returnBook = async (
         imagePublicIds: uploaded.publicIds,
         status: 'pending',
       }))
-    );
-
-    // Update the order status
-    await Order.updateMany({ _id: { $in: lines.map((line) => line._id) } }, { isReturned: 1 });
+    ).catch((err: unknown) => {
+      if (isDuplicateKeyError(err)) return null;
+      throw err;
+    });
+    if (!created) {
+      res.status(409).json({ message: 'A return has already been requested for this book.' });
+      return;
+    }
+    // The order line counts as returned only once the return is approved: a
+    // request that is turned down leaves the sale as it was.
 
     const titles = lines.map((line) => line.title || 'A book').join(', ');
     const orderNumber = lines[0]?.orderNumber ?? '';
@@ -240,48 +255,70 @@ export const updateReturnStatus = async (
   try {
     const id = req.params.id;
     const status = req.body.status;
+    const actor = actingUser(req);
 
-    const updatedRequest = await ReturnRequest.findByIdAndUpdate(
-      String(id),
-      { status: String(status) },
+    /*
+     * A return is decided once. Only a pending request can be decided, and
+     * the decision is made in the same step that checks it is pending, so a
+     * second click or a second administrator is told it is decided rather
+     * than sending the buyer and the seller a contradicting notice - and a
+     * sale already paid out is never reopened.
+     */
+    const updatedRequest = await ReturnRequest.findOneAndUpdate(
+      { _id: String(id), status: 'pending' },
+      { $set: { status, decidedAt: new Date(), decidedBy: actor.email ?? '' } },
       { returnDocument: 'after' }
     );
 
     if (!updatedRequest) {
-      res.status(404).json({ message: 'Return request not found' });
+      const existing = await ReturnRequest.findById(String(id), { status: 1 }).lean();
+      if (!existing) {
+        res.status(404).json({ message: 'Return request not found' });
+        return;
+      }
+      res.status(409).json({ message: `This return has already been ${existing.status === 'approved' ? 'approved' : 'turned down'}.` });
       return;
     }
 
-    if (status !== 'pending') {
-      const decided = status === 'approved' ? 'approved' : 'turned down';
-      await notify([updatedRequest.userEmail], {
-        type: 'return-decided',
-        title: `Your return of "${updatedRequest.bookTitle}" was ${decided}`,
-        body:
-          status === 'approved'
-            ? 'Send the book back to us; the refund goes to your bKash within 15 working days of it arriving.'
-            : 'Write to support if you would like to know why.',
-        link: '/buyer-books',
-      });
-      dispatchShopMail(
-        updatedRequest.userEmail,
-        returnDecidedEmail(
-          {
-            orderNumber: updatedRequest.orderNumber ?? '',
-            bookTitle: updatedRequest.bookTitle ?? 'your book',
-            refundBkash: updatedRequest.refundBkash,
-          },
-          status === 'approved'
-        ),
-        'returns'
+    // An approved return takes the line out of the seller's sales, the
+    // bestseller counts and the shop's fees.
+    if (status === 'approved') {
+      await Order.updateOne(
+        updatedRequest.orderId
+          ? { _id: updatedRequest.orderId }
+          : { orderNumber: updatedRequest.orderNumber, bookId: updatedRequest.bookId },
+        { $set: { isReturned: 1 } }
       );
-      await notify([updatedRequest.sellerEmail], {
-        type: 'return-decided',
-        title: `The return of "${updatedRequest.bookTitle}" was ${decided}`,
-        body: `Order ${updatedRequest.orderNumber}.`,
-        link: '/seller-orders',
-      });
     }
+
+    const decided = status === 'approved' ? 'approved' : 'turned down';
+    await notify([updatedRequest.userEmail], {
+      type: 'return-decided',
+      title: `Your return of "${updatedRequest.bookTitle}" was ${decided}`,
+      body:
+        status === 'approved'
+          ? 'Send the book back to us; the refund goes to your bKash within 15 working days of it arriving.'
+          : 'Write to support if you would like to know why.',
+      link: '/buyer-books',
+    });
+    dispatchShopMail(
+      updatedRequest.userEmail,
+      returnDecidedEmail(
+        {
+          orderNumber: updatedRequest.orderNumber ?? '',
+          bookTitle: updatedRequest.bookTitle ?? 'your book',
+          refundBkash: updatedRequest.refundBkash,
+        },
+        status === 'approved'
+      ),
+      'returns'
+    );
+    await notify([updatedRequest.sellerEmail], {
+      type: 'return-decided',
+      title: `The return of "${updatedRequest.bookTitle}" was ${decided}`,
+      body: `Order ${updatedRequest.orderNumber}.`,
+      link: '/seller-orders',
+    });
 
     await recordAudit(req, {
       action: 'return.status',

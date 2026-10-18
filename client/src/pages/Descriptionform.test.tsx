@@ -12,6 +12,7 @@ import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { SnackbarProvider } from 'notistack';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
 import DescriptionForm from './Descriptionform.js';
 import { uploadImages } from '../utils/uploadImages.js';
@@ -32,7 +33,7 @@ const uploadMock = vi.mocked(uploadImages);
 /** Every request the form made, with its body. */
 let sent: { url: string; body: FormData | null }[];
 
-const stubFetch = (ok = true) => {
+const stubFetch = (ok = true, refusal: Record<string, unknown> = { message: 'No' }) => {
   vi.stubGlobal(
     'fetch',
     vi.fn((input: RequestInfo | URL, init?: RequestInit) => {
@@ -41,7 +42,7 @@ const stubFetch = (ok = true) => {
         body: init?.body instanceof FormData ? init.body : null,
       });
       return Promise.resolve(
-        new Response(JSON.stringify({ message: ok ? 'Return request submitted' : 'No' }), {
+        new Response(JSON.stringify(ok ? { message: 'Return request submitted' } : refusal), {
           status: ok ? 200 : 400,
           headers: { 'Content-Type': 'application/json' },
         })
@@ -50,16 +51,22 @@ const stubFetch = (ok = true) => {
   );
 };
 
-const renderForm = () =>
-  render(
-    <SnackbarProvider>
-      <MemoryRouter initialEntries={['/description-form/line-1']}>
-        <Routes>
-          <Route path="/description-form/:orderId" element={<DescriptionForm />} />
-        </Routes>
-      </MemoryRouter>
-    </SnackbarProvider>
+let queryClient: QueryClient;
+
+const renderForm = () => {
+  queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  return render(
+    <QueryClientProvider client={queryClient}>
+      <SnackbarProvider>
+        <MemoryRouter initialEntries={['/description-form/line-1']}>
+          <Routes>
+            <Route path="/description-form/:orderId" element={<DescriptionForm />} />
+          </Routes>
+        </MemoryRouter>
+      </SnackbarProvider>
+    </QueryClientProvider>
   );
+};
 
 const fileFor = (name = 'damage.png') => new File(['bytes'], name, { type: 'image/png' });
 
@@ -149,6 +156,40 @@ describe('submitting a return', () => {
     await userEvent.click(screen.getByRole('button', { name: /confirm return/i }));
 
     await waitFor(() => expect(navigate).toHaveBeenCalledWith('/buyer-books'));
+  });
+
+  it('refreshes the orders before going back, so the Return button is gone at once', async () => {
+    stubFetch();
+    renderForm();
+    const refresh = vi.spyOn(queryClient, 'invalidateQueries');
+
+    await userEvent.type(screen.getByLabelText(/bkash number/i), '01712345678');
+    await userEvent.type(screen.getByLabelText(/describe the problem/i), 'Pages loose');
+    await userEvent.upload(screen.getByLabelText(/photographs/i), fileFor());
+    await userEvent.click(screen.getByRole('button', { name: /confirm return/i }));
+
+    await waitFor(() => expect(navigate).toHaveBeenCalledWith('/buyer-books'));
+    expect(refresh).toHaveBeenCalledWith({ queryKey: ['orders'] });
+  });
+
+  it('takes no more than the 2000 characters the shop keeps, and counts them', () => {
+    stubFetch();
+    renderForm();
+
+    expect(screen.getByLabelText(/describe the problem/i)).toHaveAttribute('maxLength', '2000');
+    expect(screen.getByText('0/2000')).toBeInTheDocument();
+  });
+
+  it("shows the field's own reason when the shop refuses it", async () => {
+    stubFetch(false, { message: 'Validation failed', errors: [{ path: 'body.defectDescription', message: 'Too long' }] });
+    renderForm();
+
+    await userEvent.type(screen.getByLabelText(/bkash number/i), '01712345678');
+    await userEvent.type(screen.getByLabelText(/describe the problem/i), 'Pages loose');
+    await userEvent.upload(screen.getByLabelText(/photographs/i), fileFor());
+    await userEvent.click(screen.getByRole('button', { name: /confirm return/i }));
+
+    expect(await screen.findByText('Too long')).toBeInTheDocument();
   });
 
   it('stays put and says why when the API refuses it', async () => {

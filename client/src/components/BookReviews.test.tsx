@@ -135,6 +135,12 @@ describe('who is offered the form', () => {
     expect(await screen.findByText(/only somebody who has bought this book/i)).toBeInTheDocument();
   });
 
+  it('not a buyer whose copy is still on its way, and it says to wait', async () => {
+    show(summary({ canReview: false, reason: 'not-delivered' }));
+
+    expect(await screen.findByText(/once it has been delivered/i)).toBeInTheDocument();
+  });
+
   it('a buyer who has not reviewed it yet', async () => {
     show(summary({ canReview: true, reason: null }));
 

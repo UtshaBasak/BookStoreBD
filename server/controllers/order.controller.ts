@@ -48,6 +48,7 @@ import {
   type OrderFacts,
 } from '../utils/shopMail.js';
 import { applyPromotion, findPromotion } from '../config/promotions.js';
+import { dropUnbackedReviews } from './review.controller.js';
 import { unitPriceOf } from '../config/pricing.js';
 
 const log = createLogger('order');
@@ -730,6 +731,10 @@ export const getOrderByOrderNumber = async (
     const first = shown[0] ?? orders[0];
     const totals = totalsFor(shown);
     const mine = linesFor(orders, who ?? 'buyer', actor);
+    // Where a return of each book stands, so a slip or a page can leave out
+    // what came back.
+    const returns = await ReturnRequest.find({ orderId: { $in: shown.map((line) => line._id) } }, { orderId: 1, status: 1 }).lean();
+    const returnOf = new Map(returns.map((request) => [String(request.orderId), request.status]));
     // The defaults come after the spread rather than before it. Records
     // written before these fields existed have no value to spread, and `.lean()`
     // does not apply schema defaults, so something has to fill the gap.
@@ -753,7 +758,7 @@ export const getOrderByOrderNumber = async (
       deliveryDivision: first.deliveryDivision || '',
       deliveryDistrict: first.deliveryDistrict || '',
       deliveryAddress: first.deliveryAddress || '',
-      books: shown,
+      books: shown.map((line) => ({ ...line, returnStatus: returnOf.get(String(line._id)) ?? null })),
       ...totals,
     });
   } catch (err) {
@@ -971,6 +976,9 @@ export const cancelOrder = async (
       ).lean();
       if (restored) await stockChanged(restored, Number(restored.stock) - copies, Number(restored.stock), { actor });
     }
+
+    // A review or a rating needs a delivered book; one left without one goes.
+    await dropUnbackedReviews(String(existing[0]?.buyerEmail ?? ''), lines);
 
     await recordAudit(req, {
       action: 'order.cancel',

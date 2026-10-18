@@ -253,6 +253,10 @@ export default function BuyerOrderList() {
                         <tr key={ob._id || idx} className={ob.status === CANCELLED ? 'ot-row-cancelled' : undefined}>
                           <td className="font-semibold text-ink">
                             <Link to={`/book/${ob.bookId}`}>{ob.title}</Link>
+                            {/* A delivered book can be reviewed, on its own page. */}
+                            {ob.status === 'Delivered' && (
+                              <Link to={`/book/${ob.bookId}#reviews`} className="ml-2 text-xs font-semibold underline">Review it</Link>
+                            )}
                             {ob.status === CANCELLED && orderBooks.length > 1 && <span className="ot-line-pill">Cancelled</span>}
                             {ob.returnStatus && <span className="ot-line-pill is-return">Return {ob.returnStatus}</span>}
                           </td>

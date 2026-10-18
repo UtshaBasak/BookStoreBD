@@ -1,3 +1,5 @@
+import { randomUUID } from 'crypto';
+
 import type { Request, RequestHandler, Response } from 'express';
 
 import type { PayoutPage, PayoutRow } from '@shared/api.js';
@@ -178,13 +180,29 @@ export const markPayoutPaid = async (
       return;
     }
 
+    /*
+     * Each line is claimed only if it is still unpaid, under a mark of this
+     * request's own, and only the lines this request won are paid for, told
+     * about and audited. Two clicks at once record one payment.
+     */
     const paidAt = new Date();
+    const claim = randomUUID();
     await Order.updateMany(
       { _id: { $in: payable.map((line) => line._id) }, sellerPaidAt: null },
-      { $set: { sellerPaidAt: paidAt, sellerPayoutRef: reference } }
+      { $set: { sellerPaidAt: paidAt, sellerPayoutRef: reference, sellerPayoutClaim: claim } }
     );
+    const won = new Set(
+      (await Order.find({ _id: { $in: payable.map((line) => line._id) }, sellerPayoutClaim: claim }, { _id: 1 }).lean()).map(
+        (line) => String(line._id)
+      )
+    );
+    const paid = payable.filter((line) => won.has(String(line._id)));
+    if (paid.length === 0) {
+      res.status(409).json({ message: 'That payment has already been recorded.' });
+      return;
+    }
 
-    const booksTotal = payable.reduce(
+    const booksTotal = paid.reduce(
       (sum, line) => sum + Number(line.price) * Number(line.quantity),
       0
     );
@@ -194,7 +212,7 @@ export const markPayoutPaid = async (
       action: 'payout.paid',
       targetType: 'order',
       targetId: orderNumber,
-      details: { sellerEmail, reference, amount, lines: payable.length },
+      details: { sellerEmail, reference, amount, lines: paid.length },
     });
 
     await notify([String(sellerEmail)], {
@@ -205,7 +223,7 @@ export const markPayoutPaid = async (
     });
     dispatchShopMail(
       String(sellerEmail),
-      payoutSentEmail({ orderNumber: String(orderNumber), reference: String(reference), paidAt }, payable),
+      payoutSentEmail({ orderNumber: String(orderNumber), reference: String(reference), paidAt }, paid),
       'payouts'
     );
 

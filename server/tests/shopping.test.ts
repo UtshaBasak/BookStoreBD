@@ -305,7 +305,8 @@ describe("the administrator's lists", () => {
   it('list every review, and filter them by stars', async () => {
     const { buyer, admin } = await people();
     const book = await createBook({ sellerEmail: SELLER, stock: 5 });
-    await checkout(buyer.auth, [{ bookId: book._id, quantity: 1 }]);
+    const placed = await checkout(buyer.auth, [{ bookId: book._id, quantity: 1 }]);
+    await Order.updateMany({ orderNumber: placed.body.orderNumber }, { $set: { status: 'Delivered', deliveredAt: new Date() } });
     await request.post(`/review/${String(book._id)}`).set('Authorization', buyer.auth).send({ rating: 4, body: 'Good read' });
 
     const all = await request.get('/review/all').set('Authorization', admin.auth);

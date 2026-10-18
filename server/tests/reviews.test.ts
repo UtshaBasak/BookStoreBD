@@ -21,13 +21,17 @@ beforeAll(async () => {
 afterAll(closeTestContext);
 beforeEach(clearDatabase);
 
-/** A buyer who has actually bought the book, which is what earns a review. */
-const buyerOf = async (bookId: string, email = 'buyer@test.com') => {
+/** A buyer who has had the book delivered, which is what earns a review. */
+const buyerOf = async (bookId: string, email = 'buyer@test.com', { delivered = true } = {}) => {
   const buyer = await createSignedInUser(request, { email });
-  await request
+  const placed = await request
     .post('/order/decrease-stock')
     .set('Authorization', buyer.auth)
     .send({ ...CHECKOUT, items: [{ bookId, quantity: 1 }] });
+  if (delivered) {
+    const Order = (await import('../models/Order.model.js')).default;
+    await Order.updateMany({ orderNumber: placed.body.orderNumber }, { $set: { status: 'Delivered', deliveredAt: new Date() } });
+  }
   return buyer;
 };
 

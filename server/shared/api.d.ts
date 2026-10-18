@@ -386,8 +386,12 @@ export interface SellerReviewSummary extends Omit<ReviewSummary, 'reviews' | 'mi
   mine: SellerReview | null;
 }
 
-/** Why a caller may not write a review, when they may not. */
-export type ReviewBlockedReason = 'sign-in' | 'own-listing' | 'own-shop' | 'not-purchased';
+/**
+ * Why a caller may not write a review, when they may not. A review needs a
+ * delivered book: 'not-delivered' is an order still on its way, and
+ * 'not-purchased' is no order at all (a cancelled one does not count).
+ */
+export type ReviewBlockedReason = 'sign-in' | 'own-listing' | 'own-shop' | 'not-purchased' | 'not-delivered';
 
 /** GET /review/:id - everything a book's review section needs. */
 export interface ReviewSummary {
@@ -589,6 +593,7 @@ export interface OrderLine {
   discount?: number;
   promo?: string;
   promoApplied?: boolean;
+  /** 1 once a return of this line has been approved; a pending or turned-down request leaves it 0. */
   isReturned?: number;
   /** The buyer's note to the seller, given at checkout. */
   buyerNote?: string;
@@ -636,6 +641,12 @@ export interface BuyerOrderLine extends OrderLine, OrderSummary {
   returnableUntil: IsoDate | null;
 }
 
+/** A book in GET /order/:orderNumber, with where a return of it stands. */
+export interface OrderDetailLine extends OrderLine {
+  /** Null when no return was asked for. An approved return is not paid to the seller. */
+  returnStatus: ReturnStatus | null;
+}
+
 /** GET /order/admin/all: each line with its whole order's totals and status. */
 export interface AdminOrderLine extends OrderLine, OrderSummary {}
 
@@ -647,7 +658,7 @@ export interface AdminOrderLine extends OrderLine, OrderSummary {}
  * live books shown.
  */
 export interface OrderDetail extends OrderLine {
-  books: OrderLine[];
+  books: OrderDetailLine[];
   booksTotal: number;
   shippingCost: number;
   totalCost: number;
@@ -840,6 +851,8 @@ export interface ReturnRequest {
    */
   images?: string[];
   status: ReturnStatus;
+  /** When it was approved or rejected; null while pending. A decision is final. */
+  decidedAt?: IsoDate | null;
   createdAt?: IsoDate;
 }
 
@@ -850,8 +863,12 @@ export interface CreateReturnRequest {
   refundBkash: string;
 }
 
+/**
+ * PATCH /return/requests/:id - decides a pending request, once. Deciding one
+ * that is already decided is refused with 409.
+ */
 export interface UpdateReturnStatusRequest {
-  status: ReturnStatus;
+  status: Exclude<ReturnStatus, 'pending'>;
 }
 
 export interface CreateReturnResponse {

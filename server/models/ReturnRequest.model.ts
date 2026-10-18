@@ -28,6 +28,9 @@ const returnRequestSchema = new Schema({
     enum: ['pending', 'approved', 'rejected'] as const,
     default: 'pending',
   },
+  // When an administrator decided it, and who. A decision is final.
+  decidedAt: { type: Date, default: null },
+  decidedBy: { type: String, default: '' },
   createdAt: { type: Date, default: Date.now }
 });
 

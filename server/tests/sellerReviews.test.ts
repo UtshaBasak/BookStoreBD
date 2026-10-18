@@ -36,8 +36,8 @@ const people = async () => ({
   admin: await createUserWithToken({ email: 'admin@test.com', username: 'admin', role: 'admin' }),
 });
 
-/** An order from the seller, which is what earns a rating. */
-const bought = async (status = 'Order Confirmed', buyerEmail = BUYER) => {
+/** A delivered order from the seller, which is what earns a rating. */
+const bought = async (status = 'Delivered', buyerEmail = BUYER) => {
   const book = await createBook({ sellerEmail: SELLER });
   await Order.create({
     orderNumber: `ORDER${Math.random().toString(36).slice(2, 13).toUpperCase()}`,
@@ -108,7 +108,7 @@ describe('rating a seller', () => {
 
   it('is refused for the seller themself', async () => {
     const { seller } = await people();
-    await bought('Order Confirmed', SELLER);
+    await bought('Delivered', SELLER);
     const url = `/seller-review/${String(seller.user._id)}`;
 
     const res = await request.post(url).set('Authorization', seller.auth).send({ rating: 5 });

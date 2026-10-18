@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { useParams, useNavigate, Link } from 'react-router-dom';
+import { useParams, useNavigate, Link, useLocation } from 'react-router-dom';
 import {
     FaEye,
     FaHeart,
@@ -70,6 +70,13 @@ export default function BookView() {
     const bookQuery = useBook(id);
     const book = bookQuery.data ?? null;
     const loading = bookQuery.isPending;
+
+    // A link to the reviews - from the "delivered" e-mail or a notification -
+    // lands on them once the book above has taken its space.
+    const { hash } = useLocation();
+    useEffect(() => {
+        if (!loading && hash === '#reviews') document.getElementById('reviews')?.scrollIntoView();
+    }, [loading, hash]);
     const error = bookQuery.isError ? messageOf(bookQuery.error) : null;
 
     // The seller's public details, which only exist once the book has loaded.

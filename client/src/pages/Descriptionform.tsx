@@ -2,7 +2,9 @@ import { useState, type ChangeEvent, type FormEvent } from 'react';
 import { Link, useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { FaCalendarCheck, FaMoneyBillWave, FaTruck, FaUndoAlt } from 'react-icons/fa';
 
-import type { MessageResponse } from '@shared/api.js';
+import { useQueryClient } from '@tanstack/react-query';
+
+import type { ApiError, MessageResponse } from '@shared/api.js';
 
 import Logo from '../components/Logo.js';
 import { API_BASE_URL, apiFetch } from '../config/api.js';
@@ -12,6 +14,8 @@ import { reportError } from '../utils/report.js';
 import { uploadImages } from '../utils/uploadImages.js';
 
 const MAX_IMAGES = 10;
+/** What the server takes for the description. */
+const MAX_DESCRIPTION = 2000;
 
 /**
  * The form of a bKash number the API accepts, after the same forgiveness:
@@ -48,6 +52,7 @@ export default function DescriptionForm() {
   const several = lineIds.length > 1;
   const navigate = useNavigate();
   const toast = useToast();
+  const queryClient = useQueryClient();
 
   const handleImageUpload = (e: ChangeEvent<HTMLInputElement>) => {
     setImages(Array.from(e.target.files ?? []));
@@ -107,14 +112,18 @@ export default function DescriptionForm() {
 
       setProgress('Sending the request...');
       const res = await apiFetch(`${API_BASE_URL}/return`, { method: 'POST', body: form });
-      const data = (await res.json()) as MessageResponse;
+      const data = (await res.json()) as MessageResponse & ApiError;
 
       if (!res.ok) {
-        toast.error(data.message || 'Could not send the return request.');
+        // The field-level reason when there is one, not "Validation failed".
+        toast.error(data.errors?.[0]?.message || data.message || 'Could not send the return request.');
         return;
       }
 
       toast.success(data.message);
+      // The orders are fetched again before the page shows them, so the
+      // Return button is gone at once rather than after the cache runs out.
+      await queryClient.invalidateQueries({ queryKey: ['orders'] });
       // Back to the orders, where the row now shows the return as pending.
       navigate('/buyer-books');
     } catch (error) {
@@ -212,8 +221,13 @@ export default function DescriptionForm() {
               onChange={(e) => setDescription(e.target.value)}
               placeholder={several ? 'Describe the issue with each book...' : 'Describe the issue with the book...'}
               rows={5}
+              maxLength={MAX_DESCRIPTION}
+              aria-describedby="defect-count"
               style={{ minHeight: 130, padding: '12px 14px', resize: 'vertical' }}
             />
+            <p id="defect-count" className="-mt-3 mb-4 text-right text-xs text-ink-muted">
+              {description.length}/{MAX_DESCRIPTION}
+            </p>
 
             <label htmlFor="refund-bkash" className="mb-1.5 block text-sm font-semibold text-ink-soft">
               bKash number for your refund

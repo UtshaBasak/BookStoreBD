@@ -33,7 +33,7 @@ export default function Privacy() {
           address, date of birth, gender and a profile picture.</li>
         <li>Orders you place, including the delivery address, contact name and
           phone number for that order.</li>
-        <li>Return requests: what was wrong, any photographs you add, and the
+        <li>Return requests: what was wrong, the photographs you add, and the
           bKash number you give for the refund.</li>
         <li>Listings you create as a seller, including the photographs you
           upload, and the bKash merchant number your sales are paid to. Only you

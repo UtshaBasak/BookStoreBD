@@ -1,7 +1,7 @@
 import type { RequestHandler } from 'express';
 import mongoose from 'mongoose';
 
-import Order from '../models/Order.model.js';
+import { purchaseOf } from '../utils/purchase.js';
 import SellerReview from '../models/SellerReview.model.js';
 import SellerReviewFlag from '../models/SellerReviewFlag.model.js';
 import User from '../models/user.model.js';
@@ -38,15 +38,10 @@ export const sellerRatingOf = async (sellerEmail: string): Promise<{ average: nu
 };
 
 /**
- * The order that entitles somebody to rate a seller: any order from them that
- * was not cancelled, on the same terms as a book review.
+ * The order that entitles somebody to rate a seller: a book from them that
+ * was delivered, on the same terms as a book review.
  */
-const hasBoughtFrom = async (email: string, sellerEmail: string): Promise<string | null> => {
-  const order = await Order.findOne({ buyerEmail: email, sellerEmail, status: { $ne: 'Cancelled' } })
-    .sort({ createdAt: -1 })
-    .lean();
-  return order ? String(order.orderNumber) : null;
-};
+const hasBoughtFrom = (email: string, sellerEmail: string) => purchaseOf({ buyerEmail: email, sellerEmail });
 
 const findSeller = (id: string) => User.findById(id).select('email username').lean();
 
@@ -86,10 +81,10 @@ export const listSellerReviews: RequestHandler<{ id: string }> = async (req, res
       reason = 'sign-in';
     } else if (email === seller.email) {
       reason = 'own-shop';
-    } else if (!(await hasBoughtFrom(email, seller.email))) {
-      reason = 'not-purchased';
     } else {
-      canReview = true;
+      const bought = await hasBoughtFrom(email, seller.email);
+      if (bought.orderNumber) canReview = true;
+      else reason = bought.ordered ? 'not-delivered' : 'not-purchased';
     }
 
     res.status(200).json({
@@ -124,9 +119,13 @@ export const upsertSellerReview: RequestHandler<{ id: string }> = async (req, re
       return;
     }
 
-    const orderNumber = await hasBoughtFrom(actor.email, seller.email);
+    const { orderNumber, ordered } = await hasBoughtFrom(actor.email, seller.email);
     if (!orderNumber) {
-      res.status(403).json({ message: 'Only somebody who has bought from this seller can rate them' });
+      res.status(403).json({
+        message: ordered
+          ? 'You can rate this seller once your order from them has been delivered.'
+          : 'Only somebody who has bought from this seller can rate them',
+      });
       return;
     }
 

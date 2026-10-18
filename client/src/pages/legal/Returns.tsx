@@ -42,13 +42,14 @@ export default function Returns() {
       <ul>
         <li>Open <strong>My orders</strong> from your profile.</li>
         <li>Choose <strong>Return</strong> on the book in question.</li>
-        <li>Describe the problem, and add photographs if you can - they make a
-          decision faster.</li>
+        <li>Describe the problem, and add at least one photograph of it (up to
+          ten). Returns are decided on the photographs.</li>
         <li>Give the bKash number the refund should go to.</li>
       </ul>
       <p>Your request is marked <em>pending</em> until it is reviewed, and then
         <em> approved</em> or <em>rejected</em>. You can see the status on the
-        same page.</p>
+        same page. A book you have asked to return counts as sold until the
+        return is approved.</p>
 
       <h2>Sending the book back</h2>
       <p>When a return is approved, we e-mail you the address of our office in
@@ -62,7 +63,8 @@ export default function Returns() {
       <p>The delivery charge you paid on the original order is not refunded.</p>
 
       <h2>If a decision seems wrong</h2>
-      <p>E-mail us at <a href={`mailto:${site.email}`}>{site.email}</a> with
+      <p>A decision is final on the site, so you are not sent one answer and then
+        another. If it seems wrong, e-mail us at <a href={`mailto:${site.email}`}>{site.email}</a> with
         the order number and we will look at it again.</p>
 
       <p>See also the <Link to="/terms">terms of service</Link>.</p>

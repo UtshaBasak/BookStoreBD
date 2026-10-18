@@ -386,9 +386,10 @@ export const returnSchemas = {
       imagePublicIds: repeatable(shortText).optional(),
     }),
   },
+  /** A decision, made once: a pending request cannot be put back to pending. */
   updateStatus: {
     params: objectIdParam,
-    body: z.object({ status: z.enum(['pending', 'approved', 'rejected']) }),
+    body: z.object({ status: z.enum(['approved', 'rejected']) }),
   },
 };
 

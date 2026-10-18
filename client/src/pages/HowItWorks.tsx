@@ -36,7 +36,7 @@ const BUYING: readonly Step[] = [
     title: 'Check it out',
     text: 'Every book page shows the photos, the condition in the seller’s words, the price and how many are left.',
     tips: [
-      'Reviews come only from people who bought the book',
+      'Reviews come only from people who received the book',
       'See the seller’s rating, and visit their shop',
       'Views and wishlists show how wanted a book is',
       'Questions? Chat with the seller before you buy',
@@ -119,7 +119,7 @@ const FAQ: readonly { q: string; a: string }[] = [
   },
   {
     q: 'Can I trust a seller?',
-    a: 'Every seller has a rating from people who actually bought from them, and every book review comes from a real buyer. You can also chat with a seller before you buy.',
+    a: 'Every seller is rated by people whose orders from them were delivered, and every book review comes from a buyer who received the book. You can also chat with a seller before you buy.',
   },
   {
     q: 'How do I keep my account safe?',

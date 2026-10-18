@@ -2,9 +2,11 @@ import type { RequestHandler } from 'express';
 import mongoose from 'mongoose';
 
 import AddBook from '../models/AddBook.model.js';
-import Order from '../models/Order.model.js';
+import { purchaseOf } from '../utils/purchase.js';
 import Review from '../models/Review.model.js';
 import ReviewFlag from '../models/ReviewFlag.model.js';
+import SellerReview from '../models/SellerReview.model.js';
+import SellerReviewFlag from '../models/SellerReviewFlag.model.js';
 import User from '../models/user.model.js';
 import { actingUser } from '../middleware/auth.js';
 import { recordAudit } from '../utils/audit.js';
@@ -38,15 +40,35 @@ const recomputeBookRating = async (bookId: mongoose.Types.ObjectId | string): Pr
   });
 };
 
-/** The orders that entitle somebody to review a book. */
-const hasBought = async (email: string, bookId: string): Promise<string | null> => {
-  // Any order for the book counts, not only a delivered one: delivery status is
-  // set by hand by the seller and is often never updated, and a buyer who has
-  // paid should not need the seller's cooperation to say what they think.
-  // A cancelled order is not a purchase.
-  const order = await Order.findOne({ buyerEmail: email, bookId, status: { $ne: 'Cancelled' } }).sort({ createdAt: -1 }).lean();
-  return order ? String(order.orderNumber) : null;
+/**
+ * Takes away the reviews and seller ratings a buyer can no longer back with a
+ * delivered order, after books of theirs were cancelled - so "order, review,
+ * cancel" does not leave a review behind. The scores are worked out again.
+ */
+export const dropUnbackedReviews = async (
+  buyerEmail: string,
+  lines: readonly { bookId?: unknown; sellerEmail?: string | null }[]
+): Promise<void> => {
+  for (const bookId of new Set(lines.map((line) => String(line.bookId)))) {
+    if ((await purchaseOf({ buyerEmail, bookId })).orderNumber) continue;
+    const review = await Review.findOneAndDelete({ book: bookId, reviewerEmail: buyerEmail });
+    if (!review) continue;
+    await ReviewFlag.deleteMany({ review: review._id });
+    await recomputeBookRating(bookId);
+  }
+  for (const sellerEmail of new Set(lines.map((line) => String(line.sellerEmail ?? '')))) {
+    if (!sellerEmail || (await purchaseOf({ buyerEmail, sellerEmail })).orderNumber) continue;
+    const rating = await SellerReview.findOneAndDelete({ sellerEmail, reviewerEmail: buyerEmail });
+    if (rating) await SellerReviewFlag.deleteMany({ review: rating._id });
+  }
 };
+
+/**
+ * Whether somebody may review a book: they have had it delivered. Delivery
+ * is set by the shop, not the seller, so it is a purchase that happened - an
+ * order placed and then cancelled is not one.
+ */
+const hasBought = (email: string, bookId: string) => purchaseOf({ buyerEmail: email, bookId });
 
 /**
  * Everything a book's review section needs, in one request: the summary, the
@@ -80,10 +102,10 @@ export const listReviews: RequestHandler<{ id: string }> = async (req, res, next
     } else if (email === book.sellerEmail) {
       // Otherwise the score is whatever the seller says it is.
       reason = 'own-listing';
-    } else if (!(await hasBought(email, String(bookId)))) {
-      reason = 'not-purchased';
     } else {
-      canReview = true;
+      const bought = await hasBought(email, String(bookId));
+      if (bought.orderNumber) canReview = true;
+      else reason = bought.ordered ? 'not-delivered' : 'not-purchased';
     }
 
     res.status(200).json({
@@ -131,9 +153,13 @@ export const upsertReview: RequestHandler<{ id: string }> = async (req, res, nex
       return;
     }
 
-    const orderNumber = await hasBought(actor.email, String(bookId));
+    const { orderNumber, ordered } = await hasBought(actor.email, String(bookId));
     if (!orderNumber) {
-      res.status(403).json({ message: 'Only somebody who bought this book can review it' });
+      res.status(403).json({
+        message: ordered
+          ? 'You can review this book once it has been delivered.'
+          : 'Only somebody who bought this book can review it',
+      });
       return;
     }
 

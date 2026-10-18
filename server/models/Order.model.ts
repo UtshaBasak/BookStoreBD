@@ -43,6 +43,8 @@ const OrderSchema = new Schema({
   // administrator recorded. A line is payable once its return window closes.
   sellerPaidAt: { type: Date, default: null },
   sellerPayoutRef: { type: String, default: '' },
+  // Which payout request recorded the payment, so two at once pay once.
+  sellerPayoutClaim: { type: String, default: '' },
   isReturned: { type: Number, default: 0 },
   // Set when the line is called off: when, by whom (buyer, seller, admin) and why.
   cancelledAt: { type: Date, default: null },

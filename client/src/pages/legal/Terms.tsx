@@ -106,6 +106,12 @@ export default function Terms() {
         of delivery. How that works, and how refunds are paid, is set out in
         the <Link to="/returns">returns and refunds policy</Link>.</p>
 
+      <h2 id="reviews">Reviews and ratings</h2>
+      <p>You can review a book, and rate the seller you bought it from, once your
+        order has been delivered. If an order is cancelled, a review or rating
+        it was the only purchase behind is removed. You cannot review your own
+        books or rate your own shop.</p>
+
       <h2>What you may not do</h2>
       <ul>
         <li>List counterfeit or pirated copies, or anything you may not legally

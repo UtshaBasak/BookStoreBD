@@ -68,6 +68,8 @@ const taka = (amount: number): string => `${Math.round(amount * 100) / 100} Tk`;
 
 /** The order lines an e-mail is about. */
 export interface MailLine {
+  /** The book, where an e-mail links to it. */
+  bookId?: unknown;
   title?: string | null;
   quantity?: number | null;
   price?: number | null;
@@ -148,6 +150,14 @@ export const orderPlacedSellerEmail = (order: OrderFacts, lines: readonly MailLi
   });
 };
 
+/** Where "Review your books" goes: the book's reviews, or the orders when there are several. */
+const reviewButton = (lines: readonly MailLine[]): { label: string; path: string } => {
+  const books = [...new Set(lines.map((line) => String(line.bookId ?? '')).filter(Boolean))];
+  return books.length === 1
+    ? { label: 'Review your book', path: `/book/${books[0]}#reviews` }
+    : { label: 'Review your books', path: '/buyer/orders' };
+};
+
 /** To the buyer: it arrived. */
 export const orderDeliveredBuyerEmail = (order: OrderFacts, lines: readonly MailLine[]): Email =>
   noticeEmail({
@@ -157,7 +167,9 @@ export const orderDeliveredBuyerEmail = (order: OrderFacts, lines: readonly Mail
     lead: ['Your books have arrived. We hope you enjoy them!'],
     items: itemsOf(lines),
     facts: [['Order', order.orderNumber]],
-    button: { label: 'Review your books', path: `/order-tracking/${order.orderNumber}` },
+    // Reviews are written on the book's own page: one book goes straight to
+    // its review form, several to the orders, where each book links to its page.
+    button: reviewButton(lines),
     after: [`Something wrong with a book? You can ask for a return within ${RETURN_WINDOW_DAYS} days, from your orders.`],
   });
 
