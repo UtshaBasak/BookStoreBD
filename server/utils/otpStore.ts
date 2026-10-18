@@ -34,7 +34,7 @@ const digest = (code: string): string =>
  * What a code is for. A sign-in code is filed apart from the codes for signing
  * up and resetting a password, so one can never be spent as the other.
  */
-export type CodeScope = 'account' | 'signin';
+export type CodeScope = 'account' | 'signin' | 'confirm' | 'email-change';
 
 /**
  * The address a record is filed under.

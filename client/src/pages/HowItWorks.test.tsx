@@ -33,7 +33,10 @@ describe('the profile set-up card', () => {
 
   it('shows how far along it is, with links to what is left', () => {
     show({ phone: '01710000002', address: 'Dhaka' });
-    expect(screen.getByRole('progressbar')).toHaveAttribute('aria-valuenow', '33');
+    // Two of five steps: phone and address. The date of birth is no longer one -
+    // nothing uses it.
+    expect(screen.getByRole('progressbar')).toHaveAttribute('aria-valuenow', '40');
+    expect(screen.queryByRole('link', { name: /date of birth/i })).not.toBeInTheDocument();
     expect(screen.getByRole('link', { name: /add a profile picture/i })).toHaveAttribute('href', '/update-profile?mode=buyer#up-picture');
   });
 

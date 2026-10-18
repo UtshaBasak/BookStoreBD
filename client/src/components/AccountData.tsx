@@ -1,11 +1,15 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
-import type { ApiError } from '@shared/api.js';
+import type { AccountBlockedResponse, ApiError } from '@shared/api.js';
 
 import { API_BASE_URL, apiFetch } from '../config/api.js';
-import { clearSession } from '../utils/auth.js';
+import { clearSession, getUserEmail } from '../utils/auth.js';
+import { useProfile } from '../hooks/queries.js';
 import { useToast } from '../hooks/useToast.js';
+import { isOwnProfile } from '../utils/profile.js';
+import IdentityCheck from './IdentityCheck.js';
+import { NO_IDENTITY, identityBody, identityGiven } from '../utils/identity.js';
 
 /**
  * The two things every account owner is entitled to: a copy of their data, and
@@ -18,8 +22,14 @@ export default function AccountData() {
   const navigate = useNavigate();
   const toast = useToast();
   const [confirming, setConfirming] = useState(false);
-  const [password, setPassword] = useState('');
+  const [identity, setIdentity] = useState(NO_IDENTITY);
   const [busy, setBusy] = useState(false);
+  // What has to settle first, when the shop says the account cannot close yet.
+  const [blocked, setBlocked] = useState<AccountBlockedResponse | null>(null);
+  const email = getUserEmail();
+  const { data: profile } = useProfile(email, { enabled: Boolean(email) });
+  // An account made through Google confirms with an e-mailed code instead.
+  const passwordSet = !isOwnProfile(profile) || profile.passwordSet !== false;
 
   const downloadMyData = async () => {
     setBusy(true);
@@ -57,11 +67,15 @@ export default function AccountData() {
       const res = await apiFetch(`${API_BASE_URL}/user/me`, {
         method: 'DELETE',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ password }),
+        body: JSON.stringify(identityBody(identity, passwordSet)),
       });
 
       if (!res.ok) {
-        const failure = (await res.json()) as ApiError;
+        const failure = (await res.json()) as ApiError & Partial<AccountBlockedResponse>;
+        if (failure.code === 'account-has-open-business' && failure.blockers) {
+          setBlocked({ code: failure.code, message: failure.message, blockers: failure.blockers });
+          return;
+        }
         toast.error(failure.message || 'Could not delete your account.');
         return;
       }
@@ -101,6 +115,20 @@ export default function AccountData() {
         person&rsquo;s conversation &mdash; both with your details stripped out and shown
         as a deleted user.
       </p>
+      <p className="mb-4 text-sm text-ink-muted">
+        Orders not yet started are cancelled for you. An order on its way, a return being
+        decided, or money still owed to you needs to finish first; we will say what.
+      </p>
+      {blocked && (
+        <div role="alert" className="pay-notice mb-4 text-sm">
+          <p className="m-0 mb-1 font-bold">{blocked.message}</p>
+          <ul className="m-0 pl-5">
+            {blocked.blockers.map((reason) => (
+              <li key={reason}>{reason}</li>
+            ))}
+          </ul>
+        </div>
+      )}
 
       {!confirming ? (
         <button
@@ -114,22 +142,19 @@ export default function AccountData() {
         <div className="flex flex-col gap-3">
           {/* The password again, not just the button: this is irreversible, and
               a borrowed laptop should not be enough to do it. */}
-          <label className="text-sm font-bold text-ink-soft" htmlFor="delete-password">
-            Enter your password to confirm
-          </label>
-          <input
+          <IdentityCheck
             id="delete-password"
-            type="password"
-            autoComplete="current-password"
-            value={password}
-            onChange={(event) => setPassword(event.target.value)}
-            className="field sm:max-w-sm"
+            action="delete-account"
+            passwordSet={passwordSet}
+            label="to confirm"
+            value={identity}
+            onChange={setIdentity}
           />
           <div className="flex flex-wrap gap-3">
             <button
               type="button"
               onClick={deleteMyAccount}
-              disabled={busy || password.length === 0}
+              disabled={busy || !identityGiven(identity, passwordSet)}
               // Solid red once it can be pressed: the last, irreversible step
               // should not look like the harmless button that led to it.
               className="btn btn-danger disabled:cursor-not-allowed disabled:opacity-50 enabled:border-danger-dark enabled:bg-danger-dark enabled:text-white enabled:hover:bg-danger"
@@ -140,7 +165,7 @@ export default function AccountData() {
               type="button"
               onClick={() => {
                 setConfirming(false);
-                setPassword('');
+                setIdentity(NO_IDENTITY);
               }}
               className="btn btn-ghost"
             >

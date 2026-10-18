@@ -3,7 +3,7 @@
  * for the e-mailed code, and the way back from "Continue with Google".
  */
 import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest';
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { SnackbarProvider } from 'notistack';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
@@ -98,6 +98,50 @@ describe('two-step sign-in', () => {
 
     await fillAndSubmit();
     expect(await screen.findByRole('heading', { name: /home page/i })).toBeInTheDocument();
+  });
+});
+
+describe('signing in with a password', () => {
+  it('takes an administrator to the admin pages, as the other ways of signing in do', async () => {
+    const admin = { ...SESSION, user: { ...SESSION.user, role: 'admin' } };
+    vi.stubGlobal('fetch', vi.fn<typeof fetch>((input) => (String(input).includes('/auth/config') ? json(CONFIG) : json(admin))));
+    render(
+      <QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}>
+        <SnackbarProvider>
+          <MemoryRouter initialEntries={['/sign-in']}>
+            <Routes>
+              <Route path="/sign-in" element={<SignIn />} />
+              <Route path="/" element={<h1>Home page</h1>} />
+              <Route path="/admin/analytics" element={<h1>Admin pages</h1>} />
+            </Routes>
+          </MemoryRouter>
+        </SnackbarProvider>
+      </QueryClientProvider>
+    );
+
+    await fillAndSubmit();
+    expect(await screen.findByRole('heading', { name: /admin pages/i })).toBeInTheDocument();
+  });
+});
+
+describe('the password reset dialog', () => {
+  it('starts again at the first step each time it opens', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn<typeof fetch>((input) => (String(input).includes('/auth/config') ? json(CONFIG) : json({ message: 'Code sent' })))
+    );
+    show();
+
+    await userEvent.click(await screen.findByRole('button', { name: /forgot/i }));
+    const dialog = screen.getByRole('dialog');
+    await userEvent.type(within(dialog).getByLabelText('Email'), 'reader@test.com');
+    await userEvent.click(within(dialog).getByRole('button', { name: /send otp/i }));
+    await userEvent.type(await within(dialog).findByLabelText('OTP'), '123456');
+    await userEvent.click(within(dialog).getByRole('button', { name: /close/i }));
+
+    await userEvent.click(screen.getByRole('button', { name: /forgot/i }));
+    expect(within(screen.getByRole('dialog')).getByRole('button', { name: /send otp/i })).toBeInTheDocument();
+    expect(within(screen.getByRole('dialog')).queryByLabelText('OTP')).not.toBeInTheDocument();
   });
 });
 

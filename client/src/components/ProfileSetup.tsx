@@ -24,7 +24,6 @@ const setupSteps = (profile: Partial<OwnProfile>, mode: ProfileMode): Step[] => 
     { key: 'photo', label: 'Add a profile picture', why: 'so people recognise you', done: filled(profile.profilePicture), to: edit('up-picture') },
     { key: 'phone', label: 'Add your phone number', why: 'for delivery updates', done: filled(profile.phone), to: edit('up-phone') },
     { key: 'address', label: 'Add your address', why: 'for a faster checkout', done: filled(profile.address), to: edit('up-address') },
-    { key: 'birthday', label: 'Add your date of birth', why: 'for suggestions that suit you', done: filled(profile.dateOfBirth), to: edit('up-dob') },
     {
       key: 'banner',
       label: `Choose a ${mode} banner`,

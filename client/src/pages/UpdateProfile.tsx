@@ -12,6 +12,7 @@ import { getUserEmail } from '../utils/auth.js';
 import { isOwnProfile } from '../utils/profile.js';
 import { safeImageSrc } from '../utils/safeImageSrc.js';
 import FilePreview from '../components/FilePreview.js';
+import ChangeEmail from '../components/ChangeEmail.js';
 import { reportError } from '../utils/report.js';
 import { resizeImage } from '../utils/resizeImage.js';
 import { readProfileMode } from '../utils/profileMode.js';
@@ -144,7 +145,9 @@ export default function UpdateProfile() {
                     if (formData.password && formData.password !== '') {
                         formDataToSend.append('password', formData.password);
                     }
-                } else {
+                } else if (key !== 'email') {
+                    // The e-mail is changed on its own, with a code sent to
+                    // the new address (ChangeEmail below), never with the form.
                     formDataToSend.append(key, formData[key] ?? '');
                 }
             });
@@ -331,8 +334,13 @@ export default function UpdateProfile() {
                                     type="email"
                                     name="email"
                                     value={formData.email}
-                                    onChange={handleChange}
+                                    readOnly
                                     className="field"
+                                />
+                                <ChangeEmail
+                                    currentEmail={formData.email}
+                                    passwordSet={hasOwnPassword}
+                                    pendingEmail={stored?.pendingEmail ?? null}
                                 />
                             </div>
                         </div>

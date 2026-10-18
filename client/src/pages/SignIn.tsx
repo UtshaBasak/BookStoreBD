@@ -37,6 +37,14 @@ export default function SignIn() {
     const [forgotStep, setForgotStep] = useState('email'); // email | otp | reset
     const [forgotMsg, setForgotMsg] = useState('');
     const [newPassword, setNewPassword] = useState('');
+    /** Opens or closes the reset dialog at its first step, with nothing left from last time. */
+    const showForgotDialog = (open: boolean) => {
+        setShowForgot(open);
+        setForgotStep('email');
+        setForgotOtp('');
+        setNewPassword('');
+        setForgotMsg('');
+    };
     /** Where a two-step code came from: the password form, or Google. */
     const [challengeFrom, setChallengeFrom] = useState<'password' | 'google'>(googleEmail ? 'google' : 'password');
     // The bot check, for the form and for the password reset - one each, since
@@ -107,9 +115,11 @@ export default function SignIn() {
                 setCode('');
                 toast.info(`A sign-in code is on its way to ${data.sentTo}.`);
             } else if (res.ok && 'token' in data) {
-                // The token is what authorises every later request.
+                // The token is what authorises every later request. An
+                // administrator goes to the admin pages, as the two-step and
+                // Google paths do.
                 setSession(data);
-                navigate(after);
+                navigate(isAdmin() ? '/admin/analytics' : after);
             } else {
                 // The API's sentence, not the raw error envelope. A wrong
                 // email and a wrong password answer the same on purpose.
@@ -200,7 +210,7 @@ export default function SignIn() {
         const data = await res.json();
         if (res.ok) {
             setForgotMsg('Password reset successful. Please sign in.');
-            setTimeout(() => setShowForgot(false), 1000);
+            setTimeout(() => showForgotDialog(false), 1000);
         } else {
             setForgotMsg(data.message || 'Failed to reset password.');
         }
@@ -289,7 +299,7 @@ export default function SignIn() {
                                 <button
                                     type="button"
                                     className="auth-text-button"
-                                    onClick={() => setShowForgot(true)}
+                                    onClick={() => showForgotDialog(true)}
                                 >
                                     Forgot Password?
                                 </button>
@@ -362,7 +372,7 @@ export default function SignIn() {
                             {forgotMsg && (
                                 <p role="status" className={`auth-message ${forgotOk ? 'auth-message-ok' : 'auth-message-error'}`}>{forgotMsg}</p>
                             )}
-                            <button onClick={() => setShowForgot(false)} className="btn btn-ghost auth-wide">Close</button>
+                            <button onClick={() => showForgotDialog(false)} className="btn btn-ghost auth-wide">Close</button>
                         </div>
                     </div>
                 </div>

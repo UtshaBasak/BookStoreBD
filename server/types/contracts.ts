@@ -35,6 +35,10 @@ import type {
   SignInRequest,
   SignUpRequest,
   TwoFactorRequest,
+  DeleteAccountRequest,
+  ConfirmCodeRequest,
+  EmailChangeRequest,
+  EmailConfirmRequest,
   UpdateNotificationSettingsRequest,
   UpdateOrderStatusRequest,
   UpdatePriceRequest,
@@ -105,6 +109,10 @@ export type ContractChecks = [
   // ------------------------------------------------------------------ user
   Expect<Accepts<typeof userSchemas.updateProfile.body, UpdateProfileRequest>>,
   Expect<Accepts<typeof userSchemas.twoFactor.body, TwoFactorRequest>>,
+  Expect<Accepts<typeof userSchemas.deleteMe.body, DeleteAccountRequest>>,
+  Expect<Accepts<typeof userSchemas.confirmCode.body, ConfirmCodeRequest>>,
+  Expect<Accepts<typeof userSchemas.emailChange.body, EmailChangeRequest>>,
+  Expect<Accepts<typeof userSchemas.emailConfirm.body, EmailConfirmRequest>>,
   Expect<Accepts<typeof userSchemas.notifications.body, UpdateNotificationSettingsRequest>>,
   Expect<Accepts<typeof userSchemas.invite.body, InviteRequest>>,
 

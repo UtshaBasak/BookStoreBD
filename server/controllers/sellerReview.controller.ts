@@ -26,9 +26,11 @@ const ratingsLink = (username: string | undefined): string =>
  * decimal, and how many there are. Shown on their shop and beside their name on
  * each of their listings.
  */
-export const sellerRatingOf = async (sellerEmail: string): Promise<{ average: number; count: number }> => {
+export const sellerRatingOf = async (seller: mongoose.Types.ObjectId | string): Promise<{ average: number; count: number }> => {
+  // By the seller's account, as the list of ratings is, so the score and the
+  // list can never describe two different people.
   const [summary] = await SellerReview.aggregate<{ average: number; count: number }>([
-    { $match: { sellerEmail } },
+    { $match: { seller: new mongoose.Types.ObjectId(String(seller)) } },
     { $group: { _id: null, average: { $avg: '$rating' }, count: { $sum: 1 } } },
   ]);
   return {

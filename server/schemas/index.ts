@@ -503,10 +503,32 @@ export const userSchemas = {
       pageSize: boundedInt(1, 100).default(25),
     }),
   },
+  /**
+   * Deleting the account: the password, or - for an account made through
+   * Google that has none - the code e-mailed by POST /user/me/confirm-code.
+   */
   deleteMe: {
+    body: z
+      .object({
+        password: z.string().max(200).optional(),
+        code: otpCode.optional(),
+      })
+      .refine((body) => Boolean(body.password || body.code), 'Your password is required to delete the account'),
+  },
+  /** A code to confirm an account change, for an account with no password of its own. */
+  confirmCode: {
+    body: z.object({ action: z.enum(['delete-account', 'two-factor-off']) }),
+  },
+  /** Moving the account to another address: the new one, and the password to allow it. */
+  emailChange: {
     body: z.object({
-      password: z.string().min(1, 'Your password is required to delete the account').max(200),
+      newEmail: email,
+      password: z.string().min(1, 'Enter your password to change your e-mail address').max(200),
     }),
+  },
+  /** The code sent to the new address. */
+  emailConfirm: {
+    body: z.object({ code: otpCode }),
   },
   /** Inviting friends who are not members yet. */
   invite: {
@@ -526,6 +548,8 @@ export const userSchemas = {
     body: z.object({
       enabled: z.boolean(),
       password: z.string().max(200).optional(),
+      /** Instead of the password, for an account made through Google. */
+      code: otpCode.optional(),
     }),
   },
 };
@@ -682,6 +706,9 @@ export const auditSchemas = {
 
 export type DeleteMeBody = z.infer<typeof userSchemas.deleteMe.body>;
 export type TwoFactorBody = z.infer<typeof userSchemas.twoFactor.body>;
+export type ConfirmCodeBody = z.infer<typeof userSchemas.confirmCode.body>;
+export type EmailChangeBody = z.infer<typeof userSchemas.emailChange.body>;
+export type EmailConfirmBody = z.infer<typeof userSchemas.emailConfirm.body>;
 export type WantedListQuery = z.infer<typeof wantedSchemas.list.query>;
 export type CreateWantedBody = z.infer<typeof wantedSchemas.create.body>;
 export type NotificationSettingsBody = z.infer<typeof userSchemas.notifications.body>;

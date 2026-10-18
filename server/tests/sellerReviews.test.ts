@@ -147,7 +147,10 @@ describe('closing an account', () => {
     expect(kept.reviewerEmail).not.toBe(BUYER);
     expect(kept.reviewerName).not.toBe('reader');
 
-    await request.delete('/user/me').set('Authorization', seller.auth).send({ password: PASSWORD });
+    // The sale has been paid out, so nothing is owed and the shop can close.
+    await Order.updateMany({}, { $set: { sellerPaidAt: new Date() } });
+    const closed = await request.delete('/user/me').set('Authorization', seller.auth).send({ password: PASSWORD });
+    expect(closed.status).toBe(200);
     expect(await SellerReview.countDocuments()).toBe(0);
   });
 });

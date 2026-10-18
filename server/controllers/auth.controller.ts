@@ -525,6 +525,8 @@ export const resetPassword = async (
         return;
     }
     user.password = hashPassword(newPassword);
+    // An account made through Google has a password of its own from now on.
+    user.passwordSet = true;
     await user.save();
     await clearCode(email);
 

@@ -129,3 +129,31 @@ describe('what it shows', () => {
     expect(await screen.findByText(/no account matches that search/i)).toBeInTheDocument();
   });
 });
+
+describe('deleting an account', () => {
+  it('says what has to finish first when the account cannot be deleted yet', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn((_input: RequestInfo | URL, init?: RequestInit) =>
+        Promise.resolve(
+          init?.method === 'DELETE'
+            ? new Response(
+                JSON.stringify({
+                  code: 'account-has-open-business',
+                  message: "This account can't be deleted yet.",
+                  blockers: ['Order ABC is being prepared or is on its way to you.'],
+                }),
+                { status: 409, headers: { 'Content-Type': 'application/json' } }
+              )
+            : new Response(JSON.stringify(answer()), { status: 200, headers: { 'Content-Type': 'application/json' } })
+        )
+      )
+    );
+    renderPage();
+
+    await userEvent.click(await screen.findByRole('button', { name: /delete/i }));
+
+    expect(await screen.findByText(/Order ABC is being prepared/)).toBeInTheDocument();
+    expect(screen.getByRole('alert')).toHaveTextContent("This account can't be deleted yet.");
+  });
+});

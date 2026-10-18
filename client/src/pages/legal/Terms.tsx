@@ -91,7 +91,9 @@ export default function Terms() {
         return is pending - so money is never sent and then taken back. A book
         that is returned is not paid for, and no fee is taken on it.</p>
       <p>Your orders page shows where each payment stands, and the bKash
-        transaction ID once it has been sent.</p>
+        transaction ID once it has been sent. You can change the number at any
+        time; you can remove it once none of your books are on sale and nothing
+        is still to be paid to it.</p>
       <ul>
         <li>List only books you own and are entitled to sell.</li>
         <li>Describe condition honestly. "Good" and "Fair" mean what a reasonable
@@ -139,8 +141,10 @@ export default function Terms() {
       <h2>Ending your account</h2>
       <p>You can delete your account yourself, under <strong>Your
         data</strong> on your profile page, or ask us to by e-mailing
-        <a href={`mailto:${site.email}`}> {site.email}</a>. We may suspend an
-        account that breaks these terms.</p>
+        <a href={`mailto:${site.email}`}> {site.email}</a>. Orders not yet
+        started are cancelled for you; an order on its way, a return being
+        decided, or a sale still to be paid out to you is finished first. We may
+        suspend an account that breaks these terms.</p>
 
       <h2>Changes</h2>
       <p>If these terms change materially we will say so on this page and update

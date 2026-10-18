@@ -87,7 +87,7 @@ const textFooter = (): string => {
   return [`Questions? Write to ${SUPPORT}.`, url, `${SHOP}, ${PLACE}`].filter(Boolean).join('\n');
 };
 
-type CodePurpose = 'register' | 'reset' | 'signin';
+type CodePurpose = 'register' | 'reset' | 'signin' | 'delete-account' | 'two-factor-off' | 'email-change';
 
 const COPY: Record<CodePurpose, { subject: string; heading: string; lead: string; ignore?: string }> = {
   register: {
@@ -107,9 +107,27 @@ const COPY: Record<CodePurpose, { subject: string; heading: string; lead: string
     ignore:
       "If this wasn't you, someone knows your password: reset it from the sign-in page. They cannot sign in without this code.",
   },
+  'delete-account': {
+    subject: `Your ${SHOP} code to delete your account`,
+    heading: 'Confirm deleting your account',
+    lead: 'You asked to delete your account. Enter this code on your profile to confirm. Deleting an account cannot be undone.',
+    ignore: "If you didn't ask for this, you can ignore this e-mail - your account stays as it is.",
+  },
+  'two-factor-off': {
+    subject: `Your ${SHOP} code to turn off two-step sign-in`,
+    heading: 'Confirm turning off two-step sign-in',
+    lead: 'You asked to turn off two-step sign-in. Enter this code on your profile to confirm.',
+    ignore: "If you didn't ask for this, you can ignore this e-mail - two-step sign-in stays on.",
+  },
+  'email-change': {
+    subject: `Your ${SHOP} code to confirm your new e-mail address`,
+    heading: 'Confirm your new e-mail address',
+    lead: `You asked to move your ${SHOP} account to this address. Enter this code on your profile to confirm it.`,
+    ignore: "If you didn't ask for this, you can ignore this e-mail - nothing changes without the code.",
+  },
 };
 
-/** A one-time code for signing up, resetting a password, or two-step sign-in. */
+/** A one-time code: signing up, resetting a password, two-step sign-in, or confirming an account change. */
 export const codeEmail = (purpose: CodePurpose, code: string): Email => {
   const copy = COPY[purpose];
   const safeCode = escape(code);

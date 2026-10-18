@@ -66,6 +66,9 @@ const UserSchema = new Schema(
         // False for an account made through Google until its owner chooses a
         // password: there is no current one to ask for before they do.
         passwordSet: { type: Boolean, default: true },
+        // An address the owner asked to move the account to, waiting for the
+        // code sent there. Nothing moves until it is confirmed.
+        pendingEmail: { type: String, default: null },
         // The browsers this account has been signed in from, as HMACs of a
         // cookie (utils/deviceAlert.ts), so a new one can be reported.
         knownDevices: { type: [String], default: [] },

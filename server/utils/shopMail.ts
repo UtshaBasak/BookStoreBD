@@ -396,6 +396,19 @@ export const passwordChangedEmail = (): Email =>
   });
 
 /** The bKash number a seller is paid to was changed or removed. */
+/** To the old address, once an account has moved to a new one. */
+export const emailChangedEmail = (newEmail: string): Email =>
+  noticeEmail({
+    subject: 'The e-mail address on your BookStoreBD account was changed',
+    heading: 'Your e-mail address was changed',
+    preheader: 'If this was you, there is nothing to do.',
+    lead: [
+      `Your BookStoreBD account now uses ${newEmail}. Sign in with that address from now on; order and account e-mails go there too.`,
+      'If this was you, there is nothing more to do.',
+    ],
+    after: ["If you didn't make this change, write to us straight away so we can put it right."],
+  });
+
 export const payoutNumberChangedEmail = (removed: boolean): Email =>
   noticeEmail({
     subject: removed ? 'Your bKash payout number was removed' : 'Your bKash payout number was changed',

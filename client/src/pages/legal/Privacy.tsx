@@ -136,11 +136,18 @@ export default function Privacy() {
       <p>You do not have to ask us for any of this. On your profile page,
         under <strong>Your data</strong>, you can download everything this
         account holds as a single file, and you can delete the account outright.
-        Both are immediate. You can also edit most of your profile there.</p>
+        You can also edit your profile there. To change your e-mail address, we
+        send a code to the new address, and tell the old one once it has
+        changed.</p>
       <p>If you would rather we did it, or you cannot sign in, e-mail us at{' '}
         <a href={`mailto:${site.email}`}>{site.email}</a>.</p>
-      <p>Deleting an account removes your profile, your cart, your wishlist and
-        any listings you posted, and signs out every session.</p>
+      <p>Deleting an account removes your profile, your cart, your wishlist,
+        your notifications and any listings you posted, and signs out every
+        session. Orders not yet started are cancelled for you. While an order is
+        on its way, a return is being decided, or a sale is still to be paid out
+        to you, the account stays open until that is finished; the page tells
+        you what is still open. An account made with Google confirms the
+        deletion with a code we e-mail to it.</p>
       <p>Some things are kept rather than deleted, because they are not only
         yours. Orders and return requests stay as accounting records, with your
         name, phone number, address, e-mail and bKash number removed from them.

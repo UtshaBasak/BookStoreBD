@@ -1,13 +1,20 @@
 import { useState } from 'react';
 import { FaSearch, FaTrashAlt, FaUsers } from 'react-icons/fa';
 
-import type { Id } from '@shared/api.js';
+import type { AccountBlockedResponse, Id } from '@shared/api.js';
 import './AdminPanel.css';
 import './UserManagement.css';
 import { useUsers, useDeleteUser } from '../hooks/queries.js';
+import { ApiRequestError } from '../utils/apiError.js';
 import { useDebounced } from '../hooks/useDebounced.js';
 import Pager from '../components/Pager.js';
 import { FilterSelect, RefreshButton } from './admin/AdminControls.js';
+
+/** The reasons an account cannot be deleted yet, when that is why it failed. */
+const blockersOf = (error: Error): string[] => {
+  const body = error instanceof ApiRequestError ? (error.body as Partial<AccountBlockedResponse> | undefined) : undefined;
+  return Array.isArray(body?.blockers) ? body.blockers : [];
+};
 
 /** Rows per page. Enough to scan, few enough to draw. */
 const PAGE_SIZE = 25;
@@ -96,9 +103,17 @@ export default function UserManagement() {
         <FilterSelect name="sort" label="Sort" value={sort} onChange={change(setSort)} options={SORTS} />
       </div>
       {deleteError && (
-        <p role="alert" className="admin-alert">
+        <div role="alert" className="admin-alert">
           Could not delete that user: {deleteError.message}
-        </p>
+          {/* What has to finish first: an order on its way, a return, a payout. */}
+          {blockersOf(deleteError).length > 0 && (
+            <ul className="m-0 mt-1 pl-5">
+              {blockersOf(deleteError).map((reason) => (
+                <li key={reason}>{reason}</li>
+              ))}
+            </ul>
+          )}
+        </div>
       )}
       <div className="admin-card">
         <div className="table-scroll">

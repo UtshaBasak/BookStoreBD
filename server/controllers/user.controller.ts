@@ -9,6 +9,8 @@ import { destroyAssets, isCloudinaryConfigured, uploadImage } from '../config/cl
 import type { ProfileQuery, UpdateProfileBody } from '../schemas/index.js';
 import { createLogger } from '../config/logger.js';
 import { sellerRatingOf } from './sellerReview.controller.js';
+import AddBook from '../models/AddBook.model.js';
+import Order from '../models/Order.model.js';
 import { revokeOtherSessions } from '../utils/refreshToken.js';
 import { readRefreshCookie } from '../utils/authCookies.js';
 import { dispatchShopMail, passwordChangedEmail, payoutNumberChangedEmail } from '../utils/shopMail.js';
@@ -51,7 +53,7 @@ export const getUserProfile = async (
             profilePicture: user.profilePicture || null,
             buyerBanner: bannerUrl(user, 'buyer'),
             sellerBanner: bannerUrl(user, 'seller'),
-            sellerRating: await sellerRatingOf(user.email),
+            sellerRating: await sellerRatingOf(user._id),
         };
 
         const ownProfile: OwnProfile = {
@@ -64,6 +66,7 @@ export const getUserProfile = async (
             role: user.role,
             twoFactor: Boolean(user.twoFactor),
             passwordSet: user.passwordSet !== false,
+            pendingEmail: user.pendingEmail ?? null,
         };
 
         const body: ProfileResponse = isOwnerOrAdmin ? ownProfile : publicProfile;
@@ -215,6 +218,27 @@ export const updateUserProfile = async (
             }
         }
         if (changingPassword) updateFields.passwordSet = true;
+
+        /*
+         * The payout number stays while it is needed: books on sale are sold
+         * to be paid for, and sales not yet paid out are paid to it.
+         */
+        if (removingPayout) {
+            if (await AddBook.exists({ sellerEmail: currentUser.email, stock: { $gt: 0 } })) {
+                res.status(409).json({
+                    code: 'payout-number-in-use',
+                    message: 'Your books on sale need a bKash number so you can be paid. Set their stock to 0 first, or change the number instead.',
+                });
+                return;
+            }
+            if (await Order.exists({ sellerEmail: currentUser.email, status: { $ne: 'Cancelled' }, sellerPaidAt: null, isReturned: { $ne: 1 } })) {
+                res.status(409).json({
+                    code: 'payout-number-in-use',
+                    message: 'Some of your sales are still to be paid to this number. You can remove it once they have been paid, or change it instead.',
+                });
+                return;
+            }
+        }
 
         if (updateFields.username && updateFields.username !== currentUser.username) {
             const usernameExists = await User.findOne({ username: updateFields.username });

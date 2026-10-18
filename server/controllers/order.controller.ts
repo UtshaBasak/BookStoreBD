@@ -903,6 +903,111 @@ export const updateOrderStatusByOrderNumber = async (
 };
 
 /**
+ * Cancels these books of an order - the ones a person may cancel - and puts
+ * their copies back, tells everyone in the order, and keeps the record.
+ * Answers with the books this call actually cancelled, which may be none if
+ * someone else got there first.
+ *
+ * Shared by the Cancel button and by closing an account, which cancels what
+ * its owner could have cancelled themselves.
+ */
+export const cancelOrderLines = async (
+  req: Request,
+  {
+    orderNumber,
+    existing,
+    candidates,
+    who,
+    reason,
+  }: {
+    orderNumber: string;
+    existing: readonly LeanOrder[];
+    candidates: readonly LeanOrder[];
+    who: 'admin' | 'seller' | 'buyer';
+    reason: string;
+  }
+): Promise<LeanOrder[]> => {
+  const actor = actingUser(req).email;
+  /*
+   * Each book is cancelled only if it is still where it was read - not
+   * cancelled already, and not moved on in the meantime - and only a book
+   * this request actually cancelled has its copies put back and is told
+   * about. Two cancels at once (a double click, or the buyer and the seller
+   * together) put the stock back once.
+   */
+  const lines: LeanOrder[] = [];
+  for (const line of candidates) {
+    const changed = await Order.updateOne(
+      { _id: line._id, status: line.status ?? 'Order Confirmed' },
+      { $set: { status: CANCELLED, cancelledAt: new Date(), cancelledBy: who, cancelReason: reason } }
+    );
+    if (changed.modifiedCount === 1) lines.push(line);
+  }
+  if (!lines.length) return lines;
+  const cancelled = { modifiedCount: lines.length };
+
+  // Back on the shelf, copy for copy - and anyone waiting for a sold-out
+  // copy hears it is back.
+  for (const line of lines) {
+    const copies = Number(line.quantity) || 1;
+    const restored = await AddBook.findOneAndUpdate(
+      { _id: line.bookId },
+      { $inc: { stock: copies } },
+      { returnDocument: 'after', projection: { stock: 1, title: 1, sellerEmail: 1 } }
+    ).lean();
+    if (restored) await stockChanged(restored, Number(restored.stock) - copies, Number(restored.stock), { actor });
+  }
+
+  // A review or a rating needs a delivered book; one left without one goes.
+  await dropUnbackedReviews(String(existing[0]?.buyerEmail ?? ''), lines);
+
+  await recordAudit(req, {
+    action: 'order.cancel',
+    targetType: 'order',
+    targetId: orderNumber,
+    details: { by: who, lines: cancelled.modifiedCount, reason },
+  });
+
+  const what = describeLines(lines);
+  const by = who === 'buyer' ? 'the buyer' : who === 'seller' ? 'the seller' : 'the shop';
+  const body = `${what}, cancelled by ${by}${reason ? `: "${reason}"` : '.'}`;
+  await notify([existing[0]?.buyerEmail], {
+    type: 'order-cancelled',
+    title: `Order ${orderNumber} was cancelled`,
+    body,
+    link: `/order-tracking/${orderNumber}`,
+  }, { except: actor });
+  await notify([...new Set(lines.map((line) => line.sellerEmail))], {
+    type: 'order-cancelled',
+    title: `Order ${orderNumber} was cancelled`,
+    body: `${body} The stock is back on sale.`,
+    link: `/seller/order-tracking/${orderNumber}`,
+  }, { except: actor });
+  await notify(await adminEmails(), {
+    type: 'order-cancelled',
+    title: `Order ${orderNumber} was cancelled`,
+    body,
+    link: `/admin/order-tracking/${orderNumber}`,
+  }, { except: actor });
+
+  // And by e-mail to the buyer and each seller concerned, the canceller
+  // included: it is the record of what happened to the order.
+  const cancelledIds = new Set(lines.map((line) => String(line._id)));
+  const whole = existing.every((line) => line.status === CANCELLED || cancelledIds.has(String(line._id)));
+  const facts = { orderNumber };
+  dispatchShopMail(existing[0]?.buyerEmail, orderCancelledEmail('buyer', facts, lines, { by: who, reason, whole }), 'orders');
+  for (const seller of new Set(lines.map((line) => line.sellerEmail))) {
+    dispatchShopMail(
+      seller,
+      orderCancelledEmail('seller', facts, lines.filter((line) => line.sellerEmail === seller), { by: who, reason, whole }),
+      'orders'
+    );
+  }
+
+  return lines;
+};
+
+/**
  * Calls an order off and puts the books back on sale.
  *
  * The buyer may, until the seller has started on it; a seller may cancel
@@ -944,86 +1049,13 @@ export const cancelOrder = async (
       return;
     }
 
-    /*
-     * Each book is cancelled only if it is still where it was read - not
-     * cancelled already, and not moved on in the meantime - and only a book
-     * this request actually cancelled has its copies put back and is told
-     * about. Two cancels at once (a double click, or the buyer and the seller
-     * together) put the stock back once.
-     */
-    const lines: LeanOrder[] = [];
-    for (const line of candidates) {
-      const changed = await Order.updateOne(
-        { _id: line._id, status: line.status ?? 'Order Confirmed' },
-        { $set: { status: CANCELLED, cancelledAt: new Date(), cancelledBy: who, cancelReason: reason } }
-      );
-      if (changed.modifiedCount === 1) lines.push(line);
-    }
+    const lines = await cancelOrderLines(req, { orderNumber, existing, candidates, who, reason });
     if (!lines.length) {
       res.status(409).json({ message: 'This order has already been cancelled or has moved on.' });
       return;
     }
-    const cancelled = { modifiedCount: lines.length };
 
-    // Back on the shelf, copy for copy - and anyone waiting for a sold-out
-    // copy hears it is back.
-    for (const line of lines) {
-      const copies = Number(line.quantity) || 1;
-      const restored = await AddBook.findOneAndUpdate(
-        { _id: line.bookId },
-        { $inc: { stock: copies } },
-        { returnDocument: 'after', projection: { stock: 1, title: 1, sellerEmail: 1 } }
-      ).lean();
-      if (restored) await stockChanged(restored, Number(restored.stock) - copies, Number(restored.stock), { actor });
-    }
-
-    // A review or a rating needs a delivered book; one left without one goes.
-    await dropUnbackedReviews(String(existing[0]?.buyerEmail ?? ''), lines);
-
-    await recordAudit(req, {
-      action: 'order.cancel',
-      targetType: 'order',
-      targetId: orderNumber,
-      details: { by: who, lines: cancelled.modifiedCount, reason },
-    });
-
-    const what = describeLines(lines);
-    const by = who === 'buyer' ? 'the buyer' : who === 'seller' ? 'the seller' : 'the shop';
-    const body = `${what}, cancelled by ${by}${reason ? `: "${reason}"` : '.'}`;
-    await notify([existing[0]?.buyerEmail], {
-      type: 'order-cancelled',
-      title: `Order ${orderNumber} was cancelled`,
-      body,
-      link: `/order-tracking/${orderNumber}`,
-    }, { except: actor });
-    await notify([...new Set(lines.map((line) => line.sellerEmail))], {
-      type: 'order-cancelled',
-      title: `Order ${orderNumber} was cancelled`,
-      body: `${body} The stock is back on sale.`,
-      link: `/seller/order-tracking/${orderNumber}`,
-    }, { except: actor });
-    await notify(await adminEmails(), {
-      type: 'order-cancelled',
-      title: `Order ${orderNumber} was cancelled`,
-      body,
-      link: `/admin/order-tracking/${orderNumber}`,
-    }, { except: actor });
-
-    // And by e-mail to the buyer and each seller concerned, the canceller
-    // included: it is the record of what happened to the order.
-    const cancelledIds = new Set(lines.map((line) => String(line._id)));
-    const whole = existing.every((line) => line.status === CANCELLED || cancelledIds.has(String(line._id)));
-    const facts = { orderNumber };
-    dispatchShopMail(existing[0]?.buyerEmail, orderCancelledEmail('buyer', facts, lines, { by: who, reason, whole }), 'orders');
-    for (const seller of new Set(lines.map((line) => line.sellerEmail))) {
-      dispatchShopMail(
-        seller,
-        orderCancelledEmail('seller', facts, lines.filter((line) => line.sellerEmail === seller), { by: who, reason, whole }),
-        'orders'
-      );
-    }
-
-    res.status(200).json({ message: 'Order cancelled', cancelled: cancelled.modifiedCount });
+    res.status(200).json({ message: 'Order cancelled', cancelled: lines.length });
   } catch (err) {
     res.status(500).json({ message: errorMessage(err) });
   }

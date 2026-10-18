@@ -78,13 +78,16 @@ const request = async <T>(path: string, options?: RequestInit): Promise<T> => {
 
   if (!res.ok) {
     let message = `Request failed with ${res.status}`;
+    let body: unknown;
     try {
-      const body = (await res.json()) as { message?: string };
-      message = body.message || message;
+      body = await res.json();
+      message = (body as { message?: string }).message || message;
     } catch {
       /* not JSON; keep the status message */
     }
-    throw new ApiRequestError(message, res.status);
+    // The body too, for an answer that says more than its message - the
+    // reasons an account cannot be deleted yet, say.
+    throw new ApiRequestError(message, res.status, body);
   }
 
   return (res.status === 204 ? null : await res.json()) as T;

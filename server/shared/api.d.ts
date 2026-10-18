@@ -66,9 +66,21 @@ export interface ApiError {
    * - 'own-listing': a seller adding their own book to their cart (409);
    * - 'checkout-in-progress': another checkout by the same buyer is still
    *   being placed (409) - wait a moment and look at the orders, or retry
-   *   with the same `checkoutId`.
+   *   with the same `checkoutId`;
+   * - 'payout-number-in-use': removing the bKash number while books are on
+   *   sale or sales are still to be paid to it (409);
+   * - 'password-needed': changing the e-mail of an account with no password
+   *   yet (409);
+   * - 'account-has-open-business': see `AccountBlockedResponse`.
    */
-  code?: 'payout-number-required' | 'current-password' | 'own-listing' | 'checkout-in-progress';
+  code?:
+    | 'payout-number-required'
+    | 'payout-number-in-use'
+    | 'current-password'
+    | 'password-needed'
+    | 'own-listing'
+    | 'checkout-in-progress'
+    | 'account-has-open-business';
 }
 
 /** A plain acknowledgement, such as the answer to a delete. */
@@ -132,10 +144,71 @@ export interface TwoFactorChallenge {
 
 export type SignInResponse = SessionResponse | TwoFactorChallenge;
 
-/** PUT /user/me/two-factor. Turning it off asks for the password. */
+/**
+ * PUT /user/me/two-factor. Turning it off asks for the password, or - for an
+ * account with `passwordSet: false` - the code from POST /user/me/confirm-code
+ * with `action: 'two-factor-off'`.
+ */
 export interface TwoFactorRequest {
   enabled: boolean;
   password?: string;
+  code?: string;
+}
+
+/**
+ * DELETE /user/me. The password, or for an account with `passwordSet: false`
+ * the code from POST /user/me/confirm-code with `action: 'delete-account'`.
+ *
+ * Refused with 409 `account-has-open-business`, and `blockers` saying what to
+ * wait for, while an order is on its way, a return is being decided, or a
+ * payout is still owed. Orders the owner could cancel themselves are
+ * cancelled on the way, the other side told.
+ */
+export interface DeleteAccountRequest {
+  password?: string;
+  code?: string;
+}
+
+/** The 409 when an account cannot be closed yet. */
+export interface AccountBlockedResponse {
+  code: 'account-has-open-business';
+  message: string;
+  /** One sentence for each thing in the way. */
+  blockers: string[];
+}
+
+/** POST /user/me/confirm-code - e-mails a code; only for an account with `passwordSet: false`. */
+export interface ConfirmCodeRequest {
+  action: 'delete-account' | 'two-factor-off';
+}
+
+/**
+ * POST /user/me/email - starts moving the account to another address: the
+ * password, and a code goes to the new address. 409 `password-needed` for an
+ * account with no password yet; 409 when another account has the address.
+ */
+export interface EmailChangeRequest {
+  newEmail: string;
+  password: string;
+}
+
+export interface EmailChangeResponse {
+  message: string;
+  pendingEmail: string;
+}
+
+/**
+ * POST /user/me/email/confirm - the code sent to the new address. The
+ * account, and every order, listing, chat and review naming it, move to the
+ * new address; the session carries on. The old address is told.
+ */
+export interface EmailConfirmRequest {
+  code: string;
+}
+
+export interface EmailConfirmResponse {
+  message: string;
+  email: string;
 }
 
 export interface SignUpRequest {
@@ -917,6 +990,8 @@ export interface OwnProfile extends PublicProfile {
   twoFactor?: boolean;
   /** False for an account made through Google that has no password of its own yet. */
   passwordSet?: boolean;
+  /** An address the account is waiting to move to, once its code is entered. */
+  pendingEmail?: string | null;
 }
 
 export type ProfileResponse = PublicProfile | OwnProfile;

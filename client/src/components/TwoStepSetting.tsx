@@ -9,6 +9,8 @@ import { useProfile } from '../hooks/queries.js';
 import { useToast } from '../hooks/useToast.js';
 import { getUserEmail } from '../utils/auth.js';
 import { isOwnProfile } from '../utils/profile.js';
+import IdentityCheck from './IdentityCheck.js';
+import { NO_IDENTITY, identityBody, identityGiven } from '../utils/identity.js';
 
 /**
  * Two-step sign-in, on or off. On takes one click; off asks for the password,
@@ -22,7 +24,9 @@ export default function TwoStepSetting() {
   const enabled = isOwnProfile(profile) && Boolean(profile.twoFactor);
 
   const [confirming, setConfirming] = useState(false);
-  const [password, setPassword] = useState('');
+  const [identity, setIdentity] = useState(NO_IDENTITY);
+  // An account made through Google confirms with an e-mailed code instead.
+  const passwordSet = !isOwnProfile(profile) || profile.passwordSet !== false;
   const [busy, setBusy] = useState(false);
 
   const save = async (body: TwoFactorRequest) => {
@@ -40,7 +44,7 @@ export default function TwoStepSetting() {
       }
       await queryClient.invalidateQueries({ queryKey: ['profile'] });
       setConfirming(false);
-      setPassword('');
+      setIdentity(NO_IDENTITY);
       toast.success(data.message);
     } catch {
       toast.error('Could not reach the server. Please try again.');
@@ -82,23 +86,20 @@ export default function TwoStepSetting() {
           </button>
         ) : (
           <div className="flex flex-col gap-3">
-            <label className="text-sm font-bold text-ink-soft" htmlFor="two-step-password">
-              Enter your password to turn it off
-            </label>
-            <input
+            <IdentityCheck
               id="two-step-password"
-              type="password"
-              autoComplete="current-password"
-              value={password}
-              onChange={(event) => setPassword(event.target.value)}
-              className="field sm:max-w-sm"
+              action="two-factor-off"
+              passwordSet={passwordSet}
+              label="to turn it off"
+              value={identity}
+              onChange={setIdentity}
             />
             <div className="flex flex-wrap gap-3">
               <button
                 type="button"
                 className="btn btn-danger"
-                disabled={busy || password.length === 0}
-                onClick={() => void save({ enabled: false, password })}
+                disabled={busy || !identityGiven(identity, passwordSet)}
+                onClick={() => void save({ enabled: false, ...identityBody(identity, passwordSet) })}
               >
                 Turn off
               </button>
@@ -107,7 +108,7 @@ export default function TwoStepSetting() {
                 className="btn btn-ghost"
                 onClick={() => {
                   setConfirming(false);
-                  setPassword('');
+                  setIdentity(NO_IDENTITY);
                 }}
               >
                 Keep it on

@@ -13,6 +13,10 @@ import {
   sendInvites,
   setTwoFactor,
   updateNotificationSettings,
+  sendConfirmCode,
+  requestEmailChange,
+  confirmEmailChange,
+  closeAccount,
 } from '../controllers/account.controller.js';
 import { sellerRatingOf } from '../controllers/sellerReview.controller.js';
 import { fulfilWanted } from '../utils/wanted.js';
@@ -127,7 +131,7 @@ router.get(
           },
           { $project: { count: 1, average: { $divide: ['$weighted', '$count'] } } },
         ]),
-        sellerRatingOf(user.email),
+        sellerRatingOf(user._id),
       ]);
       if (books === 0) {
         res.status(404).json({ message: 'That account has no shop yet' });
@@ -279,6 +283,9 @@ router.post(
 router.get('/me/export', requireAuth, exportMyData);
 
 router.delete('/me', requireAuth, validate(userSchemas.deleteMe), deleteMyAccount);
+router.post('/me/confirm-code', requireAuth, validate(userSchemas.confirmCode), sendConfirmCode);
+router.post('/me/email', requireAuth, validate(userSchemas.emailChange), requestEmailChange);
+router.post('/me/email/confirm', requireAuth, validate(userSchemas.emailConfirm), confirmEmailChange);
 
 router.put('/me/two-factor', requireAuth, validate(userSchemas.twoFactor), setTwoFactor);
 
@@ -372,9 +379,24 @@ router.delete(
         return;
       }
 
-      const user = await User.findByIdAndDelete(id);
+      const user = await User.findById(id);
       if (!user) {
         res.status(404).json({ message: 'User not found' });
+        return;
+      }
+
+      /*
+       * The same clean-up as closing one's own account: what the member
+       * could cancel is cancelled, their listings come off sale, and their
+       * personal details leave every record - or, while a parcel is on its
+       * way, a return is open or a payout is owed, nothing happens and the
+       * administrator is told what is in the way.
+       */
+      const email = user.email;
+      const role = user.role;
+      const result = await closeAccount(user, req, { by: 'admin' });
+      if (!result.ok) {
+        res.status(409).json({ code: 'account-has-open-business', message: result.message, blockers: result.blockers });
         return;
       }
 
@@ -384,10 +406,10 @@ router.delete(
         targetId: id,
         // The address, because the row has to still make sense once the
         // account it names no longer exists.
-        details: { email: user.email, role: user.role },
+        details: { email, role, ...result.summary },
       });
 
-      res.status(200).json({ message: 'User deleted successfully' });
+      res.status(200).json({ message: 'User deleted successfully', ...result.summary });
     } catch (error) {
       log.error({ err: error }, 'Error deleting user');
       res.status(500).json({ message: 'Failed to delete user', error: errorMessage(error) });
