@@ -101,6 +101,9 @@ export default function Terms() {
         <li>Use your own photographs of the actual copy.</li>
         <li>Keep your stock counts current, and have a book ready to go promptly
           once it is ordered.</li>
+        <li>Move an order forward as you prepare and ship it - Order Confirmed,
+          Processing, Shipped. Out for Delivery and Delivered are set by us. If a
+          status needs correcting, message us.</li>
       </ul>
 
       <h2>Returns</h2>

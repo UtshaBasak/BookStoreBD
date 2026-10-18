@@ -312,7 +312,7 @@ export const welcomeEmail = (username: string): Email =>
     ],
     items: [
       { title: '🔎 Find any book', detail: 'Search in Bangla or English, filter by condition and price, and catch Quick deals.' },
-      { title: '💵 Pay on delivery', detail: 'Cash on delivery, with 7-day returns if a book is not as described.' },
+      { title: '💵 Pay on delivery', detail: `Cash on delivery, with ${RETURN_WINDOW_DAYS}-day returns if a book is not as described.` },
       { title: '🏪 Sell your books', detail: 'List a book in minutes for free, and get paid by bKash.' },
       { title: '🎯 Ask for any book', detail: 'Not listed yet? Ask on the Wanted board and hear the moment it is.' },
     ],
@@ -335,7 +335,7 @@ export const inviteEmail = (inviterName: string, note: string): Email =>
     ],
     items: [
       { title: '📚 Thousands of books', detail: 'New and second-hand, searchable in Bangla and English.' },
-      { title: '💵 Pay on delivery', detail: 'Cash on delivery, delivered to your door, with 7-day returns.' },
+      { title: '💵 Pay on delivery', detail: `Cash on delivery, delivered to your door, with ${RETURN_WINDOW_DAYS}-day returns if a book is not as described.` },
       { title: '🏪 Sell yours too', detail: 'List the books you have finished for free, and get paid by bKash.' },
     ],
     button: { label: 'Join BookStoreBD', path: '/sign-up' },

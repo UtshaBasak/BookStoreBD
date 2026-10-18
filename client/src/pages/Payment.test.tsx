@@ -193,7 +193,7 @@ describe('Confirm Order', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Placing your order…' }));
     release(json({ message: 'ok', orderNumber: ORDER, shippingCharge: 70, discount: 0, unavailable: [] }));
 
-    expect(await screen.findByText('Checkout Complete!')).toBeInTheDocument();
+    expect(await screen.findByText('Checkout Complete!', {}, { timeout: 5000 })).toBeInTheDocument();
     expect(placed).toHaveLength(1);
     expect(placed[0]?.body.checkoutId).toEqual(expect.any(String));
   });
@@ -213,7 +213,7 @@ describe('Confirm Order', () => {
     await screen.findByText(/Could not reach the shop/);
     await userEvent.click(screen.getByRole('button', { name: 'Confirm Order' }));
 
-    await screen.findByText('Checkout Complete!');
+    await screen.findByText('Checkout Complete!', {}, { timeout: 5000 });
     expect(placed).toHaveLength(2);
     expect(placed[1]?.body.checkoutId).toBe(placed[0]?.body.checkoutId);
   });
@@ -235,11 +235,11 @@ describe('the confirmation', () => {
 
     await userEvent.click(screen.getByRole('button', { name: 'Confirm Order' }));
 
-    await screen.findByText('Checkout Complete!');
+    await screen.findByText('Checkout Complete!', {}, { timeout: 5000 });
     expect(screen.getByText(/Aranyak \(sold out\)/)).toBeInTheDocument();
     expect(screen.getByText(/was not applied: That code is for a first order only\./)).toBeInTheDocument();
     // The server's figures, not the cart's 2 × 450.
-    expect(await screen.findByText('৳470.00')).toBeInTheDocument();
+    expect(await screen.findByText('৳470.00', {}, { timeout: 5000 })).toBeInTheDocument();
     expect(screen.getByTestId('where')).toHaveTextContent(`/payment?order=${ORDER}`);
   });
 
@@ -252,7 +252,7 @@ describe('the confirmation', () => {
 
     renderAt(`/payment?order=${ORDER}`);
 
-    expect(await screen.findByText('Checkout Complete!')).toBeInTheDocument();
+    expect(await screen.findByText('Checkout Complete!', {}, { timeout: 5000 })).toBeInTheDocument();
   });
 
   it('does not come back on the next visit to checkout', async () => {

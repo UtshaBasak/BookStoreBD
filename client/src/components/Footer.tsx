@@ -88,7 +88,7 @@ export default function Footer() {
         <ul className="footer-trust" aria-label="Why shop here">
           <li>🔒 Secure checkout</li>
           <li>💵 {site.payment}</li>
-          <li>↩️ {site.returns.windowDays}-day returns</li>
+          <li>↩️ {site.returns.windowDays}-day returns if not as described</li>
         </ul>
         <p>
           Made with <span aria-label="love">💜</span> for readers in Bangladesh <span aria-hidden="true">🇧🇩</span>

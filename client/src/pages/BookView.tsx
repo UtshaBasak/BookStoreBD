@@ -551,7 +551,7 @@ export default function BookView() {
 
                             <ul className="book-perks" aria-label="Buying here">
                                 <li>💵 {site.payment}</li>
-                                <li>↩️ {site.returns.windowDays}-day returns</li>
+                                <li>↩️ {site.returns.windowDays}-day returns if not as described</li>
                                 <li>🚚 From {site.delivery.insideDhaka} Tk delivery</li>
                             </ul>
                         </div>

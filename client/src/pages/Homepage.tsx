@@ -340,7 +340,7 @@ export default function Homepage() {
           </div>
           <ul className="hero-perks" aria-label="Why buy here">
             <li>💵 {site.payment}</li>
-            <li>↩️ {site.returns.windowDays}-day returns</li>
+            <li>↩️ {site.returns.windowDays}-day returns if not as described</li>
             <li>🚚 From {site.delivery.insideDhaka} Tk delivery</li>
           </ul>
         </div>
