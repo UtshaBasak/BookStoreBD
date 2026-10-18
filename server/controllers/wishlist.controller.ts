@@ -53,6 +53,12 @@ export const Wishlist_add: RequestHandler = async (req, res) => {
     // Prevent duplicate wishlist entry
     // The price it was saved at, so a later drop below it can be told.
     const book = await AddBook.findById(String(bookId), { price: 1, salePrice: 1 }).lean();
+    // Only a book that exists: a saved id of nothing would sit in the
+    // wishlist and the data export for good.
+    if (!book) {
+      res.status(404).json({ message: 'Book not found' });
+      return;
+    }
     await Wishlist.findOneAndUpdate(
       { user: user._id, book: bookId },
       { $setOnInsert: { user: user._id, book: bookId, priceWhenAdded: Number(book?.salePrice ?? book?.price) || null } },

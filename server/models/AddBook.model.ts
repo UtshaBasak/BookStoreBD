@@ -7,13 +7,14 @@ import { bookSearchKey } from '../utils/phonetic.js';
 const AddBookSchema = new Schema({
   title: { type: String, required: true },
   author: { type: String, required: true },
-  publisher: { type: String, required: true },
-  country: { type: String, required: true },
-  language: { type: String, required: true },
-  isbn: { type: String, required: true },
+  // Optional: a seller may not know them. Blank, never "N/A".
+  publisher: { type: String, default: '' },
+  country: { type: String, default: '' },
+  language: { type: String, default: '' },
+  isbn: { type: String, default: '' },
   pages: { type: Number }, // optional: see the note in the addBook schema
   price: { type: Number, required: true, min: 0 }, // allow zero
-  desc: { type: String, required: true },
+  desc: { type: String, default: '' },
   category: [{ type: String, required: true }],
   bookType: { type: String, enum: ['new', 'old'] as const, required: true },
   condition: { type: String },

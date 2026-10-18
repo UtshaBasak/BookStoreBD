@@ -18,6 +18,8 @@
     "migrate:images:dry": "tsx scripts/migrateImages.ts --dry-run",
     "gmail:token": "tsx scripts/gmailToken.ts",
     "encrypt:existing": "tsx scripts/encryptExisting.ts",
+    "cleanup:data": "tsx scripts/cleanUpData.ts",
+    "cleanup:data:dry": "tsx scripts/cleanUpData.ts --dry-run",
     "lint": "eslint .",
     "test": "vitest run",
     "test:watch": "vitest"

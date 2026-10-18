@@ -81,7 +81,9 @@ export const stockChanged = async (
         await notify(
           interested.filter((person) => person.where === where).map((person) => person.email),
           {
-            type: 'stock',
+            // A shopper's alert, under "Deals and price drops" - not the
+            // seller's own "Your stock".
+            type: 'selling-out',
             title: `Only ${after} left: "${title}"`,
             body: where === 'cart' ? 'A book in your cart is selling out.' : 'A book on your wishlist is selling out.',
             link,

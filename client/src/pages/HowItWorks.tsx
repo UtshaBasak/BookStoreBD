@@ -81,7 +81,7 @@ const SELLING: readonly Step[] = [
   {
     icon: '📸',
     title: 'List a book in minutes',
-    text: 'Add photos, the title, author and an honest condition. You set the price and how many you have.',
+    text: 'Add photos, the title and author, and for a second-hand copy an honest condition. You set the price; a listing starts with one copy, and you can change the stock any time from your Book List.',
     tips: ['Listing is free', 'Add a discount any time - it puts the book in Quick deals', 'Check the Wanted board for books buyers are already asking for'],
     action: { label: 'List a book', to: '/add-book' },
   },

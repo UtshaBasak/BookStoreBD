@@ -373,200 +373,211 @@ export const decreaseStock = async (
     return;
   }
 
+  let answer: { status: number; body: unknown } = { status: 500, body: { message: 'Your order could not be placed.' } };
+  const send = (status: number, body: unknown) => {
+    answer = { status, body };
+  };
+
   try {
-    const { items, checkoutId } = req.body;
+    // Every answer goes through `send`, and is sent once the lock is free.
+    await (async (): Promise<void> => {
+      const { items, checkoutId } = req.body;
 
-    if (checkoutId) {
-      const receipt = await CheckoutReceipt.findOne({ buyerEmail: buyer, checkoutId }).lean();
-      if (receipt) {
-        res.status(200).json({ ...(receipt.response as CreateOrderResponse), replayed: true });
+      if (checkoutId) {
+        const receipt = await CheckoutReceipt.findOne({ buyerEmail: buyer, checkoutId }).lean();
+        if (receipt) {
+          send(200, { ...(receipt.response as CreateOrderResponse), replayed: true });
+          return;
+        }
+      }
+
+      /*
+       * A promo code is checked and priced here, never taken from the browser.
+       * An unknown code is refused before any stock is reserved, so the buyer
+       * can correct it.
+       */
+      const promoCode = req.body.promo?.trim() || '';
+      const promotion = promoCode ? findPromotion(promoCode) : undefined;
+      if (promoCode && !promotion) {
+        send(400, { message: 'That promo code is not valid.' });
         return;
       }
-    }
+      // Safe from a second checkout at the same moment: the lock above means
+      // this buyer has no other order being written.
+      const isFirstOrder = !(await Order.exists({ buyerEmail: buyer, status: { $ne: CANCELLED } }));
 
-    /*
-     * A promo code is checked and priced here, never taken from the browser.
-     * An unknown code is refused before any stock is reserved, so the buyer
-     * can correct it.
-     */
-    const promoCode = req.body.promo?.trim() || '';
-    const promotion = promoCode ? findPromotion(promoCode) : undefined;
-    if (promoCode && !promotion) {
-      res.status(400).json({ message: 'That promo code is not valid.' });
-      return;
-    }
-    // Safe from a second checkout at the same moment: the lock above means
-    // this buyer has no other order being written.
-    const isFirstOrder = !(await Order.exists({ buyerEmail: buyer, status: { $ne: CANCELLED } }));
+      /*
+       * What can be ordered at all. A book that has been taken down, the
+       * buyer's own listing, and a book whose seller cannot be paid (no
+       * account, or no bKash number) are left out and named in the answer.
+       */
+      const unavailable: UnavailableItem[] = [];
+      const books = await AddBook.find({ _id: { $in: items.map((item) => item.bookId) } });
+      const byId = new Map(books.map((book) => [String(book._id), book]));
+      const sellers = await User.find(
+        { email: { $in: [...new Set(books.map((book) => book.sellerEmail))] } },
+        { email: 1, bkashMerchant: 1 }
+      ).lean();
+      const payable = new Set(sellers.filter((seller) => Boolean(seller.bkashMerchant)).map((seller) => seller.email));
 
-    /*
-     * What can be ordered at all. A book that has been taken down, the
-     * buyer's own listing, and a book whose seller cannot be paid (no
-     * account, or no bKash number) are left out and named in the answer.
-     */
-    const unavailable: UnavailableItem[] = [];
-    const books = await AddBook.find({ _id: { $in: items.map((item) => item.bookId) } });
-    const byId = new Map(books.map((book) => [String(book._id), book]));
-    const sellers = await User.find(
-      { email: { $in: [...new Set(books.map((book) => book.sellerEmail))] } },
-      { email: 1, bkashMerchant: 1 }
-    ).lean();
-    const payable = new Set(sellers.filter((seller) => Boolean(seller.bkashMerchant)).map((seller) => seller.email));
-
-    const wanted: { book: BookDocument; quantity: number }[] = [];
-    for (const { bookId, quantity } of items) {
-      const book = byId.get(bookId);
-      const leaveOut = (reason: UnavailableReason) =>
-        unavailable.push({ bookId, title: book?.title, available: 0, requested: quantity, reserved: 0, reason });
-      if (!book) leaveOut('removed');
-      else if (book.sellerEmail === buyer) leaveOut('own-listing');
-      else if (!payable.has(book.sellerEmail)) leaveOut('seller-unavailable');
-      else wanted.push({ book, quantity });
-    }
-
-    // A code whose conditions the basket does not meet - under its minimum
-    // spend, or not a first order - is refused with the reason, before stock
-    // is taken, rather than the order going through at the full price.
-    if (promotion) {
-      const asked = applyPromotion(promotion, {
-        booksTotal: wanted.reduce((sum, { book, quantity }) => sum + unitPriceOf(book) * quantity, 0),
-        isFirstOrder,
-      });
-      if (!asked.ok) {
-        res.status(400).json({ message: asked.message });
-        return;
+      const wanted: { book: BookDocument; quantity: number }[] = [];
+      for (const { bookId, quantity } of items) {
+        const book = byId.get(bookId);
+        const leaveOut = (reason: UnavailableReason) =>
+          unavailable.push({ bookId, title: book?.title, available: 0, requested: quantity, reserved: 0, reason });
+        if (!book) leaveOut('removed');
+        else if (book.sellerEmail === buyer) leaveOut('own-listing');
+        else if (!payable.has(book.sellerEmail)) leaveOut('seller-unavailable');
+        else wanted.push({ book, quantity });
       }
-    }
 
-    const reserved: { book: BookDocument; quantity: number }[] = [];
-    const stockMoves: { book: BookDocument; before: number; after: number }[] = [];
-
-    for (const { book, quantity } of wanted) {
-      const bookId = String(book._id);
-      // What is left after taking decides who hears the book is running low.
-      const taken = await reserveCopies(bookId, quantity);
-      if (taken.reserved < quantity) {
-        unavailable.push({
-          bookId,
-          title: book.title,
-          available: taken.reserved,
-          requested: quantity,
-          reserved: taken.reserved,
-          reason: taken.reserved ? 'short' : 'sold-out',
+      // A code whose conditions the basket does not meet - under its minimum
+      // spend, or not a first order - is refused with the reason, before stock
+      // is taken, rather than the order going through at the full price.
+      if (promotion) {
+        const asked = applyPromotion(promotion, {
+          booksTotal: wanted.reduce((sum, { book, quantity }) => sum + unitPriceOf(book) * quantity, 0),
+          isFirstOrder,
         });
+        if (!asked.ok) {
+          send(400, { message: asked.message });
+          return;
+        }
       }
-      if (!taken.reserved) continue;
-      reserved.push({ book, quantity: taken.reserved });
-      stockMoves.push({ book, before: taken.left + taken.reserved, after: taken.left });
-    }
 
-    // Nothing reserved is no order: no number, no lines, no notices.
-    if (!reserved.length) {
-      res.status(409).json({ message: 'None of the selected books can be ordered right now.', unavailable });
-      return;
-    }
+      const reserved: { book: BookDocument; quantity: number }[] = [];
+      const stockMoves: { book: BookDocument; before: number; after: number }[] = [];
 
-    /*
-     * Delivery is priced by the server, from what was actually reserved, so a
-     * checkout request cannot name its own delivery charge.
-     */
-    const booksTotal = reserved.reduce(
-      (sum, { book, quantity }) => sum + unitPriceOf(book) * quantity,
-      0
-    );
-    // Priced again on what was actually reserved: if a book sold out in the
-    // meantime, a code with a minimum spend may no longer apply, and the order
-    // goes ahead without it (and says so) rather than failing after stock was
-    // taken.
-    const applied = promotion ? applyPromotion(promotion, { booksTotal, isFirstOrder }) : null;
-    const discount = applied?.ok ? applied.discount : 0;
-    const shippingCharge =
-      applied?.ok && applied.freeDelivery ? 0 : deliveryChargeFor(req.body.deliveryDistrict);
+      for (const { book, quantity } of wanted) {
+        const bookId = String(book._id);
+        // What is left after taking decides who hears the book is running low.
+        const taken = await reserveCopies(bookId, quantity);
+        if (taken.reserved < quantity) {
+          unavailable.push({
+            bookId,
+            title: book.title,
+            available: taken.reserved,
+            requested: quantity,
+            reserved: taken.reserved,
+            reason: taken.reserved ? 'short' : 'sold-out',
+          });
+        }
+        if (!taken.reserved) continue;
+        reserved.push({ book, quantity: taken.reserved });
+        stockMoves.push({ book, before: taken.left + taken.reserved, after: taken.left });
+      }
 
-    const orderNumber = await generateUniqueOrderNumber();
-    const createdAt = new Date();
-    try {
-      await Order.insertMany(
-        reserved.map(({ book, quantity }) => ({
-          orderNumber, // the same orderNumber for every book in this order
-          buyerEmail: buyer,
-          sellerEmail: book.sellerEmail,
-          bookId: book._id,
-          title: book.title,
-          author: book.author,
-          category: book.category,
-          bookType: book.bookType,
-          condition: book.condition,
-          pages: book.pages,
-          // What the buyer pays, which is what the seller's share and every
-          // total are worked out from; the listed price is kept beside it.
-          price: unitPriceOf(book),
-          listPrice: book.price,
-          quantity,
-          // --- Payment and delivery details ---
-          paymentMethod: req.body.paymentMethod,
-          contactName: req.body.contactName,
-          contactPhone: req.body.contactPhone,
-          deliveryDivision: req.body.deliveryDivision,
-          deliveryDistrict: req.body.deliveryDistrict,
-          deliveryAddress: req.body.deliveryAddress,
-          buyerNote: req.body.buyerNote || '',
-          // --- Charges and discounts ---
-          shippingCharge,
-          discount,
-          promo: applied?.ok ? applied.code : '',
-          promoApplied: Boolean(applied?.ok),
-          checkoutId: checkoutId ?? '',
-          status: 'Order Confirmed',
-          createdAt,
-        }))
+      // Nothing reserved is no order: no number, no lines, no notices.
+      if (!reserved.length) {
+        send(409, { message: 'None of the selected books can be ordered right now.', unavailable });
+        return;
+      }
+
+      /*
+       * Delivery is priced by the server, from what was actually reserved, so a
+       * checkout request cannot name its own delivery charge.
+       */
+      const booksTotal = reserved.reduce(
+        (sum, { book, quantity }) => sum + unitPriceOf(book) * quantity,
+        0
       );
-    } catch (err) {
-      // All or nothing: the stock taken for an order that was not written
-      // goes back on the shelf.
-      await Order.deleteMany({ orderNumber }).catch(() => undefined);
-      await giveBackCopies(reserved);
-      throw err;
-    }
+      // Priced again on what was actually reserved: if a book sold out in the
+      // meantime, a code with a minimum spend may no longer apply, and the order
+      // goes ahead without it (and says so) rather than failing after stock was
+      // taken.
+      const applied = promotion ? applyPromotion(promotion, { booksTotal, isFirstOrder }) : null;
+      const discount = applied?.ok ? applied.discount : 0;
+      const shippingCharge =
+        applied?.ok && applied.freeDelivery ? 0 : deliveryChargeFor(req.body.deliveryDistrict);
 
-    const response: CreateOrderResponse = {
-      message: 'Stock updated & order saved',
-      orderNumber,
-      shippingCharge,
-      discount,
-      ...(applied && !applied.ok ? { promoMessage: applied.message } : {}),
-      unavailable,
-    };
-    if (checkoutId) {
-      await CheckoutReceipt.create({ buyerEmail: buyer, checkoutId, orderNumber, response }).catch((err: unknown) => {
-        log.warn({ err }, 'Could not keep a checkout receipt');
-      });
-    }
+      const orderNumber = await generateUniqueOrderNumber();
+      const createdAt = new Date();
+      try {
+        await Order.insertMany(
+          reserved.map(({ book, quantity }) => ({
+            orderNumber, // the same orderNumber for every book in this order
+            buyerEmail: buyer,
+            sellerEmail: book.sellerEmail,
+            bookId: book._id,
+            title: book.title,
+            author: book.author,
+            category: book.category,
+            bookType: book.bookType,
+            condition: book.condition,
+            pages: book.pages,
+            // What the buyer pays, which is what the seller's share and every
+            // total are worked out from; the listed price is kept beside it.
+            price: unitPriceOf(book),
+            listPrice: book.price,
+            quantity,
+            // --- Payment and delivery details ---
+            paymentMethod: req.body.paymentMethod,
+            contactName: req.body.contactName,
+            contactPhone: req.body.contactPhone,
+            deliveryDivision: req.body.deliveryDivision,
+            deliveryDistrict: req.body.deliveryDistrict,
+            deliveryAddress: req.body.deliveryAddress,
+            buyerNote: req.body.buyerNote || '',
+            // --- Charges and discounts ---
+            shippingCharge,
+            discount,
+            promo: applied?.ok ? applied.code : '',
+            promoApplied: Boolean(applied?.ok),
+            checkoutId: checkoutId ?? '',
+            status: 'Order Confirmed',
+            createdAt,
+          }))
+        );
+      } catch (err) {
+        // All or nothing: the stock taken for an order that was not written
+        // goes back on the shelf.
+        await Order.deleteMany({ orderNumber }).catch(() => undefined);
+        await giveBackCopies(reserved);
+        throw err;
+      }
 
-    await announceOrder(orderNumber, buyer, reserved, {
-      total: booksTotal + shippingCharge - discount,
-      facts: {
+      const response: CreateOrderResponse = {
+        message: 'Stock updated & order saved',
         orderNumber,
-        contactName: req.body.contactName,
-        contactPhone: req.body.contactPhone,
-        deliveryAddress: req.body.deliveryAddress,
-        deliveryDistrict: req.body.deliveryDistrict,
-        deliveryDivision: req.body.deliveryDivision,
         shippingCharge,
         discount,
-        buyerNote: req.body.buyerNote,
-      },
-    });
-    for (const move of stockMoves) {
-      await stockChanged(move.book, move.before, move.after, { actor: buyer });
-    }
+        ...(applied && !applied.ok ? { promoMessage: applied.message } : {}),
+        unavailable,
+      };
+      if (checkoutId) {
+        await CheckoutReceipt.create({ buyerEmail: buyer, checkoutId, orderNumber, response }).catch((err: unknown) => {
+          log.warn({ err }, 'Could not keep a checkout receipt');
+        });
+      }
 
-    res.status(200).json(response);
+      await announceOrder(orderNumber, buyer, reserved, {
+        total: booksTotal + shippingCharge - discount,
+        facts: {
+          orderNumber,
+          contactName: req.body.contactName,
+          contactPhone: req.body.contactPhone,
+          deliveryAddress: req.body.deliveryAddress,
+          deliveryDistrict: req.body.deliveryDistrict,
+          deliveryDivision: req.body.deliveryDivision,
+          shippingCharge,
+          discount,
+          buyerNote: req.body.buyerNote,
+        },
+      });
+      for (const move of stockMoves) {
+        await stockChanged(move.book, move.before, move.after, { actor: buyer });
+      }
+
+      send(200, response);
+    })();
   } catch (err) {
-    res.status(500).json({ message: errorMessage(err) });
+    send(500, { message: errorMessage(err) });
   } finally {
+    // Released before answering, so a buyer's next checkout - straight
+    // after this one - never finds it still held.
     await releaseCheckoutLock(buyer, lock);
   }
+  res.status(answer.status).json(answer.body);
 };
 
 // Get all orders for a buyer

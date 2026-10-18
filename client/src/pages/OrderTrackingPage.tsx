@@ -9,6 +9,7 @@ import OrderPdfButton from '../components/OrderPdfButton.js';
 import NotificationBell from '../components/NotificationBell.js';
 import { useOrder, useUpdateOrderStatus } from '../hooks/queries.js';
 import { CANCELLED } from '../utils/orderTotals.js';
+import { conditionOf } from '../utils/bookText.js';
 
 const ORDER_STAGES = [
   'Order Confirmed',
@@ -210,7 +211,7 @@ export default function OrderTrackingPage() {
                     <td>{ob.author}</td>
                     <td>{Array.isArray(ob.category) ? ob.category.join(', ') : ob.category}</td>
                     <td>{ob.bookType}</td>
-                    <td>{ob.condition}</td>
+                    <td>{conditionOf(ob) || '-'}</td>
                     <td>{ob.pages}</td>
                     <td>{ob.price}</td>
                     <td>{ob.quantity}</td>

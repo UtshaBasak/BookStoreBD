@@ -201,6 +201,16 @@ describe('a checkout sent twice', () => {
     expect(await noticesOf(BUYER, 'order-placed')).toBe(1);
   });
 
+  it('one straight after another both go through: the first is finished before it answers', async () => {
+    const { buyer } = await people();
+    const book = await createBook({ sellerEmail: SELLER, stock: 9 });
+
+    for (let n = 0; n < 4; n += 1) {
+      expect((await checkout(buyer.auth, [{ bookId: book._id, quantity: 1 }])).status).toBe(200);
+    }
+    expect(await stockOf(book._id)).toBe(5);
+  });
+
   it('at the same moment places one order', async () => {
     const { buyer } = await people();
     const book = await createBook({ sellerEmail: SELLER, stock: 5 });

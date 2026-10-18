@@ -10,6 +10,7 @@ import { useDebounced } from '../hooks/useDebounced.js';
 import PriceTag from '../components/PriceTag.js';
 import Pager from '../components/Pager.js';
 import { FilterSelect, RefreshButton } from './admin/AdminControls.js';
+import { conditionOf } from '../utils/bookText.js';
 
 /** Rows per page. Enough to scan, few enough to draw. */
 const PAGE_SIZE = 25;
@@ -137,7 +138,7 @@ export default function BookList() {
                   <td style={{ minWidth: 140 }}>{book.author}</td>
                   <td>{Array.isArray(book.category) ? book.category.join(', ') : book.category}</td>
                   <td style={{ textTransform: 'capitalize' }}>{book.bookType}</td>
-                  <td style={{ textTransform: 'capitalize' }}>{book.condition}</td>
+                  <td style={{ textTransform: 'capitalize' }}>{conditionOf(book) || '-'}</td>
                   <td className="admin-num">{book.pages}</td>
                   <td className="admin-price"><PriceTag book={book} size="sm" /></td>
                   <td>

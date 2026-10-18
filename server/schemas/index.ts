@@ -393,6 +393,14 @@ export const returnSchemas = {
   },
 };
 
+/** An optional listing field: trimmed, and "N/A" read as blank. */
+function listingText(text: typeof shortText) {
+  return text
+    .transform((value) => (/^n\/?a$/i.test(value) ? '' : value))
+    .optional()
+    .default('');
+}
+
 // ------------------------------------------------------------ purchase
 export const purchaseSchemas = {
   create: {
@@ -433,20 +441,23 @@ export const userSchemas = {
     body: z.object({
       title: shortText.min(1, 'Title is required'),
       author: shortText.min(1, 'Author is required'),
-      publisher: shortText.min(1, 'Publisher is required'),
-      country: shortText.min(1, 'Country is required'),
-      language: shortText.min(1, 'Language is required'),
-      isbn: shortText.min(1, 'ISBN is required'),
+      // What a seller may not know, or a book may not have: left blank, not
+      // "N/A". An "N/A" sent anyway (older forms did) is read as blank.
+      publisher: listingText(shortText),
+      country: listingText(shortText),
+      language: listingText(shortText),
+      isbn: listingText(shortText),
       // Optional, because the form does not mark it required and a seller
       // listing a second-hand book often does not know the page count.
       pages: nonNegativeInt.optional(),
       price: nonNegativeInt,
-      desc: mediumText.min(1, 'A description is required'),
+      desc: listingText(mediumText),
       category: repeatable(shortText)
         .pipe(z.array(shortText.min(1)).min(1, 'At least one category is required').max(20)),
       bookType: z.enum(['new', 'old']),
-      condition: shortText.optional(),
-      conditionDetails: mediumText.optional(),
+      // A second-hand copy's; the handler drops both for a new book.
+      condition: listingText(shortText),
+      conditionDetails: listingText(mediumText),
       // Present only when image hosting is configured; the browser uploads to
       // Cloudinary itself and reports back what it got.
       images: repeatable(urlText).optional(),

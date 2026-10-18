@@ -17,6 +17,7 @@ import OrderPdfButton from '../components/OrderPdfButton.js';
 import { useOrder, useUpdateOrderStatus } from '../hooks/queries.js';
 import { messageOf } from '../utils/apiError.js';
 import { isAdmin } from '../utils/auth.js';
+import { conditionOf } from '../utils/bookText.js';
 
 const ORDER_STAGES = [
   'Order Confirmed',
@@ -286,7 +287,7 @@ export default function AdminOrderTrackingPage() {
                     <td style={{ minWidth: 130 }}>{ob.author}</td>
                     <td style={{ minWidth: 120 }}>{Array.isArray(ob.category) ? ob.category.join(', ') : ob.category}</td>
                     <td style={{ textTransform: 'capitalize' }}>{ob.bookType}</td>
-                    <td style={{ textTransform: 'capitalize' }}>{ob.condition}</td>
+                    <td style={{ textTransform: 'capitalize' }}>{conditionOf(ob) || '-'}</td>
                     <td className="admin-num">{ob.pages}</td>
                     <td className="admin-num">{ob.price}</td>
                     <td className="admin-num">{ob.quantity}</td>

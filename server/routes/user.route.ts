@@ -251,6 +251,8 @@ router.post(
 
       const newBook = new AddBook({
         ...req.body,
+        // A condition is a second-hand copy's; a new book has none.
+        ...(req.body.bookType === 'new' ? { condition: '', conditionDetails: '' } : {}),
         discountType: discount.type,
         discountValue: discount.type ? discount.value : 0,
         images: uploaded.images,

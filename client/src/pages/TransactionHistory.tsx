@@ -12,6 +12,7 @@ import CopyButton from '../components/CopyButton.js';
 import { orderTotals, CANCELLED } from '../utils/orderTotals.js';
 import { FilterSelect, RefreshButton } from './admin/AdminControls.js';
 import { ORDER_STATUS_FILTER, ORDER_SORTS } from './admin/orderFilters.js';
+import { conditionOf } from '../utils/bookText.js';
 
 /** A date as dd/mm/yyyy, or '' when there is none. */
 function formatDate(dateStr: string | undefined) {
@@ -199,7 +200,7 @@ export default function TransactionHistory() {
                         <td style={{ minWidth: 130 }}>{ob.author}</td>
                         <td style={{ minWidth: 120 }}>{Array.isArray(ob.category) ? ob.category.join(', ') : ob.category}</td>
                         <td style={{ textTransform: 'capitalize' }}>{ob.bookType}</td>
-                        <td style={{ textTransform: 'capitalize' }}>{ob.condition}</td>
+                        <td style={{ textTransform: 'capitalize' }}>{conditionOf(ob) || '-'}</td>
                         <td className="admin-num">{ob.pages}</td>
                         <td className="admin-num">{ob.price}</td>
                         <td className="admin-num">{ob.quantity}</td>

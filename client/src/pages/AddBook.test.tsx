@@ -187,3 +187,31 @@ describe('submitting a listing', () => {
     expect(postMock).not.toHaveBeenCalled();
   });
 });
+
+describe('what a listing sends', () => {
+  it('leaves blank fields out rather than sending "N/A", and gives a new book no condition', async () => {
+    setSession({ token: 'a-real-token' });
+    renderPage();
+
+    await fillAndSubmit();
+
+    await waitFor(() => expect(postMock).toHaveBeenCalledTimes(1));
+    const form = postMock.mock.calls[0][1].body as FormData;
+    for (const field of ['publisher', 'country', 'language', 'isbn', 'desc', 'condition', 'conditionDetails']) {
+      expect(form.get(field)).toBeNull();
+    }
+    expect([...form.values()]).not.toContain('N/A');
+  });
+
+  it('works out what the seller receives from the sale price', async () => {
+    renderPage();
+    const user = userEvent.setup();
+
+    await user.type(await screen.findByLabelText('Price (Taka) *'), '400');
+    await user.selectOptions(screen.getByLabelText('Discount (optional)'), 'amount');
+    await user.type(screen.getByLabelText('Taka off'), '100');
+
+    // 300 Tk to the buyer, less the 5% fee.
+    expect(screen.getByText('285.00 Tk')).toBeInTheDocument();
+  });
+});

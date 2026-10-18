@@ -14,6 +14,7 @@ import { useSellerOrders } from '../hooks/queries.js';
 import { useDebounced } from '../hooks/useDebounced.js';
 import Pager from '../components/Pager.js';
 import { site } from '../config/site.js';
+import { conditionOf } from '../utils/bookText.js';
 
 /** Orders per page. Each one may be several rows. */
 const PAGE_SIZE = 25;
@@ -261,7 +262,7 @@ export default function SellerOrderList() {
                             <td data-label="Author">{ob.author}</td>
                             <td data-label="Category">{Array.isArray(ob.category) ? ob.category.join(', ') : ob.category}</td>
                             <td data-label="Book Type">{ob.bookType}</td>
-                            <td data-label="Condition">{ob.condition}</td>
+                            <td data-label="Condition">{conditionOf(ob) || '-'}</td>
                             <td data-label="No. of Pages">{ob.pages}</td>
                             <td data-label="Price (Tk.)" className="sl-num">৳{ob.price}</td>
                             <td data-label="Quantity">{ob.quantity}</td>

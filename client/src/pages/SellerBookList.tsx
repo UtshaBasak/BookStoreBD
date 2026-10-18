@@ -14,6 +14,7 @@ import { useMyBookRequests, useSellerBooks } from '../hooks/queries.js';
 import { useToast } from '../hooks/useToast.js';
 import { getUserEmail } from '../utils/auth.js';
 import { countLabel } from '../utils/compactCount.js';
+import { conditionOf } from '../utils/bookText.js';
 
 export default function SellerBookList() {
   // Pending edits per book id: the raw input text, parsed on save.
@@ -38,10 +39,17 @@ export default function SellerBookList() {
 
   const handleEditChange = (id: Id, field: 'price' | 'stock', value: string) => {
     if (!/^\d*$/.test(value)) return;
-    setEdit(prev => ({
-      ...prev,
-      [id]: { ...prev[id], [field]: value }
-    }));
+    setEdit(prev => {
+      // A box cleared again is no change, not a blank to send: the saved
+      // value stands, rather than "1 book could not be saved".
+      const changes = { ...prev[id] };
+      if (value === '') delete changes[field];
+      else changes[field] = value;
+      const next = { ...prev };
+      if (Object.keys(changes).length) next[id] = changes;
+      else delete next[id];
+      return next;
+    });
   };
 
   const handleSaveAll = async () => {
@@ -229,7 +237,7 @@ export default function SellerBookList() {
                           {book.bookType}
                         </span>
                       </td>
-                      <td data-label="Condition">{book.condition}</td>
+                      <td data-label="Condition">{conditionOf(book) || '-'}</td>
                       <td data-label="No. of Pages">{book.pages}</td>
                       <td data-label="Price (Tk.)" className="sl-price">৳{book.price}</td>
                       <td data-label="Discount">

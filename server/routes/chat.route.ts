@@ -54,7 +54,9 @@ router.get(
             $or: [
                 { sender, receiver },
                 { sender: receiver, receiver: sender }
-            ]
+            ],
+            // Not what the person reading has deleted from their side.
+            deletedFor: { $ne: actingUser(req).email },
         })
         // `image` is checked for presence, never sent: an attachment is stored
         // on the document as base64, and selecting it would put every picture
@@ -91,10 +93,10 @@ router.get(
     async (req: Request<IdParams>, res: Response, next) => {
     try {
         const message = await ChatMessage.findById(req.params.id)
-            .select('sender receiver image')
+            .select('sender receiver image deletedFor')
             .lean();
 
-        if (!message) {
+        if (!message || (message.deletedFor ?? []).includes(actingUser(req).email)) {
             res.status(404).json({ message: 'Message not found' });
             return;
         }
@@ -130,7 +132,7 @@ router.get('/history/:email', async (req, res) => {
             lastMessageTime: Date;
             unreadCount: number;
         }>([
-            { $match: { $or: [{ sender: email }, { receiver: email }] } },
+            { $match: { $or: [{ sender: email }, { receiver: email }], deletedFor: { $ne: email } } },
             { $sort: { timestamp: -1 } },
             {
                 $group: {
@@ -264,14 +266,33 @@ router.delete(
             return;
         }
 
-        await ChatMessage.deleteMany({
+        const thread = {
             $or: [
                 { sender: user1, receiver: user2 },
                 { sender: user2, receiver: user1 }
             ]
-        });
+        };
+        const actor = actingUser(req).email;
 
-        res.status(200).json({ message: 'Conversation deleted successfully' });
+        if (actor !== user1 && actor !== user2) {
+            // An administrator removing a conversation they are not in:
+            // moderation, so it goes for both.
+            await ChatMessage.deleteMany(thread);
+            res.status(200).json({ message: 'Conversation deleted for both people' });
+            return;
+        }
+
+        /*
+         * From the caller's side only: a conversation is two people's, and
+         * the other person keeps their copy - often the record of what was
+         * agreed. What the caller had not read counts as read, so it leaves
+         * their badge; once both have deleted a message, it goes.
+         */
+        await ChatMessage.updateMany(thread, { $addToSet: { deletedFor: actor } });
+        await ChatMessage.updateMany({ ...thread, receiver: actor, read: false }, { $set: { read: true } });
+        await ChatMessage.deleteMany({ ...thread, deletedFor: { $all: [user1, user2] } });
+
+        res.status(200).json({ message: 'Conversation deleted for you' });
     } catch (error) {
         res.status(500).json({ message: errorMessage(error) });
     }
@@ -284,7 +305,8 @@ router.get('/unread/:email', async (req, res) => {
     const { email } = actingUser(req);
     const unreadMessages = await ChatMessage.countDocuments({
       receiver: email,
-      read: false
+      read: false,
+      deletedFor: { $ne: email },
     });
     res.json({ count: unreadMessages });
   } catch (error) {

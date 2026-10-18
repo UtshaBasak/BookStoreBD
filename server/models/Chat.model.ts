@@ -34,6 +34,14 @@ const chatSchema = new Schema({
     read: {
         type: Boolean,
         default: false
+    },
+    /**
+     * Who has deleted this message from their side of the conversation. The
+     * other person keeps it; once both have, it goes.
+     */
+    deletedFor: {
+        type: [String],
+        default: []
     }
 }, { timestamps: true }); 
 

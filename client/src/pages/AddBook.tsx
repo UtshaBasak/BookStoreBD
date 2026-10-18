@@ -41,7 +41,7 @@ interface BookForm {
 const EMPTY_FORM: BookForm = {
   title: "", author: "", publisher: "", country: "", language: "",
   isbn: "", pages: "", price: "", desc: "", category: [], bookType: "new",
-  condition: "mint", conditionDetails: "", discountType: "", discountValue: ""
+  condition: "", conditionDetails: "", discountType: "", discountValue: ""
 };
 
 /** The text fields, which is everything except the category checkboxes. */
@@ -87,7 +87,11 @@ const AddBooks = () => {
     const price = Number(Data.price);
     const value = Number(Data.discountValue);
     if (!Data.discountType || !(price > 0) || !Number.isInteger(value) || value < 1) return null;
-    if (Data.discountType === 'percent') return value <= 90 ? Math.max(1, Math.round((price * (100 - value)) / 100)) : null;
+    if (Data.discountType === 'percent') {
+      const sale = Math.max(1, Math.round((price * (100 - value)) / 100));
+      // A percentage that rounds to nothing off is no discount; the shop refuses it.
+      return value <= 90 && sale < price ? sale : null;
+    }
     return value < price && value / price <= 0.9 ? price - value : null;
   })();
 
@@ -173,18 +177,12 @@ const AddBooks = () => {
       return;
     }
 
-    // Blank optional fields are sent as 'N/A'.
-    const optionalFields: TextField[] = ['publisher', 'country', 'language', 'isbn', 'desc', 'conditionDetails'];
-    const filledData: BookForm = { ...Data };
-    optionalFields.forEach(field => {
-      if (
-        filledData[field] === undefined ||
-        filledData[field] === null ||
-        filledData[field].toString().trim() === ''
-      ) {
-        filledData[field] = 'N/A';
-      }
-    });
+    // Blank optional fields are left out, not filled with "N/A", and a new
+    // book has no condition: that is for second-hand copies.
+    const filledData: BookForm = {
+      ...Data,
+      ...(Data.bookType === 'new' ? { condition: '', conditionDetails: '' } : {}),
+    };
 
     const formData = new FormData();
     // Required fields always; optional ones only when non-empty.
@@ -439,7 +437,8 @@ const AddBooks = () => {
                 <span>
                   Listing is free. When it sells, {site.name} keeps {site.sellerFeePercent}%
                   {Number(Data.price) > 0 && (
-                    <> - you receive <b>{(Number(Data.price) * (100 - site.sellerFeePercent) / 100).toFixed(2)} Tk</b> per copy</>
+                    // From what the buyer pays: the sale price, when there is a discount.
+                    <> - you receive <b>{((salePreview ?? Number(Data.price)) * (100 - site.sellerFeePercent) / 100).toFixed(2)} Tk</b> per copy</>
                   )}
                   .
                 </span>

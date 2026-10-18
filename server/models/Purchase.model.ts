@@ -5,6 +5,7 @@ import { defineModel } from './defineModel.js';
 const purchaseSchema = new Schema({
   bookId: { type: Schema.Types.ObjectId, ref: 'AddBook', required: true },
   userEmail: { type: String, required: true },
+  quantity: { type: Number, default: 1, min: 1 },
   date: { type: Date, default: Date.now },
   isReturned: { type: Boolean, default: false },
 });

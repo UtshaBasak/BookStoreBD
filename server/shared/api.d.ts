@@ -244,6 +244,11 @@ export interface Book {
   _id: Id;
   title: string;
   author: string;
+  /**
+   * Publisher, country, language, ISBN, description and the condition fields
+   * are optional when listing: blank ('') when not given - never "N/A", which
+   * the server reads as blank - so show them only when they have a value.
+   */
   publisher: string;
   country: string;
   language: string;
@@ -254,6 +259,7 @@ export interface Book {
   desc: string;
   category: string[];
   bookType: BookType;
+  /** Only for a second-hand ('old') book; blank for a new one. */
   condition?: string;
   conditionDetails?: string;
   /**
@@ -895,10 +901,13 @@ export interface Purchase {
   /** Populated with the book itself by GET /purchase. */
   bookId: Book | Id | null;
   userEmail: string;
+  /** Copies bought; 1 when not given. */
+  quantity?: number;
   date?: IsoDate;
   isReturned?: boolean;
 }
 
+/** POST /purchase - the book must exist (404 otherwise); `quantity` defaults to 1. */
 export interface CreatePurchaseRequest {
   bookId: Id;
   quantity?: number;
@@ -1081,6 +1090,12 @@ export interface MarkReadRequest {
   sender: string;
 }
 
+/**
+ * DELETE /chat/delete - removes the conversation from the caller's side only;
+ * the other person keeps theirs, and its unread messages stop counting. A
+ * message both have deleted is gone. (An administrator outside the
+ * conversation removes it for both.)
+ */
 export interface DeleteConversationRequest {
   user1: string;
   user2: string;
@@ -1147,6 +1162,8 @@ export type NotificationType =
   | 'price-drop'
   | 'book-request'
   | 'back-in-stock'
+  /** A book in the shopper's cart or wishlist is nearly gone. In the 'deals' category. */
+  | 'selling-out'
   | 'wanted-found'
   | 'invite-joined'
   | 'welcome'

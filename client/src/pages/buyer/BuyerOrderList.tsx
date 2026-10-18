@@ -13,6 +13,7 @@ import NotificationBell from '../../components/NotificationBell.js';
 import { CANCELLED, orderTotals } from '../../utils/orderTotals.js';
 import { ORDER_SORTS, ORDER_STATUS_FILTER } from '../admin/orderFilters.js';
 import '../../styles/orderTracking.css';
+import { conditionOf } from '../../utils/bookText.js';
 
 /** Orders per page. Each one may be several rows. */
 const PAGE_SIZE = 25;
@@ -263,7 +264,7 @@ export default function BuyerOrderList() {
                           <td>{ob.author}</td>
                           <td>{Array.isArray(ob.category) ? ob.category.join(', ') : ob.category}</td>
                           <td>{ob.bookType}</td>
-                          <td>{ob.condition}</td>
+                          <td>{conditionOf(ob) || '-'}</td>
                           <td>{ob.pages}</td>
                           <td>{ob.price}</td>
                           <td>{ob.quantity}</td>

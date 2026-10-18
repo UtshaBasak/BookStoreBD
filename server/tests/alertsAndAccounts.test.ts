@@ -152,7 +152,8 @@ describe('stock and price alerts', () => {
     await request.post(`/cart/add/${String(book._id)}`).set('Authorization', buyer.auth);
 
     await request.put(`/book/update-stock/${String(book._id)}`).set('Authorization', seller.auth).send({ stock: 4 });
-    expect((await noticesOf(BUYER, 'stock'))[0]?.title).toContain('Only 4 left');
+    // A shopper's alert, filed under deals rather than the seller's own stock.
+    expect((await noticesOf(BUYER, 'selling-out'))[0]?.title).toContain('Only 4 left');
     // The seller made the change, so is not told about it.
     expect(await noticesOf(SELLER, 'stock')).toHaveLength(0);
 

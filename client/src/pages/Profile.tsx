@@ -61,7 +61,7 @@ export default function Profile() {
     useEffect(() => {
         if (!userEmail) navigate('/sign-in');
         else if (isAdmin()) {
-            const toSettings = ['#security', '#two-step'].includes(hash);
+            const toSettings = ['#security', '#two-step', '#notification-settings'].includes(hash);
             navigate(toSettings ? `/admin/settings${hash}` : '/admin/analytics', { replace: true });
         }
     }, [navigate, userEmail, hash]);
@@ -75,7 +75,9 @@ export default function Profile() {
     // A link to the set-up card or two-step sign-in, from a notification or
     // the set-up checklist, lands on it once the page has its content.
     useEffect(() => {
-        if (data && ['#setup', '#two-step', '#security'].includes(hash)) {
+        // The notification settings too: whichever of the profile and the
+        // settings arrives last, the page ends up on them.
+        if (data && ['#setup', '#two-step', '#security', '#notification-settings'].includes(hash)) {
             document.getElementById(hash.slice(1))?.scrollIntoView({ block: 'start' });
         }
     }, [data, hash]);

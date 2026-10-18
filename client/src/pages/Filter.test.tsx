@@ -164,3 +164,46 @@ describe('what it shows', () => {
     expect(await screen.findByText(/no book or author found/i)).toBeInTheDocument();
   });
 });
+
+describe('the filters together', () => {
+  it('keeps the other choices when "In Stock Only" is turned on', async () => {
+    stubFetch();
+    renderAt();
+    await screen.findByText('Pather Panchali');
+
+    await userEvent.click(screen.getByRole('button', { name: 'OLD' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Good' }));
+    await userEvent.click(screen.getByRole('button', { name: 'In Stock Only' }));
+
+    const url = await askedFor('inStock=');
+    expect(url).toContain('bookType=old');
+    expect(url).toContain('condition=good');
+  });
+
+  it('turns "Quick deals only" off, deal sort and all', async () => {
+    stubFetch();
+    renderAt('?deals=1&sort=dealPercent');
+    await screen.findByText('Pather Panchali');
+
+    await userEvent.click(screen.getByRole('button', { name: /quick deals only/i }));
+
+    await waitFor(() => {
+      const last = asked.at(-1) ?? '';
+      expect(last).not.toContain('deals=');
+      expect(last).not.toContain('sort=deal');
+    });
+  });
+
+  it('drops a condition once the type is no longer old', async () => {
+    stubFetch();
+    renderAt();
+    await screen.findByText('Pather Panchali');
+
+    await userEvent.click(screen.getByRole('button', { name: 'OLD' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Good' }));
+    await userEvent.click(screen.getByRole('button', { name: 'NEW' }));
+
+    const url = await askedFor('bookType=new');
+    expect(url).not.toContain('condition=');
+  });
+});

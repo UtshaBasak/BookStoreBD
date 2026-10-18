@@ -286,7 +286,7 @@ describe('chat endpoints that used to fail outright', () => {
     expect(res.body.messages[0].message).toBe('hi');
   });
 
-  it('DELETE /chat/delete removes the conversation', async () => {
+  it('DELETE /chat/delete removes the conversation for the caller only, and the other person keeps theirs', async () => {
     const alice = await createSignedInUser(request, { email: 'alice@test.com' });
     await createUser({ email: 'bob@test.com' });
     const ChatMessage = (await import('../models/Chat.model.js')).default;
@@ -303,6 +303,11 @@ describe('chat endpoints that used to fail outright', () => {
       .send({ user1: 'alice@test.com', user2: 'bob@test.com' });
 
     expect(res.status).toBe(200);
+    expect((await request.get('/chat/history/alice@test.com').set('Authorization', alice.auth)).body).toHaveLength(0);
+    // Bob still has it, until he deletes it too.
+    expect(await ChatMessage.countDocuments({})).toBe(1);
+    const bob = await signIn(request, 'bob@test.com');
+    await request.delete('/chat/delete').set('Authorization', `Bearer ${bob}`).send({ user1: 'alice@test.com', user2: 'bob@test.com' });
     expect(await ChatMessage.countDocuments({})).toBe(0);
   });
 });

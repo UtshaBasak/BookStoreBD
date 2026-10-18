@@ -51,6 +51,7 @@ import PriceTag from '../components/PriceTag.js';
 import { priceOf } from '../utils/pricing.js';
 import { recordView } from '../utils/recentlyViewed.js';
 import { countLabel } from '../utils/compactCount.js';
+import { given } from '../utils/bookText.js';
 
 export default function BookView() {
     const [searchQuery, setSearchQuery] = useState('');
@@ -206,7 +207,7 @@ export default function BookView() {
                   inLanguage: book.language,
                   bookEdition: book.bookType === 'old' ? 'Second-hand' : 'New',
                   ...(coverUrl ? { image: coverUrl } : {}),
-                  ...(book.desc ? { description: book.desc } : {}),
+                  ...(given(book.desc) ? { description: given(book.desc) } : {}),
                   ...((book.ratingCount ?? 0) > 0
                       ? {
                             aggregateRating: {
@@ -616,27 +617,29 @@ export default function BookView() {
                         <div className="card book-section">
                             <h2>Book Details</h2>
                             <dl className="book-facts">
+                                {/* Only what the seller filled in: a blank field is left out
+                                    rather than shown as "N/A". */}
                                 <div><dt>Category</dt><dd>{book.category.join(', ')}</dd></div>
-                                <div><dt>Publisher</dt><dd>{book.publisher || 'N/A'}</dd></div>
-                                <div><dt>ISBN</dt><dd>{book.isbn || 'N/A'}</dd></div>
-                                <div><dt>Language</dt><dd>{book.language || 'N/A'}</dd></div>
-                                <div><dt>Pages</dt><dd>{book.pages || 'N/A'}</dd></div>
-                                {isOld && (
-                                    <>
-                                        <div><dt>Condition</dt><dd>{book.condition ? capitalise(book.condition) : 'N/A'}</dd></div>
-                                        <div className="book-facts-wide">
-                                            <dt>Condition Details</dt>
-                                            <dd>{book.conditionDetails || 'N/A'}</dd>
-                                        </div>
-                                    </>
+                                {given(book.publisher) && <div><dt>Publisher</dt><dd>{given(book.publisher)}</dd></div>}
+                                {given(book.isbn) && <div><dt>ISBN</dt><dd>{given(book.isbn)}</dd></div>}
+                                {given(book.language) && <div><dt>Language</dt><dd>{given(book.language)}</dd></div>}
+                                {Number(book.pages) > 0 && <div><dt>Pages</dt><dd>{book.pages}</dd></div>}
+                                {isOld && given(book.condition) && (
+                                    <div><dt>Condition</dt><dd>{capitalise(given(book.condition))}</dd></div>
+                                )}
+                                {isOld && given(book.conditionDetails) && (
+                                    <div className="book-facts-wide">
+                                        <dt>Condition Details</dt>
+                                        <dd>{given(book.conditionDetails)}</dd>
+                                    </div>
                                 )}
                             </dl>
                         </div>
 
-                        {book.desc && (
+                        {given(book.desc) && (
                             <div className="card book-section">
                                 <h2>Description</h2>
-                                <p className="book-desc">{book.desc}</p>
+                                <p className="book-desc">{given(book.desc)}</p>
                             </div>
                         )}
 

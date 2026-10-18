@@ -96,3 +96,20 @@ describe('saving prices and stock', () => {
     expect(screen.getByLabelText('New stock for Pather Panchali')).toHaveValue(3);
   });
 });
+
+describe('a box cleared again', () => {
+  it('is no change, so nothing is sent and nothing fails', async () => {
+    stubFetch(200);
+    renderPage();
+    await screen.findAllByText('Pather Panchali');
+
+    const price = screen.getByLabelText('New price for Pather Panchali');
+    await userEvent.type(price, '400');
+    await userEvent.clear(price);
+    await userEvent.click(screen.getByRole('button', { name: /save all changes/i }));
+
+    expect(screen.queryByText(/could not be saved/i)).not.toBeInTheDocument();
+    const calls = (globalThis.fetch as unknown as { mock: { calls: [RequestInfo | URL][] } }).mock.calls;
+    expect(calls.some(([url]) => String(url).includes('/book/update-price/'))).toBe(false);
+  });
+});

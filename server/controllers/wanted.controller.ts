@@ -67,6 +67,27 @@ export const listWanted: RequestHandler = async (req, res, next) => {
   }
 };
 
+/** Why someone cannot ask for one more book, or null when they can. */
+const overLimit = async (email: string): Promise<string | null> =>
+  (await WantedBook.countDocuments({ status: 'open', 'requesters.email': email })) >= MAX_OPEN_PER_PERSON
+    ? `You can ask for up to ${MAX_OPEN_PER_PERSON} books at a time. Remove one you no longer need first.`
+    : null;
+
+/**
+ * Puts a reader on an open request, once: one step that both checks they are
+ * not on it yet and adds them, so two taps at once count once and the count
+ * always matches the list. Their "Anything else?" goes with them, and onto
+ * the request itself if it had none.
+ */
+const joinEntry = async (id: unknown, email: string, details = ''): Promise<boolean> => {
+  const joined = await WantedBook.updateOne(
+    { _id: id, status: 'open', 'requesters.email': { $ne: email } },
+    { $push: { requesters: { email, at: new Date(), details } }, $inc: { requesterCount: 1 } }
+  );
+  if (details) await WantedBook.updateOne({ _id: id, details: { $in: ['', null] } }, { $set: { details } });
+  return joined.modifiedCount === 1;
+};
+
 /**
  * Asks for a book. If it is in the shop already, says so instead; if someone
  * has asked for it already, joins their request, so each book is on the board
@@ -102,39 +123,43 @@ export const createWanted: RequestHandler = async (req, res, next) => {
 
     if (existing) {
       if (!existing.requesters.some((r) => r.email === actor.email)) {
-        existing.requesters.push({ email: actor.email, at: new Date() });
-        existing.requesterCount = existing.requesters.length;
-        // A detail the first person left out is still worth having.
-        if (!existing.author && author) {
-          existing.author = author;
-          existing.authorKey = request.authorKey;
+        // Joining counts towards the limit as asking does.
+        const limit = await overLimit(actor.email);
+        if (limit) {
+          res.status(429).json({ message: limit });
+          return;
         }
-        if (!existing.isbn && request.isbn) existing.isbn = request.isbn;
-        await existing.save();
+        await joinEntry(existing._id, actor.email, details);
+        // A detail the first person left out is still worth having.
+        const filled: Record<string, string> = {};
+        if (!existing.author && author) Object.assign(filled, { author, authorKey: request.authorKey });
+        if (!existing.isbn && request.isbn) filled.isbn = request.isbn;
+        if (Object.keys(filled).length) await WantedBook.updateOne({ _id: existing._id }, { $set: filled });
       }
-      const others = existing.requesterCount - 1;
+      const fresh = (await WantedBook.findById(existing._id).lean()) ?? existing.toObject();
+      const others = Number(fresh.requesterCount) - 1;
       const body: CreateWantedResponse = {
         result: 'joined',
         message:
           others > 0
             ? `${others} ${others === 1 ? 'other reader has' : 'other readers have'} asked for this too. You are on the list, and everyone hears the moment it is listed.`
             : 'You have asked for this already. You will hear the moment it is listed.',
-        item: toItem(existing.toObject(), actor.email),
+        item: toItem(fresh, actor.email),
       };
       res.status(200).json(body);
       return;
     }
 
-    const open = await WantedBook.countDocuments({ status: 'open', 'requesters.email': actor.email });
-    if (open >= MAX_OPEN_PER_PERSON) {
-      res.status(429).json({ message: `You can ask for up to ${MAX_OPEN_PER_PERSON} books at a time. Remove one you no longer need first.` });
+    const limit = await overLimit(actor.email);
+    if (limit) {
+      res.status(429).json({ message: limit });
       return;
     }
 
     const entry = await WantedBook.create({
       ...request,
       details,
-      requesters: [{ email: actor.email, at: new Date() }],
+      requesters: [{ email: actor.email, at: new Date(), details }],
       requesterCount: 1,
       createdBy: actor.email,
     });
@@ -159,16 +184,15 @@ export const joinWanted: RequestHandler<{ id: string }> = async (req, res, next)
       return;
     }
     if (!entry.requesters.some((r) => r.email === actor.email)) {
-      const open = await WantedBook.countDocuments({ status: 'open', 'requesters.email': actor.email });
-      if (open >= MAX_OPEN_PER_PERSON) {
-        res.status(429).json({ message: `You can ask for up to ${MAX_OPEN_PER_PERSON} books at a time.` });
+      const limit = await overLimit(actor.email);
+      if (limit) {
+        res.status(429).json({ message: limit });
         return;
       }
-      entry.requesters.push({ email: actor.email, at: new Date() });
-      entry.requesterCount = entry.requesters.length;
-      await entry.save();
+      await joinEntry(entry._id, actor.email);
     }
-    res.status(200).json(toItem(entry.toObject(), actor.email));
+    const fresh = (await WantedBook.findById(entry._id).lean()) ?? entry.toObject();
+    res.status(200).json(toItem(fresh, actor.email));
   } catch (error) {
     next(error);
   }

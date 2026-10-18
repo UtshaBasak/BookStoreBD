@@ -170,7 +170,7 @@ export default function BookFilter() {
   /** How many filters are on, for the collapsed panel's label. */
   const activeFilterCount =
     (filters.bookType ? 1 : 0) +
-    (filters.condition ? 1 : 0) +
+    (filters.bookType === 'old' && filters.condition ? 1 : 0) +
     filters.category.length +
     (filters.rating > 0 ? 1 : 0) +
     (inStockOnly ? 1 : 0) +
@@ -213,7 +213,7 @@ export default function BookFilter() {
   const params: CatalogueParams = {
     search: searchTerm || undefined,
     bookType: (filters.bookType || undefined) as BookType | undefined,
-    condition: filters.condition || undefined,
+    condition: (filters.bookType === 'old' && filters.condition) || undefined,
     category: filters.category.length ? filters.category : undefined,
     minPrice: amount(settledPrice.from),
     maxPrice: amount(settledPrice.to),
@@ -265,10 +265,13 @@ export default function BookFilter() {
 
   // A second click on the chosen option clears it.
   const handleRadioToggle = (filterKey: 'bookType' | 'condition', value: string) => {
-    setFilters((prev) => ({
-      ...prev,
-      [filterKey]: prev[filterKey] === value ? '' : value
-    }));
+    setFilters((prev) => {
+      const next = { ...prev, [filterKey]: prev[filterKey] === value ? '' : value };
+      // Condition is for old books: it goes when the type is no longer old,
+      // rather than staying on out of sight.
+      if (filterKey === 'bookType' && next.bookType !== 'old') next.condition = '';
+      return next;
+    });
   };
 
   const handleCategoryToggle = (cat: string) => {
@@ -390,7 +393,12 @@ export default function BookFilter() {
                 type="button"
                 className={`${chipClass(dealsOnly)} chip-deals`}
                 aria-pressed={dealsOnly}
-                onClick={() => update({ dealsOnly: !dealsOnly })}
+                onClick={() => {
+                  // A deal sort shows deals only, so turning deals off goes
+                  // back to the usual order as well.
+                  if (dealsOnly && (sortOption === 'dealPercent' || sortOption === 'dealAmount')) setSortOption('relevant');
+                  update({ dealsOnly: !dealsOnly });
+                }}
               >
                 <span aria-hidden="true">⚡</span>
                 Quick deals only
@@ -539,17 +547,9 @@ export default function BookFilter() {
                 type="button"
                 className={chipClass(inStockOnly)}
                 aria-pressed={inStockOnly}
-                onClick={() => {
-                  setInStockOnly(v => {
-                    const next = !v;
-                    // Kept in the address, so the choice survives a reload or a shared link.
-                    const params = new URLSearchParams(location.search);
-                    if (next) params.set('inStock', '1');
-                    else params.delete('inStock');
-                    navigate(`/filter?${params.toString()}`);
-                    return next;
-                  });
-                }}
+                // On the page, as the other filters are: changing the address
+                // here started a new search and lost every other choice.
+                onClick={() => setInStockOnly((v) => !v)}
               >
                 In Stock Only
               </button>

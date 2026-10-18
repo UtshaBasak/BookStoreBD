@@ -7,6 +7,9 @@ const RequesterSchema = new Schema(
   {
     email: { type: String, required: true },
     at: { type: Date, default: Date.now },
+    // What this reader added under "Anything else?" - an edition, a
+    // translation - kept with them as well as on the entry.
+    details: { type: String, default: '' },
   },
   { _id: false }
 );

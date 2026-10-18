@@ -46,6 +46,11 @@ export const discountProblem = (price: number, discount: Discount): string | nul
     if (value >= price) return 'The discount has to be less than the price';
     if (value / price > MAX_DISCOUNT_PERCENT / 100) return `A discount can be at most ${MAX_DISCOUNT_PERCENT}% of the price`;
   }
+  // Prices are whole taka: a percentage that rounds to nothing off saves the
+  // buyer nothing, and saying "Discount saved" for it would be untrue.
+  if (discount.type === 'percent' && Math.max(1, Math.round((price * (100 - value)) / 100)) >= price) {
+    return 'That discount comes to less than 1 Tk on this price. Try a larger one.';
+  }
   return null;
 };
 

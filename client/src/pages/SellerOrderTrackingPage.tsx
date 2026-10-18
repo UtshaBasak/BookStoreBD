@@ -12,6 +12,7 @@ import { site } from '../config/site.js';
 import { useOrder, useUpdateOrderStatus } from '../hooks/queries.js';
 import { getUserEmail } from '../utils/auth.js';
 import { CANCELLED } from '../utils/orderTotals.js';
+import { conditionOf } from '../utils/bookText.js';
 
 const ORDER_STAGES = [
   'Order Confirmed',
@@ -239,7 +240,7 @@ export default function SellerOrderTrackingPage() {
                     <td data-label="Author">{ob.author}</td>
                     <td data-label="Category">{Array.isArray(ob.category) ? ob.category.join(', ') : ob.category}</td>
                     <td data-label="Book Type">{ob.bookType}</td>
-                    <td data-label="Condition">{ob.condition}</td>
+                    <td data-label="Condition">{conditionOf(ob) || '-'}</td>
                     <td data-label="No. of Pages">{ob.pages}</td>
                     <td data-label="Price (Tk.)" className="sl-num">৳{ob.price}</td>
                     <td data-label="Quantity">{ob.quantity}</td>

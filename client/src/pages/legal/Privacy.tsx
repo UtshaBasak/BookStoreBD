@@ -130,7 +130,9 @@ export default function Privacy() {
       <h2>How long we keep it</h2>
       <p>Account and profile data is kept until you delete your account or ask
         us to. Orders and return requests are kept as business records. Chat
-        messages are kept until either participant deletes the conversation.</p>
+        messages are kept until both participants have deleted the
+        conversation: deleting it removes it from your side, and the other
+        person keeps their copy.</p>
 
       <h2>Your rights</h2>
       <p>You do not have to ask us for any of this. On your profile page,

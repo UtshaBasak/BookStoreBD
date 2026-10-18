@@ -1,11 +1,13 @@
 import { useState, useEffect, useRef, type ChangeEvent, type UIEvent } from 'react';
 import { Link } from 'react-router-dom';
+import { useQueryClient } from '@tanstack/react-query';
 import { FaArrowLeft, FaPaperPlane, FaComments, FaTrash, FaImage, FaBookOpen } from 'react-icons/fa';
 
 import type { ChatMessage, ChatMessagesResponse, ChatSummary } from '@shared/api.js';
 
 import { API_BASE_URL, apiFetch } from '../config/api.js';
 import { useToast } from '../hooks/useToast.js';
+import { keys } from '../hooks/queries.js';
 import { getUserEmail } from '../utils/auth.js';
 import { subscribeToMessages } from '../utils/socket.js';
 import { reportError } from '../utils/report.js';
@@ -30,6 +32,7 @@ export default function ChatPage() {
     const onMessageRef = useRef<((message: ChatMessage) => void) | null>(null);
     const fileInputRef = useRef<HTMLInputElement | null>(null);
     const toast = useToast();
+    const queryClient = useQueryClient();
     const userEmail = getUserEmail();
     const messagesEndRef = useRef<HTMLDivElement | null>(null);
     const messagesContainerRef = useRef<HTMLDivElement | null>(null);
@@ -74,17 +77,24 @@ export default function ChatPage() {
 
     useEffect(() => {
         if (selectedUser && userEmail) {
-            // Opening a conversation marks its messages as read.
+            // Opening a conversation marks its messages as read - and the
+            // badges say so at once, here and in the header.
+            const readFrom = selectedUser.email;
             apiFetch(`${API_BASE_URL}/chat/read`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                 },
                 body: JSON.stringify({
-                    sender: selectedUser.email,
+                    sender: readFrom,
                     receiver: userEmail
                 })
-            });
+            })
+                .then(() => {
+                    setConversations(list => list.map(c => (c.email === readFrom ? { ...c, unreadCount: 0 } : c)));
+                    return queryClient.invalidateQueries({ queryKey: keys.unreadChats });
+                })
+                .catch(err => reportError('Could not mark the chat as read:', err));
 
             const fetchMessages = async () => {
                 setLoading(true);
@@ -120,14 +130,16 @@ export default function ChatPage() {
                 setMessages([]);
             };
         }
-    }, [selectedUser, userEmail]);
+    }, [selectedUser, userEmail, queryClient]);
 
     const loadMessages = async (pageNum: number) => {
         if (loading || !hasMore || !selectedUser) return;
         
         setLoading(true);
         try {
-            const response = await fetch(
+            // Through apiFetch, which carries the session: a plain fetch was
+            // refused, so older messages never loaded.
+            const response = await apiFetch(
                 `${API_BASE_URL}/chat/messages?sender=${userEmail}&receiver=${selectedUser.email}&page=${pageNum}&limit=20`
             );
             const data = (await response.json()) as ChatMessagesResponse;
@@ -204,7 +216,7 @@ export default function ChatPage() {
 
     const deleteConversation = async (userToDelete: ChatSummary) => {
         // eslint-disable-next-line no-alert -- a confirmation needs an answer; replacing it needs a dialog component
-        if (!window.confirm('Are you sure you want to delete this conversation?')) return;
+        if (!window.confirm(`Delete this conversation from your chats? ${userToDelete.username || userToDelete.email} keeps their copy.`)) return;
         
         try {
             const response = await apiFetch(`${API_BASE_URL}/chat/delete`, {

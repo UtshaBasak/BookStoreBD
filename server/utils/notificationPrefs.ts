@@ -70,8 +70,8 @@ export const CATEGORIES: readonly CategoryDefinition[] = [
   {
     id: 'deals',
     label: 'Deals and price drops',
-    description: 'Discounts and lower prices on books in your cart or wishlist, and books back in stock.',
-    types: ['deal', 'price-drop', 'back-in-stock'],
+    description: 'Discounts and lower prices on books in your cart or wishlist, books back in stock, and books selling out.',
+    types: ['deal', 'price-drop', 'back-in-stock', 'selling-out'],
     email: false,
     audience: 'members',
   },

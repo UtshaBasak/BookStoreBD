@@ -145,7 +145,9 @@ export default function BuyerBookList() {
             {loading ? (
               <tr><td colSpan={11}>Loading...</td></tr>
             ) : orders.length === 0 ? (
-              <tr><td colSpan={11} className="py-8 text-center text-ink-muted">No books purchased yet.</td></tr>
+              <tr><td colSpan={11} className="py-8 text-center text-ink-muted">
+                {settledSearch ? `No bought books match "${settledSearch}".` : 'No books purchased yet.'}
+              </td></tr>
             ) : (
               orders.map((order, idx) => (
                 <tr key={order._id || idx}>
