@@ -29,6 +29,9 @@ const OrderSchema = new Schema({
   paymentMethod: { type: String, default: '' },
   contactName: { type: String, default: '' },
   contactPhone: { type: String, default: '' },
+  // Where e-mails about this order go: the address given at checkout, which
+  // starts as the account's own. Blank on orders from before it was asked.
+  contactEmail: { type: String, default: '' },
   deliveryDivision: { type: String, default: '' },
   deliveryDistrict: { type: String, default: '' },
   deliveryAddress: { type: String, default: '' },

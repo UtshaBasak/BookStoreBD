@@ -25,14 +25,19 @@ const inFlight = new Set<Promise<void>>();
 export const dispatchShopMail = (
   to: string | null | undefined,
   mail: Email,
-  category: NotificationCategory | null = null
+  category: NotificationCategory | null = null,
+  /**
+   * Whose choices decide, when the address is not an account's own - the
+   * e-mail a buyer gave for one order is still their account's mail.
+   */
+  { choicesOf = to }: { choicesOf?: string | null } = {}
 ): void => {
   if (!to || !mailConfigured()) return;
   const sending: Promise<void> = new Promise<void>((resolve) => {
     setImmediate(() => resolve());
   })
     .then(async () => {
-      if (!(await recipientsWanting([to], category, 'email')).length) return;
+      if (!(await recipientsWanting([choicesOf || to], category, 'email')).length) return;
       await sendMail({ to, subject: mail.subject, text: mail.text, html: mail.html });
     })
     .catch((err: unknown) => {
@@ -91,6 +96,8 @@ const booksTotalOf = (lines: readonly MailLine[]): number =>
 
 export interface OrderFacts {
   orderNumber: string;
+  /** Where the buyer's e-mails about the order go. */
+  contactEmail?: string | null;
   contactName?: string | null;
   contactPhone?: string | null;
   deliveryAddress?: string | null;

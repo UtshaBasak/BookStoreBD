@@ -303,6 +303,8 @@ export const orderSchemas = {
         promo: shortText.max(40).optional(),
         paymentMethod: z.enum(PAYMENT_METHODS, { message: 'Cash on Delivery is the only payment method' }).default('Cash on Delivery'),
         contactName: shortText.min(1, 'Enter the name to deliver to'),
+        // Where the e-mails about this order go; the account's own when left out.
+        contactEmail: email.optional(),
         contactPhone: bdMobile,
         // From the shop's own list, since the district is what prices delivery.
         deliveryDivision: z.string().trim().refine((value) => Object.hasOwn(DELIVERY_DIVISIONS, value), 'Choose a division from the list'),

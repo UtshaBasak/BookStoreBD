@@ -7,6 +7,7 @@ import type { CreateOrderResponse, UnavailableItem, UnavailableReason } from '@s
 import AddBook, { type BookDocument } from '../models/AddBook.model.js';
 import Order, { type LeanOrder } from '../models/Order.model.js';
 import User from '../models/user.model.js';
+import Cart from '../models/Cart.model.js';
 import { CheckoutLock, CheckoutReceipt } from '../models/Checkout.model.js';
 import { actingUser } from '../middleware/auth.js';
 import { recordAudit } from '../utils/audit.js';
@@ -227,6 +228,10 @@ const pageOfOrders = async (
   };
 };
 
+/** Where e-mails about an order go: the address given at checkout, or the account's. */
+const buyerMailOf = (line: { contactEmail?: string | null; buyerEmail?: string | null } | undefined): string | undefined =>
+  line?.contactEmail || line?.buyerEmail || undefined;
+
 /** Order lines in a book's own words, for a notification: "Deyal × 2, Sapiens". */
 const describeLines = (lines: readonly { title?: string | null; quantity?: number | null }[]): string =>
   lines
@@ -248,7 +253,7 @@ const announceOrder = async (
   // one to each seller about their own books.
   const priced = (list: typeof reserved) =>
     list.map(({ book, quantity }) => ({ title: book.title, quantity, price: unitPriceOf(book) }));
-  dispatchShopMail(buyer, orderPlacedBuyerEmail(facts, priced(reserved)), 'orders');
+  dispatchShopMail(facts.contactEmail || buyer, orderPlacedBuyerEmail(facts, priced(reserved)), 'orders', { choicesOf: buyer });
   for (const seller of new Set(reserved.map(({ book }) => book.sellerEmail))) {
     dispatchShopMail(seller, orderPlacedSellerEmail(facts, priced(reserved.filter(({ book }) => book.sellerEmail === seller))), 'orders');
   }
@@ -514,6 +519,7 @@ export const decreaseStock = async (
             paymentMethod: req.body.paymentMethod,
             contactName: req.body.contactName,
             contactPhone: req.body.contactPhone,
+            contactEmail: req.body.contactEmail ?? buyer,
             deliveryDivision: req.body.deliveryDivision,
             deliveryDistrict: req.body.deliveryDistrict,
             deliveryAddress: req.body.deliveryAddress,
@@ -536,6 +542,12 @@ export const decreaseStock = async (
         throw err;
       }
 
+      // What was ordered leaves the cart; a book left out - sold out, say -
+      // stays there for when it can be bought.
+      await Cart.deleteMany({ user: actingUser(req).id, book: { $in: reserved.map(({ book }) => book._id) } }).catch((err: unknown) => {
+        log.warn({ err }, 'Could not take ordered books out of the cart');
+      });
+
       const response: CreateOrderResponse = {
         message: 'Stock updated & order saved',
         orderNumber,
@@ -554,6 +566,7 @@ export const decreaseStock = async (
         total: booksTotal + shippingCharge - discount,
         facts: {
           orderNumber,
+          contactEmail: req.body.contactEmail ?? buyer,
           contactName: req.body.contactName,
           contactPhone: req.body.contactPhone,
           deliveryAddress: req.body.deliveryAddress,
@@ -888,7 +901,7 @@ export const updateOrderStatusByOrderNumber = async (
       // Delivered: an e-mail each to the buyer and the sellers, beside the bell.
       if (becomesDelivered && !wasDelivered) {
         const facts = { orderNumber, contactName: existing[0]?.contactName };
-        dispatchShopMail(existing[0]?.buyerEmail, orderDeliveredBuyerEmail(facts, mine), 'orders');
+        dispatchShopMail(buyerMailOf(existing[0]), orderDeliveredBuyerEmail(facts, mine), 'orders', { choicesOf: existing[0]?.buyerEmail });
         const payableFrom = new Date(Date.now() + RETURN_WINDOW_DAYS * 24 * 60 * 60 * 1000);
         for (const seller of new Set(mine.map((line) => line.sellerEmail))) {
           dispatchShopMail(seller, orderDeliveredSellerEmail(facts, mine.filter((line) => line.sellerEmail === seller), payableFrom), 'orders');
@@ -1006,7 +1019,9 @@ export const cancelOrderLines = async (
   const cancelledIds = new Set(lines.map((line) => String(line._id)));
   const whole = existing.every((line) => line.status === CANCELLED || cancelledIds.has(String(line._id)));
   const facts = { orderNumber };
-  dispatchShopMail(existing[0]?.buyerEmail, orderCancelledEmail('buyer', facts, lines, { by: who, reason, whole }), 'orders');
+  dispatchShopMail(buyerMailOf(existing[0]), orderCancelledEmail('buyer', facts, lines, { by: who, reason, whole }), 'orders', {
+    choicesOf: existing[0]?.buyerEmail,
+  });
   for (const seller of new Set(lines.map((line) => line.sellerEmail))) {
     dispatchShopMail(
       seller,

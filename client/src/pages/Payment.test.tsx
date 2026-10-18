@@ -40,6 +40,9 @@ const PROFILE = {
 const json = (body: unknown, status = 200) =>
   new Response(JSON.stringify(body), { status, headers: { 'Content-Type': 'application/json' } });
 
+/** Whether the page asked to empty the whole cart. */
+let cleared = false;
+
 interface Placed {
   body: Record<string, unknown>;
 }
@@ -56,6 +59,7 @@ const stubShop = (answer: () => Promise<Response> | Response = () => json({
   unavailable: [],
 })) => {
   const placed: Placed[] = [];
+  cleared = false;
   vi.stubGlobal(
     'fetch',
     vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
@@ -80,7 +84,10 @@ const stubShop = (answer: () => Promise<Response> | Response = () => json({
         });
       }
       if (url.includes('/user/profile')) return json(PROFILE);
-      if (url.includes('/cart/clear')) return json({ message: 'Cart cleared' });
+      if (url.includes('/cart/clear')) {
+        cleared = true;
+        return json({ message: 'Cart cleared' });
+      }
       if (url.endsWith('/cart')) return json([BOOK]);
       return json({});
     })
@@ -139,14 +146,48 @@ describe('the contact details', () => {
     expect(screen.getByLabelText('Address')).toHaveValue('House 1, Road 2, Dhanmondi');
   });
 
-  it("show the account's e-mail without letting it be edited", async () => {
-    stubShop();
+  it("start the e-mail at the account's address and send it with the order", async () => {
+    const placed = stubShop();
     renderAt();
+    await screen.findByDisplayValue('rahim');
+    expect(screen.getByLabelText('Email address')).toHaveValue(EMAIL);
+    await chooseDhaka();
 
-    const field = await screen.findByLabelText('Email address');
+    await userEvent.click(screen.getByRole('button', { name: 'Confirm Order' }));
 
-    expect(field).toHaveValue(EMAIL);
-    expect(field).toHaveAttribute('readonly');
+    await waitFor(() => expect(placed).toHaveLength(1));
+    expect(placed[0]?.body.contactEmail).toBe(EMAIL);
+  });
+
+  it('send a different e-mail for this order without touching the account or its cart', async () => {
+    const placed = stubShop();
+    renderAt();
+    await screen.findByDisplayValue('rahim');
+    const field = screen.getByLabelText('Email address');
+    await userEvent.clear(field);
+    // Emptied, the page still knows who is signed in.
+    expect(screen.queryByText(/please sign in/i)).not.toBeInTheDocument();
+    await userEvent.type(field, 'gift@test.com');
+    await chooseDhaka();
+
+    await userEvent.click(screen.getByRole('button', { name: 'Confirm Order' }));
+
+    await waitFor(() => expect(placed).toHaveLength(1));
+    expect(placed[0]?.body.contactEmail).toBe('gift@test.com');
+  });
+
+  it('refuse an e-mail that is not one, before anything is sent', async () => {
+    const placed = stubShop();
+    renderAt();
+    await screen.findByDisplayValue('rahim');
+    await userEvent.clear(screen.getByLabelText('Email address'));
+    await userEvent.type(screen.getByLabelText('Email address'), 'not-an-address');
+    await chooseDhaka();
+
+    await userEvent.click(screen.getByRole('button', { name: 'Confirm Order' }));
+
+    expect(await screen.findByText(/e-mail address your order confirmation should go to/)).toBeInTheDocument();
+    expect(placed).toHaveLength(0);
   });
 
   it('accept a phone number written with +880 and send it in the eleven-digit form', async () => {
@@ -216,6 +257,20 @@ describe('Confirm Order', () => {
     await screen.findByText('Checkout Complete!', {}, { timeout: 5000 });
     expect(placed).toHaveLength(2);
     expect(placed[1]?.body.checkoutId).toBe(placed[0]?.body.checkoutId);
+  });
+});
+
+describe('the cart after ordering', () => {
+  it('is not emptied by the page: the shop takes out what was ordered, and a sold-out book stays', async () => {
+    stubShop();
+    renderAt();
+    await screen.findByDisplayValue('rahim');
+    await chooseDhaka();
+
+    await userEvent.click(screen.getByRole('button', { name: 'Confirm Order' }));
+
+    await screen.findByText('Checkout Complete!', {}, { timeout: 5000 });
+    expect(cleared).toBe(false);
   });
 });
 

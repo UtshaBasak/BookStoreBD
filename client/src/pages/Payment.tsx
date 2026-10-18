@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link, Navigate, useNavigate, useSearchParams } from 'react-router-dom';
+import { useQueryClient } from '@tanstack/react-query';
 import {
   FaArrowLeft, FaCheck, FaMapMarkerAlt, FaMoneyBillWave, FaTag, FaTrash, FaTruck,
 } from 'react-icons/fa';
@@ -7,7 +8,7 @@ import {
 import type { ApiError, Book, CheckPromoResponse, CreateOrderResponse, Id, UnavailableItem } from '@shared/api.js';
 
 import { API_BASE_URL, apiFetch } from '../config/api.js';
-import { useCart, useClearCart, useOrder, useProfile, useSetCartQuantity, useToggleCart } from '../hooks/queries.js';
+import { keys, useCart, useOrder, useProfile, useSetCartQuantity, useToggleCart } from '../hooks/queries.js';
 import OrderPdfButton from '../components/OrderPdfButton.js';
 import QuantityStepper from '../components/QuantityStepper.js';
 import CopyButton from '../components/CopyButton.js';
@@ -144,6 +145,8 @@ export default function Payment() {
   // What the shopper types wins; until they type, the profile fills it in.
   const [nameEdit, setNameEdit] = useState<string | null>(null);
   const [phoneEdit, setPhoneEdit] = useState<string | null>(null);
+  // Where this order's e-mails go: the account's address unless changed.
+  const [contactEmailEdit, setContactEmailEdit] = useState<string | null>(null);
   const [phoneTouched, setPhoneTouched] = useState(false);
   const [addressEdit, setAddressEdit] = useState<string | null>(restored?.address ?? null);
   const [checkoutId] = useState(newCheckoutId);
@@ -179,7 +182,7 @@ export default function Payment() {
   // The live cart only matters until an order is confirmed; after that the
   // page shows what was actually bought.
   const cartQuery = useCart({ enabled: !orderConfirmed && Boolean(email) });
-  const { mutate: clearCart } = useClearCart();
+  const queryClient = useQueryClient();
   // A sold-out book stays in the cart, so it can be bought when it is back,
   // but it cannot be ordered now and is left out here.
   const fullCart = cartQuery.data ?? [];
@@ -199,6 +202,8 @@ export default function Payment() {
   const phone = phoneEdit ?? own?.phone ?? '';
   const address = addressEdit ?? own?.address ?? '';
   const phoneNumber = bdMobile(phone);
+  const contactEmail = (contactEmailEdit ?? email).trim();
+  const contactEmailOk = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(contactEmail);
   const phoneProblem = phoneTouched && phone.trim() && !phoneNumber
     ? 'Enter an 11-digit mobile number, like 01712345678.'
     : '';
@@ -340,6 +345,10 @@ export default function Payment() {
       setConfirmError('Please fill in all the contact and delivery details.');
       return;
     }
+    if (!contactEmailOk) {
+      setConfirmError('Enter the e-mail address your order confirmation should go to.');
+      return;
+    }
     if (!phoneNumber) {
       setPhoneTouched(true);
       setConfirmError('Enter an 11-digit mobile number, like 01712345678, so the courier can call you.');
@@ -388,6 +397,7 @@ export default function Payment() {
         ...(promoCurrent ? { promo } : {}),
         paymentMethod: 'Cash on Delivery', // The one method offered.
         contactName: name.trim(),
+        contactEmail,
         contactPhone: phoneNumber,
         deliveryDivision: division,
         deliveryDistrict: district,
@@ -422,9 +432,10 @@ export default function Payment() {
           setPromoMsg(data.promoMessage);
           setRefusedPromo(data.promoMessage);
         }
-        // Cleared only once the order is in, so a failed checkout keeps the
-        // basket. Through the mutation, so every header's cart badge updates.
-        clearCart();
+        // The server took what was ordered out of the cart, and left what was
+        // not - a sold-out book stays for when it is back. Read again, so
+        // every header's cart badge updates.
+        void queryClient.invalidateQueries({ queryKey: keys.cart });
         // Kept for this tab only, under its order number, which goes in the
         // address: a reload shows this confirmation again, and the next visit
         // to checkout starts afresh.
@@ -927,19 +938,21 @@ export default function Payment() {
                 />
               </div>
               <div>
-                {/* The account the order goes on, and where its e-mails go: shown,
-                    not edited here. */}
+                {/* Where this order's e-mails go. It starts as the account's
+                    address; changing it here changes nothing about the
+                    account, whose cart and profile this page shows. */}
                 <label htmlFor="checkout-email" className="pay-label">Email address</label>
                 <input
                   id="checkout-email"
                   className="field"
+                  type="email"
                   autoComplete="email"
-                  value={email}
-                  readOnly
+                  value={contactEmailEdit ?? email}
+                  onChange={e => setContactEmailEdit(e.target.value)}
                   aria-describedby="checkout-email-note"
                 />
                 <p id="checkout-email-note" className="m-0 mt-1 text-xs text-ink-muted">
-                  Your order confirmation goes here.
+                  Your order confirmation and delivery updates go here.
                 </p>
               </div>
               <div>

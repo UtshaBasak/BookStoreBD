@@ -665,6 +665,8 @@ export interface OrderLine {
   paymentMethod?: string;
   contactName?: string;
   contactPhone?: string;
+  /** Where the buyer's e-mails about the order go; blank on older orders (the account's address is used). */
+  contactEmail?: string;
   deliveryDivision?: string;
   deliveryDistrict?: string;
   deliveryAddress?: string;
@@ -760,6 +762,11 @@ export interface OrderItemRequest {
   quantity: number;
 }
 
+/**
+ * POST /order/decrease-stock. Once the order is placed, the books in it are
+ * taken out of the buyer's cart by the server; books left out (sold out, and
+ * so on) stay there. Do not clear the cart afterwards.
+ */
 export interface CreateOrderRequest {
   /** The same book twice is merged into one line, its quantities added. */
   items: OrderItemRequest[];
@@ -775,6 +782,12 @@ export interface CreateOrderRequest {
   /** Cash on Delivery, the only method; the default when left out. */
   paymentMethod?: 'Cash on Delivery';
   contactName: string;
+  /**
+   * Where the e-mails about this order go - confirmation, delivery,
+   * cancellation. The account's own address when left out. In-app
+   * notifications stay with the account.
+   */
+  contactEmail?: string;
   /** A Bangladeshi mobile number; "+880 1712-345678" is stored as 01712345678. */
   contactPhone: string;
   /** A division from the shop's list (`delivery.divisions` in GET /api/v1/app/config). */

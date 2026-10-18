@@ -448,6 +448,7 @@ const eraseAccount = async (user: UserDocument) => {
   const anonymise = {
     contactName: '',
     contactPhone: '',
+    contactEmail: '',
     deliveryAddress: '',
   };
 
@@ -697,6 +698,8 @@ export const confirmEmailChange: RequestHandler = async (req, res, next) => {
 
     await Promise.all([
       Order.updateMany({ buyerEmail: from }, { $set: { buyerEmail: to } }),
+      // An order's e-mails follow the account when they went to its address.
+      Order.updateMany({ buyerEmail: { $in: [from, to] }, contactEmail: from }, { $set: { contactEmail: to } }),
       Order.updateMany({ sellerEmail: from }, { $set: { sellerEmail: to } }),
       AddBook.updateMany({ sellerEmail: from }, { $set: { sellerEmail: to } }),
       Purchase.updateMany({ userEmail: from }, { $set: { userEmail: to } }),

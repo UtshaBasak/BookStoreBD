@@ -25,7 +25,10 @@ describe('GET /user/me/export', () => {
   it('hands back everything the account holds', async () => {
     const buyer = await createSignedInUser(request, { email: 'buyer@test.com' });
     const book = await createBook({ stock: 5 });
-    await request.post(`/cart/add/${String(book._id)}`).set('Authorization', buyer.auth);
+    // One book ordered, another still in the cart: ordering takes only what
+    // was ordered out of it.
+    const saved = await createBook({ stock: 5, title: 'For later' });
+    await request.post(`/cart/add/${String(saved._id)}`).set('Authorization', buyer.auth);
     await request
       .post('/order/decrease-stock')
       .set('Authorization', buyer.auth)

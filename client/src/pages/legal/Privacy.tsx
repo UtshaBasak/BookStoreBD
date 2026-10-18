@@ -31,8 +31,9 @@ export default function Privacy() {
       <ul>
         <li>Optional profile details you choose to add: phone number, delivery
           address, date of birth, gender and a profile picture.</li>
-        <li>Orders you place, including the delivery address, contact name and
-          phone number for that order.</li>
+        <li>Orders you place, including the delivery address, contact name,
+          phone number and the e-mail address for that order, where its
+          e-mails go.</li>
         <li>Return requests: what was wrong, the photographs you add, and the
           bKash number you give for the refund.</li>
         <li>Listings you create as a seller, including the photographs you
