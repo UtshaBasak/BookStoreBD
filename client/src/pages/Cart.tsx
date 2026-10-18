@@ -87,6 +87,7 @@ export default function Cart() {
   const copies = (book: Book) => Math.max(1, Math.min(book.cartQuantity ?? 1, Number(book.stock) || 1));
   const buyable = cartBooks.filter(inStock);
   const copyCount = buyable.reduce((sum, book) => sum + copies(book), 0);
+  const soldOutCount = cartBooks.length - buyable.length;
   const subtotal = buyable.reduce((sum, book) => sum + priceOf(book) * copies(book), 0);
 
   if (!userEmail) {
@@ -126,8 +127,12 @@ export default function Cart() {
           <div>
             <h1 className="shop-title">Cart</h1>
             {cartBooks.length > 0 && (
+              // Copies, as the summary counts them; a sold-out book is named
+              // apart, since it is not part of what checkout will order.
               <p className="shop-sub">
-                {cartBooks.length} book{cartBooks.length === 1 ? '' : 's'} waiting for you
+                {copyCount > 0 && `${copyCount} book${copyCount === 1 ? '' : 's'} ready for checkout`}
+                {copyCount > 0 && soldOutCount > 0 && ', '}
+                {soldOutCount > 0 && `${soldOutCount} sold out`}
               </p>
             )}
           </div>
@@ -265,8 +270,10 @@ export default function Cart() {
                 {site.delivery.insideDhaka} Tk inside Dhaka, {site.delivery.outsideDhaka} Tk elsewhere.
                 {buyable.length < cartBooks.length && ' Sold-out books are not included.'}
               </p>
+              {/* Delivery depends on the district, chosen at checkout, so this
+                  total says it is before delivery rather than looking final. */}
               <div className="sum-total">
-                <span>Total</span>
+                <span>Total before delivery</span>
                 <span>৳{subtotal.toFixed(2)}</span>
               </div>
 
@@ -288,7 +295,7 @@ export default function Cart() {
 
               <ul className="trust-list">
                 <li><FaMoneyBillWave aria-hidden="true" /> {site.payment} - pay when it arrives</li>
-                <li><FaUndoAlt aria-hidden="true" /> {site.returns.windowDays}-day returns</li>
+                <li><FaUndoAlt aria-hidden="true" /> {site.returns.windowDays}-day returns if a book is not as described</li>
                 <li>
                   <FaTruck aria-hidden="true" /> {site.delivery.daysInsideDhaka} working days in Dhaka,{' '}
                   {site.delivery.daysOutsideDhaka} elsewhere

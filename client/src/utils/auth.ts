@@ -1,5 +1,7 @@
 import type { SessionUser, UserRole } from '@shared/api.js';
 
+import { forgetConfirmedOrder } from './checkout.js';
+
 /**
  * The session in this tab.
  *
@@ -82,4 +84,6 @@ export const clearSession = (): void => {
   accessToken = null;
   write(EMAIL_KEY, null);
   write(ROLE_KEY, null);
+  // A checkout confirmation belongs to the person who placed it.
+  forgetConfirmedOrder();
 };

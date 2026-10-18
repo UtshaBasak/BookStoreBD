@@ -1,5 +1,5 @@
-import { useState, useEffect, useMemo } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { Link, Navigate, useNavigate, useSearchParams } from 'react-router-dom';
 import {
   FaArrowLeft, FaCheck, FaMapMarkerAlt, FaMoneyBillWave, FaTag, FaTrash, FaTruck,
 } from 'react-icons/fa';
@@ -12,6 +12,8 @@ import OrderPdfButton from '../components/OrderPdfButton.js';
 import QuantityStepper from '../components/QuantityStepper.js';
 import CopyButton from '../components/CopyButton.js';
 import { isOwnProfile } from '../utils/profile.js';
+import { getUserEmail } from '../utils/auth.js';
+import { CONFIRMED_ORDER_KEY, bdMobile, forgetConfirmedOrder } from '../utils/checkout.js';
 import { safeImageSrc, PLACEHOLDER_IMAGE } from '../utils/safeImageSrc.js';
 import { sized, IMAGE_WIDTHS } from '../utils/imageUrl.js';
 import { deliveryChargeFor, site } from '../config/site.js';
@@ -25,14 +27,7 @@ import './Payment.css';
 /** How many of each book is being bought, keyed by book id. */
 type Quantities = Record<Id, number>;
 
-/** The contact details this page collects, seeded from the stored session. */
-interface Buyer {
-  name: string;
-  email: string;
-  phone: string;
-}
-
-/** What is written to localStorage once an order is confirmed. */
+/** What is kept in this tab once an order is confirmed, so a reload still shows it. */
 interface ConfirmedOrder {
   email: string;
   orderNumber: string;
@@ -46,22 +41,18 @@ interface ConfirmedOrder {
   promoApplied: boolean;
   quantities: Quantities;
   cartBooks: Book[];
+  /** Books the server left out, or ordered fewer copies of. */
+  leftOut?: UnavailableItem[];
+  /** Why the promo code was not applied, when it was not. */
+  promoMessage?: string;
 }
 
-const getUserProfile = (): Buyer => {
-  return {
-    name: localStorage.getItem('username') || '',
-    email: localStorage.getItem('userEmail') || '',
-    phone: localStorage.getItem('userPhone') || '',
-  };
-};
+/** Made once per visit to checkout and sent with every try, so a retry never places a second order. */
+const newCheckoutId = (): string =>
+  typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function'
+    ? crypto.randomUUID()
+    : `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 12)}`;
 
-/**
- * Reads a previously confirmed order back out of storage.
- *
- * Used as a lazy initialiser so the restored values are present on the very
- * first render, rather than arriving from an effect after an empty one.
- */
 /** Why the server left a book out of an order, or ordered fewer copies, in a few words. */
 const leftOutReason = (item: UnavailableItem): string => {
   switch (item.reason) {
@@ -78,15 +69,30 @@ const leftOutReason = (item: UnavailableItem): string => {
   }
 };
 
-const restoreConfirmedOrder = (): ConfirmedOrder | null => {
+/**
+ * Reads a confirmed order back, for a reload of its own confirmation page.
+ *
+ * Only for the order number in the address and the person signed in: a plain
+ * visit to checkout always starts a new checkout, however the last one was
+ * left.
+ */
+const restoreConfirmedOrder = (orderNumber: string | null, email: string): ConfirmedOrder | null => {
+  if (!orderNumber || !email) return null;
   try {
-    const raw = localStorage.getItem('confirmedOrder');
+    const raw = sessionStorage.getItem(CONFIRMED_ORDER_KEY);
     if (!raw) return null;
     const order = JSON.parse(raw) as ConfirmedOrder | null;
-    const email = localStorage.getItem('userEmail');
-    return order && order.email && order.email === email ? order : null;
+    return order && order.email === email && order.orderNumber === orderNumber ? order : null;
   } catch {
     return null;
+  }
+};
+
+const keepConfirmedOrder = (order: ConfirmedOrder): void => {
+  try {
+    sessionStorage.setItem(CONFIRMED_ORDER_KEY, JSON.stringify(order));
+  } catch {
+    /* blocked storage: the confirmation still shows until the page is left */
   }
 };
 
@@ -125,16 +131,29 @@ function CheckoutTopBar({ step, linkHome = false }: { step: 1 | 2 | 3; linkHome?
 
 export default function Payment() {
   const navigate = useNavigate();
-  const restored = useMemo(() => restoreConfirmedOrder(), []);
+  const [searchParams, setSearchParams] = useSearchParams();
+  // Who is signed in, from the session - not from a field on this page, so
+  // nothing typed here changes whose cart or profile is loaded.
+  const email = getUserEmail() ?? '';
+  const asked = searchParams.get('order');
+  // Read once, for the order in the address; never re-read as the page changes.
+  const [restored] = useState(() => restoreConfirmedOrder(asked, email));
 
-  const [storedUser, setUser] = useState(getUserProfile);
   const [division, setDivision] = useState(restored?.division ?? '');
   const [district, setDistrict] = useState(restored?.district ?? '');
-  const [address, setAddress] = useState(restored?.address ?? '');
+  // What the shopper types wins; until they type, the profile fills it in.
+  const [nameEdit, setNameEdit] = useState<string | null>(null);
+  const [phoneEdit, setPhoneEdit] = useState<string | null>(null);
+  const [phoneTouched, setPhoneTouched] = useState(false);
+  const [addressEdit, setAddressEdit] = useState<string | null>(restored?.address ?? null);
+  const [checkoutId] = useState(newCheckoutId);
+  const [placing, setPlacing] = useState(false);
   // A few words to the seller: "please call before you come".
   const [buyerNote, setBuyerNote] = useState('');
   const [promo, setPromo] = useState(restored?.promo ?? '');
-  const [promoMsg, setPromoMsg] = useState('');
+  const [promoMsg, setPromoMsg] = useState(restored?.promoMessage ?? '');
+  // Why the server did not apply the code when the order was placed, if it did not.
+  const [refusedPromo, setRefusedPromo] = useState(restored?.promoMessage ?? '');
   const [promoApplied, setPromoApplied] = useState(restored?.promoApplied ?? false);
   const [discount, setDiscount] = useState(restored?.discount ?? 0);
   const [freeDelivery, setFreeDelivery] = useState(false);
@@ -159,29 +178,30 @@ export default function Payment() {
 
   // The live cart only matters until an order is confirmed; after that the
   // page shows what was actually bought.
-  const cartQuery = useCart({ enabled: !orderConfirmed && Boolean(storedUser.email) });
+  const cartQuery = useCart({ enabled: !orderConfirmed && Boolean(email) });
   const { mutate: clearCart } = useClearCart();
   // A sold-out book stays in the cart, so it can be bought when it is back,
   // but it cannot be ordered now and is left out here.
   const fullCart = cartQuery.data ?? [];
   const liveCart = fullCart.filter((book) => Number(book.stock) > 0);
   const soldOut = orderConfirmed ? [] : fullCart.filter((book) => !(Number(book.stock) > 0));
-  const [leftOut, setLeftOut] = useState<UnavailableItem[]>([]);
+  const [leftOut, setLeftOut] = useState<UnavailableItem[]>(restored?.leftOut ?? []);
 
   const cartBooks = confirmedBooks ?? liveCart;
   const loading = orderConfirmed ? false : cartQuery.isPending;
 
-  // The profile query fills in details that may have changed since sign-in.
-  const { data: profile } = useProfile(storedUser.email, {
-    enabled: Boolean(storedUser.email),
-  });
-  // The contact number is only returned to the owner, so it is read through
-  // the guard rather than assumed present on every profile shape.
-  const user: Buyer = {
-    ...storedUser,
-    name: profile?.username || storedUser.name,
-    phone: (isOwnProfile(profile) ? profile.phone : null) || storedUser.phone,
-  };
+  // The shopper's own profile fills in the name, phone and address.
+  const { data: profile } = useProfile(email || undefined, { enabled: Boolean(email) });
+  // The phone and address are only returned to the owner, so they are read
+  // through the guard rather than assumed present on every profile shape.
+  const own = isOwnProfile(profile) ? profile : null;
+  const name = nameEdit ?? profile?.username ?? '';
+  const phone = phoneEdit ?? own?.phone ?? '';
+  const address = addressEdit ?? own?.address ?? '';
+  const phoneNumber = bdMobile(phone);
+  const phoneProblem = phoneTouched && phone.trim() && !phoneNumber
+    ? 'Enter an 11-digit mobile number, like 01712345678.'
+    : '';
 
   // How many of each: what the cart holds, which the cart page and the book
   // page set, never more than is in stock.
@@ -197,8 +217,11 @@ export default function Payment() {
   const divisions = DIVISIONS;
   const divisionDistricts = DIVISION_DISTRICTS;
 
+  // Signed out, or in as someone else, in another tab: draw the page again
+  // for whoever it is now.
+  const [, setSessionSeen] = useState(0);
   useEffect(() => {
-    const onStorage = () => setUser(getUserProfile());
+    const onStorage = () => setSessionSeen((n) => n + 1);
     window.addEventListener('storage', onStorage);
     return () => window.removeEventListener('storage', onStorage);
   }, []);
@@ -206,7 +229,7 @@ export default function Payment() {
   const getBookImageSrc = (book: Book): string => {
     const img = book.images?.[0];
     if (typeof img !== 'string' || !img) return PLACEHOLDER_IMAGE;
-    // The order is restored from localStorage, so the stored value is not
+    // The order is restored from session storage, so the stored value is not
     // trusted: validate the scheme before it reaches an <img src>.
     // A path is either a cover served by the API or the placeholder; both
     // are same-origin and `safeImageSrc` checks the scheme either way.
@@ -306,23 +329,24 @@ export default function Payment() {
   const couldHaveFreeDelivery =
     !confirmedCharges && !previewFree && subtotal >= freeDeliveryPromo.minBooksTotal;
 
-  const handleUserChange = (field: keyof Buyer, value: string) => {
-    setUser(u => ({ ...u, [field]: value }));
-  };
-
   const handleConfirmOrder = async () => {
+    // One order at a time: a second click while the first is on its way
+    // does nothing (and the server would refuse it anyway).
+    if (placing) return;
     setConfirmError('');
-    if (
-      !user.name.trim() ||
-      !user.email.trim() ||
-      !user.phone.trim() ||
-      !division ||
-      !district ||
-      !address.trim()
-    ) {
+    if (!name.trim() || !phone.trim() || !division || !district || !address.trim()) {
       // Beside the Confirm button, not in the promo box, which is hidden
       // while no promotion is running.
       setConfirmError('Please fill in all the contact and delivery details.');
+      return;
+    }
+    if (!phoneNumber) {
+      setPhoneTouched(true);
+      setConfirmError('Enter an 11-digit mobile number, like 01712345678, so the courier can call you.');
+      return;
+    }
+    if (address.trim().length < 5) {
+      setConfirmError('Please write the full address: house, road and area.');
       return;
     }
     if (cartBooks.length === 0) {
@@ -347,8 +371,11 @@ export default function Payment() {
     setCartBooks(latestCartBooks);
     freezeQuantities(latestQuantities);
 
-    // Places the order; the server takes the copies out of stock.
-    apiFetch(`${API_BASE_URL}/order/decrease-stock`, {
+    // Places the order; the server takes the copies out of stock. The same
+    // checkout id goes with every try, so a retry after a lost answer gets
+    // the same order back rather than a second one.
+    setPlacing(true);
+    await apiFetch(`${API_BASE_URL}/order/decrease-stock`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -356,14 +383,15 @@ export default function Payment() {
           bookId: book._id,
           quantity: latestQuantities[book._id] || 1
         })),
+        checkoutId,
         // The code only: what it is worth is the server's to work out.
         ...(promoCurrent ? { promo } : {}),
         paymentMethod: 'Cash on Delivery', // The one method offered.
-        contactName: user.name,
-        contactPhone: user.phone,
+        contactName: name.trim(),
+        contactPhone: phoneNumber,
         deliveryDivision: division,
         deliveryDistrict: district,
-        deliveryAddress: address,
+        deliveryAddress: address.trim(),
         ...(buyerNote.trim() ? { buyerNote: buyerNote.trim() } : {}),
       })
     })
@@ -390,27 +418,32 @@ export default function Payment() {
         // What the server actually charged, which may differ from the preview
         // if a book sold out in the meantime.
         setConfirmedCharges({ shipping: data.shippingCharge ?? 0, discount: data.discount ?? 0 });
-        if (data.promoMessage) setPromoMsg(data.promoMessage);
+        if (data.promoMessage) {
+          setPromoMsg(data.promoMessage);
+          setRefusedPromo(data.promoMessage);
+        }
         // Cleared only once the order is in, so a failed checkout keeps the
         // basket. Through the mutation, so every header's cart badge updates.
         clearCart();
-        // Stored only once there is an order number.
-        localStorage.setItem(
-          'confirmedOrder',
-          JSON.stringify({
-            email: user.email,
-            orderNumber: data.orderNumber,
-            division,
-            district,
-            address,
-            discount: data.discount ?? 0,
-            shippingCharge: data.shippingCharge ?? 0,
-            promo,
-            promoApplied,
-            quantities: latestQuantities,
-            cartBooks: bought,
-          })
-        );
+        // Kept for this tab only, under its order number, which goes in the
+        // address: a reload shows this confirmation again, and the next visit
+        // to checkout starts afresh.
+        keepConfirmedOrder({
+          email,
+          orderNumber: data.orderNumber,
+          division,
+          district,
+          address: address.trim(),
+          discount: data.discount ?? 0,
+          shippingCharge: data.shippingCharge ?? 0,
+          promo,
+          promoApplied: promoApplied && !data.promoMessage,
+          quantities: latestQuantities,
+          cartBooks: bought,
+          leftOut: missing,
+          ...(data.promoMessage ? { promoMessage: data.promoMessage } : {}),
+        });
+        setSearchParams({ order: data.orderNumber }, { replace: true });
         setOrderConfirmed(true);
       } else {
         // Unfreeze, so the basket can be changed and tried again - with the
@@ -431,24 +464,45 @@ export default function Payment() {
       setCartBooks(null);
       freezeQuantities(null);
       setConfirmError('Could not reach the shop. Your basket is still here - please try again.');
-    });
+    })
+    .finally(() => setPlacing(false));
   };
 
-  useEffect(() => {
-    if (!orderConfirmed) return;
-    const blockNav = (e: BeforeUnloadEvent) => {
-      e.preventDefault();
-      e.returnValue = '';
-    };
-    window.addEventListener('beforeunload', blockNav);
-    window.history.pushState(null, '', window.location.href);
-    const blockPop = () => window.history.pushState(null, '', window.location.href);
-    window.addEventListener('popstate', blockPop);
-    return () => {
-      window.removeEventListener('beforeunload', blockNav);
-      window.removeEventListener('popstate', blockPop);
-    };
-  }, [orderConfirmed]);
+  /*
+   * The confirmation shows the order as the server placed it - its books,
+   * copies, prices and charges - once it has loaded, rather than the cart's
+   * prices. Until then, what was sent, with the charges the server answered.
+   */
+  const placedBooks = (placedOrder?.books ?? []).filter((line) => line.status !== 'Cancelled');
+  const coverOf = new Map(cartBooks.map((book) => [String(book._id), book]));
+  const placedLines = placedBooks.length
+    ? placedBooks.map((line) => ({
+        key: String(line._id),
+        book: coverOf.get(String(line.bookId)),
+        title: line.title ?? '',
+        author: line.author ?? '',
+        quantity: Number(line.quantity) || 1,
+        price: Number(line.price) || 0,
+      }))
+    : cartBooks.map((book) => ({
+        key: String(book._id),
+        book,
+        title: book.title,
+        author: book.author,
+        quantity: quantities[book._id] || 1,
+        price: priceOf(book),
+      }));
+  const placedTotals = placedOrder
+    ? {
+        books: placedOrder.booksTotal,
+        shipping: placedOrder.shippingCost,
+        discount: Number(placedOrder.discount ?? 0),
+        total: placedOrder.totalCost,
+      }
+    : { books: subtotal, shipping, discount: shownDiscount, total };
+  const placedPromo = placedOrder
+    ? (placedOrder.promoApplied ? placedOrder.promo : '')
+    : promoApplied && !refusedPromo ? promo : '';
 
   // Display only: every figure is worked out above, and shown here with the
   // taka sign the rest of the shop uses.
@@ -469,7 +523,13 @@ export default function Payment() {
       </span>
     ) : null;
 
-  if (!user.email) {
+  // A confirmation link opened without its stored copy - another tab, or
+  // after signing out and in - goes to the order itself.
+  if (asked && !restored && !orderConfirmed) {
+    return <Navigate to={`/order-tracking/${encodeURIComponent(asked)}`} replace />;
+  }
+
+  if (!email) {
     return (
       <div className="shop-page">
         <CheckoutTopBar step={2} linkHome />
@@ -525,6 +585,17 @@ export default function Payment() {
                 Pay in cash when your books arrive - by courier in {site.delivery.daysInsideDhaka} working days in
                 Dhaka, {site.delivery.daysOutsideDhaka} elsewhere.
               </p>
+              {leftOut.length > 0 && (
+                <p role="status" className="pay-notice relative mx-auto mt-4 max-w-sm text-left">
+                  Not everything could go in this order:{' '}
+                  {leftOut.map((item) => `${item.title ?? 'A book'} (${leftOutReason(item)})`).join(', ')}.
+                </p>
+              )}
+              {refusedPromo && (
+                <p role="status" className="pay-notice relative mx-auto mt-4 max-w-sm text-left">
+                  The code {promo} was not applied: {refusedPromo} The total below is without it.
+                </p>
+              )}
 
               <div className="relative mt-7 flex flex-col items-stretch justify-center gap-3 sm:flex-row sm:items-center">
                 {placedOrder && <OrderPdfButton order={placedOrder} role="buyer" />}
@@ -533,9 +604,7 @@ export default function Payment() {
                   className="btn btn-accent"
                   style={{ minHeight: 52, padding: '0 2rem', fontSize: 17 }}
                   onClick={() => {
-                    localStorage.removeItem('confirmedOrder');
-                    window.removeEventListener('beforeunload', () => {});
-                    window.removeEventListener('popstate', () => {});
+                    forgetConfirmedOrder();
                     navigate(`/order-tracking/${orderNumber}`);
                   }}
                 >
@@ -546,9 +615,7 @@ export default function Payment() {
                   className="btn btn-ghost"
                   style={{ minHeight: 52 }}
                   onClick={() => {
-                    localStorage.removeItem('confirmedOrder');
-                    window.removeEventListener('beforeunload', () => {});
-                    window.removeEventListener('popstate', () => {});
+                    forgetConfirmedOrder();
                     navigate('/');
                   }}
                 >
@@ -564,50 +631,48 @@ export default function Payment() {
                 <CopyButton text={orderNumber} />
               </div>
               <ul className="m-0 list-none p-0">
-                {cartBooks.map(book => (
-                  <li key={book._id} className="flex items-center gap-3 border-b border-line py-3">
+                {placedLines.map(line => (
+                  <li key={line.key} className="flex items-center gap-3 border-b border-line py-3">
                     <div className="relative shrink-0">
                       <img
                         loading="lazy"
                         decoding="async"
-                        src={getBookImageSrc(book)}
-                        alt={book.title}
+                        src={line.book ? getBookImageSrc(line.book) : PLACEHOLDER_IMAGE}
+                        alt={line.title}
                         className="pay-cover"
                       />
-                      {typeBadge(book)}
+                      {line.book && typeBadge(line.book)}
                     </div>
                     <div className="min-w-0 flex-1">
-                      <div className="leading-snug font-bold text-ink">{book.title}</div>
-                      <div className="text-xs text-ink-muted">By {book.author}</div>
+                      <div className="leading-snug font-bold text-ink">{line.title}</div>
+                      <div className="text-xs text-ink-muted">By {line.author}</div>
                       <div className="mt-1 text-sm text-ink-soft">
-                        Quantity: <span className="font-bold">{quantities[book._id] || 1}</span>
+                        Quantity: <span className="font-bold">{line.quantity}</span>
                       </div>
                     </div>
-                    <div className="price text-right">
-                      {money(priceOf(book) * (quantities[book._id] || 1))}
-                    </div>
+                    <div className="price text-right">{money(line.price * line.quantity)}</div>
                   </li>
                 ))}
               </ul>
               <div className="mt-3">
                 <div className="sum-row">
                   <span>Subtotal</span>
-                  <span>{money(subtotal)}</span>
+                  <span>{money(placedTotals.books)}</span>
                 </div>
                 <div className="sum-row">
                   <span>Shipping</span>
-                  <span>{shippingShown}</span>
+                  <span>{placedTotals.shipping === 0 ? 'Free' : money(placedTotals.shipping)}</span>
                 </div>
-                {shownDiscount > 0 && (
+                {placedTotals.discount > 0 && (
                   <div className="sum-row">
-                    <span>Discount{promo ? ` (${promo})` : ''}</span>
-                    <span style={{ color: 'var(--color-success-dark)' }}>-{money(shownDiscount)}</span>
+                    <span>Discount{placedPromo ? ` (${placedPromo})` : ''}</span>
+                    <span style={{ color: 'var(--color-success-dark)' }}>-{money(placedTotals.discount)}</span>
                   </div>
                 )}
               </div>
               <div className="sum-total">
-                <span>Total</span>
-                <span>{money(total)}</span>
+                <span>To pay on delivery</span>
+                <span>{money(placedTotals.total)}</span>
               </div>
               <div className="mt-5 grid gap-3 rounded-2xl bg-brand-tint p-4 text-sm">
                 <div className="flex items-center gap-2">
@@ -829,8 +894,10 @@ export default function Payment() {
               </div>
               )}
             </div>
+            {/* Until a district is chosen the delivery charge is not known, so
+                the total says it is before delivery. */}
             <div className="sum-total">
-              <span>Total</span>
+              <span>{shippingKnown ? 'Total' : 'Total before delivery'}</span>
               <span>{money(total)}</span>
             </div>
           </aside>
@@ -855,34 +922,48 @@ export default function Payment() {
                   className="field"
                   placeholder="Name"
                   autoComplete="name"
-                  value={user.name}
-                  onChange={e => handleUserChange('name', e.target.value)}
+                  value={name}
+                  onChange={e => setNameEdit(e.target.value)}
                 />
               </div>
               <div>
+                {/* The account the order goes on, and where its e-mails go: shown,
+                    not edited here. */}
                 <label htmlFor="checkout-email" className="pay-label">Email address</label>
                 <input
                   id="checkout-email"
                   className="field"
-                  placeholder="Email Address"
                   autoComplete="email"
-                  value={user.email}
-                  onChange={e => handleUserChange('email', e.target.value)}
+                  value={email}
+                  readOnly
+                  aria-describedby="checkout-email-note"
                 />
+                <p id="checkout-email-note" className="m-0 mt-1 text-xs text-ink-muted">
+                  Your order confirmation goes here.
+                </p>
               </div>
               <div>
                 <label htmlFor="checkout-phone" className="pay-label">Phone number</label>
+                {/* Text, not a number field: a number field reads "+880 17..." as
+                    empty. */}
                 <input
                   id="checkout-phone"
                   className="field"
-                  placeholder="Phone Number"
-                  type="number"
-                  value={user.phone}
-                  onChange={e => handleUserChange('phone', e.target.value)}
-                  onWheel={e => e.currentTarget.blur()}
-                  min="0"
-                  pattern="[0-9]*"
+                  placeholder="01712345678"
+                  type="tel"
+                  inputMode="tel"
+                  autoComplete="tel"
+                  value={phone}
+                  onChange={e => setPhoneEdit(e.target.value)}
+                  onBlur={() => setPhoneTouched(true)}
+                  aria-invalid={phoneProblem ? true : undefined}
+                  aria-describedby={phoneProblem ? 'checkout-phone-problem' : undefined}
                 />
+                {phoneProblem && (
+                  <p id="checkout-phone-problem" className="m-0 mt-1 text-xs font-semibold" style={{ color: 'var(--color-danger-ink)' }}>
+                    {phoneProblem}
+                  </p>
+                )}
               </div>
             </div>
 
@@ -928,7 +1009,7 @@ export default function Payment() {
                   placeholder="Please write detailed address"
                   rows={3}
                   value={address}
-                  onChange={e => setAddress(e.target.value)}
+                  onChange={e => setAddressEdit(e.target.value)}
                   style={{ minHeight: 96, padding: '12px 14px', resize: 'none' }}
                 />
               </div>
@@ -955,7 +1036,7 @@ export default function Payment() {
             {/* The total again beside the button on a phone, where the summary
                 is a long way back up the page. */}
             <div className="mt-6 flex items-baseline justify-between rounded-2xl bg-accent-tint px-4 py-3 lg:hidden">
-              <span className="font-bold text-ink">To pay on delivery</span>
+              <span className="font-bold text-ink">{shippingKnown ? 'To pay on delivery' : 'Total before delivery'}</span>
               <span className="price text-xl">{money(total)}</span>
             </div>
 
@@ -963,9 +1044,11 @@ export default function Payment() {
               type="button"
               className="btn btn-accent mt-4 w-full lg:mt-7"
               style={{ minHeight: 54, fontSize: 17 }}
-              onClick={handleConfirmOrder}
+              onClick={() => void handleConfirmOrder()}
+              disabled={placing}
+              aria-busy={placing || undefined}
             >
-              Confirm Order
+              {placing ? 'Placing your order…' : 'Confirm Order'}
             </button>
             {confirmError && (
               <div className="mt-3 text-center font-semibold" style={{ color: 'var(--color-danger-ink)' }}>
@@ -973,7 +1056,7 @@ export default function Payment() {
               </div>
             )}
             <p className="m-0 mt-3 text-center text-xs text-ink-muted">
-              ↩️ Changed your mind? {site.returns.windowDays}-day returns on every book.
+              ↩️ Not as described? Ask for a return within {site.returns.windowDays} days of delivery, with a photo.
             </p>
           </section>
         </div>
