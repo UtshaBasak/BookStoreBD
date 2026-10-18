@@ -11,7 +11,7 @@ import {
   closeTestContext,
   type PrefixedRequest,
 } from './helpers/testApp.js';
-import { createBook, createSignedInUser } from './helpers/factories.js';
+import { createBook, createSignedInUser, CHECKOUT } from './helpers/factories.js';
 import Order from '../models/Order.model.js';
 import { PROMOTIONS, applyPromotion, findPromotion, type Promotion } from '../config/promotions.js';
 
@@ -34,7 +34,7 @@ const checkout = async (
   const res = await request
     .post('/order/decrease-stock')
     .set('Authorization', auth)
-    .send({ items: [{ bookId: String(book._id), quantity: 1 }], deliveryDistrict: district, ...body });
+    .send({ ...CHECKOUT, items: [{ bookId: String(book._id), quantity: 1 }], deliveryDivision: district === 'Dhaka' ? 'Dhaka' : 'Sylhet', deliveryDistrict: district, ...body });
   return { res, book, line: await Order.findOne({ orderNumber: res.body.orderNumber }).lean() };
 };
 

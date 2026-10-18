@@ -10,7 +10,7 @@ import {
   closeTestContext,
   type PrefixedRequest,
 } from './helpers/testApp.js';
-import { createBook, createSignedInUser, PASSWORD } from './helpers/factories.js';
+import { createBook, createSignedInUser, PASSWORD, CHECKOUT } from './helpers/factories.js';
 
 let request: PrefixedRequest;
 
@@ -29,7 +29,7 @@ describe('GET /user/me/export', () => {
     await request
       .post('/order/decrease-stock')
       .set('Authorization', buyer.auth)
-      .send({ items: [{ bookId: String(book._id), quantity: 1 }] });
+      .send({ ...CHECKOUT, items: [{ bookId: String(book._id), quantity: 1 }] });
 
     const res = await request.get('/user/me/export').set('Authorization', buyer.auth);
 
@@ -130,8 +130,7 @@ describe('DELETE /user/me', () => {
     await request
       .post('/order/decrease-stock')
       .set('Authorization', buyer.auth)
-      .send({
-        items: [{ bookId: String(book._id), quantity: 1 }],
+      .send({ ...CHECKOUT, items: [{ bookId: String(book._id), quantity: 1 }],
         contactName: 'A Buyer',
         contactPhone: '01711112222',
         deliveryAddress: '12 Test Road',

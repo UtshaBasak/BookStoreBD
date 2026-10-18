@@ -10,7 +10,7 @@ import {
   closeTestContext,
   type PrefixedRequest,
 } from './helpers/testApp.js';
-import { createBook, createSignedInUser, PASSWORD } from './helpers/factories.js';
+import { createBook, createSignedInUser, PASSWORD, CHECKOUT } from './helpers/factories.js';
 
 let request: PrefixedRequest;
 
@@ -27,7 +27,7 @@ const buyerOf = async (bookId: string, email = 'buyer@test.com') => {
   await request
     .post('/order/decrease-stock')
     .set('Authorization', buyer.auth)
-    .send({ items: [{ bookId, quantity: 1 }] });
+    .send({ ...CHECKOUT, items: [{ bookId, quantity: 1 }] });
   return buyer;
 };
 
@@ -67,7 +67,7 @@ describe('writing a review', () => {
     await request
       .post('/order/decrease-stock')
       .set('Authorization', seller.auth)
-      .send({ items: [{ bookId: String(book._id), quantity: 1 }] });
+      .send({ ...CHECKOUT, items: [{ bookId: String(book._id), quantity: 1 }] });
 
     const res = await request
       .post(`/review/${String(book._id)}`)

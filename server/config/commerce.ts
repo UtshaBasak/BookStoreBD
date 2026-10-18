@@ -43,6 +43,7 @@ export const sellerPayoutFor = (booksTotal: number): number =>
  * would mean clawing money back from a seller whenever a book came back.
  */
 export type PayoutState =
+  | 'cancelled'
   | 'awaiting-delivery'
   | 'in-return-window'
   | 'return-in-progress'
@@ -56,6 +57,8 @@ export const payoutStateFor = (
   now: number = Date.now()
 ): PayoutState => {
   if (line.sellerPaidAt) return 'paid';
+  // A cancelled book was never sent, so nothing is owed for it.
+  if (line.status === CANCELLED) return 'cancelled';
   if (returnStatus === 'approved') return 'returned';
   if (returnStatus === 'pending') return 'return-in-progress';
   const deadline = returnDeadline(line);
@@ -110,18 +113,54 @@ export const SELLER_LAST_STAGE: OrderStage = 'Shipped';
 
 const stageOf = (status: string | null | undefined): number => ORDER_STAGES.indexOf((status ?? 'Order Confirmed') as OrderStage);
 
-/** Why this person cannot move an order from one status to another, or null when they can. */
-export const statusChangeProblem = (role: 'admin' | 'seller', from: string | null | undefined, to: string): string | null => {
+/**
+ * Why this person cannot move an order from one status to another, or null
+ * when they can.
+ *
+ * A seller moves their books forward only, up to Shipped: stepping back would
+ * let them cancel a parcel already with the courier. The shop may step back
+ * to correct a mistake, except out of Delivered once the seller has been paid
+ * or the buyer has asked for a return (`deliveredLocked`), since delivery is
+ * what opens the return window and starts the payout.
+ */
+export const statusChangeProblem = (
+  role: 'admin' | 'seller',
+  from: string | null | undefined,
+  to: string,
+  { deliveredLocked = false }: { deliveredLocked?: boolean } = {}
+): string | null => {
   if (from === CANCELLED) return 'A cancelled order cannot be changed.';
   if (stageOf(to) === -1) return 'That is not a status an order can have.';
-  if (role === 'admin') return null;
+  if (role === 'admin') {
+    if (from === 'Delivered' && to !== 'Delivered' && deliveredLocked) {
+      return 'This order has been paid out or has a return request, so it stays Delivered.';
+    }
+    return null;
+  }
   if (stageOf(from) > stageOf(SELLER_LAST_STAGE)) {
     return 'Once an order is past Shipped, only the shop can update it.';
   }
   if (stageOf(to) > stageOf(SELLER_LAST_STAGE)) {
     return 'Out for Delivery and Delivered are set by the shop.';
   }
+  if (stageOf(to) < stageOf(from)) {
+    return 'An order moves forward only. Message the shop if it needs correcting.';
+  }
   return null;
+};
+
+/**
+ * Where an order stands for the person looking at it: the least advanced of
+ * its live books, so an order is only "Shipped" once every book in it is.
+ * Cancelled when nothing is left in it.
+ */
+export const orderStatusOf = (lines: readonly { status?: string | null }[]): string => {
+  const live = lines.filter((line) => line.status !== CANCELLED);
+  if (!live.length) return CANCELLED;
+  return live.reduce<string>((least, line) => {
+    const status = line.status || 'Order Confirmed';
+    return stageOf(status) < stageOf(least) ? status : least;
+  }, live[0]?.status || 'Order Confirmed');
 };
 
 /**
@@ -135,4 +174,40 @@ export const canCancel = (who: 'buyer' | 'seller' | 'admin', status: string | nu
   if (who === 'admin') return true;
   if (who === 'seller') return stageOf(status) < stageOf(SELLER_LAST_STAGE);
   return stageOf(status) === 0;
+};
+
+/** Whether every live book among these may be cancelled by this person - what a cancel needs. */
+export const canCancelLines = (
+  who: 'buyer' | 'seller' | 'admin',
+  lines: readonly { status?: string | null }[]
+): boolean => {
+  const live = lines.filter((line) => line.status !== CANCELLED);
+  return live.length > 0 && live.every((line) => canCancel(who, line.status));
+};
+
+/** How an order is paid. Cash on delivery is the only way offered. */
+export const PAYMENT_METHODS = ['Cash on Delivery'] as const;
+export type PaymentMethod = (typeof PAYMENT_METHODS)[number];
+
+/**
+ * An order's charges on the books still in it.
+ *
+ * A promo discount never comes to more than the books left: when a seller
+ * cancels part of an order, a fixed discount shrinks with it rather than
+ * paying for delivery. Free delivery, once given, stays - the buyer did not
+ * choose to have part of the order cancelled.
+ */
+export const orderChargesFor = (
+  lines: readonly { status?: string | null; price?: number | null; quantity?: number | null; shippingCharge?: number | null; discount?: number | null }[]
+): { booksTotal: number; shippingCost: number; discount: number; totalCost: number } => {
+  const live = lines.filter((line) => line.status !== CANCELLED);
+  const booksTotal = live.reduce((sum, line) => sum + Number(line.price ?? 0) * Number(line.quantity ?? 1), 0);
+  const shippingCost = live.length ? Number(lines[0]?.shippingCharge ?? 0) : 0;
+  const discount = live.length ? Math.min(Number(lines[0]?.discount ?? 0), booksTotal) : 0;
+  return {
+    booksTotal,
+    shippingCost,
+    discount,
+    totalCost: Math.round((booksTotal + shippingCost - discount) * 100) / 100,
+  };
 };

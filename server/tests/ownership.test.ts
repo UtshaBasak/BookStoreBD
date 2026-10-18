@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeAll, afterAll, beforeEach } from 'vitest';
 
 import { createTestContext, clearDatabase, closeTestContext, type PrefixedRequest } from './helpers/testApp.js';
-import { createBook, createSignedInUser, createUser, signIn } from './helpers/factories.js';
+import { createBook, createSignedInUser, createUser, signIn, CHECKOUT } from './helpers/factories.js';
 
 let request: PrefixedRequest;
 
@@ -109,7 +109,7 @@ describe('order access', () => {
     const res = await request
       .post('/order/decrease-stock')
       .set('Authorization', buyer.auth)
-      .send({ items: [{ bookId: String(book._id), quantity: 1 }] });
+      .send({ ...CHECKOUT, items: [{ bookId: String(book._id), quantity: 1 }] });
 
     return { seller, buyer, outsider, orderNumber: res.body.orderNumber };
   };

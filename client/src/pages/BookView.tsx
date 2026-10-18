@@ -498,7 +498,10 @@ export default function BookView() {
                             )}
 
                             <div className="book-actions">
-                                {book.stock <= 0 && userEmail !== book.sellerEmail ? (
+                                {userEmail && userEmail === book.sellerEmail ? (
+                                    // A seller cannot buy their own book; the shop refuses it too.
+                                    <Link to="/seller-books" className="btn btn-primary">Your listing: manage it</Link>
+                                ) : book.stock <= 0 ? (
                                     <RequestBookButton bookId={book._id} sellerEmail={book.sellerEmail} className="btn btn-accent" />
                                 ) : (
                                 <button

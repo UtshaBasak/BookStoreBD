@@ -11,7 +11,7 @@ import {
   closeTestContext,
   type PrefixedRequest,
 } from './helpers/testApp.js';
-import { createBook, createUserWithToken, PNG_PIXEL } from './helpers/factories.js';
+import { createBook, createUserWithToken, PNG_PIXEL, CHECKOUT } from './helpers/factories.js';
 import AddBook from '../models/AddBook.model.js';
 import Notification from '../models/Notification.model.js';
 import Order from '../models/Order.model.js';
@@ -38,7 +38,7 @@ const checkout = (auth: string, items: { bookId: unknown; quantity: number }[]) 
   request
     .post('/order/decrease-stock')
     .set('Authorization', auth)
-    .send({ items: items.map((item) => ({ ...item, bookId: String(item.bookId) })), deliveryDistrict: 'Dhaka' });
+    .send({ ...CHECKOUT, items: items.map((item) => ({ ...item, bookId: String(item.bookId) })), deliveryDistrict: 'Dhaka' });
 
 const notificationsOf = async (email: string) => (await Notification.find({ recipient: email }).lean()).map((n) => n.type);
 

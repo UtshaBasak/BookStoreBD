@@ -34,10 +34,24 @@ export default function Terms() {
         order, arrange delivery, collect the payment and handle returns. Stock is
         reserved when you order, so a title can sell out while you are checking
         out. If that happens, checkout tells you which book it was, and you are
-        not charged for it.</p>
+        not charged for it. If fewer copies are left than you asked for, your
+        order gets the copies there are, and checkout says so.</p>
       <p>Payment is <strong>{site.payment.toLowerCase()}</strong>: you pay the
         courier when the parcel arrives. The price you pay is the one shown at
         checkout, delivery included.</p>
+      <p>Sellers cannot buy their own books.</p>
+
+      <h2 id="cancelling">Cancelling an order</h2>
+      <ul>
+        <li>You can cancel an order from your orders page while it is still
+          "Order Confirmed", before any seller in it has started preparing it.
+          After that, message the seller, or ask for a return once it arrives.</li>
+        <li>A seller can cancel their books in an order until they ship them,
+          and we can cancel an order until it is delivered.</li>
+        <li>When a seller cancels part of an order, you pay only for the books
+          left. A promo discount never comes to more than those books, and free
+          delivery stays free.</li>
+      </ul>
 
       <h2 id="delivery">Delivery</h2>
       <p>Orders are sent by courier.</p>

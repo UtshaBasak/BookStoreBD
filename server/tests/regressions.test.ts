@@ -11,6 +11,7 @@ import {
   createUser,
   signIn,
   PNG_PIXEL,
+  CHECKOUT,
 } from './helpers/factories.js';
 
 let request: PrefixedRequest;
@@ -65,13 +66,13 @@ describe('stock reservation', () => {
     const res = await request
       .post('/order/decrease-stock')
       .set('Authorization', buyer.auth)
-      .send({ items: [{ bookId: String(book._id), quantity: 2 }] });
+      .send({ ...CHECKOUT, items: [{ bookId: String(book._id), quantity: 2 }] });
 
     expect(res.status).toBe(200);
     expect((await AddBook.findById(book._id))!.stock).toBe(3);
   });
 
-  it('refuses to oversell and leaves stock untouched', async () => {
+  it('never oversells: asked for more than there is, it sells what is left and says so', async () => {
     const buyer = await createSignedInUser(request);
     const book = await createBook({ stock: 1 });
     const AddBook = (await import('../models/AddBook.model.js')).default;
@@ -79,10 +80,28 @@ describe('stock reservation', () => {
     const res = await request
       .post('/order/decrease-stock')
       .set('Authorization', buyer.auth)
-      .send({ items: [{ bookId: String(book._id), quantity: 99 }] });
+      .send({ ...CHECKOUT, items: [{ bookId: String(book._id), quantity: 99 }] });
+
+    expect(res.status).toBe(200);
+    expect(res.body.unavailable).toEqual([
+      expect.objectContaining({ bookId: String(book._id), requested: 99, reserved: 1, reason: 'short' }),
+    ]);
+    expect((await AddBook.findById(book._id))!.stock).toBe(0);
+  });
+
+  it('refuses a sold-out book and leaves stock untouched', async () => {
+    const buyer = await createSignedInUser(request);
+    const book = await createBook({ stock: 0 });
+    const AddBook = (await import('../models/AddBook.model.js')).default;
+
+    const res = await request
+      .post('/order/decrease-stock')
+      .set('Authorization', buyer.auth)
+      .send({ ...CHECKOUT, items: [{ bookId: String(book._id), quantity: 1 }] });
 
     expect(res.status).toBe(409);
-    expect((await AddBook.findById(book._id))!.stock).toBe(1);
+    expect(res.body.unavailable[0]).toMatchObject({ reason: 'sold-out', reserved: 0 });
+    expect((await AddBook.findById(book._id))!.stock).toBe(0);
   });
 
   it('never sells the same last copy twice under concurrent orders', async () => {
@@ -95,7 +114,7 @@ describe('stock reservation', () => {
       request
         .post('/order/decrease-stock')
         .set('Authorization', auth)
-        .send({ items: [{ bookId: String(book._id), quantity: 1 }] });
+        .send({ ...CHECKOUT, items: [{ bookId: String(book._id), quantity: 1 }] });
 
     const results = await Promise.all([order(a.auth), order(b.auth)]);
     const succeeded = results.filter((r) => r.status === 200);
@@ -119,8 +138,7 @@ describe('an order with more than one book', () => {
     const res = await request
       .post('/order/decrease-stock')
       .set('Authorization', buyer.auth)
-      .send({
-        items: [
+      .send({ ...CHECKOUT, items: [
           { bookId: String(one._id), quantity: 1 },
           { bookId: String(two._id), quantity: 2 },
         ],
@@ -142,8 +160,7 @@ describe('an order with more than one book', () => {
     const created = await request
       .post('/order/decrease-stock')
       .set('Authorization', buyer.auth)
-      .send({
-        items: [
+      .send({ ...CHECKOUT, items: [
           { bookId: String(one._id), quantity: 1 },
           { bookId: String(two._id), quantity: 1 },
         ],

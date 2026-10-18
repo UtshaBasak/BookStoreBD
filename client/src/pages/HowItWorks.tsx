@@ -58,7 +58,7 @@ const BUYING: readonly Step[] = [
     icon: '🚚',
     title: 'Follow it to your door',
     text: `It arrives within ${site.delivery.daysInsideDhaka} working days in Dhaka and ${site.delivery.daysOutsideDhaka} elsewhere. Every step - confirmed, processing, shipped, out for delivery, delivered - shows on the order and in your notifications.`,
-    tips: ['Download any order as a PDF', 'Changed your mind before it ships? Cancel it in one tap'],
+    tips: ['Download any order as a PDF', 'Changed your mind? Cancel from your orders before the seller starts on it'],
     action: { label: 'Your orders', to: '/buyer/orders' },
   },
   {

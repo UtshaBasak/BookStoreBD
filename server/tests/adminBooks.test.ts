@@ -25,8 +25,8 @@ beforeEach(clearDatabase);
 const asAdmin = () =>
   createSignedInUser(request, { email: 'admin@test.com', role: 'admin' });
 
-const book = (title: string, overrides = {}) =>
-  createBook({ title, isbn: title, ...overrides });
+const book = (title: string, overrides = {}, options: { seller?: boolean } = {}) =>
+  createBook({ title, isbn: title, ...overrides }, options);
 
 describe('who may read it', () => {
   it('not a visitor', async () => {
@@ -71,7 +71,7 @@ describe('what it sends', () => {
 
   it('the e-mail when there is no account behind it', async () => {
     const { auth } = await asAdmin();
-    await book('Orphaned listing', { sellerEmail: 'gone@test.com' });
+    await book('Orphaned listing', { sellerEmail: 'gone@test.com' }, { seller: false });
 
     const res = await request.get('/book/admin').set('Authorization', auth);
 

@@ -6,7 +6,7 @@
 import { describe, it, expect, beforeAll, afterAll, beforeEach, vi } from 'vitest';
 
 import { createTestContext, clearDatabase, closeTestContext, type PrefixedRequest } from './helpers/testApp.js';
-import { createBook, createUserWithToken } from './helpers/factories.js';
+import { createBook, createUserWithToken, CHECKOUT } from './helpers/factories.js';
 import Notification from '../models/Notification.model.js';
 import Order from '../models/Order.model.js';
 
@@ -72,7 +72,7 @@ describe('notification choices', () => {
     const res = await request
       .post('/order/decrease-stock')
       .set('Authorization', buyer.auth)
-      .send({ items: [{ bookId: String(book._id), quantity: 1 }], deliveryDistrict: 'Dhaka' });
+      .send({ ...CHECKOUT, items: [{ bookId: String(book._id), quantity: 1 }], deliveryDistrict: 'Dhaka' });
     expect(res.status).toBe(200);
 
     expect(await Notification.countDocuments({ recipient: BUYER, type: 'order-placed' })).toBe(0);

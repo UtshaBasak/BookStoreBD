@@ -165,10 +165,11 @@ export default function BuyerOrderList() {
               // Cancelled books are not paid for, so they are not in the totals.
               const { itemTotal: booksTotal, shipping: shippingCost, discount, total: totalCost, status } = orderTotals(orderBooks);
               const canReturn = returnable(orderBooks);
-              // The buyer may call it off until the seller starts on it; the
-              // server checks the same rule.
+              // The buyer may call it off until the seller starts on it - every
+              // book in it, not only the ones a search matched. The server
+              // decides, by the rule it enforces.
               const live = orderBooks.filter((ob) => ob.status !== CANCELLED);
-              const canCancel = live.length > 0 && live.every((ob) => ob.status === 'Order Confirmed');
+              const canCancel = Boolean(order.canCancel);
               const displayOrderNumber = order.orderNumber && !/@|T\d{2}:\d{2}/.test(order.orderNumber)
                 ? order.orderNumber
                 : orderNumber;

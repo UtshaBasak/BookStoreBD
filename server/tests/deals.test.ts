@@ -12,7 +12,7 @@ import {
   closeTestContext,
   type PrefixedRequest,
 } from './helpers/testApp.js';
-import { createBook, createSignedInUser, createUser } from './helpers/factories.js';
+import { createBook, createSignedInUser, createUser, CHECKOUT } from './helpers/factories.js';
 import AddBook from '../models/AddBook.model.js';
 import Order from '../models/Order.model.js';
 import { priceWith } from '../config/pricing.js';
@@ -133,7 +133,7 @@ describe('checkout', () => {
     const res = await request
       .post('/order/decrease-stock')
       .set('Authorization', auth)
-      .send({ items: [{ bookId: String(book._id), quantity: 2 }], deliveryDistrict: 'Dhaka' });
+      .send({ ...CHECKOUT, items: [{ bookId: String(book._id), quantity: 2 }], deliveryDistrict: 'Dhaka' });
 
     expect(res.status).toBe(200);
     const line = await Order.findOne({ orderNumber: res.body.orderNumber }).lean();
@@ -162,7 +162,7 @@ describe('GET /filter/sections', () => {
       request
         .post('/order/decrease-stock')
         .set('Authorization', auth)
-        .send({ items: [{ bookId: String(id), quantity }], deliveryDistrict: 'Dhaka' });
+        .send({ ...CHECKOUT, items: [{ bookId: String(id), quantity }], deliveryDistrict: 'Dhaka' });
     await order(popular._id, 3);
     await order(quiet._id, 1);
 

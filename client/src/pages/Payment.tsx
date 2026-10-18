@@ -62,6 +62,22 @@ const getUserProfile = (): Buyer => {
  * Used as a lazy initialiser so the restored values are present on the very
  * first render, rather than arriving from an effect after an empty one.
  */
+/** Why the server left a book out of an order, or ordered fewer copies, in a few words. */
+const leftOutReason = (item: UnavailableItem): string => {
+  switch (item.reason) {
+    case 'short':
+      return `only ${item.reserved} of ${item.requested} were left, and those are in your order`;
+    case 'removed':
+      return 'no longer listed';
+    case 'own-listing':
+      return 'your own listing';
+    case 'seller-unavailable':
+      return 'the seller is not taking orders just now';
+    default:
+      return 'sold out';
+  }
+};
+
 const restoreConfirmedOrder = (): ConfirmedOrder | null => {
   try {
     const raw = localStorage.getItem('confirmedOrder');
@@ -358,7 +374,13 @@ export default function Payment() {
         // A book that sold out between the page loading and the order going
         // in is not in the order: the confirmation says so, and does not
         // show it as bought.
-        const gone = new Set(missing.map((item) => String(item.bookId)));
+        // A book with fewer copies left than asked for is in the order with
+        // the copies there were.
+        const gone = new Set(missing.filter((item) => !item.reserved).map((item) => String(item.bookId)));
+        for (const item of missing) {
+          if (item.reserved) latestQuantities[String(item.bookId)] = item.reserved;
+        }
+        freezeQuantities({ ...latestQuantities });
         const bought = latestCartBooks.filter((book) => !gone.has(String(book._id)));
         if (missing.length) {
           setCartBooks(bought);
@@ -398,10 +420,10 @@ export default function Payment() {
         void cartQuery.refetch();
         setConfirmError(
           missing.length
-            ? `Not enough in stock: ${missing
-                .map((item) => (item.available ? `${item.title} (only ${item.available} left)` : `${item.title} (sold out)`))
-                .join(', ')}. Change the quantity and try again.`
-            : data.message || 'Order confirmation failed. Please try again.'
+            ? `These books can't be ordered right now: ${missing
+                .map((item) => `${item.title ?? 'A book'} (${leftOutReason(item)})`)
+                .join(', ')}. Remove them from your basket and try again.`
+            : data.errors?.[0]?.message || data.message || 'Order confirmation failed. Please try again.'
         );
       }
     })
@@ -644,8 +666,8 @@ export default function Payment() {
             <div className="lg:max-h-85 lg:overflow-y-auto">
               {leftOut.length > 0 && (
                 <p role="status" className="pay-notice">
-                  Sold out before your order went in, so not included:{' '}
-                  {leftOut.map((item) => item.title).join(', ')}.
+                  Not everything could go in this order:{' '}
+                  {leftOut.map((item) => `${item.title ?? 'A book'} (${leftOutReason(item)})`).join(', ')}.
                 </p>
               )}
               {soldOut.length > 0 && (

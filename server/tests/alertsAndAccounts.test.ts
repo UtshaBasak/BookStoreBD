@@ -11,7 +11,7 @@ import {
   closeTestContext,
   type PrefixedRequest,
 } from './helpers/testApp.js';
-import { createBook, createUserWithToken, PNG_PIXEL } from './helpers/factories.js';
+import { createBook, createUserWithToken, PNG_PIXEL, CHECKOUT } from './helpers/factories.js';
 import BookRequest from '../models/BookRequest.model.js';
 import Notification from '../models/Notification.model.js';
 import { passwordProblems } from '../utils/passwordPolicy.js';
@@ -51,7 +51,7 @@ const checkout = (auth: string, items: { bookId: unknown; quantity: number }[], 
   request
     .post('/order/decrease-stock')
     .set('Authorization', auth)
-    .send({ items: items.map((item) => ({ ...item, bookId: String(item.bookId) })), deliveryDistrict: 'Dhaka', ...extra });
+    .send({ ...CHECKOUT, items: items.map((item) => ({ ...item, bookId: String(item.bookId) })), deliveryDistrict: 'Dhaka', ...extra });
 
 const noticesOf = (email: string, type?: string) =>
   Notification.find({ recipient: email, ...(type ? { type } : {}) }).lean();

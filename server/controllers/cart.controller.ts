@@ -82,7 +82,12 @@ export const Cart_add: RequestHandler = async (req, res) => {
       return;
     }
 
-    const book = await AddBook.findById(bookId, { stock: 1, price: 1, salePrice: 1 }).lean();
+    const book = await AddBook.findById(bookId, { stock: 1, price: 1, salePrice: 1, sellerEmail: 1 }).lean();
+    // Checkout refuses a seller's own book too; saying so here saves them the trip.
+    if (book && book.sellerEmail === email) {
+      res.status(409).json({ code: 'own-listing', message: 'This is your own listing, so it cannot go in your cart.' });
+      return;
+    }
     const existing = await Cart.findOne({ user: user._id, book: bookId }, { quantity: 1 }).lean();
     const quantity = asked ?? existing?.quantity ?? 1;
     const problem = quantityProblem(book, quantity);

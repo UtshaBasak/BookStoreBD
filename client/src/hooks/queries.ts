@@ -21,6 +21,7 @@ import type {
   HomeSections,
   UpdateDiscountRequest,
   CatalogueParams,
+  AdminOrderLine,
   BuyerOrderLine,
   Id,
   ListParams,
@@ -618,9 +619,9 @@ export const useMarkPayoutPaid = (): UseMutationResult<
 
 export const useAllOrders = (
   params: ListParams = {},
-  options: Partial<QueryOptions<Page<OrderLine>>> = {}
-): UseQueryResult<Page<OrderLine>> =>
-  useQuery(pagedQuery<OrderLine>('/order/admin/all', keys.allOrders, params, options));
+  options: Partial<QueryOptions<Page<AdminOrderLine>>> = {}
+): UseQueryResult<Page<AdminOrderLine>> =>
+  useQuery(pagedQuery<AdminOrderLine>('/order/admin/all', keys.allOrders, params, options));
 
 export const useOrder = <TData = OrderDetail>(
   orderNumber: string | undefined,

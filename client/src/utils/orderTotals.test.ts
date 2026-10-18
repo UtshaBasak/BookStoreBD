@@ -27,4 +27,21 @@ describe('orderTotals', () => {
     expect(totals.shipping).toBe(0);
     expect(totals.status).toBe('Cancelled');
   });
+
+  it('never takes off more than the books left', () => {
+    const totals = orderTotals([line('Order Confirmed', 30), line('Cancelled', 300)]);
+
+    expect(totals.discount).toBe(30);
+    expect(totals.total).toBe(70);
+  });
+
+  it('stands where its least advanced book does', () => {
+    expect(orderTotals([line('Shipped', 100), line('Processing', 100)]).status).toBe('Processing');
+  });
+
+  it("uses the server's totals for the whole order when a list sends them", () => {
+    const matched = { ...line('Shipped', 100), booksTotal: 900, shippingCost: 70, discount: 0, totalCost: 970, orderStatus: 'Processing' };
+
+    expect(orderTotals([matched])).toMatchObject({ itemTotal: 900, total: 970, status: 'Processing' });
+  });
 });

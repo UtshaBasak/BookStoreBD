@@ -1,9 +1,13 @@
+import { randomUUID } from 'crypto';
+
 import type { Request, RequestHandler, Response } from 'express';
 
-import type { UnavailableItem } from '@shared/api.js';
+import type { CreateOrderResponse, UnavailableItem, UnavailableReason } from '@shared/api.js';
 
 import AddBook, { type BookDocument } from '../models/AddBook.model.js';
 import Order, { type LeanOrder } from '../models/Order.model.js';
+import User from '../models/user.model.js';
+import { CheckoutLock, CheckoutReceipt } from '../models/Checkout.model.js';
 import { actingUser } from '../middleware/auth.js';
 import { recordAudit } from '../utils/audit.js';
 import ReturnRequest from '../models/ReturnRequest.model.js';
@@ -18,14 +22,16 @@ import type {
 import { validatedQuery } from '../middleware/validate.js';
 import { contains } from '../utils/regex.js';
 import { createLogger } from '../config/logger.js';
-import { errorMessage } from '../utils/error.js';
+import { errorMessage, isDuplicateKeyError } from '../utils/error.js';
 import {
   CANCELLED,
   RETURN_WINDOW_DAYS,
   ORDER_STAGES,
   SELLER_LAST_STAGE,
-  canCancel,
+  canCancelLines,
   deliveryChargeFor,
+  orderChargesFor,
+  orderStatusOf,
   payoutStateFor,
   returnDeadline,
   statusChangeProblem,
@@ -63,24 +69,7 @@ async function generateUniqueOrderNumber(): Promise<string> {
 }
 
 /** The order-level totals, which repeat on every line of the same order. */
-const totalsFor = (lines: readonly LeanOrder[]) => {
-  // A cancelled book is not paid for, and an order with nothing left in it
-  // has no delivery to charge for either.
-  const live = lines.filter((line) => line.status !== CANCELLED);
-  const booksTotal = live.reduce(
-    (sum, line) => sum + Number(line.price) * Number(line.quantity),
-    0
-  );
-  const shippingCost = live.length ? (lines[0]?.shippingCharge ?? 0) : 0;
-  const discount = live.length ? (lines[0]?.discount ?? 0) : 0;
-
-  return {
-    booksTotal,
-    shippingCost,
-    discount,
-    totalCost: booksTotal + Number(shippingCost) - Number(discount),
-  };
-};
+const totalsFor = (lines: readonly LeanOrder[]) => orderChargesFor(lines);
 
 /**
  * One page of orders, newest first.
@@ -99,8 +88,17 @@ const totalsFor = (lines: readonly LeanOrder[]) => {
 const pageOfOrders = async (
   scope: Record<string, unknown>,
   query: OrderListQuery
-): Promise<{ lines: LeanOrder[]; total: number; page: number; pageSize: number; pageCount: number }> => {
+): Promise<{
+  lines: LeanOrder[];
+  /** Every line of the orders on the page, matched or not, by order number - what totals are worked out from. */
+  whole: Map<string, LeanOrder[]>;
+  total: number;
+  page: number;
+  pageSize: number;
+  pageCount: number;
+}> => {
   const pattern = query.search ? contains(query.search) : null;
+  const byTotal = query.sort === 'totalHigh' || query.sort === 'totalLow';
   // Dates are the shop's days, Dhaka time, from the start of one to the end of the other.
   const day = (value: string, end: boolean) => new Date(`${value}T${end ? '23:59:59.999' : '00:00:00.000'}+06:00`);
   const filter: Record<string, unknown> = {
@@ -130,13 +128,48 @@ const pageOfOrders = async (
   const [numbers, counted] = await Promise.all([
     Order.aggregate<{ _id: string }>([
       { $match: filter },
-      {
-        $group: {
-          _id: '$orderNumber',
-          createdAt: { $max: '$createdAt' },
-          total: { $sum: { $multiply: [{ $ifNull: ['$price', 0] }, { $ifNull: ['$quantity', 1] }] } },
-        },
-      },
+      { $group: { _id: '$orderNumber', createdAt: { $max: '$createdAt' } } },
+      // Sorting by total is by what the order comes to - all of its books
+      // still in it, with delivery and the discount - not by the lines a
+      // search happened to match.
+      ...(byTotal
+        ? [
+            {
+              $lookup: {
+                from: Order.collection.name,
+                let: { number: '$_id' },
+                pipeline: [
+                  { $match: { ...scope, $expr: { $eq: ['$orderNumber', '$$number'] }, status: { $ne: CANCELLED } } },
+                  {
+                    $group: {
+                      _id: null,
+                      books: { $sum: { $multiply: [{ $ifNull: ['$price', 0] }, { $ifNull: ['$quantity', 1] }] } },
+                      shipping: { $first: { $ifNull: ['$shippingCharge', 0] } },
+                      discount: { $first: { $ifNull: ['$discount', 0] } },
+                    },
+                  },
+                ],
+                as: 'charges',
+              },
+            },
+            {
+              $addFields: {
+                total: {
+                  $let: {
+                    vars: { c: { $first: '$charges' } },
+                    in: {
+                      $cond: [
+                        { $gt: [{ $ifNull: ['$$c.books', 0] }, 0] },
+                        { $subtract: [{ $add: ['$$c.books', '$$c.shipping'] }, { $min: ['$$c.discount', '$$c.books'] }] },
+                        0,
+                      ],
+                    },
+                  },
+                },
+              },
+            },
+          ]
+        : []),
       {
         $sort:
           query.sort === 'oldest'
@@ -164,16 +197,28 @@ const pageOfOrders = async (
   // The same filter again, so a search for a title still shows the line that
   // matched rather than the whole order.
   const rank = new Map(orderNumbers.map((number, index) => [number, index]));
-  const lines = orderNumbers.length
+  const everyLine = orderNumbers.length
     ? (
-        await Order.find({ ...filter, orderNumber: { $in: orderNumbers } })
+        await Order.find({ ...scope, orderNumber: { $in: orderNumbers } })
           .sort({ createdAt: -1, _id: -1 })
           .lean()
       ).sort((a, b) => (rank.get(a.orderNumber) ?? 0) - (rank.get(b.orderNumber) ?? 0))
     : [];
+  const matching = new Set(
+    orderNumbers.length && Object.keys(filter).length > Object.keys(scope).length
+      ? (await Order.find({ ...filter, orderNumber: { $in: orderNumbers } }, { _id: 1 }).lean()).map((line) => String(line._id))
+      : everyLine.map((line) => String(line._id))
+  );
+  const whole = new Map<string, LeanOrder[]>();
+  for (const line of everyLine) {
+    const group = whole.get(line.orderNumber);
+    if (group) group.push(line);
+    else whole.set(line.orderNumber, [line]);
+  }
 
   return {
-    lines,
+    lines: everyLine.filter((line) => matching.has(String(line._id))),
+    whole,
     total,
     page: query.page,
     pageSize: query.pageSize,
@@ -238,13 +283,105 @@ const announceOrder = async (
   }, { except: buyer });
 };
 
+/** How long one checkout may hold the buyer's lock before it is treated as abandoned. */
+const CHECKOUT_LOCK_MS = 2 * 60 * 1000;
+
+/**
+ * Takes the buyer's checkout lock, or says they already hold it.
+ *
+ * A lock whose time ran out - a request that crashed half way - is taken
+ * over rather than waited on.
+ */
+const takeCheckoutLock = async (buyerEmail: string): Promise<string | null> => {
+  const token = randomUUID();
+  const expiresAt = new Date(Date.now() + CHECKOUT_LOCK_MS);
+  try {
+    await CheckoutLock.create({ buyerEmail, token, expiresAt });
+    return token;
+  } catch (err) {
+    if (!isDuplicateKeyError(err)) throw err;
+  }
+  const stale = await CheckoutLock.findOneAndUpdate(
+    { buyerEmail, expiresAt: { $lt: new Date() } },
+    { $set: { token, expiresAt } }
+  );
+  return stale ? token : null;
+};
+
+const releaseCheckoutLock = async (buyerEmail: string, token: string): Promise<void> => {
+  await CheckoutLock.deleteOne({ buyerEmail, token }).catch((err: unknown) => {
+    log.warn({ err }, 'Could not release a checkout lock');
+  });
+};
+
+/**
+ * Takes as many copies as there are, up to what was asked: when two of the
+ * three wanted are left, the buyer gets the two and is told, rather than
+ * losing the book from the order. Atomic per attempt, so two buyers racing
+ * for the same copies never both get them; tried a few times in case the
+ * stock moves between reading it and taking it.
+ */
+const reserveCopies = async (
+  bookId: string,
+  wanted: number
+): Promise<{ reserved: number; left: number }> => {
+  let ask = wanted;
+  for (let attempt = 0; attempt < 3 && ask > 0; attempt++) {
+    const taken = await AddBook.findOneAndUpdate(
+      { _id: bookId, stock: { $gte: ask } },
+      { $inc: { stock: -ask } },
+      { returnDocument: 'after', projection: { stock: 1 } }
+    ).lean();
+    if (taken) return { reserved: ask, left: Number(taken.stock) };
+    const now = await AddBook.findById(bookId, { stock: 1 }).lean();
+    ask = Math.min(wanted, Math.max(0, Number(now?.stock ?? 0)));
+  }
+  return { reserved: 0, left: 0 };
+};
+
+/** Puts reserved copies back, when an order could not be written after all. */
+const giveBackCopies = async (reserved: readonly { book: BookDocument; quantity: number }[]): Promise<void> => {
+  for (const { book, quantity } of reserved) {
+    await AddBook.updateOne({ _id: book._id }, { $inc: { stock: quantity } }).catch((err: unknown) => {
+      log.error({ err, bookId: String(book._id), quantity }, 'Could not give back reserved stock');
+    });
+  }
+};
+
 export const decreaseStock = async (
   req: Request<unknown, unknown, CreateOrderBody>,
   res: Response
 ): Promise<void> => {
+  const buyer = String(actingUser(req).email);
+
+  // One checkout at a time per buyer. A second one sent while the first is
+  // still running is told so; once the first is done, a repeat with the same
+  // checkout id gets the first one's answer below.
+  let lock: string | null;
   try {
-    const { items } = req.body;
-    const { email } = actingUser(req);
+    lock = await takeCheckoutLock(buyer);
+  } catch (err) {
+    res.status(500).json({ message: errorMessage(err) });
+    return;
+  }
+  if (!lock) {
+    res.status(409).json({
+      code: 'checkout-in-progress',
+      message: 'Your order is already being placed. Check your orders in a moment.',
+    });
+    return;
+  }
+
+  try {
+    const { items, checkoutId } = req.body;
+
+    if (checkoutId) {
+      const receipt = await CheckoutReceipt.findOne({ buyerEmail: buyer, checkoutId }).lean();
+      if (receipt) {
+        res.status(200).json({ ...(receipt.response as CreateOrderResponse), replayed: true });
+        return;
+      }
+    }
 
     /*
      * A promo code is checked and priced here, never taken from the browser.
@@ -257,14 +394,33 @@ export const decreaseStock = async (
       res.status(400).json({ message: 'That promo code is not valid.' });
       return;
     }
-    const isFirstOrder = !(await Order.exists({ buyerEmail: String(email), status: { $ne: CANCELLED } }));
+    // Safe from a second checkout at the same moment: the lock above means
+    // this buyer has no other order being written.
+    const isFirstOrder = !(await Order.exists({ buyerEmail: buyer, status: { $ne: CANCELLED } }));
+
+    /*
+     * What can be ordered at all. A book that has been taken down, the
+     * buyer's own listing, and a book whose seller cannot be paid (no
+     * account, or no bKash number) are left out and named in the answer.
+     */
+    const unavailable: UnavailableItem[] = [];
+    const books = await AddBook.find({ _id: { $in: items.map((item) => item.bookId) } });
+    const byId = new Map(books.map((book) => [String(book._id), book]));
+    const sellers = await User.find(
+      { email: { $in: [...new Set(books.map((book) => book.sellerEmail))] } },
+      { email: 1, bkashMerchant: 1 }
+    ).lean();
+    const payable = new Set(sellers.filter((seller) => Boolean(seller.bkashMerchant)).map((seller) => seller.email));
 
     const wanted: { book: BookDocument; quantity: number }[] = [];
-    for (const item of items) {
-      const quantity = Number(item?.quantity);
-      if (!item.bookId || !Number.isInteger(quantity) || quantity < 1) continue;
-      const book = await AddBook.findById(String(item.bookId));
-      if (book) wanted.push({ book, quantity });
+    for (const { bookId, quantity } of items) {
+      const book = byId.get(bookId);
+      const leaveOut = (reason: UnavailableReason) =>
+        unavailable.push({ bookId, title: book?.title, available: 0, requested: quantity, reserved: 0, reason });
+      if (!book) leaveOut('removed');
+      else if (book.sellerEmail === buyer) leaveOut('own-listing');
+      else if (!payable.has(book.sellerEmail)) leaveOut('seller-unavailable');
+      else wanted.push({ book, quantity });
     }
 
     // A code whose conditions the basket does not meet - under its minimum
@@ -281,30 +437,32 @@ export const decreaseStock = async (
       }
     }
 
-    // Generate unique order number
-    const orderNumber = await generateUniqueOrderNumber();
-
-    const unavailable: UnavailableItem[] = [];
     const reserved: { book: BookDocument; quantity: number }[] = [];
     const stockMoves: { book: BookDocument; before: number; after: number }[] = [];
 
     for (const { book, quantity } of wanted) {
       const bookId = String(book._id);
-
-      // Reserve stock first: the conditional update is atomic, so two buyers
-      // racing for the last copy cannot both succeed. It answers with what is
-      // left, which is what decides who hears the book is running low.
-      const taken = await AddBook.findOneAndUpdate(
-        { _id: String(bookId), stock: { $gte: quantity } },
-        { $inc: { stock: -quantity } },
-        { returnDocument: 'after', projection: { stock: 1 } }
-      ).lean();
-      if (!taken) {
-        unavailable.push({ bookId, title: book.title, available: book.stock });
-        continue;
+      // What is left after taking decides who hears the book is running low.
+      const taken = await reserveCopies(bookId, quantity);
+      if (taken.reserved < quantity) {
+        unavailable.push({
+          bookId,
+          title: book.title,
+          available: taken.reserved,
+          requested: quantity,
+          reserved: taken.reserved,
+          reason: taken.reserved ? 'short' : 'sold-out',
+        });
       }
-      reserved.push({ book, quantity });
-      stockMoves.push({ book, before: Number(taken.stock) + quantity, after: Number(taken.stock) });
+      if (!taken.reserved) continue;
+      reserved.push({ book, quantity: taken.reserved });
+      stockMoves.push({ book, before: taken.left + taken.reserved, after: taken.left });
+    }
+
+    // Nothing reserved is no order: no number, no lines, no notices.
+    if (!reserved.length) {
+      res.status(409).json({ message: 'None of the selected books can be ordered right now.', unavailable });
+      return;
     }
 
     /*
@@ -324,47 +482,67 @@ export const decreaseStock = async (
     const shippingCharge =
       applied?.ok && applied.freeDelivery ? 0 : deliveryChargeFor(req.body.deliveryDistrict);
 
-    for (const { book, quantity } of reserved) {
-      await Order.create({
-        orderNumber, // save the same orderNumber for all books in this order
-        buyerEmail: email,
-        sellerEmail: book.sellerEmail,
-        bookId: book._id,
-        title: book.title,
-        author: book.author,
-        category: book.category,
-        bookType: book.bookType,
-        condition: book.condition,
-        pages: book.pages,
-        // What the buyer pays, which is what the seller's share and every
-        // total are worked out from; the listed price is kept beside it.
-        price: unitPriceOf(book),
-        listPrice: book.price,
-        quantity,
-        // --- Payment and delivery details ---
-        paymentMethod: req.body.paymentMethod || '',
-        contactName: req.body.contactName || '',
-        contactPhone: req.body.contactPhone || '',
-        deliveryDivision: req.body.deliveryDivision || '',
-        deliveryDistrict: req.body.deliveryDistrict || '',
-        deliveryAddress: req.body.deliveryAddress || '',
-        buyerNote: req.body.buyerNote || '',
-        // --- Charges and discounts ---
-        shippingCharge,
-        discount,
-        promo: applied?.ok ? applied.code : '',
-        promoApplied: Boolean(applied?.ok),
-        status: 'Order Confirmed',
-        createdAt: new Date(),
+    const orderNumber = await generateUniqueOrderNumber();
+    const createdAt = new Date();
+    try {
+      await Order.insertMany(
+        reserved.map(({ book, quantity }) => ({
+          orderNumber, // the same orderNumber for every book in this order
+          buyerEmail: buyer,
+          sellerEmail: book.sellerEmail,
+          bookId: book._id,
+          title: book.title,
+          author: book.author,
+          category: book.category,
+          bookType: book.bookType,
+          condition: book.condition,
+          pages: book.pages,
+          // What the buyer pays, which is what the seller's share and every
+          // total are worked out from; the listed price is kept beside it.
+          price: unitPriceOf(book),
+          listPrice: book.price,
+          quantity,
+          // --- Payment and delivery details ---
+          paymentMethod: req.body.paymentMethod,
+          contactName: req.body.contactName,
+          contactPhone: req.body.contactPhone,
+          deliveryDivision: req.body.deliveryDivision,
+          deliveryDistrict: req.body.deliveryDistrict,
+          deliveryAddress: req.body.deliveryAddress,
+          buyerNote: req.body.buyerNote || '',
+          // --- Charges and discounts ---
+          shippingCharge,
+          discount,
+          promo: applied?.ok ? applied.code : '',
+          promoApplied: Boolean(applied?.ok),
+          checkoutId: checkoutId ?? '',
+          status: 'Order Confirmed',
+          createdAt,
+        }))
+      );
+    } catch (err) {
+      // All or nothing: the stock taken for an order that was not written
+      // goes back on the shelf.
+      await Order.deleteMany({ orderNumber }).catch(() => undefined);
+      await giveBackCopies(reserved);
+      throw err;
+    }
+
+    const response: CreateOrderResponse = {
+      message: 'Stock updated & order saved',
+      orderNumber,
+      shippingCharge,
+      discount,
+      ...(applied && !applied.ok ? { promoMessage: applied.message } : {}),
+      unavailable,
+    };
+    if (checkoutId) {
+      await CheckoutReceipt.create({ buyerEmail: buyer, checkoutId, orderNumber, response }).catch((err: unknown) => {
+        log.warn({ err }, 'Could not keep a checkout receipt');
       });
     }
 
-    if (unavailable.length === items.length) {
-      res.status(409).json({ message: 'None of the selected books are in stock', unavailable });
-      return;
-    }
-
-    await announceOrder(orderNumber, String(email), reserved, {
+    await announceOrder(orderNumber, buyer, reserved, {
       total: booksTotal + shippingCharge - discount,
       facts: {
         orderNumber,
@@ -379,19 +557,14 @@ export const decreaseStock = async (
       },
     });
     for (const move of stockMoves) {
-      await stockChanged(move.book, move.before, move.after, { actor: String(email) });
+      await stockChanged(move.book, move.before, move.after, { actor: buyer });
     }
 
-    res.status(200).json({
-      message: 'Stock updated & order saved',
-      orderNumber,
-      shippingCharge,
-      discount,
-      ...(applied && !applied.ok ? { promoMessage: applied.message } : {}),
-      unavailable,
-    });
+    res.status(200).json(response);
   } catch (err) {
     res.status(500).json({ message: errorMessage(err) });
+  } finally {
+    await releaseCheckoutLock(buyer, lock);
   }
 };
 
@@ -400,7 +573,7 @@ export const getOrdersByBuyer: RequestHandler = async (req, res) => {
   try {
     const { email } = actingUser(req);
     const query = validatedQuery<OrderListQuery>(req);
-    const { lines, ...page } = await pageOfOrders({ buyerEmail: email }, query);
+    const { lines, whole, ...page } = await pageOfOrders({ buyerEmail: email }, query);
 
     // Order-level totals repeat on every line of the same order.
     const grouped = new Map<string, LeanOrder[]>();
@@ -435,8 +608,11 @@ export const getOrdersByBuyer: RequestHandler = async (req, res) => {
 
     const now = Date.now();
     const items = [];
-    for (const orderBooks of grouped.values()) {
-      const totals = totalsFor(orderBooks);
+    for (const [orderNumber, orderBooks] of grouped) {
+      // From the whole order, not the lines a search or a status matched:
+      // a search for one title still shows what the order comes to.
+      const all = whole.get(orderNumber) ?? orderBooks;
+      const totals = { ...totalsFor(all), orderStatus: orderStatusOf(all), canCancel: canCancelLines('buyer', all) };
       for (const book of orderBooks) {
         const deadline = returnDeadline(book);
         items.push({
@@ -491,10 +667,11 @@ export const checkPromo = async (
 export const getOrdersBySeller: RequestHandler = async (req, res) => {
   try {
     const { email } = actingUser(req);
-    const { lines, ...page } = await pageOfOrders(
+    const { lines, total, page: pageNumber, pageSize, pageCount } = await pageOfOrders(
       { sellerEmail: email },
       validatedQuery<OrderListQuery>(req)
     );
+    const page = { total, page: pageNumber, pageSize, pageCount };
 
     /*
      * Where the seller's money for each line has got to: waiting on delivery,
@@ -546,30 +723,37 @@ export const getOrderByOrderNumber = async (
       res.status(403).json({ message: 'You do not have access to this order' });
       return;
     }
-    // Group and summarize as in getOrdersByBuyer
-    const first = orders[0];
-    const totals = totalsFor(orders);
-    const live = orders.filter((line) => line.status !== CANCELLED);
-    const status = live[0]?.status || (live.length ? 'Order Confirmed' : CANCELLED);
+    // A seller sees their own books in it and nothing of another seller's:
+    // not their titles, prices, e-mail addresses or payouts.
     const who = viewerRole(orders, actor, role);
+    const shown = who === 'seller' ? orders.filter((line) => line.sellerEmail === actor) : orders;
+    const first = shown[0] ?? orders[0];
+    const totals = totalsFor(shown);
+    const mine = linesFor(orders, who ?? 'buyer', actor);
     // The defaults come after the spread rather than before it. Records
     // written before these fields existed have no value to spread, and `.lean()`
     // does not apply schema defaults, so something has to fill the gap.
     res.status(200).json({
       ...first,
       orderNumber: first.orderNumber,
-      status,
+      // The least advanced of the books still in it, so the order page and
+      // the order list say the same thing.
+      status: orderStatusOf(shown),
       // Worked out here, by the rules that enforce them, so the page offers
-      // exactly what the API will accept.
-      canCancel: who ? canCancel(who, statusFor(orders, who, actor)) : false,
-      statusOptions: who === 'admin' || who === 'seller' ? statusOptionsFor(who, statusFor(orders, who, actor)) : [],
+      // exactly what the API will accept: a cancel needs every book in it
+      // to be cancellable.
+      canCancel: who ? canCancelLines(who, mine) : false,
+      statusOptions:
+        who === 'admin' || who === 'seller'
+          ? statusOptionsFor(who, orderStatusOf(mine), { deliveredLocked: await deliveredLocked(mine) })
+          : [],
       paymentMethod: first.paymentMethod || '',
       contactName: first.contactName || '',
       contactPhone: first.contactPhone || '',
       deliveryDivision: first.deliveryDivision || '',
       deliveryDistrict: first.deliveryDistrict || '',
       deliveryAddress: first.deliveryAddress || '',
-      books: orders,
+      books: shown,
       ...totals,
     });
   } catch (err) {
@@ -593,12 +777,22 @@ const viewerRole = (
 const linesFor = (lines: readonly LeanOrder[], who: 'admin' | 'seller' | 'buyer', actor: string | undefined) =>
   lines.filter((line) => line.status !== CANCELLED && (who !== 'seller' || line.sellerEmail === actor));
 
-const statusFor = (lines: readonly LeanOrder[], who: 'admin' | 'seller' | 'buyer', actor: string | undefined): string =>
-  linesFor(lines, who, actor)[0]?.status || CANCELLED;
+/**
+ * Whether delivered books have gone past the point of being moved back: the
+ * seller has been paid for one, or the buyer has asked to return one.
+ */
+const deliveredLocked = async (lines: readonly LeanOrder[]): Promise<boolean> => {
+  const delivered = lines.filter((line) => line.status === 'Delivered');
+  if (!delivered.length) return false;
+  if (delivered.some((line) => line.sellerPaidAt)) return true;
+  return (await ReturnRequest.exists({ orderId: { $in: delivered.map((line) => line._id) } })) !== null;
+};
 
 /** The statuses a person may pick from where the order is now. */
-const statusOptionsFor = (who: 'admin' | 'seller', current: string): string[] =>
-  current === CANCELLED ? [] : ORDER_STAGES.filter((stage) => stage === current || !statusChangeProblem(who, current, stage));
+const statusOptionsFor = (who: 'admin' | 'seller', current: string, rules: { deliveredLocked: boolean }): string[] =>
+  current === CANCELLED
+    ? []
+    : ORDER_STAGES.filter((stage) => stage === current || !statusChangeProblem(who, current, stage, rules));
 
 // Update order status by orderNumber (for all books in the order)
 export const updateOrderStatusByOrderNumber = async (
@@ -635,25 +829,28 @@ export const updateOrderStatusByOrderNumber = async (
      * cancelled.
      */
     const mine = linesFor(existing, who, actor);
-    const current = mine[0]?.status || CANCELLED;
-    const problem = statusChangeProblem(who, current, String(status));
+    const current = orderStatusOf(mine);
+    // Every book it would move must be allowed to make that move: a seller
+    // whose books are at different stages cannot pull one of them back.
+    const rules = { deliveredLocked: await deliveredLocked(mine) };
+    const problem = mine.length
+      ? mine.map((line) => statusChangeProblem(who, line.status, String(status), rules)).find(Boolean)
+      : statusChangeProblem(who, CANCELLED, String(status));
     if (problem) {
       res.status(403).json({ message: problem });
       return;
     }
 
-    // Delivery is stamped when it happens, and only then: marking an order
-    // delivered twice does not move the date the return window counts from.
+    // Delivery is stamped when it first happens, and only then: marking an
+    // order delivered again, or moving it back and on, does not move the date
+    // the return window and the payout count from.
     const wasDelivered = mine.length > 0 && mine.every((o) => o.status === 'Delivered');
     const becomesDelivered = String(status) === 'Delivered';
-    const orders = await Order.updateMany(
-      { _id: { $in: mine.map((line) => line._id) } },
-      {
-        status: String(status),
-        ...(becomesDelivered && !wasDelivered ? { deliveredAt: new Date() } : {}),
-        ...(!becomesDelivered ? { deliveredAt: null } : {}),
-      }
-    );
+    const ids = mine.map((line) => line._id);
+    const orders = await Order.updateMany({ _id: { $in: ids }, status: { $ne: CANCELLED } }, { $set: { status: String(status) } });
+    if (becomesDelivered) {
+      await Order.updateMany({ _id: { $in: ids }, deliveredAt: null }, { $set: { deliveredAt: new Date() } });
+    }
     if (orders.matchedCount === 0) {
       res.status(404).json({ message: 'Order not found' });
       return;
@@ -729,8 +926,8 @@ export const cancelOrder = async (
       return;
     }
 
-    const lines = linesFor(existing, who, actor);
-    if (!lines.length || !lines.every((line) => canCancel(who, line.status))) {
+    const candidates = linesFor(existing, who, actor);
+    if (!canCancelLines(who, candidates)) {
       res.status(409).json({
         message:
           who === 'buyer'
@@ -742,10 +939,27 @@ export const cancelOrder = async (
       return;
     }
 
-    const cancelled = await Order.updateMany(
-      { _id: { $in: lines.map((line) => line._id) }, status: { $ne: CANCELLED } },
-      { $set: { status: CANCELLED, cancelledAt: new Date(), cancelledBy: who, cancelReason: reason } }
-    );
+    /*
+     * Each book is cancelled only if it is still where it was read - not
+     * cancelled already, and not moved on in the meantime - and only a book
+     * this request actually cancelled has its copies put back and is told
+     * about. Two cancels at once (a double click, or the buyer and the seller
+     * together) put the stock back once.
+     */
+    const lines: LeanOrder[] = [];
+    for (const line of candidates) {
+      const changed = await Order.updateOne(
+        { _id: line._id, status: line.status ?? 'Order Confirmed' },
+        { $set: { status: CANCELLED, cancelledAt: new Date(), cancelledBy: who, cancelReason: reason } }
+      );
+      if (changed.modifiedCount === 1) lines.push(line);
+    }
+    if (!lines.length) {
+      res.status(409).json({ message: 'This order has already been cancelled or has moved on.' });
+      return;
+    }
+    const cancelled = { modifiedCount: lines.length };
+
     // Back on the shelf, copy for copy - and anyone waiting for a sold-out
     // copy hears it is back.
     for (const line of lines) {
@@ -827,8 +1041,13 @@ export const deleteOrder: RequestHandler = async (req, res) => {
 // Get all orders for admin
 export const getAllOrders: RequestHandler = async (req, res) => {
   try {
-    const { lines, ...page } = await pageOfOrders({}, validatedQuery<OrderListQuery>(req));
-    res.status(200).json({ items: lines, ...page });
+    const { lines, whole, ...page } = await pageOfOrders({}, validatedQuery<OrderListQuery>(req));
+    // Each line carries what its whole order comes to and where it stands,
+    // as the buyer's list does.
+    const summaries = new Map(
+      [...whole].map(([number, all]) => [number, { ...totalsFor(all), orderStatus: orderStatusOf(all) }])
+    );
+    res.status(200).json({ items: lines.map((line) => ({ ...line, ...summaries.get(line.orderNumber) })), ...page });
   } catch (err) {
     log.error({ err }, 'Error in getAllOrders');
     res.status(500).json({ message: errorMessage(err) || 'Internal Server Error' });

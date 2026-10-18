@@ -3,7 +3,7 @@ import { describe, it, expect, beforeAll, afterAll, beforeEach } from 'vitest';
 import type { ValidationIssue } from '@shared/api.js';
 
 import { createTestContext, clearDatabase, closeTestContext, type PrefixedRequest } from './helpers/testApp.js';
-import { createBook, createSignedInUser, createUser, PASSWORD } from './helpers/factories.js';
+import { createBook, createSignedInUser, createUser, PASSWORD, CHECKOUT } from './helpers/factories.js';
 
 let request: PrefixedRequest;
 
@@ -201,7 +201,7 @@ describe('bounds', () => {
     const res = await request
       .post('/order/decrease-stock')
       .set('Authorization', auth)
-      .send({ items: [] });
+      .send({ ...CHECKOUT, items: [] });
 
     expect(res.status).toBe(400);
   });
@@ -213,7 +213,7 @@ describe('bounds', () => {
     const res = await request
       .post('/order/decrease-stock')
       .set('Authorization', auth)
-      .send({ items: [{ bookId: String(book._id), quantity: 0 }] });
+      .send({ ...CHECKOUT, items: [{ bookId: String(book._id), quantity: 0 }] });
 
     expect(res.status).toBe(400);
   });

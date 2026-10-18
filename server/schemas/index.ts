@@ -18,6 +18,8 @@ import {
   urlText,
   bdMobile,
 } from './common.js';
+import { DELIVERY_DIVISIONS } from '../config/reference.js';
+import { PAYMENT_METHODS } from '../config/commerce.js';
 
 /**
  * One schema per endpoint, grouped by domain.
@@ -269,23 +271,53 @@ export const orderSchemas = {
    */
   list: orderList(),
   create: {
-    body: z.object({
-      items: z
-        .array(z.object({ bookId: objectId, quantity: positiveInt }))
-        .min(1, 'At least one item is required')
-        .max(100),
-      // A code, not a discount: what it is worth is the server's to work out.
-      promo: shortText.max(40).optional(),
-      paymentMethod: shortText.optional(),
-      contactName: shortText.optional(),
-      contactPhone: shortText.optional(),
-      deliveryDivision: shortText.optional(),
-      deliveryDistrict: shortText.optional(),
-      deliveryAddress: mediumText.optional(),
-      // A few words to the seller - "please call before delivery". Short,
-      // because it is a note, not a conversation; that is what chat is for.
-      buyerNote: z.string().trim().max(300, 'Keep the note to 300 characters').optional(),
-    }),
+    body: z
+      .object({
+        /*
+         * The same book twice - two taps on "Add to cart" in the app, say -
+         * is one line with the copies added together: an order holds a book
+         * once, and both entries would otherwise take stock.
+         */
+        items: z
+          .array(z.object({ bookId: objectId, quantity: positiveInt }))
+          .min(1, 'At least one item is required')
+          .max(100)
+          .transform((items) => {
+            const merged = new Map<string, number>();
+            for (const item of items) {
+              merged.set(item.bookId.toLowerCase(), (merged.get(item.bookId.toLowerCase()) ?? 0) + item.quantity);
+            }
+            return [...merged].map(([bookId, quantity]) => ({ bookId, quantity }));
+          }),
+        /*
+         * Made once per checkout by the browser or app, and sent again with
+         * any retry of it: the same id gets the same order back rather than
+         * placing a second one.
+         */
+        checkoutId: z
+          .string()
+          .trim()
+          .regex(/^[A-Za-z0-9_-]{8,64}$/, 'Must be 8-64 letters, digits, - or _')
+          .optional(),
+        // A code, not a discount: what it is worth is the server's to work out.
+        promo: shortText.max(40).optional(),
+        paymentMethod: z.enum(PAYMENT_METHODS, { message: 'Cash on Delivery is the only payment method' }).default('Cash on Delivery'),
+        contactName: shortText.min(1, 'Enter the name to deliver to'),
+        contactPhone: bdMobile,
+        // From the shop's own list, since the district is what prices delivery.
+        deliveryDivision: z.string().trim().refine((value) => Object.hasOwn(DELIVERY_DIVISIONS, value), 'Choose a division from the list'),
+        deliveryDistrict: shortText.min(1, 'Choose a district'),
+        deliveryAddress: mediumText.min(5, 'Enter the delivery address: house, road and area'),
+        // A few words to the seller - "please call before delivery". Short,
+        // because it is a note, not a conversation; that is what chat is for.
+        buyerNote: z.string().trim().max(300, 'Keep the note to 300 characters').optional(),
+      })
+      .superRefine((body, ctx) => {
+        const districts = DELIVERY_DIVISIONS[body.deliveryDivision];
+        if (districts && !districts.includes(body.deliveryDistrict)) {
+          ctx.addIssue({ code: 'custom', path: ['deliveryDistrict'], message: `Choose a district in ${body.deliveryDivision} division` });
+        }
+      }),
   },
   byOrderNumber: { params: z.object({ orderNumber }) },
   updateStatus: {

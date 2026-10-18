@@ -49,6 +49,8 @@ const OrderSchema = new Schema({
   cancelledBy: { type: String, default: '' },
   cancelReason: { type: String, default: '' },
   defectDescription: { type: String, default: '' },
+  /** The id the checkout was sent with, when it had one. */
+  checkoutId: { type: String, default: '' },
   createdAt: { type: Date, default: Date.now },
 });
 

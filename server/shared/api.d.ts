@@ -61,8 +61,14 @@ export interface ApiError {
   statusCode?: number;
   /** Present only on a 400 from the validation middleware. */
   errors?: ValidationIssue[];
-  /** A machine-readable reason, where the page can offer a way out of it. */
-  code?: 'payout-number-required' | 'current-password';
+  /**
+   * A machine-readable reason, where the page can offer a way out of it:
+   * - 'own-listing': a seller adding their own book to their cart (409);
+   * - 'checkout-in-progress': another checkout by the same buyer is still
+   *   being placed (409) - wait a moment and look at the orders, or retry
+   *   with the same `checkoutId`.
+   */
+  code?: 'payout-number-required' | 'current-password' | 'own-listing' | 'checkout-in-progress';
 }
 
 /** A plain acknowledgement, such as the answer to a delete. */
@@ -594,12 +600,26 @@ export interface OrderLine {
   createdAt?: IsoDate;
 }
 
-/** GET /order/buyer adds the totals for the order each line belongs to. */
-export interface BuyerOrderLine extends OrderLine {
+/**
+ * What a whole order comes to, repeated on each of its lines in a list.
+ *
+ * Always the whole order - every book still in it - even when a search or a
+ * status filter matched only some of its lines.
+ */
+export interface OrderSummary {
   booksTotal: number;
   shippingCost: number;
+  /** Never more than `booksTotal`: a partly cancelled order's discount shrinks with it. */
   discount: number;
   totalCost: number;
+  /** Where the whole order stands: the least advanced of its live books, or 'Cancelled'. */
+  orderStatus: string;
+}
+
+/** GET /order/buyer adds the totals for the order each line belongs to. */
+export interface BuyerOrderLine extends OrderLine, OrderSummary {
+  /** Whether the buyer may cancel the order now: every live book in it is still 'Order Confirmed'. */
+  canCancel: boolean;
   /**
    * Whether this book has a return in progress, and how far it has got.
    *
@@ -616,13 +636,25 @@ export interface BuyerOrderLine extends OrderLine {
   returnableUntil: IsoDate | null;
 }
 
-/** GET /order/:orderNumber - the whole order, summarised. */
+/** GET /order/admin/all: each line with its whole order's totals and status. */
+export interface AdminOrderLine extends OrderLine, OrderSummary {}
+
+/**
+ * GET /order/:orderNumber - the whole order, summarised.
+ *
+ * A seller is sent only their own books in it, and the totals of those; an
+ * order's other sellers stay private. `status` is the least advanced of the
+ * live books shown.
+ */
 export interface OrderDetail extends OrderLine {
   books: OrderLine[];
   booksTotal: number;
   shippingCost: number;
   totalCost: number;
-  /** Whether the person looking may cancel it now (config/commerce.ts has the rules). */
+  /**
+   * Whether the person looking may cancel it now (config/commerce.ts has the
+   * rules): every live book they would cancel must be cancellable.
+   */
   canCancel: boolean;
   /** The statuses they may move it to from here; empty for a buyer. */
   statusOptions: string[];
@@ -639,25 +671,53 @@ export interface OrderItemRequest {
 }
 
 export interface CreateOrderRequest {
+  /** The same book twice is merged into one line, its quantities added. */
   items: OrderItemRequest[];
+  /**
+   * Made once per checkout (8-64 letters, digits, - or _; a UUID does) and
+   * sent again with any retry of it. The same id gets the first order's
+   * answer back, with `replayed: true`, instead of placing a second order.
+   */
+  checkoutId?: string;
   // No delivery charge and no discount: the server prices delivery from
   // `deliveryDistrict`, and a promo from its code.
   promo?: string;
-  paymentMethod?: string;
-  contactName?: string;
-  contactPhone?: string;
-  deliveryDivision?: string;
-  deliveryDistrict?: string;
-  deliveryAddress?: string;
+  /** Cash on Delivery, the only method; the default when left out. */
+  paymentMethod?: 'Cash on Delivery';
+  contactName: string;
+  /** A Bangladeshi mobile number; "+880 1712-345678" is stored as 01712345678. */
+  contactPhone: string;
+  /** A division from the shop's list (`delivery.divisions` in GET /api/v1/app/config). */
+  deliveryDivision: string;
+  /** A district of that division; it decides the delivery charge. */
+  deliveryDistrict: string;
+  /** At least 5 characters. */
+  deliveryAddress: string;
   /** A short note from the buyer to the seller, such as a delivery time. */
   buyerNote?: string;
 }
 
-/** A line that could not be fulfilled because stock ran out first. */
+/**
+ * Why a book in a checkout was left out, or not taken in full:
+ * - 'sold-out': no copies were left;
+ * - 'short': fewer copies were left than asked for, and those were ordered;
+ * - 'removed': the listing no longer exists;
+ * - 'own-listing': it is the buyer's own book;
+ * - 'seller-unavailable': its seller cannot take orders just now.
+ */
+export type UnavailableReason = 'sold-out' | 'short' | 'removed' | 'own-listing' | 'seller-unavailable';
+
+/** A book that was left out of an order, or ordered in fewer copies than asked. */
 export interface UnavailableItem {
   bookId: Id;
   title?: string;
+  /** Copies there were to have: what was ordered for 'short', otherwise 0. */
   available: number;
+  /** Copies asked for. */
+  requested: number;
+  /** Copies in the order: fewer than `requested` for 'short', otherwise 0. */
+  reserved: number;
+  reason: UnavailableReason;
 }
 
 export interface CreateOrderResponse {
@@ -669,7 +729,10 @@ export interface CreateOrderResponse {
   discount: number;
   /** Why a code given at checkout was not applied, when it was not. */
   promoMessage?: string;
+  /** Books left out or short; a 'short' book is in the order with `reserved` copies. */
   unavailable: UnavailableItem[];
+  /** True when this is the answer to a checkout id already placed: no new order was made. */
+  replayed?: boolean;
 }
 
 export interface CheckPromoRequest {
@@ -691,6 +754,7 @@ export interface CheckPromoResponse {
  * once its return window has closed with no return pending or approved.
  */
 export type PayoutState =
+  | 'cancelled'
   | 'awaiting-delivery'
   | 'in-return-window'
   | 'return-in-progress'

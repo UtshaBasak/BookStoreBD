@@ -14,7 +14,7 @@ import {
   closeTestContext,
   type PrefixedRequest,
 } from './helpers/testApp.js';
-import { createBook, createSignedInUser, createUserWithToken, PNG_PIXEL } from './helpers/factories.js';
+import { createBook, createSignedInUser, createUserWithToken, PNG_PIXEL, CHECKOUT } from './helpers/factories.js';
 import Order from '../models/Order.model.js';
 import ReturnRequest from '../models/ReturnRequest.model.js';
 
@@ -679,7 +679,7 @@ describe('the delivery charge', () => {
     const res = await request
       .post('/order/decrease-stock')
       .set('Authorization', auth)
-      .send({ items: [{ bookId: String(book._id), quantity: 1 }], ...body });
+      .send({ ...CHECKOUT, items: [{ bookId: String(book._id), quantity: 1 }], ...body });
     const line = await Order.findOne({ orderNumber: res.body.orderNumber }).lean();
     return { res, line };
   };
@@ -696,12 +696,12 @@ describe('the delivery charge', () => {
   });
 
   it('is charged on a large order too: free delivery is the FreeDelivery code now', async () => {
-    const { line } = await checkout({ deliveryDistrict: 'Sylhet' }, 1000);
+    const { line } = await checkout({ deliveryDivision: 'Sylhet', deliveryDistrict: 'Sylhet' }, 1000);
     expect(line?.shippingCharge).toBe(120);
   });
 
   it('ignores a figure the browser sends', async () => {
-    const { line } = await checkout({ deliveryDistrict: 'Sylhet', shippingCharge: 0 });
+    const { line } = await checkout({ deliveryDivision: 'Sylhet', deliveryDistrict: 'Sylhet', shippingCharge: 0 });
     expect(line?.shippingCharge).toBe(120);
   });
 });

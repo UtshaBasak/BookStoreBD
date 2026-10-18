@@ -12,7 +12,7 @@ import {
   closeTestContext,
   type PrefixedRequest,
 } from './helpers/testApp.js';
-import { createBook, createSignedInUser, createUser, PASSWORD } from './helpers/factories.js';
+import { createBook, createSignedInUser, createUser, PASSWORD, CHECKOUT } from './helpers/factories.js';
 
 let request: PrefixedRequest;
 
@@ -52,7 +52,7 @@ describe('what gets recorded', () => {
     const created = await request
       .post('/order/decrease-stock')
       .set('Authorization', buyer.auth)
-      .send({ items: [{ bookId: String(book._id), quantity: 1 }] });
+      .send({ ...CHECKOUT, items: [{ bookId: String(book._id), quantity: 1 }] });
 
     await request
       .patch(`/order/status/${created.body.orderNumber}`)
