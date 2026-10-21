@@ -6,7 +6,7 @@
 import { describe, it, expect, beforeAll, afterAll, beforeEach, afterEach, vi } from 'vitest';
 
 import { createTestContext, clearDatabase, closeTestContext, type PrefixedRequest } from './helpers/testApp.js';
-import { latestAppRelease, resetAppReleaseCache, toAppRelease } from '../utils/appRelease.js';
+import { fromUpdateFeed, latestAppRelease, resetAppReleaseCache, toAppRelease } from '../utils/appRelease.js';
 import { versionCodeFor } from '../config/android.js';
 import { CATEGORY_GROUPS, DELIVERY_DIVISIONS } from '../config/reference.js';
 import { DELIVERY, RETURN_WINDOW_DAYS } from '../config/commerce.js';
@@ -204,6 +204,35 @@ describe('the release lookup', () => {
           )
     );
     expect((await latestAppRelease())?.sha256).toBe('b'.repeat(64));
+  });
+
+  it("reads the release's update.json when GitHub's API refuses", async () => {
+    const calls = github((url) =>
+      url.endsWith('/update.json')
+        ? json({
+            versionName: '1.2.4',
+            versionCode: 10204,
+            apkUrl: 'https://github.com/UtshaBasak/BookStoreBD-Android/releases/download/v1.2.4/BookStoreBD-1.2.4.apk',
+            apkSize: 4_100_000,
+            sha256: 'C'.repeat(64),
+            notes: 'Updates itself.',
+            pageUrl: 'https://github.com/UtshaBasak/BookStoreBD-Android/releases/tag/v1.2.4',
+          })
+        : json({ message: 'API rate limit exceeded' }, 403)
+    );
+    expect(await latestAppRelease()).toMatchObject({ versionName: '1.2.4', versionCode: 10204, sha256: 'c'.repeat(64) });
+    expect(calls).toEqual([
+      'https://api.github.com/repos/UtshaBasak/BookStoreBD-Android/releases/latest',
+      'https://github.com/UtshaBasak/BookStoreBD-Android/releases/latest/download/update.json',
+    ]);
+  });
+
+  it('ignores an update.json that does not describe a verifiable APK', () => {
+    const feed = { versionName: '1.2.4', apkUrl: 'https://github.com/x/BookStoreBD-1.2.4.apk', sha256: SHA };
+    expect(fromUpdateFeed(feed)?.versionCode).toBe(10204);
+    expect(fromUpdateFeed({ ...feed, sha256: 'nope' })).toBeNull();
+    expect(fromUpdateFeed({ ...feed, versionName: 'nightly' })).toBeNull();
+    expect(fromUpdateFeed({ ...feed, apkUrl: 'https://example.com/BookStoreBD.apk' })).toBeNull();
   });
 
   it('ignores drafts, pre-releases, odd tags and releases without a verifiable APK', async () => {

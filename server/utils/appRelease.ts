@@ -12,6 +12,10 @@ const log = createLogger('app-release');
  * requests an hour per address, and many phones in Bangladesh share one
  * address through their carrier. The answer is kept for a quarter of an hour,
  * and a failed lookup keeps serving the last good answer.
+ *
+ * The API's limit is per address too, and a shared host's address can use it
+ * up. When the API says no, the release's own update.json is read instead: a
+ * plain download from github.com, with no hourly limit.
  */
 const FRESH_MS = 15 * 60 * 1000;
 const RETRY_MS = 60 * 1000;
@@ -70,15 +74,48 @@ export const toAppRelease = async (release: GitHubRelease): Promise<AppRelease |
   };
 };
 
+/** What the release workflow publishes as update.json, checked field by field. */
+export const fromUpdateFeed = (feed: Record<string, unknown>): AppRelease | null => {
+  const { versionName, apkUrl, apkSize, sha256, notes, pageUrl } = feed;
+  if (typeof versionName !== 'string' || typeof apkUrl !== 'string' || typeof sha256 !== 'string') return null;
+  const versionCode = versionCodeFor(versionName);
+  if (versionCode === null || !/^[0-9a-f]{64}$/i.test(sha256) || !apkUrl.startsWith('https://github.com/')) return null;
+  return {
+    versionName: versionName.replace(/^v/, ''),
+    versionCode,
+    apkUrl,
+    apkSize: typeof apkSize === 'number' && apkSize > 0 ? apkSize : 0,
+    sha256: sha256.toLowerCase(),
+    notes: typeof notes === 'string' ? notes.slice(0, 4000) : '',
+    pageUrl: typeof pageUrl === 'string' ? pageUrl : '',
+    publishedAt: null,
+  };
+};
+
+const fetchFeed = async (): Promise<AppRelease | null> => {
+  const res = await fetch(`https://github.com/${androidReleasesRepo()}/releases/latest/download/update.json`, {
+    headers: { 'User-Agent': 'BookStoreBD' },
+    signal: AbortSignal.timeout(5000),
+  });
+  // Releases from before the feed existed have none.
+  if (res.status === 404) return null;
+  if (!res.ok) throw new Error(`The release feed answered ${res.status}`);
+  return fromUpdateFeed((await res.json()) as Record<string, unknown>);
+};
+
 const fetchLatest = async (): Promise<AppRelease | null> => {
   const res = await fetch(`https://api.github.com/repos/${androidReleasesRepo()}/releases/latest`, {
     headers: { Accept: 'application/vnd.github+json', 'X-GitHub-Api-Version': '2022-11-28', 'User-Agent': 'BookStoreBD' },
     signal: AbortSignal.timeout(5000),
+  }).catch((error: unknown) => {
+    log.warn({ err: error }, 'GitHub API unreachable; reading the release feed');
+    return null;
   });
   // No release yet is an answer, not a failure.
-  if (res.status === 404) return null;
-  if (!res.ok) throw new Error(`GitHub answered ${res.status}`);
-  return toAppRelease((await res.json()) as GitHubRelease);
+  if (res?.status === 404) return null;
+  if (res?.ok) return toAppRelease((await res.json()) as GitHubRelease);
+  if (res) log.warn({ status: res.status }, 'GitHub API refused; reading the release feed');
+  return fetchFeed();
 };
 
 /** The latest release, from the cache when it is fresh enough. Never throws. */
