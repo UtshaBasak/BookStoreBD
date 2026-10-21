@@ -389,7 +389,7 @@ export const decreaseStock = async (
       const { items, checkoutId } = req.body;
 
       if (checkoutId) {
-        const receipt = await CheckoutReceipt.findOne({ buyerEmail: buyer, checkoutId }).lean();
+        const receipt = await CheckoutReceipt.findOne({ buyerEmail: buyer, checkoutId: String(checkoutId) }).lean();
         if (receipt) {
           send(200, { ...(receipt.response as CreateOrderResponse), replayed: true });
           return;

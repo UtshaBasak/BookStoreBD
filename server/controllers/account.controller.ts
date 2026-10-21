@@ -635,7 +635,7 @@ export const requestEmailChange: RequestHandler = async (req, res, next) => {
       res.status(400).json({ message: 'That is the address your account already uses.' });
       return;
     }
-    if (await User.exists({ email: newEmail })) {
+    if (await User.exists({ email: String(newEmail) })) {
       res.status(409).json({ message: 'Another account already uses that address.' });
       return;
     }

@@ -21,7 +21,7 @@ export const createPurchase = async (
   req: Request<unknown, unknown, CreatePurchaseBody>,
   res: Response
 ): Promise<void> => {
-  const bookId = req.body.bookId;
+  const bookId = String(req.body.bookId);
   const quantity = req.body.quantity ?? 1;
   const userEmail = actingUser(req).email;
 
