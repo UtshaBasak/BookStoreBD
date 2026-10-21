@@ -20,6 +20,7 @@
 [![Top language](https://img.shields.io/github/languages/top/UtshaBasak/BookStoreBD)](https://github.com/UtshaBasak/BookStoreBD)
 [![Code size](https://img.shields.io/github/languages/code-size/UtshaBasak/BookStoreBD)](https://github.com/UtshaBasak/BookStoreBD)
 [![Stars](https://img.shields.io/github/stars/UtshaBasak/BookStoreBD?style=flat)](https://github.com/UtshaBasak/BookStoreBD/stargazers)
+[![Clones](https://img.shields.io/endpoint?url=https%3A%2F%2Fraw.githubusercontent.com%2FUtshaBasak%2FBookStoreBD%2Ftraffic-data%2Fclones-badge.json)](https://github.com/UtshaBasak/BookStoreBD/blob/traffic-data/clones.json)
 
 [![Node](https://img.shields.io/badge/node-22.13%2B%20%7C%2024%20LTS-339933?logo=nodedotjs&logoColor=white)](.nvmrc)
 [![GitHub Packages](https://img.shields.io/badge/ghcr.io-bookstorebd-2496ED?logo=docker&logoColor=white)](https://github.com/UtshaBasak/BookStoreBD/pkgs/container/bookstorebd)
