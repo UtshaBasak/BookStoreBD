@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 
-import { site } from '../config/site.js';
+import { site, siteSeoTagline, siteTagline } from '../config/site.js';
 
 /** The picture a shared link previews with, when a page has nothing better. */
 const DEFAULT_IMAGE = '/og-image.jpg';
@@ -71,7 +71,7 @@ const safeJsonLd = (data: Record<string, unknown>): string =>
  */
 export const useSeo = ({
   title,
-  description = site.tagline,
+  description = siteTagline(),
   image = DEFAULT_IMAGE,
   type = 'website',
   noIndex = false,
@@ -81,9 +81,11 @@ export const useSeo = ({
   // object's identity: a caller passing an object literal would otherwise
   // rebuild the script block on every single render.
   const jsonLdText = jsonLd ? safeJsonLd(jsonLd) : null;
+  // Worked out as the page renders, so a change of language - which renders
+  // everything again - reaches the title as well.
+  const fullTitle = title ? `${title} · ${site.name}` : `${site.name} — ${siteSeoTagline()}`;
 
   useEffect(() => {
-    const fullTitle = title ? `${title} · ${site.name}` : `${site.name} — ${site.seoTagline}`;
     const url = `${window.location.origin}${window.location.pathname}`;
     const absoluteImage = new URL(image, window.location.origin).href;
 
@@ -126,7 +128,7 @@ export const useSeo = ({
       script.textContent = jsonLdText;
       document.head.appendChild(script);
     }
-  }, [title, description, image, type, noIndex, jsonLdText]);
+  }, [fullTitle, description, image, type, noIndex, jsonLdText]);
 };
 
 export default useSeo;

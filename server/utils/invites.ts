@@ -13,8 +13,11 @@ export const creditInvites = async (user: { email: string; username: string }): 
     invites.map((invite) => invite.inviterEmail),
     {
       type: 'invite-joined',
-      title: `${user.username} joined BookStoreBD`,
-      body: 'Someone you invited has just made an account. Thank you for spreading the word!',
+      title: { en: `${user.username} joined BookStoreBD`, bn: `${user.username} BookStoreBD-তে যোগ দিয়েছেন` },
+      body: {
+        en: 'Someone you invited has just made an account. Thank you for spreading the word!',
+        bn: 'আপনার আমন্ত্রিত একজন এইমাত্র অ্যাকাউন্ট খুলেছেন। খবরটি ছড়িয়ে দেওয়ার জন্য ধন্যবাদ!',
+      },
       link: '/profile#invite',
     }
   );

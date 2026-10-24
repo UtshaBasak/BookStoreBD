@@ -9,6 +9,7 @@ import { useToast } from '../../hooks/useToast.js';
 import { useDebounced } from '../../hooks/useDebounced.js';
 import { FilterSelect, RefreshButton, ReviewKindTabs } from './AdminControls.js';
 import { reviewSubject, useReviewKind } from './reviewKind.js';
+import { formatDate, formatNumber, t } from '../../utils/language.js';
 import { messageOf } from '../../utils/apiError.js';
 import Pager from '../../components/Pager.js';
 import { Stars } from '../../components/Stars.js';
@@ -17,20 +18,20 @@ import '../AdminPanel.css';
 /** Reports per page. */
 const PAGE_SIZE = 25;
 
-const SORTS = [
-  { value: 'mostReported', label: 'Most reported' },
-  { value: 'newest', label: 'Newest first' },
-  { value: 'oldest', label: 'Oldest first' },
-  { value: 'ratingLow', label: 'Lowest rating' },
-  { value: 'ratingHigh', label: 'Highest rating' },
+const SORTS = () => [
+  { value: 'mostReported', label: t('Most reported', 'সবচেয়ে বেশি রিপোর্ট') },
+  { value: 'newest', label: t('Newest first', 'নতুন আগে') },
+  { value: 'oldest', label: t('Oldest first', 'পুরোনো আগে') },
+  { value: 'ratingLow', label: t('Lowest rating', 'সর্বনিম্ন রেটিং আগে') },
+  { value: 'ratingHigh', label: t('Highest rating', 'সর্বোচ্চ রেটিং আগে') },
 ];
-const STARS = [
-  { value: '', label: 'Any stars' },
-  ...[5, 4, 3, 2, 1].map((n) => ({ value: String(n), label: `${'★'.repeat(n)} (${n})` })),
+const STARS = () => [
+  { value: '', label: t('Any stars', 'যেকোনো তারা') },
+  ...[5, 4, 3, 2, 1].map((n) => ({ value: String(n), label: `${'★'.repeat(n)} (${formatNumber(n)})` })),
 ];
 
 const when = (value?: string): string =>
-  value ? new Date(value).toLocaleDateString(undefined, { dateStyle: 'medium' }) : '';
+  value ? formatDate(value, { dateStyle: 'medium' }) : '';
 
 /**
  * Reviews somebody has reported.
@@ -78,7 +79,7 @@ export default function ReviewModeration() {
     try {
       toast.success((await dismiss(reviewId)).message);
     } catch (error) {
-      toast.error(messageOf(error) || 'Could not clear those reports.');
+      toast.error(messageOf(error) || t('Could not clear those reports.', 'রিপোর্টগুলো মোছা যায়নি।'));
     }
   };
 
@@ -86,7 +87,7 @@ export default function ReviewModeration() {
     try {
       toast.success((await remove({ targetId, reviewerEmail })).message);
     } catch (error) {
-      toast.error(messageOf(error) || 'Could not remove that review.');
+      toast.error(messageOf(error) || t('Could not remove that review.', 'রিভিউটি সরানো যায়নি।'));
     }
   };
 
@@ -99,11 +100,13 @@ export default function ReviewModeration() {
             <span className="admin-page-icon" aria-hidden="true">
               <FaFlag />
             </span>
-            Reported Reviews
+            {t('Reported Reviews', 'রিপোর্ট করা রিভিউ')}
           </h2>
           <p className="admin-lede">
-            A reported review stays up until you decide. Clear the reports if it is fair, or
-            remove it if it breaks the rules.
+            {t(
+              'A reported review stays up until you decide. Clear the reports if it is fair, or remove it if it breaks the rules.',
+              'আপনি সিদ্ধান্ত না নেওয়া পর্যন্ত রিপোর্ট করা রিভিউ দেখা যাবে। ঠিক থাকলে রিপোর্টগুলো মুছে দিন, নিয়ম ভাঙলে রিভিউটি সরান।'
+            )}
           </p>
         </div>
         <RefreshButton onClick={() => void query.refetch()} busy={query.isFetching} />
@@ -123,26 +126,33 @@ export default function ReviewModeration() {
             name="q"
             type="text"
             className="field"
-            placeholder={`Search words, reviewer or ${kind === 'seller' ? 'seller' : 'book'}...`}
-            aria-label="Search reported reviews"
+            placeholder={t(
+              `Search words, reviewer or ${kind === 'seller' ? 'seller' : 'book'}...`,
+              `শব্দ, রিভিউদাতা বা ${kind === 'seller' ? 'বিক্রেতা' : 'বই'} দিয়ে খুঁজুন...`
+            )}
+            aria-label={t('Search reported reviews', 'রিপোর্ট করা রিভিউ খুঁজুন')}
             value={search}
             onChange={(e) => change(setSearch)(e.target.value)}
           />
         </div>
-        <FilterSelect name="sort" label="Sort" value={sort} onChange={change(setSort)} options={SORTS} />
-        <FilterSelect name="rating" label="Stars" value={rating} onChange={change(setRating)} options={STARS} />
+        <FilterSelect name="sort" label={t('Sort', 'সাজান')} value={sort} onChange={change(setSort)} options={SORTS()} />
+        <FilterSelect name="rating" label={t('Stars', 'তারা')} value={rating} onChange={change(setRating)} options={STARS()} />
       </div>
 
       {query.isPending ? (
-        <div className="admin-loading">Loading...</div>
+        <div className="admin-loading">{t('Loading...', 'লোড হচ্ছে...')}</div>
       ) : query.error ? (
-        <div className="admin-alert">Error: {query.error.message}</div>
+        <div className="admin-alert">{t('Error:', 'ত্রুটি:')} {query.error.message}</div>
       ) : reviews.length === 0 ? (
         <div className="admin-card admin-empty">
           <span className="admin-empty-mark" aria-hidden="true">
             ✨
           </span>
-          <p>{settled || rating ? 'No reported review matches.' : 'Nothing has been reported.'}</p>
+          <p>
+            {settled || rating
+              ? t('No reported review matches.', 'মেলে এমন কোনো রিপোর্ট করা রিভিউ নেই।')
+              : t('Nothing has been reported.', 'কিছুই রিপোর্ট করা হয়নি।')}
+          </p>
         </div>
       ) : (
         <ul className="admin-reviews">
@@ -165,7 +175,10 @@ export default function ReviewModeration() {
                   <Stars value={review.rating} size={14} />
                   <span className="badge admin-status is-bad">
                     <FaFlag aria-hidden="true" />
-                    {review.flagCount} report{review.flagCount === 1 ? '' : 's'}
+                    {t(
+                      `${review.flagCount} report${review.flagCount === 1 ? '' : 's'}`,
+                      `${formatNumber(review.flagCount ?? 0)}টি রিপোর্ট`
+                    )}
                   </span>
                 </div>
 
@@ -179,7 +192,7 @@ export default function ReviewModeration() {
 
                 {review.reasons.length > 0 && (
                   <div className="admin-reasons">
-                    <strong>What the reporters said:</strong>
+                    <strong>{t('What the reporters said:', 'রিপোর্টকারীরা যা বলেছেন:')}</strong>
                     <ul>
                       {review.reasons.map((reason, index) => (
                         <li key={`${String(review._id)}-${String(index)}`}>{reason}</li>
@@ -195,7 +208,7 @@ export default function ReviewModeration() {
                     onClick={() => void clearReports(review._id)}
                   >
                     <FaCheck aria-hidden="true" />
-                    It is fine — clear the reports
+                    {t('It is fine — clear the reports', 'ঠিক আছে — রিপোর্টগুলো মুছে দিন')}
                   </button>
                   <button
                     type="button"
@@ -203,7 +216,7 @@ export default function ReviewModeration() {
                     onClick={() => void deleteReview(subject.targetId, review.reviewerEmail)}
                   >
                     <FaTrashAlt aria-hidden="true" />
-                    Remove the review
+                    {t('Remove the review', 'রিভিউটি সরান')}
                   </button>
                 </div>
               </li>
@@ -219,7 +232,7 @@ export default function ReviewModeration() {
           pageSize={PAGE_SIZE}
           total={total}
           onPage={setPage}
-          noun="reports"
+          noun={t('reports', 'রিপোর্ট')}
         />
       </div>
     </div>

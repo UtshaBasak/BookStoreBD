@@ -9,6 +9,7 @@ import { API_BASE_URL, apiFetch } from '../config/api.js';
 import { useToast } from '../hooks/useToast.js';
 import { keys } from '../hooks/queries.js';
 import { getUserEmail } from '../utils/auth.js';
+import { digits, formatDate, formatNumber, formatTime, pick, t } from '../utils/language.js';
 import { subscribeToMessages } from '../utils/socket.js';
 import { reportError } from '../utils/report.js';
 import AuthImage from '../components/AuthImage.js';
@@ -16,6 +17,7 @@ import FilePreview from '../components/FilePreview.js';
 import Logo from '../components/Logo.js';
 import NotificationBell from '../components/NotificationBell.js';
 import { ThemeToggle } from '../components/ThemeToggle.js';
+import { LanguageToggle } from '../components/LanguageToggle.js';
 import './Homepage.css';
 import '../components/Chat.css';
 
@@ -210,13 +212,22 @@ export default function ChatPage() {
             scrollToBottom();
         } catch (err) {
             reportError('Error sending message:', err);
-            toast.error('Message not sent. Please try again.');
+            toast.error(t('Message not sent. Please try again.', 'মেসেজ পাঠানো যায়নি। আবার চেষ্টা করুন।'));
         }
     };
 
     const deleteConversation = async (userToDelete: ChatSummary) => {
-        // eslint-disable-next-line no-alert -- a confirmation needs an answer; replacing it needs a dialog component
-        if (!window.confirm(`Delete this conversation from your chats? ${userToDelete.username || userToDelete.email} keeps their copy.`)) return;
+        const other = userToDelete.username || userToDelete.email;
+        if (
+            // eslint-disable-next-line no-alert -- a confirmation needs an answer; replacing it needs a dialog component
+            !window.confirm(
+                t(
+                    `Delete this conversation from your chats? ${other} keeps their copy.`,
+                    `আপনার চ্যাট থেকে এই কথোপকথন মুছবেন? ${other}-এর কাছে তাঁর কপি থেকে যাবে।`
+                )
+            )
+        )
+            return;
         
         try {
             const response = await apiFetch(`${API_BASE_URL}/chat/delete`, {
@@ -252,9 +263,10 @@ export default function ChatPage() {
                     </Link>
                     <span className="chat-divider" aria-hidden="true" />
                     <FaComments className="chat-header-icon" size={22} aria-hidden="true" />
-                    <h1>Messages</h1>
+                    <h1>{t('Messages', 'মেসেজ')}</h1>
                 </div>
                 <div className="user-options">
+                    <LanguageToggle />
                     <ThemeToggle className="icon-button theme-toggle header-theme-toggle" />
                     <NotificationBell />
                 </div>
@@ -264,11 +276,11 @@ export default function ChatPage() {
                 conversation is picked, then the conversation with a way back.
                 Side by side from `lg`, where both fit (see Chat.css). */}
             <div className={`chat-shell${selectedUser ? ' has-thread' : ''}`}>
-                <section className="card chat-list" aria-label="Conversations">
+                <section className="card chat-list" aria-label={t('Conversations', 'কথোপকথন')}>
                     <div className="chat-list-head">
-                        <h2>Conversations</h2>
+                        <h2>{t('Conversations', 'কথোপকথন')}</h2>
                         {conversations.length > 0 && (
-                            <span className="badge chat-count">{conversations.length}</span>
+                            <span className="badge chat-count">{digits(conversations.length)}</span>
                         )}
                     </div>
                     <div className="chat-list-body">
@@ -278,13 +290,16 @@ export default function ChatPage() {
                                 <span className="chat-empty-icon is-small" aria-hidden="true">
                                     <FaComments size={26} />
                                 </span>
-                                <p style={{ margin: '0.75rem 0 0.25rem', fontWeight: 700, color: 'var(--color-ink)' }}>No conversations yet.</p>
+                                <p style={{ margin: '0.75rem 0 0.25rem', fontWeight: 700, color: 'var(--color-ink)' }}>{t('No conversations yet.', 'এখনও কোনো কথোপকথন নেই।')}</p>
                                 <p style={{ fontSize: '0.9rem' }}>
-                                    Open any book and use <strong>Chat with Seller</strong> to start one.
+                                    {pick(
+                                        <>Open any book and use <strong>Chat with Seller</strong> to start one.</>,
+                                        <>যেকোনো বই খুলে <strong>বিক্রেতার সঙ্গে চ্যাট</strong> দিয়ে কথোপকথন শুরু করুন।</>
+                                    )}
                                 </p>
                                 <Link to="/filter" className="btn btn-ghost">
                                     <FaBookOpen size={14} aria-hidden="true" />
-                                    Browse books
+                                    {t('Browse books', 'বই দেখুন')}
                                 </Link>
                             </div>
                         )}
@@ -314,11 +329,14 @@ export default function ChatPage() {
                                             </span>
                                             <span className="chat-row-bottom">
                                                 <span className="chat-row-preview">
-                                                    {user.lastMessage || 'Start a conversation'}
+                                                    {user.lastMessage || t('Start a conversation', 'কথোপকথন শুরু করুন')}
                                                 </span>
                                                 {unread && (
-                                                    <span className="chat-unread" aria-label={`${user.unreadCount} unread`}>
-                                                        {user.unreadCount > 99 ? '99+' : user.unreadCount}
+                                                    <span
+                                                        className="chat-unread"
+                                                        aria-label={t(`${user.unreadCount} unread`, `${formatNumber(user.unreadCount)}টি পড়া হয়নি`)}
+                                                    >
+                                                        {user.unreadCount > 99 ? t('99+', `${formatNumber(99)}+`) : formatNumber(user.unreadCount)}
                                                     </span>
                                                 )}
                                             </span>
@@ -331,8 +349,8 @@ export default function ChatPage() {
                                             e.stopPropagation();
                                             deleteConversation(user);
                                         }}
-                                        title="Delete conversation"
-                                        aria-label="Delete conversation"
+                                        title={t('Delete conversation', 'কথোপকথন মুছুন')}
+                                        aria-label={t('Delete conversation', 'কথোপকথন মুছুন')}
                                     >
                                         <FaTrash size={15} />
                                     </button>
@@ -342,7 +360,7 @@ export default function ChatPage() {
                     </div>
                 </section>
 
-                <section className="card chat-thread" aria-label="Messages">
+                <section className="card chat-thread" aria-label={t('Messages', 'মেসেজ')}>
                     {selectedUser ? (
                         <>
                             <div className="chat-thread-head">
@@ -352,7 +370,7 @@ export default function ChatPage() {
                                     type="button"
                                     className="icon-button chat-back-list"
                                     onClick={() => setSelectedUser(null)}
-                                    aria-label="Back to conversations"
+                                    aria-label={t('Back to conversations', 'কথোপকথনে ফিরে যান')}
                                 >
                                     <FaArrowLeft size={18} />
                                 </button>
@@ -369,7 +387,7 @@ export default function ChatPage() {
                                 onScroll={handleScroll}
                                 className="chat-messages"
                             >
-                                {loading && <div className="chat-loading">Loading...</div>}
+                                {loading && <div className="chat-loading">{t('Loading...', 'লোড হচ্ছে...')}</div>}
                                 {messages.map((msg, i) => {
                                     const own = msg.sender === userEmail;
                                     return (
@@ -381,7 +399,7 @@ export default function ChatPage() {
                                                 {msg.image && (
                                                     <AuthImage
                                                         src={msg.image}
-                                                        alt="Chat attachment"
+                                                        alt={t('Chat attachment', 'চ্যাটের সংযুক্ত ছবি')}
                                                         className="chat-bubble-image"
                                                     />
                                                 )}
@@ -410,20 +428,20 @@ export default function ChatPage() {
                                     type="button"
                                     className="chat-attach"
                                     onClick={() => fileInputRef.current?.click()}
-                                    title="Add image"
-                                    aria-label="Add image"
+                                    title={t('Add image', 'ছবি যোগ করুন')}
+                                    aria-label={t('Add image', 'ছবি যোগ করুন')}
                                 >
                                     <FaImage size={19} />
                                 </button>
 
                                 {selectedImage && (
                                     <div className="chat-preview">
-                                        <FilePreview file={selectedImage} alt="Selected" max={120} />
+                                        <FilePreview file={selectedImage} alt={t('Selected', 'বেছে নেওয়া ছবি')} max={120} />
                                         <button
                                             type="button"
                                             className="chat-preview-remove"
                                             onClick={() => setSelectedImage(null)}
-                                            aria-label="Remove image"
+                                            aria-label={t('Remove image', 'ছবি সরান')}
                                         >
                                             ×
                                         </button>
@@ -436,13 +454,13 @@ export default function ChatPage() {
                                     value={newMessage}
                                     onChange={(e) => setNewMessage(e.target.value)}
                                     onKeyPress={(e) => e.key === 'Enter' && sendMessage()}
-                                    placeholder="Type a message..."
+                                    placeholder={t('Type a message...', 'মেসেজ লিখুন...')}
                                 />
                                 <button
                                     type="button"
                                     className="btn btn-primary chat-send"
                                     onClick={() => sendMessage()}
-                                    aria-label="Send message"
+                                    aria-label={t('Send message', 'মেসেজ পাঠান')}
                                 >
                                     <FaPaperPlane size={17} />
                                 </button>
@@ -453,9 +471,9 @@ export default function ChatPage() {
                             <span className="chat-empty-icon" aria-hidden="true">
                                 <FaComments size={36} />
                             </span>
-                            <h2>Your Messages</h2>
+                            <h2>{t('Your Messages', 'আপনার মেসেজ')}</h2>
                             <p>
-                                Select a conversation to start chatting
+                                {t('Select a conversation to start chatting', 'চ্যাট শুরু করতে একটি কথোপকথন বেছে নিন')}
                             </p>
                         </div>
                     )}
@@ -495,16 +513,16 @@ function shortWhen(iso?: string) {
     const d = new Date(iso);
     if (Number.isNaN(d.getTime())) return '';
     return sameDay(d, new Date())
-        ? d.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })
-        : d.toLocaleDateString([], { day: 'numeric', month: 'short' });
+        ? formatTime(d, { hour: 'numeric', minute: '2-digit' })
+        : formatDate(d, { day: 'numeric', month: 'short' });
 }
 
 /** The time under a bubble, with the date too when it was not today. */
 function messageWhen(iso: string) {
     const d = new Date(iso);
     if (Number.isNaN(d.getTime())) return '';
-    const time = d.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+    const time = formatTime(d, { hour: 'numeric', minute: '2-digit' });
     return sameDay(d, new Date())
         ? time
-        : `${d.toLocaleDateString([], { day: 'numeric', month: 'short' })}, ${time}`;
+        : `${formatDate(d, { day: 'numeric', month: 'short' })}, ${time}`;
 }

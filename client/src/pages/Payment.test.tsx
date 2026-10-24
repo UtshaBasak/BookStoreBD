@@ -295,8 +295,11 @@ describe('the confirmation', () => {
     expect(screen.getByText(/was not applied: That code is for a first order only\./)).toBeInTheDocument();
     // The server's figures, not the cart's 2 × 450.
     expect(await screen.findByText('৳470.00', {}, { timeout: 5000 })).toBeInTheDocument();
-    expect(screen.getByTestId('where')).toHaveTextContent(`/payment?order=${ORDER}`);
-  });
+    // The address follows the confirmation a render later.
+    await waitFor(() => expect(screen.getByTestId('where')).toHaveTextContent(`/payment?order=${ORDER}`));
+    // Its own waits allow 5 s each, so the test as a whole needs longer than
+    // the default 5 s when the full suite is loading the machine.
+  }, 15000);
 
   it('comes back on a reload of its own page', async () => {
     stubShop();

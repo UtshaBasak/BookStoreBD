@@ -17,8 +17,9 @@ import { getUserEmail } from '../utils/auth.js';
 import { CONFIRMED_ORDER_KEY, bdMobile, forgetConfirmedOrder } from '../utils/checkout.js';
 import { safeImageSrc, PLACEHOLDER_IMAGE } from '../utils/safeImageSrc.js';
 import { sized, IMAGE_WIDTHS } from '../utils/imageUrl.js';
-import { deliveryChargeFor, site } from '../config/site.js';
-import { DIVISIONS, DIVISION_DISTRICTS } from '../config/locations.js';
+import { deliveryChargeFor, promotionDescription, site, sitePayment } from '../config/site.js';
+import { DIVISIONS, DIVISION_DISTRICTS, placeLabel } from '../config/locations.js';
+import { digits, formatNumber, pick, t } from '../utils/language.js';
 import Logo from '../components/Logo.js';
 import { priceOf } from '../utils/pricing.js';
 import './Homepage.css';
@@ -58,15 +59,18 @@ const newCheckoutId = (): string =>
 const leftOutReason = (item: UnavailableItem): string => {
   switch (item.reason) {
     case 'short':
-      return `only ${item.reserved} of ${item.requested} were left, and those are in your order`;
+      return t(
+        `only ${item.reserved} of ${item.requested} were left, and those are in your order`,
+        `${formatNumber(Number(item.requested))}টির মধ্যে মাত্র ${formatNumber(Number(item.reserved))}টি ছিল, সেগুলো আপনার অর্ডারে আছে`
+      );
     case 'removed':
-      return 'no longer listed';
+      return t('no longer listed', 'আর তালিকায় নেই');
     case 'own-listing':
-      return 'your own listing';
+      return t('your own listing', 'আপনার নিজের বই');
     case 'seller-unavailable':
-      return 'the seller is not taking orders just now';
+      return t('the seller is not taking orders just now', 'বিক্রেতা এখন অর্ডার নিচ্ছেন না');
     default:
-      return 'sold out';
+      return t('sold out', 'স্টক শেষ');
   }
 };
 
@@ -99,17 +103,22 @@ const keepConfirmedOrder = (order: ConfirmedOrder): void => {
 
 /** The slim bar across the top: the logo, and how far through checkout this is. */
 function CheckoutTopBar({ step, linkHome = false }: { step: 1 | 2 | 3; linkHome?: boolean }) {
-  const steps = ['Cart', 'Details', 'Done'];
+  const steps = [t('Cart', 'কার্ট'), t('Details', 'বিবরণ'), t('Done', 'সম্পন্ন')];
   return (
     <header className="header shop-topbar">
       {linkHome ? (
-        <Link to="/" className="logo-button" title="Go to Homepage" aria-label="BookStoreBD home">
+        <Link
+          to="/"
+          className="logo-button"
+          title={t('Go to Homepage', 'হোমপেজে যান')}
+          aria-label={t('BookStoreBD home', 'BookStoreBD হোম')}
+        >
           <Logo size={34} />
         </Link>
       ) : (
         <Logo size={34} />
       )}
-      <ol className="checkout-steps" aria-label="Checkout progress">
+      <ol className="checkout-steps" aria-label={t('Checkout progress', 'চেকআউটের ধাপ')}>
         {steps.map((label, i) => {
           const n = i + 1;
           const done = n < step || step === 3;
@@ -120,7 +129,7 @@ function CheckoutTopBar({ step, linkHome = false }: { step: 1 | 2 | 3; linkHome?
               className={[done && 'is-done', current && 'is-current'].filter(Boolean).join(' ')}
               aria-current={current ? 'step' : undefined}
             >
-              <span className="step-dot" aria-hidden="true">{done ? <FaCheck /> : n}</span>
+              <span className="step-dot" aria-hidden="true">{done ? <FaCheck /> : digits(n)}</span>
               <span className="step-word">{label}</span>
             </li>
           );
@@ -205,7 +214,7 @@ export default function Payment() {
   const contactEmail = (contactEmailEdit ?? email).trim();
   const contactEmailOk = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(contactEmail);
   const phoneProblem = phoneTouched && phone.trim() && !phoneNumber
-    ? 'Enter an 11-digit mobile number, like 01712345678.'
+    ? t('Enter an 11-digit mobile number, like 01712345678.', '১১ সংখ্যার মোবাইল নম্বর দিন, যেমন 01712345678।')
     : '';
 
   // How many of each: what the cart holds, which the cart page and the book
@@ -279,10 +288,10 @@ export default function Payment() {
   // free delivery.
   const shippingKnown = Boolean(district) || previewFree || confirmedCharges !== null;
   const shippingLabel = !shippingKnown
-    ? 'Choose your district'
+    ? t('Choose your district', 'আপনার জেলা বেছে নিন')
     : shipping === 0
-      ? 'Free'
-      : `${shipping.toFixed(2)} Tk.`;
+      ? t('Free', 'ফ্রি')
+      : t(`${shipping.toFixed(2)} Tk.`, `${digits(shipping.toFixed(2))} টাকা`);
 
   /*
    * The server says what a code is worth. The order prices the code again
@@ -301,7 +310,7 @@ export default function Payment() {
         setPromoApplied(false);
         setDiscount(0);
         setFreeDelivery(false);
-        setPromoMsg(data.message || 'That code is not valid.');
+        setPromoMsg(data.message || t('That code is not valid.', 'কোডটি সঠিক নয়।'));
         return;
       }
       setPromo(data.code);
@@ -311,11 +320,14 @@ export default function Payment() {
       setPromoApplied(true);
       setPromoMsg(
         data.freeDelivery
-          ? `${data.description}: delivery is free.`
-          : `${data.description}: ${data.discount.toFixed(2)} Tk off.`
+          ? t(`${data.description}: delivery is free.`, `${data.description}: ডেলিভারি ফ্রি।`)
+          : t(
+              `${data.description}: ${data.discount.toFixed(2)} Tk off.`,
+              `${data.description}: ${digits(data.discount.toFixed(2))} টাকা ছাড়।`
+            )
       );
     } catch {
-      setPromoMsg('Could not check that code. Please try again.');
+      setPromoMsg(t('Could not check that code. Please try again.', 'কোডটি যাচাই করা যায়নি। আবার চেষ্টা করুন।'));
     }
   };
 
@@ -342,29 +354,41 @@ export default function Payment() {
     if (!name.trim() || !phone.trim() || !division || !district || !address.trim()) {
       // Beside the Confirm button, not in the promo box, which is hidden
       // while no promotion is running.
-      setConfirmError('Please fill in all the contact and delivery details.');
+      setConfirmError(t('Please fill in all the contact and delivery details.', 'যোগাযোগ ও ডেলিভারির সব তথ্য পূরণ করুন।'));
       return;
     }
     if (!contactEmailOk) {
-      setConfirmError('Enter the e-mail address your order confirmation should go to.');
+      setConfirmError(
+        t('Enter the e-mail address your order confirmation should go to.', 'যে ই-মেইল ঠিকানায় অর্ডার নিশ্চিতকরণ যাবে, সেটি লিখুন।')
+      );
       return;
     }
     if (!phoneNumber) {
       setPhoneTouched(true);
-      setConfirmError('Enter an 11-digit mobile number, like 01712345678, so the courier can call you.');
+      setConfirmError(
+        t(
+          'Enter an 11-digit mobile number, like 01712345678, so the courier can call you.',
+          '১১ সংখ্যার মোবাইল নম্বর দিন, যেমন 01712345678, যাতে কুরিয়ার আপনাকে ফোন করতে পারে।'
+        )
+      );
       return;
     }
     if (address.trim().length < 5) {
-      setConfirmError('Please write the full address: house, road and area.');
+      setConfirmError(t('Please write the full address: house, road and area.', 'পুরো ঠিকানা লিখুন: বাড়ি, রাস্তা ও এলাকা।'));
       return;
     }
     if (cartBooks.length === 0) {
-      setConfirmError('You must add at least one book to confirm your order.');
+      setConfirmError(t('You must add at least one book to confirm your order.', 'অর্ডার নিশ্চিত করতে অন্তত একটি বই যোগ করুন।'));
       return;
     }
     // Not silently dropped: the shopper saw a price with the code in it.
     if (promoApplied && !promoCurrent) {
-      setConfirmError('Your basket changed since you applied the code. Apply it again, or remove it.');
+      setConfirmError(
+        t(
+          'Your basket changed since you applied the code. Apply it again, or remove it.',
+          'কোডটি দেওয়ার পর আপনার কার্ট বদলেছে। আবার প্রয়োগ করুন, অথবা সরিয়ে দিন।'
+        )
+      );
       return;
     }
 
@@ -464,17 +488,29 @@ export default function Payment() {
         void cartQuery.refetch();
         setConfirmError(
           missing.length
-            ? `These books can't be ordered right now: ${missing
-                .map((item) => `${item.title ?? 'A book'} (${leftOutReason(item)})`)
-                .join(', ')}. Remove them from your basket and try again.`
-            : data.errors?.[0]?.message || data.message || 'Order confirmation failed. Please try again.'
+            ? t(
+                `These books can't be ordered right now: ${missing
+                  .map((item) => `${item.title ?? 'A book'} (${leftOutReason(item)})`)
+                  .join(', ')}. Remove them from your basket and try again.`,
+                `এই বইগুলো এখন অর্ডার করা যাচ্ছে না: ${missing
+                  .map((item) => `${item.title ?? 'একটি বই'} (${leftOutReason(item)})`)
+                  .join(', ')}। কার্ট থেকে সরিয়ে আবার চেষ্টা করুন।`
+              )
+            : data.errors?.[0]?.message ||
+                data.message ||
+                t('Order confirmation failed. Please try again.', 'অর্ডার নিশ্চিত করা যায়নি। আবার চেষ্টা করুন।')
         );
       }
     })
     .catch(() => {
       setCartBooks(null);
       freezeQuantities(null);
-      setConfirmError('Could not reach the shop. Your basket is still here - please try again.');
+      setConfirmError(
+        t(
+          'Could not reach the shop. Your basket is still here - please try again.',
+          'শপের সঙ্গে যোগাযোগ করা যায়নি। আপনার কার্ট ঠিক আছে - আবার চেষ্টা করুন।'
+        )
+      );
     })
     .finally(() => setPlacing(false));
   };
@@ -517,8 +553,12 @@ export default function Payment() {
 
   // Display only: every figure is worked out above, and shown here with the
   // taka sign the rest of the shop uses.
-  const money = (amount: number) => `৳${amount.toFixed(2)}`;
+  const money = (amount: number) => `৳${digits(amount.toFixed(2))}`;
   const shippingShown = shippingKnown && shipping !== 0 ? money(shipping) : shippingLabel;
+  const leftOutText = t(
+    `Not everything could go in this order: ${leftOut.map((item) => `${item.title ?? 'A book'} (${leftOutReason(item)})`).join(', ')}.`,
+    `সব বই এই অর্ডারে রাখা যায়নি: ${leftOut.map((item) => `${item.title ?? 'একটি বই'} (${leftOutReason(item)})`).join(', ')}।`
+  );
 
   const typeBadge = (book: Book) =>
     book.bookType ? (
@@ -530,7 +570,7 @@ export default function Payment() {
           color: book.bookType.toLowerCase() === 'new' ? '#111827' : 'var(--color-brand-dark)',
         }}
       >
-        {book.bookType.toLowerCase() === 'new' ? 'NEW' : 'OLD'}
+        {book.bookType.toLowerCase() === 'new' ? t('NEW', 'নতুন') : t('OLD', 'পুরোনো')}
       </span>
     ) : null;
 
@@ -546,8 +586,10 @@ export default function Payment() {
         <CheckoutTopBar step={2} linkHome />
         <main className="shop-main">
           <div className="card mx-auto max-w-md p-8 text-center">
-            <p className="m-0 mb-5 text-lg font-semibold text-ink">Please sign in to proceed to payment.</p>
-            <Link to="/sign-in" className="btn btn-primary">Sign in</Link>
+            <p className="m-0 mb-5 text-lg font-semibold text-ink">
+              {t('Please sign in to proceed to payment.', 'পেমেন্টে যেতে সাইন ইন করুন।')}
+            </p>
+            <Link to="/sign-in" className="btn btn-primary">{t('Sign in', 'সাইন ইন')}</Link>
           </div>
         </main>
       </div>
@@ -559,7 +601,7 @@ export default function Payment() {
       <div className="shop-page">
         <CheckoutTopBar step={2} linkHome />
         <main className="shop-main">
-          <p role="status" className="py-16 text-center font-semibold text-ink-muted">Loading...</p>
+          <p role="status" className="py-16 text-center font-semibold text-ink-muted">{t('Loading...', 'লোড হচ্ছে...')}</p>
         </main>
       </div>
     );
@@ -583,28 +625,40 @@ export default function Payment() {
                 <span className="confetti c5" />
               </div>
               <h1 className="relative m-0" style={{ fontSize: 'clamp(1.8rem, 1.3rem + 2vw, 2.4rem)' }}>
-                Checkout Complete!
+                {t('Checkout Complete!', 'চেকআউট সম্পন্ন!')}
               </h1>
-              <p className="relative m-0 mt-1 text-lg font-semibold text-ink-soft">Thank You For Your Purchase! 🎉</p>
+              <p className="relative m-0 mt-1 text-lg font-semibold text-ink-soft">
+                {t('Thank You For Your Purchase! 🎉', 'কেনার জন্য ধন্যবাদ! 🎉')}
+              </p>
 
               <div className="relative mt-6">
-                <div className="text-xs font-bold tracking-wider text-ink-muted uppercase">Order number</div>
+                <div className="text-xs font-bold tracking-wider text-ink-muted uppercase">{t('Order number', 'অর্ডার নম্বর')}</div>
                 <div className="order-no">#{orderNumber}<CopyButton text={orderNumber} /></div>
               </div>
 
               <p className="relative mx-auto mt-5 mb-0 max-w-sm text-sm leading-relaxed text-ink-muted">
-                Pay in cash when your books arrive - by courier in {site.delivery.daysInsideDhaka} working days in
-                Dhaka, {site.delivery.daysOutsideDhaka} elsewhere.
+                {pick(
+                  <>
+                    Pay in cash when your books arrive - by courier in {site.delivery.daysInsideDhaka} working days in
+                    Dhaka, {site.delivery.daysOutsideDhaka} elsewhere.
+                  </>,
+                  <>
+                    বই হাতে পেলে নগদে পরিশোধ করুন - কুরিয়ারে ঢাকায় {formatNumber(site.delivery.daysInsideDhaka)} কর্মদিবসে,
+                    অন্যত্র {formatNumber(site.delivery.daysOutsideDhaka)} কর্মদিবসে পৌঁছাবে।
+                  </>
+                )}
               </p>
               {leftOut.length > 0 && (
                 <p role="status" className="pay-notice relative mx-auto mt-4 max-w-sm text-left">
-                  Not everything could go in this order:{' '}
-                  {leftOut.map((item) => `${item.title ?? 'A book'} (${leftOutReason(item)})`).join(', ')}.
+                  {leftOutText}
                 </p>
               )}
               {refusedPromo && (
                 <p role="status" className="pay-notice relative mx-auto mt-4 max-w-sm text-left">
-                  The code {promo} was not applied: {refusedPromo} The total below is without it.
+                  {t(
+                    `The code ${promo} was not applied: ${refusedPromo} The total below is without it.`,
+                    `${promo} কোডটি প্রয়োগ হয়নি: ${refusedPromo} নিচের মোটে এটি ধরা হয়নি।`
+                  )}
                 </p>
               )}
 
@@ -619,7 +673,7 @@ export default function Payment() {
                     navigate(`/order-tracking/${orderNumber}`);
                   }}
                 >
-                  <FaTruck aria-hidden="true" /> Track Your Order
+                  <FaTruck aria-hidden="true" /> {t('Track Your Order', 'অর্ডার ট্র্যাক করুন')}
                 </button>
                 <button
                   type="button"
@@ -630,14 +684,14 @@ export default function Payment() {
                     navigate('/');
                   }}
                 >
-                  Go To Home
+                  {t('Go To Home', 'হোমে যান')}
                 </button>
               </div>
             </section>
 
-            <aside className="card p-5 sm:p-7" aria-label="Order Summary">
+            <aside className="card p-5 sm:p-7" aria-label={t('Order Summary', 'অর্ডারের সারসংক্ষেপ')}>
               <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
-                <h2 className="m-0 text-lg">Order Summary</h2>
+                <h2 className="m-0 text-lg">{t('Order Summary', 'অর্ডারের সারসংক্ষেপ')}</h2>
                 <span className="font-mono text-sm font-bold text-brand-dark">#{orderNumber}</span>
                 <CopyButton text={orderNumber} />
               </div>
@@ -656,9 +710,9 @@ export default function Payment() {
                     </div>
                     <div className="min-w-0 flex-1">
                       <div className="leading-snug font-bold text-ink">{line.title}</div>
-                      <div className="text-xs text-ink-muted">By {line.author}</div>
+                      <div className="text-xs text-ink-muted">{t('By', 'লেখক:')} {line.author}</div>
                       <div className="mt-1 text-sm text-ink-soft">
-                        Quantity: <span className="font-bold">{line.quantity}</span>
+                        {t('Quantity:', 'পরিমাণ:')} <span className="font-bold">{digits(line.quantity)}</span>
                       </div>
                     </div>
                     <div className="price text-right">{money(line.price * line.quantity)}</div>
@@ -667,36 +721,44 @@ export default function Payment() {
               </ul>
               <div className="mt-3">
                 <div className="sum-row">
-                  <span>Subtotal</span>
+                  <span>{t('Subtotal', 'উপমোট')}</span>
                   <span>{money(placedTotals.books)}</span>
                 </div>
                 <div className="sum-row">
-                  <span>Shipping</span>
-                  <span>{placedTotals.shipping === 0 ? 'Free' : money(placedTotals.shipping)}</span>
+                  <span>{t('Shipping', 'ডেলিভারি')}</span>
+                  <span>{placedTotals.shipping === 0 ? t('Free', 'ফ্রি') : money(placedTotals.shipping)}</span>
                 </div>
                 {placedTotals.discount > 0 && (
                   <div className="sum-row">
-                    <span>Discount{placedPromo ? ` (${placedPromo})` : ''}</span>
+                    <span>{t('Discount', 'ছাড়')}{placedPromo ? ` (${placedPromo})` : ''}</span>
                     <span style={{ color: 'var(--color-success-dark)' }}>-{money(placedTotals.discount)}</span>
                   </div>
                 )}
               </div>
               <div className="sum-total">
-                <span>To pay on delivery</span>
+                <span>{t('To pay on delivery', 'ডেলিভারিতে পরিশোধ')}</span>
                 <span>{money(placedTotals.total)}</span>
               </div>
               <div className="mt-5 grid gap-3 rounded-2xl bg-brand-tint p-4 text-sm">
                 <div className="flex items-center gap-2">
                   <FaMoneyBillWave aria-hidden="true" className="shrink-0 text-brand" />
                   <span>
-                    Payment Method: <span className="font-bold text-ink">Cash On Delivery</span>
+                    {t('Payment Method:', 'পেমেন্ট পদ্ধতি:')}{' '}
+                    <span className="font-bold text-ink">{t('Cash On Delivery', 'ক্যাশ অন ডেলিভারি')}</span>
                   </span>
                 </div>
                 {address && (
                   <div className="flex items-start gap-2">
                     <FaMapMarkerAlt aria-hidden="true" className="mt-0.5 shrink-0 text-brand" />
                     <span className="min-w-0" style={{ overflowWrap: 'anywhere' }}>
-                      Delivering to {address}, {district}, {division}
+                      {pick(
+                        <>
+                          Delivering to {address}, {district}, {division}
+                        </>,
+                        <>
+                          ঠিকানা: {address}, {placeLabel(district)}, {placeLabel(division)}
+                        </>
+                      )}
                     </span>
                   </div>
                 )}
@@ -717,12 +779,14 @@ export default function Payment() {
           <Link to="/cart"
             className="icon-button"
             style={{ fontSize: 18, color: 'var(--color-brand)', background: 'var(--color-surface)', border: '1px solid var(--color-brand-line)', borderRadius: 999 }}
-            title="Go back to cart"
-            aria-label="Go back to cart"
+            title={t('Go back to cart', 'কার্টে ফিরুন')}
+            aria-label={t('Go back to cart', 'কার্টে ফিরুন')}
           ><FaArrowLeft /></Link>
           <div>
-            <h1 className="shop-title">Checkout</h1>
-            <p className="shop-sub">Almost there - tell us where to bring your books.</p>
+            <h1 className="shop-title">{t('Checkout', 'চেকআউট')}</h1>
+            <p className="shop-sub">
+              {t('Almost there - tell us where to bring your books.', 'প্রায় শেষ - বই কোথায় পৌঁছে দেব, জানান।')}
+            </p>
           </div>
         </div>
 
@@ -733,28 +797,37 @@ export default function Payment() {
         <div className="grid items-start gap-5 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,1fr)]">
           <aside
             className="card min-w-0 p-5 sm:p-7 lg:sticky lg:top-24 lg:col-start-2 lg:row-start-1"
-            aria-label="Your Order"
+            aria-label={t('Your Order', 'আপনার অর্ডার')}
           >
             <div className="mb-1 flex items-center justify-between">
-              <h2 className="m-0 text-lg">Your Order</h2>
+              <h2 className="m-0 text-lg">{t('Your Order', 'আপনার অর্ডার')}</h2>
               {orderConfirmed && <div className="font-bold text-brand">#{orderNumber}</div>}
             </div>
             <div className="lg:max-h-85 lg:overflow-y-auto">
               {leftOut.length > 0 && (
                 <p role="status" className="pay-notice">
-                  Not everything could go in this order:{' '}
-                  {leftOut.map((item) => `${item.title ?? 'A book'} (${leftOutReason(item)})`).join(', ')}.
+                  {leftOutText}
                 </p>
               )}
               {soldOut.length > 0 && (
                 <p role="status" className="pay-notice">
-                  Sold out, so left out of this order: {soldOut.map((book) => book.title).join(', ')}. It stays in
-                  your cart for when it is back.
+                  {pick(
+                    <>
+                      Sold out, so left out of this order: {soldOut.map((book) => book.title).join(', ')}. It stays in
+                      your cart for when it is back.
+                    </>,
+                    <>
+                      স্টক শেষ, তাই এই অর্ডারে নেই: {soldOut.map((book) => book.title).join(', ')}। আবার এলে কেনার জন্য
+                      এটি আপনার কার্টে থাকবে।
+                    </>
+                  )}
                 </p>
               )}
               {cartBooks.length === 0 ? (
                 <div className="p-6 text-center text-ink-muted">
-                  {soldOut.length ? 'Nothing in your cart is in stock right now.' : 'No books in cart.'}
+                  {soldOut.length
+                    ? t('Nothing in your cart is in stock right now.', 'আপনার কার্টের কোনো বই এখন স্টকে নেই।')
+                    : t('No books in cart.', 'কার্টে কোনো বই নেই।')}
                 </div>
               ) : (
                 <ul className="m-0 list-none p-0">
@@ -776,15 +849,15 @@ export default function Payment() {
                         <div className="flex items-start justify-between gap-1">
                           <div className="min-w-0">
                             <div className="leading-snug font-bold text-ink">{book.title}</div>
-                            <div className="text-xs text-ink-muted">By {book.author}</div>
+                            <div className="text-xs text-ink-muted">{t('By', 'লেখক:')} {book.author}</div>
                           </div>
                           <button
                             type="button"
                             className="icon-button shrink-0"
                             style={{ color: 'var(--color-danger-dark)', fontSize: 15, marginTop: -8, marginRight: -8 }}
                             onClick={() => handleRemoveBook(book._id)}
-                            title="Remove from cart"
-                            aria-label="Remove from cart"
+                            title={t('Remove from cart', 'কার্ট থেকে সরান')}
+                            aria-label={t('Remove from cart', 'কার্ট থেকে সরান')}
                           ><FaTrash /></button>
                         </div>
                         <div className="mt-2 flex items-center justify-between gap-2">
@@ -794,11 +867,11 @@ export default function Payment() {
                               max={Number(book.stock) || 1}
                               onChange={(value) => handleQuantityChange(book._id, value)}
                               disabled={savingQuantity}
-                              label={`Copies of ${book.title}`}
+                              label={t(`Copies of ${book.title}`, `${book.title} - কপির সংখ্যা`)}
                             />
                             {Number(book.stock) <= 5 && (
                               <span className="text-xs font-semibold" style={{ color: 'var(--color-warn-ink)' }}>
-                                Only {book.stock} left
+                                {pick(<>Only {book.stock} left</>, <>মাত্র {formatNumber(Number(book.stock))}টি বাকি</>)}
                               </span>
                             )}
                           </div>
@@ -815,25 +888,33 @@ export default function Payment() {
 
             <div className="mt-3">
               <div className="sum-row">
-                <span>Subtotal</span>
+                <span>{t('Subtotal', 'উপমোট')}</span>
                 <span>{money(subtotal)}</span>
               </div>
               <div className="sum-row">
-                <span>Shipping</span>
+                <span>{t('Shipping', 'ডেলিভারি')}</span>
                 <span>{shippingShown}</span>
               </div>
               <p className="m-0 mb-1 flex gap-2 text-xs leading-relaxed text-ink-muted">
                 <FaTruck aria-hidden="true" className="mt-0.5 shrink-0 text-brand-light" />
-                <span>
-                  {site.delivery.insideDhaka} Tk inside Dhaka, {site.delivery.outsideDhaka} Tk elsewhere,
-                  free with {freeDeliveryPromo.code} on {freeDeliveryPromo.minBooksTotal} Tk or more. By courier
-                  in {site.delivery.daysInsideDhaka} working days in Dhaka, {site.delivery.daysOutsideDhaka} elsewhere.
-                  {' '}{site.payment}.
-                </span>
+                {pick(
+                  <span>
+                    {site.delivery.insideDhaka} Tk inside Dhaka, {site.delivery.outsideDhaka} Tk elsewhere,
+                    free with {freeDeliveryPromo.code} on {freeDeliveryPromo.minBooksTotal} Tk or more. By courier
+                    in {site.delivery.daysInsideDhaka} working days in Dhaka, {site.delivery.daysOutsideDhaka} elsewhere.
+                    {' '}{site.payment}.
+                  </span>,
+                  <span>
+                    ঢাকার ভেতরে {formatNumber(site.delivery.insideDhaka)} টাকা, অন্যত্র {formatNumber(site.delivery.outsideDhaka)}{' '}
+                    টাকা; {formatNumber(freeDeliveryPromo.minBooksTotal)} টাকা বা তার বেশিতে {freeDeliveryPromo.code} কোডে
+                    ফ্রি। কুরিয়ারে ঢাকায় {formatNumber(site.delivery.daysInsideDhaka)} কর্মদিবসে, অন্যত্র{' '}
+                    {formatNumber(site.delivery.daysOutsideDhaka)} কর্মদিবসে। {sitePayment()}।
+                  </span>
+                )}
               </p>
               {shownDiscount > 0 && (
                 <div className="sum-row">
-                  <span>Discount</span>
+                  <span>{t('Discount', 'ছাড়')}</span>
                   <span style={{ color: 'var(--color-success-dark)' }}>-{money(shownDiscount)}</span>
                 </div>
               )}
@@ -851,15 +932,22 @@ export default function Payment() {
                 {couldHaveFreeDelivery && (
                   <p role="note" className="promo-hint">
                     <span aria-hidden="true">🚚</span>
-                    <span>
-                      Your books come to {freeDeliveryPromo.minBooksTotal} Tk or more: use the code{' '}
-                      <strong>{freeDeliveryPromo.code}</strong> for free delivery
-                      {promoCurrent ? ' instead - one code per order.' : '.'}
-                    </span>
+                    {pick(
+                      <span>
+                        Your books come to {freeDeliveryPromo.minBooksTotal} Tk or more: use the code{' '}
+                        <strong>{freeDeliveryPromo.code}</strong> for free delivery
+                        {promoCurrent ? ' instead - one code per order.' : '.'}
+                      </span>,
+                      <span>
+                        আপনার বইয়ের দাম {formatNumber(freeDeliveryPromo.minBooksTotal)} টাকা বা তার বেশি:{' '}
+                        {promoCurrent ? 'এর বদলে ' : ''}ফ্রি ডেলিভারির জন্য <strong>{freeDeliveryPromo.code}</strong> কোডটি
+                        ব্যবহার করুন{promoCurrent ? ' - প্রতি অর্ডারে একটি কোড।' : '।'}
+                      </span>
+                    )}
                   </p>
                 )}
                 <label htmlFor="promo-code" className="pay-label">
-                  Promo code or voucher
+                  {t('Promo code or voucher', 'প্রোমো কোড বা ভাউচার')}
                 </label>
                 <div className="flex flex-wrap gap-2">
                   <input
@@ -877,19 +965,19 @@ export default function Payment() {
                     style={{ minHeight: 46 }}
                     onClick={() => void handleApplyPromo()}
                     disabled={promoCurrent}
-                  >Apply</button>
+                  >{t('Apply', 'প্রয়োগ করুন')}</button>
                   {promoApplied && (
                     <button
                       type="button"
                       className="btn btn-danger"
                       style={{ minHeight: 46 }}
                       onClick={handleRemovePromo}
-                    >Remove</button>
+                    >{t('Remove', 'সরান')}</button>
                   )}
                 </div>
                 {promoApplied && !promoCurrent ? (
                   <div role="status" className="mt-2 text-sm font-semibold" style={{ color: 'var(--color-warn-ink)' }}>
-                    Your basket changed. Apply the code again to use it.
+                    {t('Your basket changed. Apply the code again to use it.', 'আপনার কার্ট বদলেছে। কোডটি ব্যবহার করতে আবার প্রয়োগ করুন।')}
                   </div>
                 ) : promoMsg && (
                   <div
@@ -900,7 +988,11 @@ export default function Payment() {
                 )}
                 <p className="m-0 mt-2 flex items-center gap-2 text-xs text-ink-muted">
                   <FaTag aria-hidden="true" className="shrink-0 text-accent" />
-                  <span>First order? <strong className="text-ink-soft">{firstOrder.code}</strong>: {firstOrder.description}.</span>
+                  <span>
+                    {t('First order?', 'প্রথম অর্ডার?')} <strong className="text-ink-soft">{firstOrder.code}</strong>:{' '}
+                    {promotionDescription(firstOrder)}
+                    {t('.', '।')}
+                  </span>
                 </p>
               </div>
               )}
@@ -908,30 +1000,32 @@ export default function Payment() {
             {/* Until a district is chosen the delivery charge is not known, so
                 the total says it is before delivery. */}
             <div className="sum-total">
-              <span>{shippingKnown ? 'Total' : 'Total before delivery'}</span>
+              <span>{shippingKnown ? t('Total', 'মোট') : t('Total before delivery', 'ডেলিভারি চার্জ ছাড়া মোট')}</span>
               <span>{money(total)}</span>
             </div>
           </aside>
 
-          <section className="card min-w-0 p-5 sm:p-7 lg:col-start-1 lg:row-start-1" aria-label="Your details">
-            <h2 className="pay-section-title"><span className="num" aria-hidden="true">1</span>Payment Method</h2>
+          <section className="card min-w-0 p-5 sm:p-7 lg:col-start-1 lg:row-start-1" aria-label={t('Your details', 'আপনার তথ্য')}>
+            <h2 className="pay-section-title"><span className="num" aria-hidden="true">{digits(1)}</span>{t('Payment Method', 'পেমেন্ট পদ্ধতি')}</h2>
             <div className="pay-method">
               <span className="pay-radio" aria-hidden="true" />
               <div className="min-w-0 flex-1">
-                <div className="font-bold text-ink">Cash On Delivery</div>
-                <div className="text-sm text-ink-muted">Pay the courier when your books arrive.</div>
+                <div className="font-bold text-ink">{t('Cash On Delivery', 'ক্যাশ অন ডেলিভারি')}</div>
+                <div className="text-sm text-ink-muted">
+                  {t('Pay the courier when your books arrive.', 'বই হাতে পেলে কুরিয়ারকে টাকা দিন।')}
+                </div>
               </div>
               <FaMoneyBillWave aria-hidden="true" className="shrink-0 text-2xl text-brand" />
             </div>
 
-            <h2 className="pay-section-title"><span className="num" aria-hidden="true">2</span>Contact Information</h2>
+            <h2 className="pay-section-title"><span className="num" aria-hidden="true">{digits(2)}</span>{t('Contact Information', 'যোগাযোগের তথ্য')}</h2>
             <div className="grid gap-3 sm:grid-cols-2">
               <div className="sm:col-span-2">
-                <label htmlFor="checkout-name" className="pay-label">Name</label>
+                <label htmlFor="checkout-name" className="pay-label">{t('Name', 'নাম')}</label>
                 <input
                   id="checkout-name"
                   className="field"
-                  placeholder="Name"
+                  placeholder={t('Name', 'নাম')}
                   autoComplete="name"
                   value={name}
                   onChange={e => setNameEdit(e.target.value)}
@@ -941,7 +1035,7 @@ export default function Payment() {
                 {/* Where this order's e-mails go. It starts as the account's
                     address; changing it here changes nothing about the
                     account, whose cart and profile this page shows. */}
-                <label htmlFor="checkout-email" className="pay-label">Email address</label>
+                <label htmlFor="checkout-email" className="pay-label">{t('Email address', 'ই-মেইল ঠিকানা')}</label>
                 <input
                   id="checkout-email"
                   className="field"
@@ -952,11 +1046,11 @@ export default function Payment() {
                   aria-describedby="checkout-email-note"
                 />
                 <p id="checkout-email-note" className="m-0 mt-1 text-xs text-ink-muted">
-                  Your order confirmation and delivery updates go here.
+                  {t('Your order confirmation and delivery updates go here.', 'অর্ডার নিশ্চিতকরণ ও ডেলিভারির খবর এই ঠিকানায় যাবে।')}
                 </p>
               </div>
               <div>
-                <label htmlFor="checkout-phone" className="pay-label">Phone number</label>
+                <label htmlFor="checkout-phone" className="pay-label">{t('Phone number', 'ফোন নম্বর')}</label>
                 {/* Text, not a number field: a number field reads "+880 17..." as
                     empty. */}
                 <input
@@ -980,10 +1074,10 @@ export default function Payment() {
               </div>
             </div>
 
-            <h2 className="pay-section-title"><span className="num" aria-hidden="true">3</span>Delivery Information</h2>
+            <h2 className="pay-section-title"><span className="num" aria-hidden="true">{digits(3)}</span>{t('Delivery Information', 'ডেলিভারির তথ্য')}</h2>
             <div className="grid gap-3 sm:grid-cols-2">
               <div>
-                <label htmlFor="checkout-division" className="pay-label">Division</label>
+                <label htmlFor="checkout-division" className="pay-label">{t('Division', 'বিভাগ')}</label>
                 <select
                   id="checkout-division"
                   className="field"
@@ -993,14 +1087,14 @@ export default function Payment() {
                     setDistrict('');
                   }}
                 >
-                  <option value="">Select Division</option>
+                  <option value="">{t('Select Division', 'বিভাগ বেছে নিন')}</option>
                   {divisions.map(div => (
-                    <option key={div} value={div}>{div}</option>
+                    <option key={div} value={div}>{placeLabel(div)}</option>
                   ))}
                 </select>
               </div>
               <div>
-                <label htmlFor="checkout-district" className="pay-label">District</label>
+                <label htmlFor="checkout-district" className="pay-label">{t('District', 'জেলা')}</label>
                 <select
                   id="checkout-district"
                   className="field"
@@ -1008,18 +1102,18 @@ export default function Payment() {
                   onChange={e => setDistrict(e.target.value)}
                   disabled={!division}
                 >
-                  <option value="">Select District</option>
+                  <option value="">{t('Select District', 'জেলা বেছে নিন')}</option>
                   {division && (divisionDistricts[division] ?? []).map(dist => (
-                    <option key={dist} value={dist}>{dist}</option>
+                    <option key={dist} value={dist}>{placeLabel(dist)}</option>
                   ))}
                 </select>
               </div>
               <div className="sm:col-span-2">
-                <label htmlFor="checkout-address" className="pay-label">Address</label>
+                <label htmlFor="checkout-address" className="pay-label">{t('Address', 'ঠিকানা')}</label>
                 <textarea
                   id="checkout-address"
                   className="field"
-                  placeholder="Please write detailed address"
+                  placeholder={t('Please write detailed address', 'বিস্তারিত ঠিকানা লিখুন')}
                   rows={3}
                   value={address}
                   onChange={e => setAddressEdit(e.target.value)}
@@ -1028,13 +1122,17 @@ export default function Payment() {
               </div>
               <div className="sm:col-span-2">
                 <label htmlFor="checkout-note" className="pay-label">
-                  Note to the seller <span className="font-normal text-ink-muted">(optional)</span>
+                  {t('Note to the seller', 'বিক্রেতার জন্য নোট')}{' '}
+                  <span className="font-normal text-ink-muted">{t('(optional)', '(ঐচ্ছিক)')}</span>
                 </label>
                 <textarea
                   id="checkout-note"
                   name="buyerNote"
                   className="field"
-                  placeholder="For example: please call before delivery, or a gift - no price inside"
+                  placeholder={t(
+                    'For example: please call before delivery, or a gift - no price inside',
+                    'যেমন: ডেলিভারির আগে ফোন করবেন, অথবা উপহার - ভেতরে দাম রাখবেন না'
+                  )}
                   rows={2}
                   maxLength={300}
                   value={buyerNote}
@@ -1042,14 +1140,14 @@ export default function Payment() {
                   disabled={orderConfirmed}
                   style={{ minHeight: 64, padding: '12px 14px', resize: 'vertical' }}
                 />
-                <p className="m-0 mt-1 text-right text-xs text-ink-muted">{buyerNote.length}/300</p>
+                <p className="m-0 mt-1 text-right text-xs text-ink-muted">{digits(buyerNote.length)}/{digits(300)}</p>
               </div>
             </div>
 
             {/* The total again beside the button on a phone, where the summary
                 is a long way back up the page. */}
             <div className="mt-6 flex items-baseline justify-between rounded-2xl bg-accent-tint px-4 py-3 lg:hidden">
-              <span className="font-bold text-ink">{shippingKnown ? 'To pay on delivery' : 'Total before delivery'}</span>
+              <span className="font-bold text-ink">{shippingKnown ? t('To pay on delivery', 'ডেলিভারিতে পরিশোধ') : t('Total before delivery', 'ডেলিভারি চার্জ ছাড়া মোট')}</span>
               <span className="price text-xl">{money(total)}</span>
             </div>
 
@@ -1061,7 +1159,7 @@ export default function Payment() {
               disabled={placing}
               aria-busy={placing || undefined}
             >
-              {placing ? 'Placing your order…' : 'Confirm Order'}
+              {placing ? t('Placing your order…', 'আপনার অর্ডার দেওয়া হচ্ছে…') : t('Confirm Order', 'অর্ডার নিশ্চিত করুন')}
             </button>
             {confirmError && (
               <div className="mt-3 text-center font-semibold" style={{ color: 'var(--color-danger-ink)' }}>
@@ -1069,7 +1167,11 @@ export default function Payment() {
               </div>
             )}
             <p className="m-0 mt-3 text-center text-xs text-ink-muted">
-              ↩️ Not as described? Ask for a return within {site.returns.windowDays} days of delivery, with a photo.
+              ↩️{' '}
+              {t(
+                `Not as described? Ask for a return within ${site.returns.windowDays} days of delivery, with a photo.`,
+                `বর্ণনার সঙ্গে মেলেনি? ডেলিভারির ${formatNumber(site.returns.windowDays)} দিনের মধ্যে ছবিসহ রিটার্নের অনুরোধ করুন।`
+              )}
             </p>
           </section>
         </div>

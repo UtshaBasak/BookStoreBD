@@ -13,6 +13,8 @@ import { orderTotals, CANCELLED } from '../utils/orderTotals.js';
 import { FilterSelect, RefreshButton } from './admin/AdminControls.js';
 import { ORDER_STATUS_FILTER, ORDER_SORTS } from './admin/orderFilters.js';
 import { conditionOf } from '../utils/bookText.js';
+import { digits, t } from '../utils/language.js';
+import { statusLabel } from '../utils/orderStatus.js';
 
 /** A date as dd/mm/yyyy, or '' when there is none. */
 function formatDate(dateStr: string | undefined) {
@@ -22,7 +24,7 @@ function formatDate(dateStr: string | undefined) {
   const day = String(d.getDate()).padStart(2, '0');
   const month = String(d.getMonth() + 1).padStart(2, '0');
   const year = d.getFullYear();
-  return `${day}/${month}/${year}`;
+  return digits(`${day}/${month}/${year}`);
 }
 
 /** The colour of an order's status pill: waiting, under way, done or stopped. */
@@ -89,10 +91,13 @@ export default function TransactionHistory() {
             <span className="admin-page-icon" aria-hidden="true">
               <FaReceipt />
             </span>
-            Transaction History
+            {t('Transaction History', 'লেনদেনের ইতিহাস')}
           </h1>
           <p className="admin-lede">
-            Every order placed in the shop. Open one to follow it, move it along or cancel it.
+            {t(
+              'Every order placed in the shop. Open one to follow it, move it along or cancel it.',
+              'শপে দেওয়া প্রতিটি অর্ডার। কোনোটি খুলে তার অবস্থা দেখুন, এগিয়ে নিন বা বাতিল করুন।'
+            )}
           </p>
         </div>
         <RefreshButton onClick={() => void ordersQuery.refetch()} busy={refreshing} />
@@ -103,8 +108,11 @@ export default function TransactionHistory() {
           <input name="q"
             type="text"
             className="field"
-            placeholder="Search by order number, buyer, seller, title, or author..."
-            aria-label="Search orders"
+            placeholder={t(
+              'Search by order number, buyer, seller, title, or author...',
+              'অর্ডার নম্বর, ক্রেতা, বিক্রেতা, বইয়ের নাম বা লেখক দিয়ে খুঁজুন...'
+            )}
+            aria-label={t('Search orders', 'অর্ডার খুঁজুন')}
             value={search}
             onChange={(e) => {
               setSearch(e.target.value);
@@ -113,14 +121,14 @@ export default function TransactionHistory() {
             }}
           />
         </div>
-        <FilterSelect name="status" label="Status" value={status} onChange={change(setStatus)} options={ORDER_STATUS_FILTER} />
-        <FilterSelect name="sort" label="Sort" value={sort} onChange={change(setSort)} options={ORDER_SORTS} />
+        <FilterSelect name="status" label={t('Status', 'অবস্থা')} value={status} onChange={change(setStatus)} options={ORDER_STATUS_FILTER} />
+        <FilterSelect name="sort" label={t('Sort', 'সাজান')} value={sort} onChange={change(setSort)} options={ORDER_SORTS} />
         <label className="admin-filter">
-          <span className="admin-filter-label">From</span>
+          <span className="admin-filter-label">{t('From', 'থেকে')}</span>
           <input name="from" type="date" className="field" value={from} max={to || undefined} onChange={(e) => change(setFrom)(e.target.value)} />
         </label>
         <label className="admin-filter">
-          <span className="admin-filter-label">To</span>
+          <span className="admin-filter-label">{t('To', 'পর্যন্ত')}</span>
           <input name="to" type="date" className="field" value={to} min={from || undefined} onChange={(e) => change(setTo)(e.target.value)} />
         </label>
       </div>
@@ -130,7 +138,7 @@ export default function TransactionHistory() {
             <span className="admin-empty-mark" aria-hidden="true">
               🧾
             </span>
-            <p>No transactions found.</p>
+            <p>{t('No transactions found.', 'কোনো লেনদেন পাওয়া যায়নি।')}</p>
           </div>
         ) : (
           Object.entries(grouped).map(([orderNumber, orderBooks]) => {
@@ -148,20 +156,20 @@ export default function TransactionHistory() {
                   <div style={{ minWidth: 0 }}>
                     <p className="admin-order-number">
                       <span>
-                        Order Number: <span className="admin-mono">{displayOrderNumber}</span>
+                        {t('Order Number:', 'অর্ডার নম্বর:')} <span className="admin-mono">{displayOrderNumber}</span>
                         <CopyButton text={displayOrderNumber} />
                       </span>
                       <span className={`badge admin-status ${statusTone(shownStatus)}`}>
-                        <span className="sr-only">Status: </span>
-                        {shownStatus}
+                        <span className="sr-only">{t('Status: ', 'অবস্থা: ')}</span>
+                        {statusLabel(shownStatus)}
                       </span>
                     </p>
                     <p className="admin-meta">
                       <span>
-                        <b>Order Placed On:</b> {formatDate(order.createdAt)}
+                        <b>{t('Order Placed On:', 'অর্ডারের তারিখ:')}</b> {formatDate(order.createdAt)}
                       </span>
                       <span>
-                        <b>Buyer Email:</b> {order.buyerEmail}
+                        <b>{t('Buyer Email:', 'ক্রেতার ই-মেইল:')}</b> {order.buyerEmail}
                       </span>
                     </p>
                   </div>
@@ -169,23 +177,23 @@ export default function TransactionHistory() {
                     className="btn btn-primary admin-btn-sm"
                   >
                     <FaTruck aria-hidden="true" />
-                    Track The Order
+                    {t('Track The Order', 'অর্ডার ট্র্যাক করুন')}
                   </Link>
                 </div>
                 <div className="table-scroll">
                 <table className="styled-table">
                   <thead>
                     <tr>
-                      <th>Title</th>
-                      <th>Author</th>
-                      <th>Category</th>
-                      <th>Book Type</th>
-                      <th>Condition</th>
-                      <th>No. of Pages</th>
-                      <th>Price (Tk.)</th>
-                      <th>Quantity</th>
-                      <th>Seller</th>
-                      <th>Total Cost</th>
+                      <th>{t('Title', 'বইয়ের নাম')}</th>
+                      <th>{t('Author', 'লেখক')}</th>
+                      <th>{t('Category', 'ক্যাটাগরি')}</th>
+                      <th>{t('Book Type', 'বইয়ের ধরন')}</th>
+                      <th>{t('Condition', 'অবস্থা')}</th>
+                      <th>{t('No. of Pages', 'পৃষ্ঠা সংখ্যা')}</th>
+                      <th>{t('Price (Tk.)', 'দাম (টাকা)')}</th>
+                      <th>{t('Quantity', 'পরিমাণ')}</th>
+                      <th>{t('Seller', 'বিক্রেতা')}</th>
+                      <th>{t('Total Cost', 'মোট দাম')}</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -194,18 +202,18 @@ export default function TransactionHistory() {
                         <td className="admin-cell-strong" style={{ minWidth: 150 }}>
                           {ob.title}
                           {ob.status === CANCELLED && orderBooks.length > 1 && (
-                            <span className="badge admin-status is-bad admin-line-pill">Cancelled</span>
+                            <span className="badge admin-status is-bad admin-line-pill">{statusLabel(CANCELLED)}</span>
                           )}
                         </td>
                         <td style={{ minWidth: 130 }}>{ob.author}</td>
                         <td style={{ minWidth: 120 }}>{Array.isArray(ob.category) ? ob.category.join(', ') : ob.category}</td>
-                        <td style={{ textTransform: 'capitalize' }}>{ob.bookType}</td>
+                        <td style={{ textTransform: 'capitalize' }}>{ob.bookType === 'old' ? t('old', 'পুরোনো') : ob.bookType === 'new' ? t('new', 'নতুন') : ob.bookType}</td>
                         <td style={{ textTransform: 'capitalize' }}>{conditionOf(ob) || '-'}</td>
-                        <td className="admin-num">{ob.pages}</td>
-                        <td className="admin-num">{ob.price}</td>
-                        <td className="admin-num">{ob.quantity}</td>
+                        <td className="admin-num">{ob.pages == null ? ob.pages : digits(ob.pages)}</td>
+                        <td className="admin-num">{ob.price == null ? ob.price : digits(ob.price)}</td>
+                        <td className="admin-num">{ob.quantity == null ? ob.quantity : digits(ob.quantity)}</td>
                         <td>{ob.sellerEmail}</td>
-                        <td className="admin-num admin-cell-strong">{(Number(ob.price) * Number(ob.quantity)).toFixed(2)}</td>
+                        <td className="admin-num admin-cell-strong">{digits((Number(ob.price) * Number(ob.quantity)).toFixed(2))}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -215,22 +223,22 @@ export default function TransactionHistory() {
                     sideways, and here the totals stay on screen. */}
                 <dl className="admin-totals">
                   <div>
-                    <dt>Subtotal:</dt>
-                    <dd>{itemTotal.toFixed(2)}</dd>
+                    <dt>{t('Subtotal:', 'উপমোট:')}</dt>
+                    <dd>{digits(itemTotal.toFixed(2))}</dd>
                   </div>
                   <div>
-                    <dt>Shipping Charge:</dt>
-                    <dd>{shipping.toFixed(2)}</dd>
+                    <dt>{t('Shipping Charge:', 'ডেলিভারি চার্জ:')}</dt>
+                    <dd>{digits(shipping.toFixed(2))}</dd>
                   </div>
                   {discount > 0 && (
                     <div>
-                      <dt>Discount{promoApplied && promo ? ` (${promo})` : ''}:</dt>
-                      <dd style={{ color: 'var(--color-success-dark)' }}>- {discount.toFixed(2)}</dd>
+                      <dt>{t('Discount', 'ছাড়')}{promoApplied && promo ? ` (${promo})` : ''}:</dt>
+                      <dd style={{ color: 'var(--color-success-dark)' }}>- {digits(discount.toFixed(2))}</dd>
                     </div>
                   )}
                   <div className="admin-grand">
-                    <dt>Order Total:</dt>
-                    <dd className="admin-price">৳{finalTotal.toFixed(2)}</dd>
+                    <dt>{t('Order Total:', 'অর্ডারের মোট:')}</dt>
+                    <dd className="admin-price">৳{digits(finalTotal.toFixed(2))}</dd>
                   </div>
                 </dl>
 
@@ -247,7 +255,7 @@ export default function TransactionHistory() {
           pageSize={PAGE_SIZE}
           total={total}
           onPage={setPage}
-          noun="orders"
+          noun={t('orders', 'অর্ডার')}
         />
       </div>
     </div>

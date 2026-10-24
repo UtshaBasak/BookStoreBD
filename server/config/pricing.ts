@@ -17,6 +17,8 @@
  * page by them against an index.
  */
 
+import { bnDigits, inLanguage, type Language } from '../utils/language.js';
+
 export type DiscountType = 'percent' | 'amount';
 
 /** A deal of more than this is not a deal, it is a mistake or a lure. */
@@ -34,22 +36,33 @@ export interface PricedFields {
 }
 
 /** Why a discount cannot be applied to a price, or null when it can. */
-export const discountProblem = (price: number, discount: Discount): string | null => {
+export const discountProblem = (price: number, discount: Discount, language: Language = 'en'): string | null => {
   if (!discount.type) return null;
   const { value } = discount;
-  if (!Number.isInteger(value) || value < 1) return 'A discount has to be a whole number of at least 1';
-  if (!(price > 0)) return 'A book listed for free cannot be discounted';
+  const say = (en: string, bn: string): string => inLanguage(language, en, bn);
+  if (!Number.isInteger(value) || value < 1) {
+    return say('A discount has to be a whole number of at least 1', 'ছাড় অবশ্যই কমপক্ষে ১ বা তার বেশি একটি পূর্ণ সংখ্যা হতে হবে');
+  }
+  if (!(price > 0)) return say('A book listed for free cannot be discounted', 'বিনামূল্যে তালিকাভুক্ত বইয়ে ছাড় দেওয়া যায় না');
   if (discount.type === 'percent' && value > MAX_DISCOUNT_PERCENT) {
-    return `A discount can be at most ${MAX_DISCOUNT_PERCENT}%`;
+    return say(`A discount can be at most ${MAX_DISCOUNT_PERCENT}%`, `ছাড় সর্বোচ্চ ${bnDigits(MAX_DISCOUNT_PERCENT)}% হতে পারে`);
   }
   if (discount.type === 'amount') {
-    if (value >= price) return 'The discount has to be less than the price';
-    if (value / price > MAX_DISCOUNT_PERCENT / 100) return `A discount can be at most ${MAX_DISCOUNT_PERCENT}% of the price`;
+    if (value >= price) return say('The discount has to be less than the price', 'ছাড় দামের চেয়ে কম হতে হবে');
+    if (value / price > MAX_DISCOUNT_PERCENT / 100) {
+      return say(
+        `A discount can be at most ${MAX_DISCOUNT_PERCENT}% of the price`,
+        `ছাড় দামের সর্বোচ্চ ${bnDigits(MAX_DISCOUNT_PERCENT)}% হতে পারে`
+      );
+    }
   }
   // Prices are whole taka: a percentage that rounds to nothing off saves the
   // buyer nothing, and saying "Discount saved" for it would be untrue.
   if (discount.type === 'percent' && Math.max(1, Math.round((price * (100 - value)) / 100)) >= price) {
-    return 'That discount comes to less than 1 Tk on this price. Try a larger one.';
+    return say(
+      'That discount comes to less than 1 Tk on this price. Try a larger one.',
+      'এই দামে ছাড়টি ১ টাকার কম হয়। একটু বেশি ছাড় দিন।'
+    );
   }
   return null;
 };

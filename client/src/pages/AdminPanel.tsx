@@ -26,30 +26,33 @@ import {
 } from 'react-icons/fa';
 import Logo from '../components/Logo.js';
 import { ThemeToggle } from '../components/ThemeToggle.js';
+import { LanguageToggle } from '../components/LanguageToggle.js';
 import NotificationSettings from '../components/NotificationSettings.js';
 import TwoStepSetting from '../components/TwoStepSetting.js';
 import SessionsSetting from '../components/SessionsSetting.js';
 import { getUserEmail, isAdmin } from '../utils/auth.js';
 import { useNotificationSettings, useProfile } from '../hooks/queries.js';
 import { signOut } from '../config/api.js';
+import { t } from '../utils/language.js';
 
 interface Section {
   to: string;
-  label: string;
+  /** Worded when the sidebar is drawn, in the language shown then. */
+  label: () => string;
   icon: IconType;
 }
 
 const SECTIONS: Section[] = [
-  { to: '/admin/analytics', label: 'Shop Analytics', icon: FaChartLine },
-  { to: '/admin/users', label: 'User Management', icon: FaUsers },
-  { to: '/admin/transactions', label: 'Transaction History', icon: FaReceipt },
-  { to: '/admin/books', label: 'Book List', icon: FaBook },
-  { to: '/admin/returns', label: 'Return Management', icon: FaUndoAlt },
-  { to: '/admin/payouts', label: 'Seller Payouts', icon: FaMoneyBillWave },
-  { to: '/admin/all-reviews', label: 'Reviews', icon: FaStar },
-  { to: '/admin/reviews', label: 'Reported Reviews', icon: FaFlag },
-  { to: '/admin/messages', label: 'Messages', icon: FaPaperPlane },
-  { to: '/admin/settings', label: 'Settings', icon: FaCog },
+  { to: '/admin/analytics', label: () => t('Shop Analytics', 'শপের পরিসংখ্যান'), icon: FaChartLine },
+  { to: '/admin/users', label: () => t('User Management', 'ব্যবহারকারী ব্যবস্থাপনা'), icon: FaUsers },
+  { to: '/admin/transactions', label: () => t('Transaction History', 'লেনদেনের ইতিহাস'), icon: FaReceipt },
+  { to: '/admin/books', label: () => t('Book List', 'বইয়ের তালিকা'), icon: FaBook },
+  { to: '/admin/returns', label: () => t('Return Management', 'রিটার্ন ব্যবস্থাপনা'), icon: FaUndoAlt },
+  { to: '/admin/payouts', label: () => t('Seller Payouts', 'বিক্রেতার পেমেন্ট'), icon: FaMoneyBillWave },
+  { to: '/admin/all-reviews', label: () => t('Reviews', 'রিভিউ'), icon: FaStar },
+  { to: '/admin/reviews', label: () => t('Reported Reviews', 'রিপোর্ট করা রিভিউ'), icon: FaFlag },
+  { to: '/admin/messages', label: () => t('Messages', 'বার্তা'), icon: FaPaperPlane },
+  { to: '/admin/settings', label: () => t('Settings', 'সেটিংস'), icon: FaCog },
 ];
 
 /** The administrator's own settings: what they hear about, and keeping the account safe. */
@@ -73,9 +76,11 @@ function AdminSettings() {
             <span className="admin-page-icon" aria-hidden="true">
               <FaCog />
             </span>
-            Settings
+            {t('Settings', 'সেটিংস')}
           </h2>
-          <p className="admin-lede">What you hear about, and how your account is kept safe.</p>
+          <p className="admin-lede">
+            {t('What you hear about, and how your account is kept safe.', 'আপনি কী বিষয়ে খবর পান, আর আপনার অ্যাকাউন্ট কীভাবে নিরাপদ থাকে।')}
+          </p>
         </div>
       </header>
       <div className="admin-settings">
@@ -121,27 +126,33 @@ export default function AdminPanel() {
         <div className="admin-sidebar-top">
           {/* The logo is the way back to the shop, as on every other page. */}
           <div className="admin-brand">
-            <Link to="/" className="admin-brand-link" aria-label="BookStoreBD home" title="Back to the shop">
+            <Link
+              to="/"
+              className="admin-brand-link"
+              aria-label={t('BookStoreBD home', 'BookStoreBD হোম')}
+              title={t('Back to the shop', 'শপে ফিরে যান')}
+            >
               <Logo inverted size={34} />
             </Link>
-            <h2>Admin Panel</h2>
+            <h2>{t('Admin Panel', 'অ্যাডমিন প্যানেল')}</h2>
           </div>
           <div className="admin-sidebar-actions">
+            <LanguageToggle className="admin-side-button admin-language-toggle" withLabel />
             <ThemeToggle className="admin-side-button admin-theme-toggle" withLabel />
             <button type="button" className="admin-side-button is-danger" onClick={handleSignOut}>
               <FaSignOutAlt aria-hidden="true" />
-              Sign Out
+              {t('Sign Out', 'সাইন আউট')}
             </button>
           </div>
         </div>
 
-        <nav className="admin-nav" ref={navRef} aria-label="Admin sections">
+        <nav className="admin-nav" ref={navRef} aria-label={t('Admin sections', 'অ্যাডমিনের বিভাগ')}>
           <ul>
             {SECTIONS.map(({ to, label, icon: Icon }) => (
               <li key={to}>
                 <NavLink to={to} className="admin-nav-link">
                   <Icon className="admin-nav-icon" aria-hidden="true" />
-                  {label}
+                  {label()}
                 </NavLink>
               </li>
             ))}
@@ -149,10 +160,11 @@ export default function AdminPanel() {
         </nav>
 
         <div className="admin-sidebar-foot">
+          <LanguageToggle className="admin-side-button admin-language-toggle" withLabel />
           <ThemeToggle className="admin-side-button admin-theme-toggle" withLabel />
           <button type="button" className="admin-side-button is-danger" onClick={handleSignOut}>
             <FaSignOutAlt aria-hidden="true" />
-            Sign Out
+            {t('Sign Out', 'সাইন আউট')}
           </button>
         </div>
       </aside>

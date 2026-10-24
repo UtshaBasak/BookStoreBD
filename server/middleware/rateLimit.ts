@@ -1,6 +1,7 @@
 import rateLimit, { type Options } from 'express-rate-limit';
 
 import { securityEvent } from '../utils/securityLog.js';
+import { languageOf } from '../utils/language.js';
 
 /**
  * Limits are keyed by client IP. Users on a shared campus or office NAT all
@@ -17,6 +18,9 @@ const common = {
   message: { message: 'Too many requests, please try again later.' },
 } as const;
 
+/** The limiter's message in Bangla, for a request that asks for it. */
+const TOO_MANY_BN = 'অনেক বেশি অনুরোধ হয়েছে, কিছুক্ষণ পরে আবার চেষ্টা করুন।';
+
 /**
  * The library's own answer - its status and message - with a security event
  * first, naming the limiter that fired.
@@ -24,7 +28,9 @@ const common = {
 const reporting = (limiter: string): Pick<Options, 'handler'> => ({
   handler: (req, res, _next, options) => {
     securityEvent(req, 'ratelimit.exceeded', { extra: { limiter } });
-    res.status(options.statusCode).send(options.message);
+    res
+      .status(options.statusCode)
+      .send(languageOf(req) === 'bn' ? { message: TOO_MANY_BN } : options.message);
   },
 });
 

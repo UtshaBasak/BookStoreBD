@@ -14,7 +14,13 @@ import { useMyBookRequests, useSellerBooks } from '../hooks/queries.js';
 import { useToast } from '../hooks/useToast.js';
 import { getUserEmail } from '../utils/auth.js';
 import { countLabel } from '../utils/compactCount.js';
+import { categoryLabel } from '../config/categories.js';
 import { conditionOf } from '../utils/bookText.js';
+import { digits, formatDate, formatNumber, t } from '../utils/language.js';
+
+/** A book type as it reads; English shows the stored value, as before. */
+const bookTypeLabel = (value: string): string =>
+  value === 'new' ? t(value, 'নতুন') : value === 'old' ? t(value, 'পুরোনো') : value;
 
 export default function SellerBookList() {
   // Pending edits per book id: the raw input text, parsed on save.
@@ -81,12 +87,17 @@ export default function SellerBookList() {
       setEdit(failed);
       const count = Object.keys(failed).length;
       if (count) {
-        toast.error(`${count} ${count === 1 ? 'book' : 'books'} could not be saved. Check the values and try again.`);
+        toast.error(
+          t(
+            `${count} ${count === 1 ? 'book' : 'books'} could not be saved. Check the values and try again.`,
+            `${formatNumber(count)}টি বই সংরক্ষণ করা যায়নি। মানগুলো দেখে আবার চেষ্টা করুন।`
+          )
+        );
       } else {
-        toast.success('All changes saved.');
+        toast.success(t('All changes saved.', 'সব পরিবর্তন সংরক্ষণ হয়েছে।'));
       }
     } catch {
-      toast.error('Could not save your changes.');
+      toast.error(t('Could not save your changes.', 'আপনার পরিবর্তন সংরক্ষণ করা যায়নি।'));
     } finally {
       setLoading(false);
     }
@@ -94,7 +105,7 @@ export default function SellerBookList() {
 
   const handleDelete = async (id: Id) => {
     // eslint-disable-next-line no-alert -- a confirmation needs an answer; replacing it needs a dialog component
-    if (!window.confirm('Are you sure you want to delete this book?')) return;
+    if (!window.confirm(t('Are you sure you want to delete this book?', 'আপনি কি নিশ্চিতভাবে বইটি মুছতে চান?'))) return;
     setLoading(true);
     try {
       const res = await apiFetch(`${API_BASE_URL}/book/${id}`, {
@@ -102,13 +113,13 @@ export default function SellerBookList() {
       });
       if (!res.ok) {
         const data = await res.json();
-        toast.error(data.message || 'Could not delete the book.');
+        toast.error(data.message || t('Could not delete the book.', 'বইটি মোছা যায়নি।'));
       } else {
         // The query owns the list; refetching keeps it the single source.
         await booksQuery.refetch();
       }
     } catch {
-      toast.error('Could not delete the book.');
+      toast.error(t('Could not delete the book.', 'বইটি মোছা যায়নি।'));
     } finally {
       setLoading(false);
     }
@@ -122,17 +133,34 @@ export default function SellerBookList() {
 
   const pendingEdits = Object.keys(edit).length;
   const inStock = books.filter(book => Number(book.stock) > 0).length;
+  // Column names, read when drawn so they follow the language.
+  const col = {
+    title: t('Title', 'শিরোনাম'),
+    author: t('Author', 'লেখক'),
+    category: t('Category', 'বিভাগ'),
+    bookType: t('Book Type', 'বইয়ের ধরন'),
+    condition: t('Condition', 'অবস্থা'),
+    pages: t('No. of Pages', 'পৃষ্ঠাসংখ্যা'),
+    price: t('Price (Tk.)', 'দাম (টাকা)'),
+    discount: t('Discount', 'ছাড়'),
+    updatePrice: t('Update Price', 'দাম বদলান'),
+    stock: t('Stock', 'স্টক'),
+    updateStock: t('Update Stock', 'স্টক বদলান'),
+    demand: t('Demand', 'চাহিদা'),
+    created: t('Created at', 'তৈরির তারিখ'),
+    actions: t('Actions', 'কাজ'),
+  };
 
   return (
     <div className="sl-page">
       <header className="sl-topbar">
-        <Link to="/" className="sl-logo-link" aria-label={`${site.name} home`}>
+        <Link to="/" className="sl-logo-link" aria-label={t(`${site.name} home`, `${site.name} হোম`)}>
           <Logo size={34} />
         </Link>
         <div className="sl-topbar-actions">
           <NotificationBell />
           <Link to="/profile?mode=seller" className="btn btn-ghost">
-            ← Return to Profile
+            {t('← Return to Profile', '← প্রোফাইলে ফিরে যান')}
           </Link>
         </div>
       </header>
@@ -141,17 +169,20 @@ export default function SellerBookList() {
         <section className="sl-hero">
           <div className="sl-hero-row">
             <div>
-              <span className="sl-kicker">📚 Seller shelf</span>
-              <h2>Your Books</h2>
+              <span className="sl-kicker">{t('📚 Seller shelf', '📚 বিক্রেতার তাক')}</span>
+              <h2>{t('Your Books', 'আপনার বই')}</h2>
               <p className="sl-hero-sub">
-                Change a price or the stock, then save them all at once. A discount is applied straight away, and puts the book in Quick deals.
+                {t(
+                  'Change a price or the stock, then save them all at once. A discount is applied straight away, and puts the book in Quick deals.',
+                  'দাম বা স্টক বদলান, তারপর একসাথে সব সংরক্ষণ করুন। ছাড় সঙ্গে সঙ্গে প্রয়োগ হয়, আর বইটি চটজলদি ছাড়-এ চলে যায়।'
+                )}
               </p>
             </div>
             <div className="sl-hero-stats">
-              <div className="sl-stat"><b>{books.length}</b><span>listed</span></div>
-              <div className="sl-stat"><b>{inStock}</b><span>in stock</span></div>
+              <div className="sl-stat"><b>{digits(books.length)}</b><span>{t('listed', 'তালিকাভুক্ত')}</span></div>
+              <div className="sl-stat"><b>{digits(inStock)}</b><span>{t('in stock', 'স্টকে')}</span></div>
               <Link to="/add-book" className="btn btn-accent" style={{ alignSelf: 'center' }}>
-                <FaPlus aria-hidden="true" /> List a book
+                <FaPlus aria-hidden="true" /> {t('List a book', 'বই তালিকাভুক্ত করুন')}
               </Link>
             </div>
           </div>
@@ -163,8 +194,8 @@ export default function SellerBookList() {
             <FaSearch aria-hidden="true" />
             <input name="q"
               type="text"
-              placeholder="Search by title or author..."
-              aria-label="Search your books"
+              placeholder={t('Search by title or author...', 'শিরোনাম বা লেখক দিয়ে খুঁজুন...')}
+              aria-label={t('Search your books', 'আপনার বই খুঁজুন')}
               value={search}
               onChange={e => setSearch(e.target.value)}
               className="field"
@@ -172,7 +203,7 @@ export default function SellerBookList() {
           </div>
           <div className="sl-toolbar-actions">
             <button type="button" onClick={fetchBooks} disabled={refreshing} className="btn btn-ghost">
-              <FaSyncAlt aria-hidden="true" /> {refreshing ? 'Refreshing...' : 'Refresh'}
+              <FaSyncAlt aria-hidden="true" /> {refreshing ? t('Refreshing...', 'হালনাগাদ হচ্ছে...') : t('Refresh', 'হালনাগাদ করুন')}
             </button>
             <button
               type="button"
@@ -180,48 +211,53 @@ export default function SellerBookList() {
               disabled={loading || pendingEdits === 0}
               className="btn btn-primary"
             >
-              <FaSave aria-hidden="true" /> {loading ? 'Saving...' : 'Save All Changes'}
+              <FaSave aria-hidden="true" /> {loading ? t('Saving...', 'সংরক্ষণ হচ্ছে...') : t('Save All Changes', 'সব পরিবর্তন সংরক্ষণ করুন')}
               {pendingEdits > 0 && !loading && (
-                <span className="badge" style={{ background: '#facc15', color: '#1e1b4b' }}>{pendingEdits}</span>
+                <span className="badge" style={{ background: '#facc15', color: '#1e1b4b' }}>{digits(pendingEdits)}</span>
               )}
             </button>
           </div>
         </div>
 
         {booksQuery.isPending ? (
-          <div className="card sl-loading"><span className="sl-spinner" aria-hidden="true" /> Loading your books...</div>
+          <div className="card sl-loading"><span className="sl-spinner" aria-hidden="true" /> {t('Loading your books...', 'আপনার বই লোড হচ্ছে...')}</div>
         ) : books.length === 0 ? (
           <div className="card sl-empty">
             <span className="sl-empty-emoji" aria-hidden="true">📦</span>
-            <h3>No books listed yet</h3>
-            <p>Your first listing takes a couple of minutes, and listing is free.</p>
-            <Link to="/add-book" className="btn btn-accent">List your first book</Link>
+            <h3>{t('No books listed yet', 'এখনও কোনো বই তালিকাভুক্ত হয়নি')}</h3>
+            <p>
+              {t(
+                'Your first listing takes a couple of minutes, and listing is free.',
+                'প্রথম বই তালিকাভুক্ত করতে কয়েক মিনিট লাগে, আর তালিকাভুক্ত করা বিনামূল্যে।'
+              )}
+            </p>
+            <Link to="/add-book" className="btn btn-accent">{t('List your first book', 'আপনার প্রথম বই তালিকাভুক্ত করুন')}</Link>
           </div>
         ) : filteredBooks.length === 0 ? (
           <div className="card sl-empty">
             <span className="sl-empty-emoji" aria-hidden="true">🔍</span>
-            <h3>No books match “{search}”</h3>
-            <p>Try a different title or author.</p>
+            <h3>{t(`No books match “${search}”`, `“${search}”-এর সাথে কোনো বই মেলেনি`)}</h3>
+            <p>{t('Try a different title or author.', 'অন্য শিরোনাম বা লেখক দিয়ে চেষ্টা করুন।')}</p>
           </div>
         ) : (
           <div className="table-scroll card sl-table-card">
             <table className="styled-table sl-table sl-stack sl-compact">
               <thead>
                 <tr>
-                  <th>Title</th>
-                  <th>Author</th>
-                  <th>Category</th>
-                  <th>Book Type</th>
-                  <th>Condition</th>
-                  <th>No. of Pages</th>
-                  <th>Price (Tk.)</th>
-                  <th>Discount</th>
-                  <th>Update Price</th>
-                  <th>Stock</th>
-                  <th>Update Stock</th>
-                  <th>Demand</th>
-                  <th>Created at</th>
-                  <th>Actions</th>
+                  <th>{col.title}</th>
+                  <th>{col.author}</th>
+                  <th>{col.category}</th>
+                  <th>{col.bookType}</th>
+                  <th>{col.condition}</th>
+                  <th>{col.pages}</th>
+                  <th>{col.price}</th>
+                  <th>{col.discount}</th>
+                  <th>{col.updatePrice}</th>
+                  <th>{col.stock}</th>
+                  <th>{col.updateStock}</th>
+                  <th>{col.demand}</th>
+                  <th>{col.created}</th>
+                  <th>{col.actions}</th>
                 </tr>
               </thead>
               <tbody>
@@ -229,22 +265,22 @@ export default function SellerBookList() {
                   const stock = Number(book.stock);
                   return (
                     <tr key={book._id}>
-                      <td data-label="Title" className="sl-title-cell">{book.title}</td>
-                      <td data-label="Author">{book.author}</td>
-                      <td data-label="Category">{Array.isArray(book.category) ? book.category.join(', ') : (book.category || 'N/A')}</td>
-                      <td data-label="Book Type">
+                      <td data-label={col.title} className="sl-title-cell">{book.title}</td>
+                      <td data-label={col.author}>{book.author}</td>
+                      <td data-label={col.category}>{Array.isArray(book.category) ? book.category.map(categoryLabel).join(', ') : (book.category || t('N/A', 'প্রযোজ্য নয়'))}</td>
+                      <td data-label={col.bookType}>
                         <span className={`sl-pill ${book.bookType === 'new' ? 'is-progress' : 'is-neutral'}`}>
-                          {book.bookType}
+                          {book.bookType ? bookTypeLabel(book.bookType) : book.bookType}
                         </span>
                       </td>
-                      <td data-label="Condition">{conditionOf(book) || '-'}</td>
-                      <td data-label="No. of Pages">{book.pages}</td>
-                      <td data-label="Price (Tk.)" className="sl-price">৳{book.price}</td>
-                      <td data-label="Discount">
+                      <td data-label={col.condition}>{conditionOf(book) || '-'}</td>
+                      <td data-label={col.pages}>{book.pages === undefined ? book.pages : digits(book.pages)}</td>
+                      <td data-label={col.price} className="sl-price">৳{digits(book.price)}</td>
+                      <td data-label={col.discount}>
                         {/* Keyed on what is saved, so a saved discount resets the editor. */}
                         <DiscountEditor key={`${book.discountType ?? 'none'}-${book.discountValue ?? 0}-${book.price}`} book={book} />
                       </td>
-                      <td data-label="Update Price">
+                      <td data-label={col.updatePrice}>
                         <input name="price"
                           type="number"
                           min="0"
@@ -252,21 +288,26 @@ export default function SellerBookList() {
                           onChange={e => handleEditChange(book._id, 'price', e.target.value)}
                           className={`sl-edit${edit[book._id]?.price ? ' is-dirty' : ''}`}
                           style={{ width: 96 }}
-                          aria-label={`New price for ${book.title ?? 'this book'}`}
+                          aria-label={t(`New price for ${book.title ?? 'this book'}`, `${book.title ?? 'এই বই'}-এর নতুন দাম`)}
                           placeholder=""
                         />
                       </td>
-                      <td data-label="Stock" className="sl-num">
+                      <td data-label={col.stock} className="sl-num">
                         <span className={`sl-pill ${stock > 0 ? 'is-done' : 'is-bad'}`}>
-                          {stock > 0 ? book.stock : `${book.stock} · sold out`}
+                          {stock > 0
+                            ? digits(book.stock)
+                            : t(`${book.stock} · sold out`, `${digits(book.stock)} · স্টক শেষ`)}
                         </span>
                         {(waiting[book._id] ?? 0) > 0 && (
                           <span className="sl-waiting">
-                            {waiting[book._id]} {waiting[book._id] === 1 ? 'buyer' : 'buyers'} waiting
+                            {t(
+                              `${waiting[book._id]} ${waiting[book._id] === 1 ? 'buyer' : 'buyers'} waiting`,
+                              `${formatNumber(waiting[book._id])} জন ক্রেতা অপেক্ষায়`
+                            )}
                           </span>
                         )}
                       </td>
-                      <td data-label="Update Stock">
+                      <td data-label={col.updateStock}>
                         <input name="stock"
                           type="number"
                           min="0"
@@ -274,25 +315,25 @@ export default function SellerBookList() {
                           onChange={e => handleEditChange(book._id, 'stock', e.target.value)}
                           className={`sl-edit${edit[book._id]?.stock ? ' is-dirty' : ''}`}
                           style={{ width: 76 }}
-                          aria-label={`New stock for ${book.title ?? 'this book'}`}
+                          aria-label={t(`New stock for ${book.title ?? 'this book'}`, `${book.title ?? 'এই বই'}-এর নতুন স্টক`)}
                           placeholder=""
                         />
                       </td>
-                      <td data-label="Demand" className="sl-num">
+                      <td data-label={col.demand} className="sl-num">
                         {/* What buyers see too: how often it is viewed and saved. */}
-                        {countLabel(book.viewCount, 'view', 'views')}
+                        {countLabel(book.viewCount, 'view', 'views', 'বার দেখা')}
                         <br />
-                        {countLabel(book.wishlistCount, 'wishlist', 'wishlists')}
+                        {countLabel(book.wishlistCount, 'wishlist', 'wishlists', 'জনের উইশলিস্টে')}
                       </td>
-                      <td data-label="Created at" className="sl-num">{book.createdAt ? new Date(book.createdAt).toLocaleDateString() : ''}</td>
-                      <td data-label="Actions">
+                      <td data-label={col.created} className="sl-num">{book.createdAt ? formatDate(book.createdAt) : ''}</td>
+                      <td data-label={col.actions}>
                         <button
                           type="button"
                           onClick={() => handleDelete(book._id)}
                           disabled={loading}
                           className="sl-row-delete"
                         >
-                          <FaTrashAlt aria-hidden="true" /> Delete
+                          <FaTrashAlt aria-hidden="true" /> {t('Delete', 'মুছুন')}
                         </button>
                       </td>
                     </tr>

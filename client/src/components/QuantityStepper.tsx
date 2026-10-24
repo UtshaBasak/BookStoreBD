@@ -1,5 +1,6 @@
 import { FaMinus, FaPlus } from 'react-icons/fa';
 
+import { t } from '../utils/language.js';
 import './QuantityStepper.css';
 
 /**
@@ -11,7 +12,7 @@ export default function QuantityStepper({
   max,
   onChange,
   disabled = false,
-  label = 'Quantity',
+  label = t('Quantity', 'পরিমাণ'),
 }: {
   value: number;
   max: number;
@@ -27,7 +28,7 @@ export default function QuantityStepper({
         className="qty-btn"
         onClick={() => onChange(Math.max(1, value - 1))}
         disabled={disabled || value <= 1}
-        aria-label="Decrease quantity"
+        aria-label={t('Decrease quantity', 'পরিমাণ কমান')}
       >
         <FaMinus />
       </button>
@@ -39,7 +40,7 @@ export default function QuantityStepper({
         className="qty-btn"
         onClick={() => onChange(Math.min(top, value + 1))}
         disabled={disabled || value >= top}
-        aria-label="Increase quantity"
+        aria-label={t('Increase quantity', 'পরিমাণ বাড়ান')}
       >
         <FaPlus />
       </button>

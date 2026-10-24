@@ -1,6 +1,7 @@
 import type { SessionResponse } from '@shared/api.js';
 
 import { clearSession, getToken, getUserEmail, setSession } from '../utils/auth.js';
+import { currentLanguage } from '../utils/language.js';
 
 /**
  * Where the API lives.
@@ -112,6 +113,8 @@ export const apiFetch = async (input: RequestInfo | URL, init: RequestInit = {})
     if (token && !headers.has('Authorization')) {
       headers.set('Authorization', `Bearer ${token}`);
     }
+    // The site's language, not the browser's: the server answers in it.
+    if (!headers.has('Accept-Language')) headers.set('Accept-Language', currentLanguage());
     return fetch(input, { ...init, headers, credentials: 'include' });
   };
 

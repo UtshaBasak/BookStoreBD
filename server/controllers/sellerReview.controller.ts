@@ -13,8 +13,15 @@ import { contains } from '../utils/regex.js';
 import { validatedQuery } from '../middleware/validate.js';
 import type { AdminReviewQuery, FlaggedReviewQuery } from '../schemas/index.js';
 import { securityEvent } from '../utils/securityLog.js';
+import { bnDigits, t, type Bilingual } from '../utils/language.js';
 
 const log = createLogger('seller-review');
+
+/** What somebody wrote, the same in either language. */
+const asWritten = (text: string): Bilingual => ({ en: text, bn: text });
+
+const ratingNotFound = (req: Parameters<typeof t>[0]): string => t(req, 'Rating not found', 'রেটিংটি পাওয়া যায়নি');
+const sellerNotFound = (req: Parameters<typeof t>[0]): string => t(req, 'Seller not found', 'বিক্রেতাকে পাওয়া যায়নি');
 
 const STARS: readonly string[] = ['', '★', '★★', '★★★', '★★★★', '★★★★★'];
 
@@ -53,7 +60,7 @@ export const listSellerReviews: RequestHandler<{ id: string }> = async (req, res
   try {
     const seller = await findSeller(req.params.id);
     if (!seller) {
-      res.status(404).json({ message: 'Seller not found' });
+      res.status(404).json({ message: sellerNotFound(req) });
       return;
     }
 
@@ -113,12 +120,12 @@ export const upsertSellerReview: RequestHandler<{ id: string }> = async (req, re
 
     const seller = await findSeller(req.params.id);
     if (!seller) {
-      res.status(404).json({ message: 'Seller not found' });
+      res.status(404).json({ message: sellerNotFound(req) });
       return;
     }
 
     if (actor.email === seller.email) {
-      res.status(403).json({ message: 'You cannot rate your own shop' });
+      res.status(403).json({ message: t(req, 'You cannot rate your own shop', 'নিজের শপকে রেটিং দেওয়া যায় না') });
       return;
     }
 
@@ -126,8 +133,16 @@ export const upsertSellerReview: RequestHandler<{ id: string }> = async (req, re
     if (!orderNumber) {
       res.status(403).json({
         message: ordered
-          ? 'You can rate this seller once your order from them has been delivered.'
-          : 'Only somebody who has bought from this seller can rate them',
+          ? t(
+              req,
+              'You can rate this seller once your order from them has been delivered.',
+              'এই বিক্রেতার কাছ থেকে আপনার অর্ডার ডেলিভারি হওয়ার পর রেটিং দিতে পারবেন।'
+            )
+          : t(
+              req,
+              'Only somebody who has bought from this seller can rate them',
+              'শুধু যিনি এই বিক্রেতার কাছ থেকে কিনেছেন তিনিই রেটিং দিতে পারেন'
+            ),
       });
       return;
     }
@@ -153,8 +168,16 @@ export const upsertSellerReview: RequestHandler<{ id: string }> = async (req, re
     if (isNew) {
       await notify([seller.email], {
         type: 'seller-review',
-        title: `New ${STARS[Number(rating)] ?? ''} rating for your shop`,
-        body: String(title || body).slice(0, 140) || `${reviewer?.username || 'A buyer'} rated you ${rating} out of 5.`,
+        title: {
+          en: `New ${STARS[Number(rating)] ?? ''} rating for your shop`,
+          bn: `আপনার শপের নতুন ${STARS[Number(rating)] ?? ''} রেটিং`,
+        },
+        body: String(title || body).slice(0, 140)
+          ? asWritten(String(title || body).slice(0, 140))
+          : {
+              en: `${reviewer?.username || 'A buyer'} rated you ${rating} out of 5.`,
+              bn: `${reviewer?.username || 'একজন ক্রেতা'} আপনাকে ৫-এর মধ্যে ${bnDigits(rating)} রেটিং দিয়েছেন।`,
+            },
         link: ratingsLink(seller.username),
       });
     }
@@ -179,7 +202,7 @@ export const deleteSellerReview: RequestHandler<{ id: string }> = async (req, re
 
     const review = await SellerReview.findOneAndDelete(filter);
     if (!review) {
-      res.status(404).json({ message: 'Rating not found' });
+      res.status(404).json({ message: ratingNotFound(req) });
       return;
     }
     await SellerReviewFlag.deleteMany({ review: review._id });
@@ -193,7 +216,7 @@ export const deleteSellerReview: RequestHandler<{ id: string }> = async (req, re
       });
     }
 
-    res.status(200).json({ message: 'Rating removed' });
+    res.status(200).json({ message: t(req, 'Rating removed', 'রেটিংটি সরানো হয়েছে') });
   } catch (error) {
     next(error);
   }
@@ -207,13 +230,15 @@ export const replyToSellerReview: RequestHandler<{ id: string }> = async (req, r
 
     const review = await SellerReview.findById(req.params.id);
     if (!review) {
-      res.status(404).json({ message: 'Rating not found' });
+      res.status(404).json({ message: ratingNotFound(req) });
       return;
     }
 
     if (review.sellerEmail !== actor.email) {
       securityEvent(req, 'authz.denied', { reason: 'not_owner', extra: { resource_type: 'seller_review' } });
-      res.status(403).json({ message: 'Only the seller can reply to their ratings' });
+      res.status(403).json({
+        message: t(req, 'Only the seller can reply to their ratings', 'শুধু বিক্রেতা নিজেই তাঁর রেটিংয়ের উত্তর দিতে পারেন'),
+      });
       return;
     }
 
@@ -229,12 +254,15 @@ export const replyToSellerReview: RequestHandler<{ id: string }> = async (req, r
 
     await notify([review.reviewerEmail], {
       type: 'seller-review-reply',
-      title: `${seller?.username || 'The seller'} replied to your rating`,
-      body: body.slice(0, 140),
+      title: {
+        en: `${seller?.username || 'The seller'} replied to your rating`,
+        bn: `${seller?.username || 'বিক্রেতা'} আপনার রেটিংয়ের উত্তর দিয়েছেন`,
+      },
+      body: asWritten(body.slice(0, 140)),
       link: ratingsLink(seller?.username),
     });
 
-    res.status(200).json({ message: 'Reply saved', reply: review.reply });
+    res.status(200).json({ message: t(req, 'Reply saved', 'উত্তর সংরক্ষণ করা হয়েছে'), reply: review.reply });
   } catch (error) {
     next(error);
   }
@@ -247,13 +275,13 @@ export const deleteSellerReply: RequestHandler<{ id: string }> = async (req, res
     const review = await SellerReview.findById(req.params.id);
 
     if (!review?.reply) {
-      res.status(404).json({ message: 'No reply to remove' });
+      res.status(404).json({ message: t(req, 'No reply to remove', 'সরানোর মতো কোনো উত্তর নেই') });
       return;
     }
 
     if (actor.role !== 'admin' && review.reply.byEmail !== actor.email) {
       securityEvent(req, 'authz.denied', { reason: 'not_owner', extra: { resource_type: 'seller_review_reply' } });
-      res.status(403).json({ message: 'That reply is not yours' });
+      res.status(403).json({ message: t(req, 'That reply is not yours', 'এই উত্তরটি আপনার নয়') });
       return;
     }
 
@@ -270,7 +298,7 @@ export const deleteSellerReply: RequestHandler<{ id: string }> = async (req, res
       });
     }
 
-    res.status(200).json({ message: 'Reply removed' });
+    res.status(200).json({ message: t(req, 'Reply removed', 'উত্তরটি সরানো হয়েছে') });
   } catch (error) {
     next(error);
   }
@@ -288,12 +316,12 @@ export const flagSellerReview: RequestHandler<{ id: string }> = async (req, res,
 
     const review = await SellerReview.findById(reviewId).select('reviewerEmail').lean();
     if (!review) {
-      res.status(404).json({ message: 'Rating not found' });
+      res.status(404).json({ message: ratingNotFound(req) });
       return;
     }
 
     if (review.reviewerEmail === actor.email) {
-      res.status(400).json({ message: 'You cannot report your own rating' });
+      res.status(400).json({ message: t(req, 'You cannot report your own rating', 'নিজের রেটিং রিপোর্ট করা যায় না') });
       return;
     }
 
@@ -307,13 +335,15 @@ export const flagSellerReview: RequestHandler<{ id: string }> = async (req, res,
       await SellerReview.findByIdAndUpdate(reviewId, { $inc: { flagCount: 1 } });
       await notify(await adminEmails(), {
         type: 'seller-review-reported',
-        title: 'A seller rating was reported',
-        body: reason ? `"${reason.slice(0, 120)}"` : 'No reason was given.',
+        title: { en: 'A seller rating was reported', bn: 'একটি বিক্রেতা রেটিং রিপোর্ট করা হয়েছে' },
+        body: reason ? asWritten(`"${reason.slice(0, 120)}"`) : { en: 'No reason was given.', bn: 'কোনো কারণ জানানো হয়নি।' },
         link: '/admin/reviews?of=sellers',
       });
     }
 
-    res.status(200).json({ message: 'Thank you. An administrator will look at this rating.' });
+    res.status(200).json({
+      message: t(req, 'Thank you. An administrator will look at this rating.', 'ধন্যবাদ। একজন অ্যাডমিন রেটিংটি দেখবেন।'),
+    });
   } catch (error) {
     next(error);
   }
@@ -424,7 +454,7 @@ export const dismissSellerReviewFlags: RequestHandler<{ id: string }> = async (r
 
     const review = await SellerReview.findByIdAndUpdate(reviewId, { flagCount: 0 });
     if (!review) {
-      res.status(404).json({ message: 'Rating not found' });
+      res.status(404).json({ message: ratingNotFound(req) });
       return;
     }
     await SellerReviewFlag.deleteMany({ review: reviewId });
@@ -436,7 +466,7 @@ export const dismissSellerReviewFlags: RequestHandler<{ id: string }> = async (r
       details: { reviewer: review.reviewerEmail },
     });
 
-    res.status(200).json({ message: 'Reports cleared' });
+    res.status(200).json({ message: t(req, 'Reports cleared', 'রিপোর্টগুলো মুছে ফেলা হয়েছে') });
   } catch (error) {
     next(error);
   }

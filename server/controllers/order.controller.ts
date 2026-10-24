@@ -52,8 +52,20 @@ import { applyPromotion, findPromotion } from '../config/promotions.js';
 import { dropUnbackedReviews } from './review.controller.js';
 import { unitPriceOf } from '../config/pricing.js';
 import { securityEvent } from '../utils/securityLog.js';
+import { bnDigits, languageOf, t, type Language } from '../utils/language.js';
 
 const log = createLogger('order');
+
+/** An order status as a person reads it in Bangla; the stored value stays English. */
+const STATUS_BN: Record<string, string> = {
+  'Order Confirmed': 'অর্ডার নিশ্চিত',
+  Processing: 'প্রস্তুত হচ্ছে',
+  Shipped: 'পাঠানো হয়েছে',
+  'Out for Delivery': 'ডেলিভারির পথে',
+  Delivered: 'ডেলিভারি হয়েছে',
+  [CANCELLED]: 'বাতিল',
+};
+const statusBn = (status: string): string => STATUS_BN[status] ?? status;
 
 // Generate a unique 16-character order number (uppercase letters and numbers)
 async function generateUniqueOrderNumber(): Promise<string> {
@@ -234,9 +246,16 @@ const buyerMailOf = (line: { contactEmail?: string | null; buyerEmail?: string |
   line?.contactEmail || line?.buyerEmail || undefined;
 
 /** Order lines in a book's own words, for a notification: "Deyal × 2, Sapiens". */
-const describeLines = (lines: readonly { title?: string | null; quantity?: number | null }[]): string =>
+const describeLines = (
+  lines: readonly { title?: string | null; quantity?: number | null }[],
+  language: Language = 'en'
+): string =>
   lines
-    .map((line) => `${line.title || 'A book'}${Number(line.quantity) > 1 ? ` × ${line.quantity}` : ''}`)
+    .map((line) =>
+      language === 'bn'
+        ? `${line.title || 'একটি বই'}${Number(line.quantity) > 1 ? ` × ${bnDigits(Number(line.quantity))}` : ''}`
+        : `${line.title || 'A book'}${Number(line.quantity) > 1 ? ` × ${line.quantity}` : ''}`
+    )
     .join(', ');
 
 /**
@@ -262,8 +281,11 @@ const announceOrder = async (
   const copies = reserved.reduce((sum, { quantity }) => sum + quantity, 0);
   await notify([buyer], {
     type: 'order-placed',
-    title: `Order ${orderNumber} confirmed`,
-    body: `${copies} ${copies === 1 ? 'book' : 'books'}, ${total} Tk to pay on delivery.`,
+    title: { en: `Order ${orderNumber} confirmed`, bn: `অর্ডার ${orderNumber} নিশ্চিত হয়েছে` },
+    body: {
+      en: `${copies} ${copies === 1 ? 'book' : 'books'}, ${total} Tk to pay on delivery.`,
+      bn: `${bnDigits(copies)}টি বই, ডেলিভারির সময় ${bnDigits(total)} টাকা পরিশোধ করবেন।`,
+    },
     link: `/order-tracking/${orderNumber}`,
   });
 
@@ -276,16 +298,23 @@ const announceOrder = async (
   for (const [seller, lines] of bySeller) {
     await notify([seller], {
       type: 'order-received',
-      title: `New order: ${describeLines(lines)}`,
-      body: `Order ${orderNumber}. Get it ready and mark it as it moves on.`,
+      title: { en: `New order: ${describeLines(lines)}`, bn: `নতুন অর্ডার: ${describeLines(lines, 'bn')}` },
+      body: {
+        en: `Order ${orderNumber}. Get it ready and mark it as it moves on.`,
+        bn: `অর্ডার ${orderNumber}। বইটি প্রস্তুত করুন, আর প্রতিটি ধাপে অবস্থা আপডেট করুন।`,
+      },
       link: `/seller/order-tracking/${orderNumber}`,
     });
   }
 
+  const everything = reserved.map(({ book, quantity }) => ({ title: book.title, quantity }));
   await notify(await adminEmails(), {
     type: 'order-received',
-    title: `New order ${orderNumber}`,
-    body: `${describeLines(reserved.map(({ book, quantity }) => ({ title: book.title, quantity })))} - ${total} Tk.`,
+    title: { en: `New order ${orderNumber}`, bn: `নতুন অর্ডার ${orderNumber}` },
+    body: {
+      en: `${describeLines(everything)} - ${total} Tk.`,
+      bn: `${describeLines(everything, 'bn')} - ${bnDigits(total)} টাকা।`,
+    },
     link: `/admin/order-tracking/${orderNumber}`,
   }, { except: buyer });
 };
@@ -374,12 +403,19 @@ export const decreaseStock = async (
   if (!lock) {
     res.status(409).json({
       code: 'checkout-in-progress',
-      message: 'Your order is already being placed. Check your orders in a moment.',
+      message: t(
+        req,
+        'Your order is already being placed. Check your orders in a moment.',
+        'আপনার অর্ডারটি দেওয়া হচ্ছে। একটু পরে আপনার অর্ডারগুলো দেখুন।'
+      ),
     });
     return;
   }
 
-  let answer: { status: number; body: unknown } = { status: 500, body: { message: 'Your order could not be placed.' } };
+  let answer: { status: number; body: unknown } = {
+    status: 500,
+    body: { message: t(req, 'Your order could not be placed.', 'আপনার অর্ডারটি দেওয়া যায়নি।') },
+  };
   const send = (status: number, body: unknown) => {
     answer = { status, body };
   };
@@ -405,7 +441,7 @@ export const decreaseStock = async (
       const promoCode = req.body.promo?.trim() || '';
       const promotion = promoCode ? findPromotion(promoCode) : undefined;
       if (promoCode && !promotion) {
-        send(400, { message: 'That promo code is not valid.' });
+        send(400, { message: t(req, 'That promo code is not valid.', 'এই প্রোমো কোডটি সঠিক নয়।') });
         return;
       }
       // Safe from a second checkout at the same moment: the lock above means
@@ -444,6 +480,7 @@ export const decreaseStock = async (
         const asked = applyPromotion(promotion, {
           booksTotal: wanted.reduce((sum, { book, quantity }) => sum + unitPriceOf(book) * quantity, 0),
           isFirstOrder,
+          language: languageOf(req),
         });
         if (!asked.ok) {
           send(400, { message: asked.message });
@@ -475,7 +512,10 @@ export const decreaseStock = async (
 
       // Nothing reserved is no order: no number, no lines, no notices.
       if (!reserved.length) {
-        send(409, { message: 'None of the selected books can be ordered right now.', unavailable });
+        send(409, {
+          message: t(req, 'None of the selected books can be ordered right now.', 'বেছে নেওয়া কোনো বই এখন অর্ডার করা যাচ্ছে না।'),
+          unavailable,
+        });
         return;
       }
 
@@ -491,7 +531,7 @@ export const decreaseStock = async (
       // meantime, a code with a minimum spend may no longer apply, and the order
       // goes ahead without it (and says so) rather than failing after stock was
       // taken.
-      const applied = promotion ? applyPromotion(promotion, { booksTotal, isFirstOrder }) : null;
+      const applied = promotion ? applyPromotion(promotion, { booksTotal, isFirstOrder, language: languageOf(req) }) : null;
       const discount = applied?.ok ? applied.discount : 0;
       const shippingCharge =
         applied?.ok && applied.freeDelivery ? 0 : deliveryChargeFor(req.body.deliveryDistrict);
@@ -550,7 +590,7 @@ export const decreaseStock = async (
       });
 
       const response: CreateOrderResponse = {
-        message: 'Stock updated & order saved',
+        message: t(req, 'Stock updated & order saved', 'স্টক আপডেট হয়েছে ও অর্ডার সংরক্ষিত হয়েছে'),
         orderNumber,
         shippingCharge,
         discount,
@@ -672,6 +712,7 @@ export const checkPromo = async (
     const result = applyPromotion(findPromotion(req.body.code), {
       booksTotal: Number(req.body.booksTotal),
       isFirstOrder,
+      language: languageOf(req),
     });
 
     if (!result.ok) {
@@ -732,12 +773,12 @@ export const getOrderByOrderNumber = async (
   try {
     const orderNumber = req.params.orderNumber;
     if (!orderNumber) {
-      res.status(400).json({ message: 'Order number required' });
+      res.status(400).json({ message: t(req, 'Order number required', 'অর্ডার নম্বর দিতে হবে') });
       return;
     }
     const orders = await Order.find({ orderNumber }).lean();
     if (orders.length === 0) {
-      res.status(404).json({ message: 'Order not found' });
+      res.status(404).json({ message: t(req, 'Order not found', 'অর্ডারটি পাওয়া যায়নি') });
       return;
     }
 
@@ -747,7 +788,7 @@ export const getOrderByOrderNumber = async (
     const involved = orders.some((o) => o.buyerEmail === actor || o.sellerEmail === actor);
     if (role !== 'admin' && !involved) {
       securityEvent(req, 'authz.denied', { reason: 'not_owner', extra: { resource_type: 'order' } });
-      res.status(403).json({ message: 'You do not have access to this order' });
+      res.status(403).json({ message: t(req, 'You do not have access to this order', 'এই অর্ডারটি দেখার অনুমতি আপনার নেই') });
       return;
     }
     // A seller sees their own books in it and nothing of another seller's:
@@ -836,7 +877,7 @@ export const updateOrderStatusByOrderNumber = async (
 
     const existing = await Order.find({ orderNumber }).lean();
     if (existing.length === 0) {
-      res.status(404).json({ message: 'Order not found' });
+      res.status(404).json({ message: t(req, 'Order not found', 'অর্ডারটি পাওয়া যায়নি') });
       return;
     }
 
@@ -849,7 +890,7 @@ export const updateOrderStatusByOrderNumber = async (
     const who = viewerRole(existing, actor, role);
     if (who !== 'admin' && who !== 'seller') {
       securityEvent(req, 'authz.denied', { reason: 'not_owner', extra: { resource_type: 'order' } });
-      res.status(403).json({ message: 'Only the seller or an administrator can change this' });
+      res.status(403).json({ message: t(req, 'Only the seller or an administrator can change this', 'শুধু বিক্রেতা বা অ্যাডমিন এটি বদলাতে পারেন') });
       return;
     }
 
@@ -866,8 +907,8 @@ export const updateOrderStatusByOrderNumber = async (
     // whose books are at different stages cannot pull one of them back.
     const rules = { deliveredLocked: await deliveredLocked(mine) };
     const problem = mine.length
-      ? mine.map((line) => statusChangeProblem(who, line.status, String(status), rules)).find(Boolean)
-      : statusChangeProblem(who, CANCELLED, String(status));
+      ? mine.map((line) => statusChangeProblem(who, line.status, String(status), rules, languageOf(req))).find(Boolean)
+      : statusChangeProblem(who, CANCELLED, String(status), {}, languageOf(req));
     if (problem) {
       res.status(403).json({ message: problem });
       return;
@@ -884,7 +925,7 @@ export const updateOrderStatusByOrderNumber = async (
       await Order.updateMany({ _id: { $in: ids }, deliveredAt: null }, { $set: { deliveredAt: new Date() } });
     }
     if (orders.matchedCount === 0) {
-      res.status(404).json({ message: 'Order not found' });
+      res.status(404).json({ message: t(req, 'Order not found', 'অর্ডারটি পাওয়া যায়নি') });
       return;
     }
     await recordAudit(req, {
@@ -897,8 +938,20 @@ export const updateOrderStatusByOrderNumber = async (
     if (current !== String(status)) {
       await notify([existing[0]?.buyerEmail], {
         type: 'order-status',
-        title: `Order ${orderNumber} is ${String(status) === 'Delivered' ? 'delivered' : `now ${String(status)}`}`,
-        body: String(status) === 'Delivered' ? 'Enjoy your books! You can ask for a return within 7 days.' : describeLines(mine),
+        title: {
+          en: `Order ${orderNumber} is ${String(status) === 'Delivered' ? 'delivered' : `now ${String(status)}`}`,
+          bn:
+            String(status) === 'Delivered'
+              ? `অর্ডার ${orderNumber} ডেলিভারি হয়েছে`
+              : `অর্ডার ${orderNumber} এখন: ${statusBn(String(status))}`,
+        },
+        body:
+          String(status) === 'Delivered'
+            ? {
+                en: 'Enjoy your books! You can ask for a return within 7 days.',
+                bn: 'বই উপভোগ করুন! ৭ দিনের মধ্যে ফেরতের অনুরোধ করতে পারবেন।',
+              }
+            : { en: describeLines(mine), bn: describeLines(mine, 'bn') },
         link: `/order-tracking/${orderNumber}`,
       });
       // Delivered: an e-mail each to the buyer and the sellers, beside the bell.
@@ -914,8 +967,11 @@ export const updateOrderStatusByOrderNumber = async (
       if (who === 'admin') {
         await notify([...new Set(mine.map((line) => line.sellerEmail))], {
           type: 'order-status',
-          title: `Order ${orderNumber} is now ${String(status)}`,
-          body: describeLines(mine),
+          title: {
+            en: `Order ${orderNumber} is now ${String(status)}`,
+            bn: `অর্ডার ${orderNumber} এখন: ${statusBn(String(status))}`,
+          },
+          body: { en: describeLines(mine), bn: describeLines(mine, 'bn') },
           link: `/seller/order-tracking/${orderNumber}`,
         }, { except: actor });
       }
@@ -997,22 +1053,27 @@ export const cancelOrderLines = async (
 
   const what = describeLines(lines);
   const by = who === 'buyer' ? 'the buyer' : who === 'seller' ? 'the seller' : 'the shop';
-  const body = `${what}, cancelled by ${by}${reason ? `: "${reason}"` : '.'}`;
+  const byBn = who === 'buyer' ? 'ক্রেতা' : who === 'seller' ? 'বিক্রেতা' : 'শপ';
+  const body = {
+    en: `${what}, cancelled by ${by}${reason ? `: "${reason}"` : '.'}`,
+    bn: `${describeLines(lines, 'bn')}, বাতিল করেছেন ${byBn}${reason ? `: "${reason}"` : '।'}`,
+  };
+  const title = { en: `Order ${orderNumber} was cancelled`, bn: `অর্ডার ${orderNumber} বাতিল হয়েছে` };
   await notify([existing[0]?.buyerEmail], {
     type: 'order-cancelled',
-    title: `Order ${orderNumber} was cancelled`,
+    title,
     body,
     link: `/order-tracking/${orderNumber}`,
   }, { except: actor });
   await notify([...new Set(lines.map((line) => line.sellerEmail))], {
     type: 'order-cancelled',
-    title: `Order ${orderNumber} was cancelled`,
-    body: `${body} The stock is back on sale.`,
+    title,
+    body: { en: `${body.en} The stock is back on sale.`, bn: `${body.bn} বইগুলো আবার বিক্রির জন্য স্টকে ফিরেছে।` },
     link: `/seller/order-tracking/${orderNumber}`,
   }, { except: actor });
   await notify(await adminEmails(), {
     type: 'order-cancelled',
-    title: `Order ${orderNumber} was cancelled`,
+    title,
     body,
     link: `/admin/order-tracking/${orderNumber}`,
   }, { except: actor });
@@ -1054,7 +1115,7 @@ export const cancelOrder = async (
     const reason = req.body?.reason?.trim() ?? '';
     const existing = await Order.find({ orderNumber }).lean();
     if (existing.length === 0) {
-      res.status(404).json({ message: 'Order not found' });
+      res.status(404).json({ message: t(req, 'Order not found', 'অর্ডারটি পাওয়া যায়নি') });
       return;
     }
 
@@ -1062,7 +1123,7 @@ export const cancelOrder = async (
     const who = viewerRole(existing, actor, role);
     if (!who) {
       securityEvent(req, 'authz.denied', { reason: 'not_owner', extra: { resource_type: 'order' } });
-      res.status(403).json({ message: 'You do not have access to this order' });
+      res.status(403).json({ message: t(req, 'You do not have access to this order', 'এই অর্ডারটি দেখার অনুমতি আপনার নেই') });
       return;
     }
 
@@ -1071,21 +1132,29 @@ export const cancelOrder = async (
       res.status(409).json({
         message:
           who === 'buyer'
-            ? 'This order is already being prepared, so it can no longer be cancelled here. Message the seller, or ask for a return once it arrives.'
+            ? t(
+                req,
+                'This order is already being prepared, so it can no longer be cancelled here. Message the seller, or ask for a return once it arrives.',
+                'অর্ডারটি প্রস্তুত করা শুরু হয়ে গেছে, তাই এখান থেকে আর বাতিল করা যাবে না। বিক্রেতাকে মেসেজ করুন, অথবা বই পৌঁছানোর পর ফেরতের অনুরোধ করুন।'
+              )
             : who === 'seller'
-              ? `Books can be cancelled until they are ${SELLER_LAST_STAGE.toLowerCase()}.`
-              : 'A delivered or cancelled order cannot be cancelled.',
+              ? t(
+                  req,
+                  `Books can be cancelled until they are ${SELLER_LAST_STAGE.toLowerCase()}.`,
+                  `"${statusBn(SELLER_LAST_STAGE)}" হওয়ার আগ পর্যন্ত বই বাতিল করা যায়।`
+                )
+              : t(req, 'A delivered or cancelled order cannot be cancelled.', 'ডেলিভারি হওয়া বা বাতিল হওয়া অর্ডার বাতিল করা যায় না।'),
       });
       return;
     }
 
     const lines = await cancelOrderLines(req, { orderNumber, existing, candidates, who, reason });
     if (!lines.length) {
-      res.status(409).json({ message: 'This order has already been cancelled or has moved on.' });
+      res.status(409).json({ message: t(req, 'This order has already been cancelled or has moved on.', 'অর্ডারটি আগেই বাতিল হয়েছে বা পরের ধাপে চলে গেছে।') });
       return;
     }
 
-    res.status(200).json({ message: 'Order cancelled', cancelled: lines.length });
+    res.status(200).json({ message: t(req, 'Order cancelled', 'অর্ডার বাতিল হয়েছে'), cancelled: lines.length });
   } catch (err) {
     res.status(500).json({ message: errorMessage(err) });
   }
@@ -1102,7 +1171,7 @@ export const deleteOrder: RequestHandler = async (req, res) => {
       targetId: String(req.params.id),
     });
 
-    res.status(200).json({ message: 'Order deleted' });
+    res.status(200).json({ message: t(req, 'Order deleted', 'অর্ডার মুছে ফেলা হয়েছে') });
   } catch (err) {
     res.status(500).json({ message: errorMessage(err) });
   }

@@ -57,6 +57,9 @@ const UserSchema = new Schema(
         buyerBannerPublicId: { type: String },
         sellerBanner: { type: String },
         sellerBannerPublicId: { type: String },
+        // The language the site was last shown in, so the e-mails and
+        // notifications sent later, with no request to ask, use it too.
+        language: { type: String, enum: ['en', 'bn'], default: 'en' },
         // Two-step sign-in: after the password, a one-time code sent to the
         // account's e-mail address. Off until the owner turns it on.
         twoFactor: { type: Boolean, default: false },

@@ -1,6 +1,7 @@
 import { FaCheckCircle, FaRegCircle } from 'react-icons/fa';
 
 import { PASSWORD_RULES, passwordProblems } from '../utils/passwordPolicy.js';
+import { t } from '../utils/language.js';
 import './PasswordChecklist.css';
 
 /**
@@ -25,7 +26,13 @@ export default function PasswordChecklist({
   const met = PASSWORD_RULES.length - problems.size;
   const ready = password.length > 0 && problems.size === 0;
   const level = !password ? 0 : ready ? 4 : met >= PASSWORD_RULES.length - 2 ? 3 : met >= PASSWORD_RULES.length / 2 ? 2 : 1;
-  const words = ['', 'Weak', 'Fair', 'Almost there', 'Strong'];
+  const words = [
+    '',
+    t('Weak', 'দুর্বল'),
+    t('Fair', 'মোটামুটি'),
+    t('Almost there', 'প্রায় হয়ে গেছে'),
+    t('Strong', 'শক্তিশালী'),
+  ];
 
   return (
     <div className="pwc" id={id} aria-live="polite">
@@ -42,8 +49,8 @@ export default function PasswordChecklist({
             <li key={rule.id} className={ok ? 'is-ok' : ''}>
               {ok ? <FaCheckCircle aria-hidden="true" /> : <FaRegCircle aria-hidden="true" />}
               <span>
-                {rule.label}
-                <span className="sr-only">{ok ? ': done' : ': not yet'}</span>
+                {rule.label()}
+                <span className="sr-only">{ok ? t(': done', ': হয়েছে') : t(': not yet', ': এখনো হয়নি')}</span>
               </span>
             </li>
           );

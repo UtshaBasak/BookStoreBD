@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { FaArrowUp } from 'react-icons/fa';
 
+import { t } from '../utils/language.js';
 import './BackToTop.css';
 
 /**
@@ -28,8 +29,8 @@ export default function BackToTop() {
       type="button"
       className={`back-to-top${shown ? ' is-shown' : ''}`}
       onClick={toTop}
-      aria-label="Back to top"
-      title="Back to top"
+      aria-label={t('Back to top', 'ওপরে ফিরুন')}
+      title={t('Back to top', 'ওপরে ফিরুন')}
       // Out of the tab order while it is hidden, so focus cannot land on
       // something invisible.
       tabIndex={shown ? 0 : -1}

@@ -9,6 +9,7 @@ import { API_BASE_URL, apiFetch } from '../config/api.js';
 import { useProfile } from '../hooks/queries.js';
 import { useToast } from '../hooks/useToast.js';
 import { getUserEmail } from '../utils/auth.js';
+import { t } from '../utils/language.js';
 import { isOwnProfile } from '../utils/profile.js';
 import { safeImageSrc } from '../utils/safeImageSrc.js';
 import FilePreview from '../components/FilePreview.js';
@@ -126,12 +127,22 @@ export default function UpdateProfile() {
         // the current one, whatever rules it was set under.
         if (formData.password && !passwordReady(formData.password, { email: formData.email, username: formData.username })) {
             e.preventDefault();
-            toast.warning('Your new password does not meet every rule yet - see the list under it.');
+            toast.warning(
+                t(
+                    'Your new password does not meet every rule yet - see the list under it.',
+                    'নতুন পাসওয়ার্ড এখনো সব নিয়ম মানছে না - নিচের তালিকাটি দেখুন।'
+                )
+            );
             return;
         }
         e.preventDefault();
         if (needsCurrentPassword && !currentPassword) {
-            setErrorMsg('Enter your current password to change your password or bKash number.');
+            setErrorMsg(
+                t(
+                    'Enter your current password to change your password or bKash number.',
+                    'পাসওয়ার্ড বা বিকাশ নম্বর বদলাতে বর্তমান পাসওয়ার্ড দিন।'
+                )
+            );
             document.getElementById('up-current-password')?.focus();
             return;
         }
@@ -177,7 +188,7 @@ export default function UpdateProfile() {
                 const errorData = (await res.json()) as ApiError;
                 // A rejected field says which and why, rather than the bare
                 // "Validation failed" the envelope carries.
-                setErrorMsg(errorData.errors?.[0]?.message || errorData.message || 'Failed to update profile.');
+                setErrorMsg(errorData.errors?.[0]?.message || errorData.message || t('Failed to update profile.', 'প্রোফাইল আপডেট করা যায়নি।'));
                 if (errorData.code === 'current-password') {
                     setCurrentPassword('');
                     document.getElementById('up-current-password')?.focus();
@@ -187,11 +198,11 @@ export default function UpdateProfile() {
             // The profile is cached for half a minute, so the cache is refreshed
             // before returning to the profile page.
             await queryClient.invalidateQueries({ queryKey: ['profile'] });
-            toast.success('Profile updated.');
+            toast.success(t('Profile updated.', 'প্রোফাইল আপডেট হয়েছে।'));
             navigate(`/profile?mode=${mode}`);
         } catch (err) {
             reportError('Error updating profile:', err);
-            setErrorMsg('Failed to update profile.');
+            setErrorMsg(t('Failed to update profile.', 'প্রোফাইল আপডেট করা যায়নি।'));
         }
     };
 
@@ -200,33 +211,38 @@ export default function UpdateProfile() {
             <header className="header">
                 <Link to="/"
                     className="logo-button"
-                    aria-label="BookStoreBD home"
+                    aria-label={t('BookStoreBD home', 'BookStoreBD হোম')}
                 >
                     <Logo size={38} />
                 </Link>
                 <div className="user-options">
                     <Link to={`/profile?mode=${mode}`} className="btn btn-ghost">
-                        &#8592; Back to Profile
+                        &#8592; {t('Back to Profile', 'প্রোফাইলে ফিরুন')}
                     </Link>
                 </div>
             </header>
 
             <main className="pf-main pf-main-narrow">
                 <div className="pf-page-head">
-                    <h1>Update Profile</h1>
-                    <p>Keep your details up to date so orders and payouts reach you.</p>
+                    <h1>{t('Update Profile', 'প্রোফাইল আপডেট')}</h1>
+                    <p>
+                        {t(
+                            'Keep your details up to date so orders and payouts reach you.',
+                            'আপনার তথ্য হালনাগাদ রাখুন, যাতে অর্ডার ও পেমেন্ট আপনার কাছে পৌঁছায়।'
+                        )}
+                    </p>
                 </div>
 
                 <form onSubmit={handleSubmit} className="card pf-form">
                     <section className="pf-form-section">
-                        <h2>Photo</h2>
+                        <h2>{t('Photo', 'ছবি')}</h2>
                         <div className="pf-photo">
                             {profilePicture ? (
-                                <FilePreview file={profilePicture} alt="Profile Preview" className="pf-avatar" max={240} />
+                                <FilePreview file={profilePicture} alt={t('Profile Preview', 'প্রোফাইল ছবির প্রিভিউ')} className="pf-avatar" max={240} />
                             ) : storedPicture ? (
                                 <img
                                     src={safeImageSrc(storedPicture)}
-                                    alt="Profile Preview"
+                                    alt={t('Profile Preview', 'প্রোফাইল ছবির প্রিভিউ')}
                                     className="pf-avatar"
                                 />
                             ) : (
@@ -237,7 +253,7 @@ export default function UpdateProfile() {
                                 </div>
                             )}
                             <div className="pf-photo-controls">
-                                <label htmlFor="up-picture" className="pf-label">Profile Picture:</label>
+                                <label htmlFor="up-picture" className="pf-label">{t('Profile Picture:', 'প্রোফাইল ছবি:')}</label>
                                 <input
                                     id="up-picture"
                                     type="file"
@@ -251,7 +267,7 @@ export default function UpdateProfile() {
                                         onClick={handleRemoveProfilePicture}
                                         className="btn btn-danger"
                                     >
-                                        Remove Profile Picture
+                                        {t('Remove Profile Picture', 'প্রোফাইল ছবি সরান')}
                                     </button>
                                 )}
                             </div>
@@ -260,10 +276,12 @@ export default function UpdateProfile() {
 
                     {/* Banners: one for each side of the shop. */}
                     <section className="pf-form-section" id="banners">
-                        <h2>Banners</h2>
+                        <h2>{t('Banners', 'ব্যানার')}</h2>
                         <p className="pf-help">
-                            The picture across the top of your profile. Use a different one for buying and for
-                            selling, so each side looks like itself.
+                            {t(
+                                'The picture across the top of your profile. Use a different one for buying and for selling, so each side looks like itself.',
+                                'আপনার প্রোফাইলের ওপরের ছবি। কেনা আর বেচার জন্য আলাদা ছবি দিন, যাতে দুই দিক আলাদা করে চেনা যায়।'
+                            )}
                         </p>
                         <div className="pf-banner-pickers">
                             {(['buyer', 'seller'] as const).map((role) => {
@@ -273,17 +291,17 @@ export default function UpdateProfile() {
                                 const inputId = `up-banner-${role}`;
                                 return (
                                     <div key={role} className="pf-banner-picker">
-                                        <p className="pf-label">{role === 'buyer' ? 'Buyer banner' : 'Seller banner'}</p>
+                                        <p className="pf-label">{role === 'buyer' ? t('Buyer banner', 'ক্রেতার ব্যানার') : t('Seller banner', 'বিক্রেতার ব্যানার')}</p>
                                         {showing instanceof File ? (
-                                            <FilePreview file={showing} alt={`New ${role} banner`} className="pf-banner-thumb" max={800} />
+                                            <FilePreview file={showing} alt={t(`New ${role} banner`, role === 'buyer' ? 'ক্রেতার নতুন ব্যানার' : 'বিক্রেতার নতুন ব্যানার')} className="pf-banner-thumb" max={800} />
                                         ) : showing ? (
-                                            <img src={safeImageSrc(showing)} alt={`Your ${role} banner`} className="pf-banner-thumb" />
+                                            <img src={safeImageSrc(showing)} alt={t(`Your ${role} banner`, role === 'buyer' ? 'আপনার ক্রেতা ব্যানার' : 'আপনার বিক্রেতা ব্যানার')} className="pf-banner-thumb" />
                                         ) : (
                                             <div className={`pf-banner-thumb pf-banner ${role === 'seller' ? 'pf-banner-seller' : ''}`} aria-hidden="true" />
                                         )}
                                         <div className="pf-banner-actions">
                                             <label htmlFor={inputId} className="btn btn-ghost">
-                                                {showing ? 'Change' : 'Choose picture'}
+                                                {showing ? t('Change', 'বদলান') : t('Choose picture', 'ছবি বেছে নিন')}
                                             </label>
                                             <input
                                                 id={inputId}
@@ -291,7 +309,11 @@ export default function UpdateProfile() {
                                                 type="file"
                                                 accept="image/png,image/jpeg,image/webp"
                                                 className="sr-only"
-                                                aria-label={role === 'buyer' ? 'Buyer banner picture' : 'Seller banner picture'}
+                                                aria-label={
+                                                    role === 'buyer'
+                                                        ? t('Buyer banner picture', 'ক্রেতার ব্যানারের ছবি')
+                                                        : t('Seller banner picture', 'বিক্রেতার ব্যানারের ছবি')
+                                                }
                                                 onChange={(e) => {
                                                     const file = e.target.files?.[0] ?? null;
                                                     if (file) setBanners((prev) => ({ ...prev, [role]: file }));
@@ -303,7 +325,7 @@ export default function UpdateProfile() {
                                                     className="btn btn-danger"
                                                     onClick={() => setBanners((prev) => ({ ...prev, [role]: saved ? 'remove' : null }))}
                                                 >
-                                                    Remove
+                                                    {t('Remove', 'সরান')}
                                                 </button>
                                             )}
                                         </div>
@@ -314,10 +336,10 @@ export default function UpdateProfile() {
                     </section>
 
                     <section className="pf-form-section">
-                        <h2>Account</h2>
+                        <h2>{t('Account', 'অ্যাকাউন্ট')}</h2>
                         <div className="pf-grid pf-grid-2">
                             <div>
-                                <label htmlFor="up-username" className="pf-label">Username:</label>
+                                <label htmlFor="up-username" className="pf-label">{t('Username:', 'ইউজারনেম:')}</label>
                                 <input
                                     id="up-username"
                                     type="text"
@@ -328,7 +350,7 @@ export default function UpdateProfile() {
                                 />
                             </div>
                             <div>
-                                <label htmlFor="up-email" className="pf-label">Email:</label>
+                                <label htmlFor="up-email" className="pf-label">{t('Email:', 'ই-মেইল:')}</label>
                                 <input
                                     id="up-email"
                                     type="email"
@@ -346,12 +368,12 @@ export default function UpdateProfile() {
                         </div>
 
                         <div style={{ marginTop: '1rem' }}>
-                            <label htmlFor="up-password" className="pf-label">{hasOwnPassword ? 'New Password:' : 'Choose a password:'}</label>
+                            <label htmlFor="up-password" className="pf-label">{hasOwnPassword ? t('New Password:', 'নতুন পাসওয়ার্ড:') : t('Choose a password:', 'একটি পাসওয়ার্ড বেছে নিন:')}</label>
                             <input
                                 id="up-password"
                                 type="password"
                                 name="password"
-                                placeholder="Enter new password"
+                                placeholder={t('Enter new password', 'নতুন পাসওয়ার্ড লিখুন')}
                                 onChange={handleChange}
                                 className="field"
                                 autoComplete="new-password"
@@ -361,8 +383,11 @@ export default function UpdateProfile() {
                             />
                             <small id="up-password-help" className="pf-help">
                                 {hasOwnPassword
-                                    ? 'Leave blank to keep your current password.'
-                                    : 'You joined with Google. Choose a password to sign in with your e-mail as well.'}
+                                    ? t('Leave blank to keep your current password.', 'বর্তমান পাসওয়ার্ড রাখতে ঘরটি ফাঁকা রাখুন।')
+                                    : t(
+                                          'You joined with Google. Choose a password to sign in with your e-mail as well.',
+                                          'আপনি Google দিয়ে যোগ দিয়েছেন। ই-মেইল দিয়েও সাইন ইন করতে একটি পাসওয়ার্ড বেছে নিন।'
+                                      )}
                             </small>
                             {formData.password && (
                                 <PasswordChecklist password={formData.password} email={formData.email} username={formData.username} />
@@ -371,10 +396,10 @@ export default function UpdateProfile() {
                     </section>
 
                     <section className="pf-form-section">
-                        <h2>About you</h2>
+                        <h2>{t('About you', 'আপনার সম্পর্কে')}</h2>
                         <div className="pf-grid">
                             <div>
-                                <label htmlFor="up-dob" className="pf-label">Date of Birth:</label>
+                                <label htmlFor="up-dob" className="pf-label">{t('Date of Birth:', 'জন্মতারিখ:')}</label>
                                 <input
                                     id="up-dob"
                                     type="date"
@@ -386,17 +411,17 @@ export default function UpdateProfile() {
                             </div>
 
                             <fieldset className="pf-fieldset">
-                                <legend className="pf-label">Gender:</legend>
+                                <legend className="pf-label">{t('Gender:', 'লিঙ্গ:')}</legend>
                                 {/* Each option is a 44px pill: the label, not the
                                     small radio, is what a thumb lands on. */}
                                 <div className="pf-pills">
                                     {[
-                                        { value: 'male', label: 'Male' },
-                                        { value: 'female', label: 'Female' },
-                                        { value: '', label: 'None' },
+                                        { value: 'male', label: t('Male', 'পুরুষ') },
+                                        { value: 'female', label: t('Female', 'নারী') },
+                                        { value: '', label: t('None', 'বলতে চাই না') },
                                     ].map((option) => (
                                         <label
-                                            key={option.label}
+                                            key={option.value}
                                             className={`pf-pill ${formData.gender === option.value ? 'pf-pill-on' : ''}`}
                                         >
                                             <input
@@ -416,10 +441,10 @@ export default function UpdateProfile() {
                     </section>
 
                     <section className="pf-form-section">
-                        <h2>Contact</h2>
+                        <h2>{t('Contact', 'যোগাযোগ')}</h2>
                         <div className="pf-grid pf-grid-2">
                             <div>
-                                <label htmlFor="up-address" className="pf-label">Address:</label>
+                                <label htmlFor="up-address" className="pf-label">{t('Address:', 'ঠিকানা:')}</label>
                                 <input
                                     id="up-address"
                                     type="text"
@@ -430,7 +455,7 @@ export default function UpdateProfile() {
                                 />
                             </div>
                             <div>
-                                <label htmlFor="up-phone" className="pf-label">Phone:</label>
+                                <label htmlFor="up-phone" className="pf-label">{t('Phone:', 'ফোন:')}</label>
                                 <input
                                     id="up-phone"
                                     type="text"
@@ -450,9 +475,14 @@ export default function UpdateProfile() {
                       on the listing form, and required before a first listing.
                     */}
                     <section className="pf-form-section">
-                        <h2>Getting paid</h2>
+                        <h2>{t('Getting paid', 'পেমেন্ট পাওয়া')}</h2>
                         <div className={`pf-payout ${payoutFirst ? 'pf-payout-first' : ''}`}>
-                            <label htmlFor="bkash" className="pf-label">bKash merchant number (to get paid when your books sell):</label>
+                            <label htmlFor="bkash" className="pf-label">
+                                {t(
+                                    'bKash merchant number (to get paid when your books sell):',
+                                    'বিকাশ মার্চেন্ট নম্বর (বই বিক্রি হলে টাকা পেতে):'
+                                )}
+                            </label>
                             <input
                                 id="bkash"
                                 type="tel"
@@ -467,7 +497,10 @@ export default function UpdateProfile() {
                                 aria-describedby="bkash-help"
                             />
                             <small id="bkash-help" className="pf-help">
-                                Only you and the shop can see it. Needed before you list a book.
+                                {t(
+                                    'Only you and the shop can see it. Needed before you list a book.',
+                                    'শুধু আপনি আর শপ এটি দেখতে পায়। বই তালিকাভুক্ত করার আগে এটি লাগবে।'
+                                )}
                             </small>
                         </div>
                     </section>
@@ -475,8 +508,8 @@ export default function UpdateProfile() {
                     {/* Asked for only when changing the password or bKash number. */}
                     {needsCurrentPassword && (
                         <section className="pf-form-section pf-confirm">
-                            <h2>Confirm it&rsquo;s you</h2>
-                            <label htmlFor="up-current-password" className="pf-label">Current password:</label>
+                            <h2>{t('Confirm it\u2019s you', 'এটি আপনিই, নিশ্চিত করুন')}</h2>
+                            <label htmlFor="up-current-password" className="pf-label">{t('Current password:', 'বর্তমান পাসওয়ার্ড:')}</label>
                             <input
                                 id="up-current-password"
                                 type="password"
@@ -489,7 +522,10 @@ export default function UpdateProfile() {
                                 aria-describedby="up-current-password-help"
                             />
                             <small id="up-current-password-help" className="pf-help">
-                                Needed to change your password or bKash number, so nobody else can.
+                                {t(
+                                    'Needed to change your password or bKash number, so nobody else can.',
+                                    'পাসওয়ার্ড বা বিকাশ নম্বর বদলাতে এটি লাগবে, যাতে অন্য কেউ বদলাতে না পারে।'
+                                )}
                             </small>
                         </section>
                     )}
@@ -501,7 +537,7 @@ export default function UpdateProfile() {
                     )}
 
                     <button type="submit" className="btn btn-primary pf-submit">
-                        Save Changes
+                        {t('Save Changes', 'পরিবর্তন সংরক্ষণ করুন')}
                     </button>
                 </form>
             </main>

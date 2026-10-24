@@ -5,6 +5,7 @@ import WantedBook from '../models/WantedBook.model.js';
 import { createLogger } from '../config/logger.js';
 import { notify } from './notify.js';
 import { phoneticKey } from './phonetic.js';
+import { bnDigits } from './language.js';
 import { dispatchShopMail, wantedFoundEmail } from './shopMail.js';
 
 const log = createLogger('wanted');
@@ -96,16 +97,25 @@ export const fulfilWanted = async (book: {
     );
     await notify(people, {
       type: 'wanted-found',
-      title: `"${book.title}" is here!`,
-      body: 'A book you asked for on the Wanted board has just been listed.',
+      title: { en: `"${book.title}" is here!`, bn: `"${book.title}" এসে গেছে!` },
+      body: {
+        en: 'A book you asked for on the Wanted board has just been listed.',
+        bn: 'চাহিদার বোর্ডে আপনার চাওয়া একটি বই এইমাত্র তালিকায় এসেছে।',
+      },
       link,
     });
     for (const email of people) dispatchShopMail(email, wantedFoundEmail(book.title, book.author ?? '', link), 'wanted');
     if (people.length) {
       await notify([book.sellerEmail], {
         type: 'book-request',
-        title: `${people.length} ${people.length === 1 ? 'reader was' : 'readers were'} waiting for "${book.title}"`,
-        body: 'They asked for it on the Wanted board, and have been told it is here.',
+        title: {
+          en: `${people.length} ${people.length === 1 ? 'reader was' : 'readers were'} waiting for "${book.title}"`,
+          bn: `${bnDigits(people.length)} জন পাঠক "${book.title}"-এর অপেক্ষায় ছিলেন`,
+        },
+        body: {
+          en: 'They asked for it on the Wanted board, and have been told it is here.',
+          bn: 'তাঁরা চাহিদার বোর্ডে বইটি চেয়েছিলেন; বইটি আসার খবর তাঁদের জানানো হয়েছে।',
+        },
         link,
       });
     }

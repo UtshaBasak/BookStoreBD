@@ -10,6 +10,7 @@ import { useToast } from '../hooks/useToast.js';
 import { isOwnProfile } from '../utils/profile.js';
 import IdentityCheck from './IdentityCheck.js';
 import { NO_IDENTITY, identityBody, identityGiven } from '../utils/identity.js';
+import { t } from '../utils/language.js';
 
 /**
  * The two things every account owner is entitled to: a copy of their data, and
@@ -37,7 +38,7 @@ export default function AccountData() {
       const res = await apiFetch(`${API_BASE_URL}/user/me/export`);
       if (!res.ok) {
         const failure = (await res.json()) as ApiError;
-        toast.error(failure.message || 'Could not prepare your data.');
+        toast.error(failure.message || t('Could not prepare your data.', 'আপনার তথ্য তৈরি করা যায়নি।'));
         return;
       }
 
@@ -53,9 +54,9 @@ export default function AccountData() {
       link.remove();
       URL.revokeObjectURL(url);
 
-      toast.success('Your data is downloading.');
+      toast.success(t('Your data is downloading.', 'আপনার তথ্য ডাউনলোড হচ্ছে।'));
     } catch {
-      toast.error('Could not reach the server. Please try again.');
+      toast.error(t('Could not reach the server. Please try again.', 'সার্ভারে পৌঁছানো যায়নি। আবার চেষ্টা করুন।'));
     } finally {
       setBusy(false);
     }
@@ -76,15 +77,15 @@ export default function AccountData() {
           setBlocked({ code: failure.code, message: failure.message, blockers: failure.blockers });
           return;
         }
-        toast.error(failure.message || 'Could not delete your account.');
+        toast.error(failure.message || t('Could not delete your account.', 'আপনার অ্যাকাউন্ট মুছে ফেলা যায়নি।'));
         return;
       }
 
       clearSession();
-      toast.success('Your account has been deleted.');
+      toast.success(t('Your account has been deleted.', 'আপনার অ্যাকাউন্ট মুছে ফেলা হয়েছে।'));
       navigate('/');
     } catch {
-      toast.error('Could not reach the server. Please try again.');
+      toast.error(t('Could not reach the server. Please try again.', 'সার্ভারে পৌঁছানো যায়নি। আবার চেষ্টা করুন।'));
     } finally {
       setBusy(false);
     }
@@ -92,9 +93,12 @@ export default function AccountData() {
 
   return (
     <section className="card mt-6 w-full p-5 text-left text-ink sm:p-6">
-      <h2 className="mt-0 mb-1 text-lg">Your data</h2>
+      <h2 className="mt-0 mb-1 text-lg">{t('Your data', 'আপনার তথ্য')}</h2>
       <p className="mb-4 text-sm text-ink-muted">
-        Take a copy of everything this account holds, or close it for good.
+        {t(
+          'Take a copy of everything this account holds, or close it for good.',
+          'এই অ্যাকাউন্টে থাকা সব তথ্যের একটি কপি নিন, অথবা অ্যাকাউন্টটি চিরতরে বন্ধ করুন।'
+        )}
       </p>
 
       <button
@@ -103,21 +107,23 @@ export default function AccountData() {
         disabled={busy}
         className="btn btn-primary disabled:cursor-not-allowed disabled:opacity-60"
       >
-        Download my data
+        {t('Download my data', 'আমার তথ্য ডাউনলোড করুন')}
       </button>
 
       <hr className="my-5 border-0 border-t border-line" />
 
-      <h3 className="mt-0 mb-1 text-base text-danger-dark">Delete this account</h3>
+      <h3 className="mt-0 mb-1 text-base text-danger-dark">{t('Delete this account', 'এই অ্যাকাউন্ট মুছে ফেলুন')}</h3>
       <p className="mb-4 text-sm text-ink-muted">
-        This cannot be undone. Your profile, listings, cart and wishlist are removed.
-        Orders are kept as accounting records, and your messages stay in the other
-        person&rsquo;s conversation &mdash; both with your details stripped out and shown
-        as a deleted user.
+        {t(
+          'This cannot be undone. Your profile, listings, cart and wishlist are removed. Orders are kept as accounting records, and your messages stay in the other person\u2019s conversation \u2014 both with your details stripped out and shown as a deleted user.',
+          'এটি আর ফেরানো যাবে না। আপনার প্রোফাইল, লিস্টিং, কার্ট ও উইশলিস্ট মুছে যাবে। হিসাবের রেকর্ড হিসেবে অর্ডারগুলো থেকে যাবে, আর আপনার বার্তা অন্যজনের কথোপকথনে থেকে যাবে \u2014 দুই ক্ষেত্রেই আপনার তথ্য সরিয়ে, মুছে ফেলা ব্যবহারকারী হিসেবে দেখানো হবে।'
+        )}
       </p>
       <p className="mb-4 text-sm text-ink-muted">
-        Orders not yet started are cancelled for you. An order on its way, a return being
-        decided, or money still owed to you needs to finish first; we will say what.
+        {t(
+          'Orders not yet started are cancelled for you. An order on its way, a return being decided, or money still owed to you needs to finish first; we will say what.',
+          'যে অর্ডারের কাজ শুরু হয়নি, সেগুলো আপনার হয়ে বাতিল হবে। পথে থাকা অর্ডার, সিদ্ধান্তের অপেক্ষায় থাকা রিটার্ন বা আপনার পাওনা টাকা আগে মিটতে হবে; কী বাকি, আমরা জানিয়ে দেব।'
+        )}
       </p>
       {blocked && (
         <div role="alert" className="pay-notice mb-4 text-sm">
@@ -136,7 +142,7 @@ export default function AccountData() {
           onClick={() => setConfirming(true)}
           className="btn btn-danger"
         >
-          Delete my account
+          {t('Delete my account', 'আমার অ্যাকাউন্ট মুছে ফেলুন')}
         </button>
       ) : (
         <div className="flex flex-col gap-3">
@@ -146,7 +152,7 @@ export default function AccountData() {
             id="delete-password"
             action="delete-account"
             passwordSet={passwordSet}
-            label="to confirm"
+            label={t('to confirm', 'নিশ্চিত করতে')}
             value={identity}
             onChange={setIdentity}
           />
@@ -159,7 +165,7 @@ export default function AccountData() {
               // should not look like the harmless button that led to it.
               className="btn btn-danger disabled:cursor-not-allowed disabled:opacity-50 enabled:border-danger-dark enabled:bg-danger-dark enabled:text-white enabled:hover:bg-danger"
             >
-              Delete my account for good
+              {t('Delete my account for good', 'আমার অ্যাকাউন্ট স্থায়ীভাবে মুছুন')}
             </button>
             <button
               type="button"
@@ -169,7 +175,7 @@ export default function AccountData() {
               }}
               className="btn btn-ghost"
             >
-              Keep my account
+              {t('Keep my account', 'অ্যাকাউন্ট রাখুন')}
             </button>
           </div>
         </div>

@@ -1,5 +1,7 @@
 import type { ValidationIssue } from '@shared/api.js';
 
+import { t } from './language.js';
+
 /**
  * An HTTP failure, carrying the status alongside the message.
  *
@@ -79,9 +81,12 @@ export const validationSummary = (error: unknown): string =>
  * server named them, its own message when it did not, and the fallback when
  * the request never reached it at all.
  */
-export const apiErrorMessage = (error: unknown, fallback = 'Something went wrong'): string => {
+export const apiErrorMessage = (
+  error: unknown,
+  fallback = t('Something went wrong', 'কিছু একটা সমস্যা হয়েছে')
+): string => {
   const fields = validationSummary(error);
-  if (fields) return `please check ${fields}`;
+  if (fields) return t(`please check ${fields}`, `যাচাই করুন: ${fields}`);
 
   const body = asBody(error);
   return body?.message || body?.error || fallback;

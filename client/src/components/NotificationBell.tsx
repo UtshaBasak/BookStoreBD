@@ -9,6 +9,7 @@ import './NotificationBell.css';
 import { useMarkNotificationsRead, useNotifications } from '../hooks/queries.js';
 import { useToast } from '../hooks/useToast.js';
 import { getUserEmail } from '../utils/auth.js';
+import { formatNumber, t } from '../utils/language.js';
 import { NOTIFICATION_ICON, timeAgo } from '../utils/notificationLook.js';
 import { subscribeToNotifications } from '../utils/socket.js';
 
@@ -86,29 +87,38 @@ export default function NotificationBell() {
         onClick={() => setOpen((value) => !value)}
         aria-expanded={open}
         aria-controls={panelId}
-        aria-label={unread ? `Notifications, ${unread} unread` : 'Notifications'}
-        title="Notifications"
+        aria-label={
+          unread
+            ? t(`Notifications, ${unread} unread`, `নোটিফিকেশন, ${formatNumber(unread)}টি পড়া হয়নি`)
+            : t('Notifications', 'নোটিফিকেশন')
+        }
+        title={t('Notifications', 'নোটিফিকেশন')}
       >
         <FaBell aria-hidden="true" />
         {unread > 0 && (
           <span className="nb-badge" aria-hidden="true">
-            {unread > 99 ? '99+' : unread}
+            {unread > 99 ? t('99+', `${formatNumber(99)}+`) : formatNumber(unread)}
           </span>
         )}
       </button>
 
       {open && (
-        <div className="nb-panel" id={panelId} role="region" aria-label="Notifications">
+        <div className="nb-panel" id={panelId} role="region" aria-label={t('Notifications', 'নোটিফিকেশন')}>
           <div className="nb-head">
-            <strong>Notifications</strong>
+            <strong>{t('Notifications', 'নোটিফিকেশন')}</strong>
             {unread > 0 && (
               <button type="button" className="nb-link-button" onClick={() => markRead()}>
-                Mark all read
+                {t('Mark all read', 'সব পড়া হয়েছে চিহ্নিত করুন')}
               </button>
             )}
           </div>
           {items.length === 0 ? (
-            <p className="nb-empty">Nothing yet. Orders, returns and deals will show up here.</p>
+            <p className="nb-empty">
+              {t(
+                'Nothing yet. Orders, returns and deals will show up here.',
+                'এখনও কিছু নেই। অর্ডার, রিটার্ন ও ছাড়ের খবর এখানে দেখা যাবে।'
+              )}
+            </p>
           ) : (
             <ul className="nb-list">
               {items.map((item) => (
@@ -122,14 +132,14 @@ export default function NotificationBell() {
                       {item.body && <span className="nb-body">{item.body}</span>}
                       <span className="nb-time">{timeAgo(item.createdAt)}</span>
                     </span>
-                    {!item.read && <span className="nb-dot" aria-label="Unread" />}
+                    {!item.read && <span className="nb-dot" aria-label={t('Unread', 'পড়া হয়নি')} />}
                   </button>
                 </li>
               ))}
             </ul>
           )}
           <Link to="/notifications" className="nb-all" onClick={() => setOpen(false)}>
-            See all notifications
+            {t('See all notifications', 'সব নোটিফিকেশন দেখুন')}
           </Link>
         </div>
       )}

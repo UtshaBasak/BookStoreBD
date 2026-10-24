@@ -8,6 +8,7 @@ import { actingUser } from '../middleware/auth.js';
 import { errorMessage } from '../utils/error.js';
 import { toListBook, withCoverUrls } from '../utils/projections.js';
 import { recountWishlists } from '../utils/bookStats.js';
+import { t } from '../utils/language.js';
 
 /** The books on a wishlist, trimmed to what a list view renders. */
 const booksInWishlist = async (userId: Types.ObjectId): Promise<LeanBook[]> => {
@@ -29,7 +30,7 @@ export const Wishlist_get: RequestHandler = async (req, res) => {
     const { email } = actingUser(req);
     const user = await User.findOne({ email });
     if (!user) {
-      res.status(404).json({ message: 'User not found' });
+      res.status(404).json({ message: t(req, 'User not found', 'ব্যবহারকারী পাওয়া যায়নি') });
       return;
     }
 
@@ -46,7 +47,7 @@ export const Wishlist_add: RequestHandler = async (req, res) => {
     const bookId = req.params.id;
     const user = await User.findOne({ email });
     if (!user) {
-      res.status(404).json({ message: 'User not found' });
+      res.status(404).json({ message: t(req, 'User not found', 'ব্যবহারকারী পাওয়া যায়নি') });
       return;
     }
 
@@ -56,7 +57,7 @@ export const Wishlist_add: RequestHandler = async (req, res) => {
     // Only a book that exists: a saved id of nothing would sit in the
     // wishlist and the data export for good.
     if (!book) {
-      res.status(404).json({ message: 'Book not found' });
+      res.status(404).json({ message: t(req, 'Book not found', 'বইটি পাওয়া যায়নি') });
       return;
     }
     await Wishlist.findOneAndUpdate(
@@ -80,7 +81,7 @@ export const Wishlist_remove: RequestHandler = async (req, res) => {
     const bookId = req.params.id;
     const user = await User.findOne({ email });
     if (!user) {
-      res.status(404).json({ message: 'User not found' });
+      res.status(404).json({ message: t(req, 'User not found', 'ব্যবহারকারী পাওয়া যায়নি') });
       return;
     }
 

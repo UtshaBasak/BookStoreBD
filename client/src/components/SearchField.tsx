@@ -16,6 +16,8 @@ import {
   type Listening,
   type VoiceLanguage,
 } from '../utils/voiceSearch.js';
+import { digits, formatNumber, pick, t } from '../utils/language.js';
+import { categoryLabel } from '../config/categories.js';
 import './SearchField.css';
 
 type Option =
@@ -99,7 +101,7 @@ export default function SearchField({
           title: book.title,
           detail: book.author,
           cover: book.cover,
-          price: `৳${book.salePrice}`,
+          price: `৳${digits(book.salePrice)}`,
           soldOut: !book.inStock,
         })
       ),
@@ -109,7 +111,10 @@ export default function SearchField({
           key: `a-${author.name}`,
           to: `/filter?search=${encodeURIComponent(author.name)}`,
           title: author.name,
-          detail: `Author · ${author.books} ${author.books === 1 ? 'book' : 'books'}`,
+          detail: t(
+            `Author · ${author.books} ${author.books === 1 ? 'book' : 'books'}`,
+            `লেখক · ${formatNumber(author.books)}টি বই`
+          ),
         })
       ),
       ...(data.categories ?? []).map(
@@ -118,7 +123,10 @@ export default function SearchField({
           key: `c-${category.name}`,
           to: `/filter?category=${encodeURIComponent(category.name.toLowerCase())}`,
           title: category.name,
-          detail: `Category · ${category.books} ${category.books === 1 ? 'book' : 'books'}`,
+          detail: t(
+            `Category · ${category.books} ${category.books === 1 ? 'book' : 'books'}`,
+            `বিষয় · ${formatNumber(category.books)}টি বই`
+          ),
         })
       ),
       ...data.sellers.map(
@@ -127,7 +135,10 @@ export default function SearchField({
           key: `s-${seller.username}`,
           to: `/shop/${encodeURIComponent(seller.username)}`,
           title: seller.username,
-          detail: `Seller · ${seller.books} ${seller.books === 1 ? 'book' : 'books'}`,
+          detail: t(
+            `Seller · ${seller.books} ${seller.books === 1 ? 'book' : 'books'}`,
+            `বিক্রেতা · ${formatNumber(seller.books)}টি বই`
+          ),
           avatar: seller.avatar,
         })
       ),
@@ -294,9 +305,9 @@ export default function SearchField({
           type="button"
           className={`sg-mic${listening ? ' is-on' : ''}`}
           onClick={startListening}
-          aria-label={listening ? 'Stop listening' : 'Search by voice'}
+          aria-label={listening ? t('Stop listening', 'শোনা বন্ধ করুন') : t('Search by voice', 'কণ্ঠে খুঁজুন')}
           aria-pressed={listening}
-          title="Search by voice"
+          title={t('Search by voice', 'কণ্ঠে খুঁজুন')}
         >
           <FaMicrophone aria-hidden="true" />
         </button>
@@ -308,10 +319,10 @@ export default function SearchField({
             <FaMicrophone />
           </span>
           <div className="sg-voice-text">
-            <strong>{value ? `“${value}”` : 'Listening…'}</strong>
-            <span>Say a title, an author or a subject.</span>
+            <strong>{value ? `“${value}”` : t('Listening…', 'শুনছি…')}</strong>
+            <span>{t('Say a title, an author or a subject.', 'বইয়ের নাম, লেখক বা বিষয় বলুন।')}</span>
           </div>
-          <div className="sg-voice-langs" role="radiogroup" aria-label="Language">
+          <div className="sg-voice-langs" role="radiogroup" aria-label={t('Language', 'ভাষা')}>
             {(
               [
                 ['en-US', 'English'],
@@ -335,7 +346,7 @@ export default function SearchField({
       )}
 
       {showing && (
-        <ul id={listId} role="listbox" className={`sg-panel${isFetching ? ' is-busy' : ''}`} aria-label="Suggestions">
+        <ul id={listId} role="listbox" className={`sg-panel${isFetching ? ' is-busy' : ''}`} aria-label={t('Suggestions', 'পরামর্শ')}>
           {options.map((option, index) => (
             <li
               key={option.key}
@@ -345,7 +356,13 @@ export default function SearchField({
               className={`sg-option is-${option.kind}${index === active ? ' is-active' : ''}${
                 index === firstRecent || index === firstPopular ? ' starts-group' : ''
               }`}
-              data-group={index === firstRecent ? 'Recent searches' : index === firstPopular ? 'Popular right now' : undefined}
+              data-group={
+                index === firstRecent
+                  ? t('Recent searches', 'সাম্প্রতিক খোঁজ')
+                  : index === firstPopular
+                    ? t('Popular right now', 'এখন জনপ্রিয়')
+                    : undefined
+              }
               // mousedown, not click: it fires before the input's blur.
               onMouseDown={(event) => {
                 event.preventDefault();
@@ -360,7 +377,7 @@ export default function SearchField({
                     <span className="sg-title">{highlight(option.title, typed)}</span>
                     <span className="sg-detail">{option.detail}</span>
                   </span>
-                  <span className={`sg-price${option.soldOut ? ' is-out' : ''}`}>{option.soldOut ? 'Sold out' : option.price}</span>
+                  <span className={`sg-price${option.soldOut ? ' is-out' : ''}`}>{option.soldOut ? t('Sold out', 'স্টক শেষ') : option.price}</span>
                 </>
               )}
               {(option.kind === 'author' || option.kind === 'category') && (
@@ -369,7 +386,9 @@ export default function SearchField({
                     {option.kind === 'author' ? <FaPenNib /> : <FaFolderOpen />}
                   </span>
                   <span className="sg-text">
-                    <span className="sg-title">{highlight(option.title, typed)}</span>
+                    <span className="sg-title">
+                      {highlight(option.kind === 'category' ? categoryLabel(option.title) : option.title, typed)}
+                    </span>
                     <span className="sg-detail">{option.detail}</span>
                   </span>
                 </>
@@ -405,7 +424,7 @@ export default function SearchField({
                     <FaSearch />
                   </span>
                   <span className="sg-text">
-                    <span className="sg-title">Search for “{option.title}”</span>
+                    <span className="sg-title">{t(`Search for “${option.title}”`, `“${option.title}” খুঁজুন`)}</span>
                   </span>
                 </>
               )}
@@ -413,7 +432,7 @@ export default function SearchField({
           ))}
           {completion && (
             <li role="presentation" className="sg-hint">
-              <kbd>Tab</kbd> completes “{completion}”
+              {pick(<><kbd>Tab</kbd> completes “{completion}”</>, <><kbd>Tab</kbd> চাপলে “{completion}” পূর্ণ হবে</>)}
             </li>
           )}
           {firstRecent >= 0 && (
@@ -426,7 +445,7 @@ export default function SearchField({
                   setRecent([]);
                 }}
               >
-                Clear recent searches
+                {t('Clear recent searches', 'সাম্প্রতিক খোঁজ মুছুন')}
               </button>
             </li>
           )}

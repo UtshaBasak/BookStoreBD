@@ -44,13 +44,29 @@ import type {
   InviteBody,
   NotificationSettingsBody,
   TwoFactorBody,
+  LanguageBody,
 } from '../schemas/index.js';
 import Invite from '../models/Invite.model.js';
 import { inviteEmail } from '../utils/shopMail.js';
 import { CATEGORIES, cleanPrefs, wants } from '../utils/notificationPrefs.js';
 import type { InviteList, NotificationPrefs, NotificationSettings } from '@shared/api.js';
+import { bnDigits, inLanguage, languageOf, t, textIn, type Language } from '../utils/language.js';
 
 const log = createLogger('account');
+
+const accountNotFound = (req: Request): string => t(req, 'Account not found', 'অ্যাকাউন্টটি পাওয়া যায়নি');
+const codesUnavailable = (req: Request): string =>
+  t(req, 'Codes cannot be sent right now. Please try again later.', 'এখন কোড পাঠানো যাচ্ছে না। কিছুক্ষণ পরে আবার চেষ্টা করুন।');
+const addressTaken = (req: Request): string =>
+  t(req, 'Another account already uses that address.', 'এই ঠিকানাটি অন্য একটি অ্যাকাউন্টে ব্যবহার হচ্ছে।');
+const codeNotCorrect = (language: Language): string =>
+  inLanguage(
+    language,
+    'That code is not correct or has expired. Ask for a new one.',
+    'কোডটি সঠিক নয় বা মেয়াদ শেষ হয়ে গেছে। নতুন কোড চেয়ে নিন।'
+  );
+const passwordNotCorrect = (language: Language): string =>
+  inLanguage(language, 'That password is not correct', 'পাসওয়ার্ডটি সঠিক নয়');
 
 /**
  * Everything the account owner is entitled to a copy of.
@@ -65,7 +81,7 @@ export const exportMyData: RequestHandler = async (req, res, next) => {
 
     const user = await User.findById(actor.id).select('-password').lean();
     if (!user) {
-      res.status(404).json({ message: 'Account not found' });
+      res.status(404).json({ message: accountNotFound(req) });
       return;
     }
 
@@ -133,13 +149,19 @@ export const sendInvites: RequestHandler = async (req, res, next) => {
     const actor = actingUser(req);
     const { emails, note = '' } = req.body as InviteBody;
     if (/https?:\/\/|www\.|\b[a-z0-9-]+\.(com|net|org|xyz|io|ly|me|info|bd)\b/i.test(note)) {
-      res.status(400).json({ message: 'Leave links out of the note - a few words of your own is perfect.' });
+      res.status(400).json({
+        message: t(
+          req,
+          'Leave links out of the note - a few words of your own is perfect.',
+          'নোটে কোনো লিংক দেবেন না - নিজের কয়েকটি কথাই যথেষ্ট।'
+        ),
+      });
       return;
     }
 
     const inviter = await User.findById(actor.id).select('username email').lean();
     if (!inviter) {
-      res.status(404).json({ message: 'Account not found' });
+      res.status(404).json({ message: accountNotFound(req) });
       return;
     }
 
@@ -155,7 +177,13 @@ export const sendInvites: RequestHandler = async (req, res, next) => {
     const left = await invitesLeftToday(inviter.email);
     if (toInvite.length > left) {
       res.status(429).json({
-        message: left ? `You can send ${left} more ${left === 1 ? 'invitation' : 'invitations'} today.` : 'That is all the invitations for today. Try again tomorrow.',
+        message: left
+          ? t(
+              req,
+              `You can send ${left} more ${left === 1 ? 'invitation' : 'invitations'} today.`,
+              `আজ আপনি আর ${bnDigits(left)}টি আমন্ত্রণ পাঠাতে পারবেন।`
+            )
+          : t(req, 'That is all the invitations for today. Try again tomorrow.', 'আজকের সব আমন্ত্রণ পাঠানো হয়ে গেছে। আগামীকাল আবার চেষ্টা করুন।'),
       });
       return;
     }
@@ -170,7 +198,8 @@ export const sendInvites: RequestHandler = async (req, res, next) => {
       ).map((invite) => invite.inviteeEmail)
     );
 
-    const mail = inviteEmail(inviter.username, note);
+    // The invited have no account to ask: the inviter's language.
+    const mail = inviteEmail(inviter.username, note)(languageOf(req));
     for (const address of toInvite) {
       const send = !members.has(address) && !recentlyEmailed.has(address);
       await Invite.create({ inviterEmail: inviter.email, inviteeEmail: address, emailed: send });
@@ -179,7 +208,13 @@ export const sendInvites: RequestHandler = async (req, res, next) => {
 
     const count = addresses.length;
     res.status(200).json({
-      message: count ? `Invitation sent to ${count} ${count === 1 ? 'friend' : 'friends'}. Thank you!` : 'Add a friend’s address, not your own.',
+      message: count
+        ? t(
+            req,
+            `Invitation sent to ${count} ${count === 1 ? 'friend' : 'friends'}. Thank you!`,
+            `${bnDigits(count)} জন বন্ধুকে আমন্ত্রণ পাঠানো হয়েছে। ধন্যবাদ!`
+          )
+        : t(req, 'Add a friend’s address, not your own.', 'বন্ধুর ঠিকানা দিন, নিজের নয়।'),
       sent: count,
     });
   } catch (error) {
@@ -207,11 +242,11 @@ export const listInvites: RequestHandler = async (req, res, next) => {
 };
 
 /** The caller's notification choices, with what each category covers. */
-const settingsFor = (role: string, prefs: NotificationPrefs): NotificationSettings => ({
+const settingsFor = (role: string, prefs: NotificationPrefs, language: Language = 'en'): NotificationSettings => ({
   categories: CATEGORIES.filter((category) => category.audience === 'everyone' || category.audience === (role === 'admin' ? 'admins' : 'members')).map((category) => ({
     id: category.id,
-    label: category.label,
-    description: category.description,
+    label: textIn(language, category.label),
+    description: textIn(language, category.description),
     emailAvailable: category.email,
     inApp: wants(prefs, category.id, 'inApp'),
     email: category.email && wants(prefs, category.id, 'email'),
@@ -223,10 +258,10 @@ export const getNotificationSettings: RequestHandler = async (req, res, next) =>
     const actor = actingUser(req);
     const user = await User.findById(actor.id).select('role notificationPrefs').lean();
     if (!user) {
-      res.status(404).json({ message: 'Account not found' });
+      res.status(404).json({ message: accountNotFound(req) });
       return;
     }
-    res.status(200).json(settingsFor(user.role, (user.notificationPrefs ?? {}) as NotificationPrefs));
+    res.status(200).json(settingsFor(user.role, (user.notificationPrefs ?? {}) as NotificationPrefs, languageOf(req)));
   } catch (error) {
     next(error);
   }
@@ -238,14 +273,14 @@ export const updateNotificationSettings: RequestHandler = async (req, res, next)
     const { prefs } = req.body as NotificationSettingsBody;
     const user = await User.findById(actor.id).select('role notificationPrefs');
     if (!user) {
-      res.status(404).json({ message: 'Account not found' });
+      res.status(404).json({ message: accountNotFound(req) });
       return;
     }
     const merged = cleanPrefs({ ...((user.notificationPrefs ?? {}) as NotificationPrefs), ...prefs });
     user.notificationPrefs = merged;
     user.markModified('notificationPrefs');
     await user.save();
-    res.status(200).json(settingsFor(user.role, merged));
+    res.status(200).json(settingsFor(user.role, merged, languageOf(req)));
   } catch (error) {
     next(error);
   }
@@ -262,7 +297,8 @@ type ConfirmAction = 'delete-account' | 'two-factor-off';
 const confirmedBy = async (
   user: UserDocument,
   { password = '', code = '' }: { password?: string; code?: string },
-  action: ConfirmAction
+  action: ConfirmAction,
+  language: Language
 ): Promise<{ ok: true } | { ok: false; message: string }> => {
   if (user.passwordSet === false) {
     const key = `${action}:${user.email}`;
@@ -270,11 +306,16 @@ const confirmedBy = async (
       await clearCode(key, 'confirm');
       return { ok: true };
     }
-    return { ok: false, message: code ? 'That code is not correct or has expired. Ask for a new one.' : 'Ask for a code to confirm this.' };
+    return {
+      ok: false,
+      message: code
+        ? codeNotCorrect(language)
+        : inLanguage(language, 'Ask for a code to confirm this.', 'নিশ্চিত করতে একটি কোড চেয়ে নিন।'),
+    };
   }
   return password && bcryptjs.compareSync(password, user.password)
     ? { ok: true }
-    : { ok: false, message: 'That password is not correct' };
+    : { ok: false, message: passwordNotCorrect(language) };
 };
 
 /**
@@ -288,21 +329,25 @@ export const sendConfirmCode: RequestHandler = async (req, res, next) => {
     const { action } = req.body as ConfirmCodeBody;
     const user = await User.findById(actor.id);
     if (!user) {
-      res.status(404).json({ message: 'Account not found' });
+      res.status(404).json({ message: accountNotFound(req) });
       return;
     }
     if (user.passwordSet !== false) {
-      res.status(400).json({ message: 'Your account has a password: use it to confirm this.' });
+      res.status(400).json({
+        message: t(req, 'Your account has a password: use it to confirm this.', 'আপনার অ্যাকাউন্টে পাসওয়ার্ড আছে: নিশ্চিত করতে সেটি দিন।'),
+      });
       return;
     }
     if (!mailConfigured()) {
-      res.status(503).json({ message: 'Codes cannot be sent right now. Please try again later.' });
+      res.status(503).json({ message: codesUnavailable(req) });
       return;
     }
     const code = randomInt(100000, 1000000).toString();
     await issueCode(`${action}:${user.email}`, code, 'confirm');
-    dispatchShopMail(user.email, codeEmail(action, code));
-    res.status(200).json({ message: `We have e-mailed a code to ${user.email}.` });
+    dispatchShopMail(user.email, codeEmail(action, code)(languageOf(req)));
+    res.status(200).json({
+      message: t(req, `We have e-mailed a code to ${user.email}.`, `${user.email} ঠিকানায় একটি কোড ই-মেইল করা হয়েছে।`),
+    });
   } catch (error) {
     next(error);
   }
@@ -316,6 +361,21 @@ export const sendConfirmCode: RequestHandler = async (req, res, next) => {
  * with no password - so a session left open on a shared computer cannot be
  * used to remove the protection. Either way the owner is told by e-mail.
  */
+/**
+ * The language the site is being read in, kept on the account so what is sent
+ * later - e-mails, notifications - arrives in it. The website calls this when
+ * the language is switched while signed in.
+ */
+export const setLanguage: RequestHandler = async (req, res, next) => {
+  try {
+    const { language } = req.body as LanguageBody;
+    await User.updateOne({ _id: actingUser(req).id }, { $set: { language } });
+    res.status(200).json({ language });
+  } catch (error) {
+    next(error);
+  }
+};
+
 export const setTwoFactor: RequestHandler = async (req, res, next) => {
   try {
     const actor = actingUser(req);
@@ -323,16 +383,22 @@ export const setTwoFactor: RequestHandler = async (req, res, next) => {
 
     const user = await User.findById(actor.id);
     if (!user) {
-      res.status(404).json({ message: 'Account not found' });
+      res.status(404).json({ message: accountNotFound(req) });
       return;
     }
 
     if (enabled && !mailConfigured()) {
-      res.status(503).json({ message: 'Sign-in codes cannot be sent right now, so two-step sign-in cannot be turned on.' });
+      res.status(503).json({
+        message: t(
+          req,
+          'Sign-in codes cannot be sent right now, so two-step sign-in cannot be turned on.',
+          'এখন সাইন-ইন কোড পাঠানো যাচ্ছে না, তাই টু-স্টেপ সাইন-ইন চালু করা যাচ্ছে না।'
+        ),
+      });
       return;
     }
     if (!enabled && user.twoFactor) {
-      const check = await confirmedBy(user, { password, code }, 'two-factor-off');
+      const check = await confirmedBy(user, { password, code }, 'two-factor-off', languageOf(req));
       if (!check.ok) {
         securityEvent(req, 'account.reauth.failure', { extra: { change: '2fa_off' } });
         // 403 rather than 401, as for deleting the account: the session is fine.
@@ -355,8 +421,12 @@ export const setTwoFactor: RequestHandler = async (req, res, next) => {
 
     res.status(200).json({
       message: enabled
-        ? 'Two-step sign-in is on. Next time you sign in, we will e-mail you a code.'
-        : 'Two-step sign-in is off.',
+        ? t(
+            req,
+            'Two-step sign-in is on. Next time you sign in, we will e-mail you a code.',
+            'টু-স্টেপ সাইন-ইন চালু হয়েছে। পরের বার সাইন ইন করলে আমরা আপনাকে একটি কোড ই-মেইল করব।'
+          )
+        : t(req, 'Two-step sign-in is off.', 'টু-স্টেপ সাইন-ইন বন্ধ হয়েছে।'),
       twoFactor: enabled,
     });
   } catch (error) {
@@ -365,7 +435,8 @@ export const setTwoFactor: RequestHandler = async (req, res, next) => {
 };
 
 const OPEN_STATUS = { $nin: ['Delivered', CANCELLED] };
-const shortDate = (date: Date) => date.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'Asia/Dhaka' });
+const shortDate = (date: Date, language: Language = 'en') =>
+  date.toLocaleDateString(language === 'bn' ? 'bn-BD' : 'en-GB', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'Asia/Dhaka' });
 
 const byOrderNumber = (lines: readonly LeanOrder[]): Map<string, LeanOrder[]> => {
   const grouped = new Map<string, LeanOrder[]>();
@@ -386,7 +457,11 @@ interface Cancellable {
  * themselves. A parcel on its way, a return being decided and money still to
  * be paid out cannot be left with nobody behind them.
  */
-const openBusinessOf = async (email: string): Promise<{ blockers: string[]; toCancel: Cancellable[] }> => {
+const openBusinessOf = async (
+  email: string,
+  language: Language
+): Promise<{ blockers: string[]; toCancel: Cancellable[] }> => {
+  const say = (en: string, bn: string): string => inLanguage(language, en, bn);
   const blockers: string[] = [];
   const toCancel: Cancellable[] = [];
 
@@ -395,7 +470,13 @@ const openBusinessOf = async (email: string): Promise<{ blockers: string[]; toCa
     const existing = await Order.find({ orderNumber }).lean();
     const live = existing.filter((line) => line.status !== CANCELLED);
     if (canCancelLines('buyer', live)) toCancel.push({ orderNumber, existing, candidates: live, who: 'buyer' });
-    else blockers.push(`Order ${orderNumber} is being prepared or is on its way to you. You can close your account once it has been delivered.`);
+    else
+      blockers.push(
+        say(
+          `Order ${orderNumber} is being prepared or is on its way to you. You can close your account once it has been delivered.`,
+          `অর্ডার ${orderNumber} প্রস্তুত হচ্ছে বা আপনার কাছে আসার পথে। ডেলিভারি হয়ে গেলে অ্যাকাউন্ট বন্ধ করতে পারবেন।`
+        )
+      );
   }
 
   const sold = byOrderNumber(await Order.find({ sellerEmail: email, status: OPEN_STATUS }).lean());
@@ -403,7 +484,12 @@ const openBusinessOf = async (email: string): Promise<{ blockers: string[]; toCa
     if (mine.every((line) => canCancel('seller', line.status))) {
       toCancel.push({ orderNumber, existing: await Order.find({ orderNumber }).lean(), candidates: mine, who: 'seller' });
     } else {
-      blockers.push(`Your books in order ${orderNumber} have been shipped. You can close your account once they are delivered and paid out.`);
+      blockers.push(
+        say(
+          `Your books in order ${orderNumber} have been shipped. You can close your account once they are delivered and paid out.`,
+          `অর্ডার ${orderNumber}-এ আপনার বই পাঠানো হয়েছে। ডেলিভারি হয়ে টাকা পেয়ে গেলে অ্যাকাউন্ট বন্ধ করতে পারবেন।`
+        )
+      );
     }
   }
 
@@ -412,7 +498,12 @@ const openBusinessOf = async (email: string): Promise<{ blockers: string[]; toCa
     { orderNumber: 1, bookTitle: 1 }
   ).lean();
   for (const request of returns) {
-    blockers.push(`The return of "${request.bookTitle}" (order ${request.orderNumber}) is still being decided.`);
+    blockers.push(
+      say(
+        `The return of "${request.bookTitle}" (order ${request.orderNumber}) is still being decided.`,
+        `"${request.bookTitle}"-এর রিটার্ন (অর্ডার ${request.orderNumber}) নিয়ে এখনো সিদ্ধান্ত হয়নি।`
+      )
+    );
   }
 
   const unpaid = await Order.find(
@@ -427,7 +518,12 @@ const openBusinessOf = async (email: string): Promise<{ blockers: string[]; toCa
   for (const [orderNumber, lines] of byOrderNumber(unpaid.filter((line) => !returned.has(String(line._id))) as LeanOrder[])) {
     const deliveredAt = lines[0]?.deliveredAt ?? new Date();
     const due = new Date(deliveredAt.getTime() + RETURN_WINDOW_DAYS * DAY_MS);
-    blockers.push(`We still owe you for order ${orderNumber}, payable from ${shortDate(due)}. You can close your account once it has been paid.`);
+    blockers.push(
+      say(
+        `We still owe you for order ${orderNumber}, payable from ${shortDate(due)}. You can close your account once it has been paid.`,
+        `অর্ডার ${orderNumber}-এর টাকা আমরা এখনো আপনাকে দিইনি, ${shortDate(due, 'bn')} থেকে দেওয়া হবে। টাকা পেয়ে গেলে অ্যাকাউন্ট বন্ধ করতে পারবেন।`
+      )
+    );
   }
 
   return { blockers, toCancel };
@@ -536,11 +632,14 @@ export type CloseResult =
 export const closeAccount = async (user: UserDocument, req: Request, { by }: { by: 'self' | 'admin' }): Promise<CloseResult> => {
   const refused = (blockers: string[]): CloseResult => ({
     ok: false,
-    message: by === 'self' ? "Your account can't be closed just yet." : "This account can't be deleted yet.",
+    message:
+      by === 'self'
+        ? t(req, "Your account can't be closed just yet.", 'আপনার অ্যাকাউন্ট এখনই বন্ধ করা যাচ্ছে না।')
+        : t(req, "This account can't be deleted yet.", 'এই অ্যাকাউন্টটি এখনো মোছা যাচ্ছে না।'),
     blockers,
   });
 
-  const first = await openBusinessOf(user.email);
+  const first = await openBusinessOf(user.email, languageOf(req));
   if (first.blockers.length) return refused(first.blockers);
 
   for (const order of first.toCancel) {
@@ -552,9 +651,19 @@ export const closeAccount = async (user: UserDocument, req: Request, { by }: { b
   }
 
   // Something may have moved on while the orders were being cancelled.
-  const again = await openBusinessOf(user.email);
+  const again = await openBusinessOf(user.email, languageOf(req));
   if (again.blockers.length || again.toCancel.length) {
-    return refused(again.blockers.length ? again.blockers : ['An order changed while the account was being closed. Please try again.']);
+    return refused(
+      again.blockers.length
+        ? again.blockers
+        : [
+            t(
+              req,
+              'An order changed while the account was being closed. Please try again.',
+              'অ্যাকাউন্ট বন্ধ করার সময় একটি অর্ডার বদলে গেছে। আবার চেষ্টা করুন।'
+            ),
+          ]
+    );
   }
 
   return { ok: true, summary: await eraseAccount(user) };
@@ -575,11 +684,11 @@ export const deleteMyAccount: RequestHandler = async (req, res, next) => {
 
     const user = await User.findById(actor.id);
     if (!user) {
-      res.status(404).json({ message: 'Account not found' });
+      res.status(404).json({ message: accountNotFound(req) });
       return;
     }
 
-    const check = await confirmedBy(user, { password, code }, 'delete-account');
+    const check = await confirmedBy(user, { password, code }, 'delete-account', languageOf(req));
     if (!check.ok) {
       securityEvent(req, 'account.reauth.failure', { extra: { change: 'delete_account' } });
       // 403, not 401. The client treats a 401 as an expired session: it tries a
@@ -602,7 +711,7 @@ export const deleteMyAccount: RequestHandler = async (req, res, next) => {
     clearRefreshCookie(res);
 
     log.info({ ...result.summary }, 'Account deleted at the owner’s request');
-    res.status(200).json({ message: 'Your account has been deleted.', ...result.summary });
+    res.status(200).json({ message: t(req, 'Your account has been deleted.', 'আপনার অ্যাকাউন্ট মুছে ফেলা হয়েছে।'), ...result.summary });
   } catch (error) {
     next(error);
   }
@@ -623,31 +732,37 @@ export const requestEmailChange: RequestHandler = async (req, res, next) => {
     const { newEmail, password } = req.body as EmailChangeBody;
     const user = await User.findById(actor.id);
     if (!user) {
-      res.status(404).json({ message: 'Account not found' });
+      res.status(404).json({ message: accountNotFound(req) });
       return;
     }
     if (user.passwordSet === false) {
       res.status(409).json({
         code: 'password-needed',
-        message: 'Set a password first, below, so you can sign in with your new address.',
+        message: t(
+          req,
+          'Set a password first, below, so you can sign in with your new address.',
+          'নতুন ঠিকানা দিয়ে সাইন ইন করতে আগে নিচে একটি পাসওয়ার্ড ঠিক করুন।'
+        ),
       });
       return;
     }
     if (!bcryptjs.compareSync(password, user.password)) {
       securityEvent(req, 'account.reauth.failure', { extra: { change: 'email' } });
-      res.status(403).json({ code: 'current-password', message: 'That password is not correct' });
+      res.status(403).json({ code: 'current-password', message: passwordNotCorrect(languageOf(req)) });
       return;
     }
     if (newEmail === user.email) {
-      res.status(400).json({ message: 'That is the address your account already uses.' });
+      res.status(400).json({
+        message: t(req, 'That is the address your account already uses.', 'আপনার অ্যাকাউন্ট এই ঠিকানাটিই ব্যবহার করছে।'),
+      });
       return;
     }
     if (await User.exists({ email: String(newEmail) })) {
-      res.status(409).json({ message: 'Another account already uses that address.' });
+      res.status(409).json({ message: addressTaken(req) });
       return;
     }
     if (!mailConfigured()) {
-      res.status(503).json({ message: 'Codes cannot be sent right now. Please try again later.' });
+      res.status(503).json({ message: codesUnavailable(req) });
       return;
     }
 
@@ -655,8 +770,15 @@ export const requestEmailChange: RequestHandler = async (req, res, next) => {
     await user.save();
     const code = randomInt(100000, 1000000).toString();
     await issueCode(`${String(user._id)}:${newEmail}`, code, 'email-change');
-    dispatchShopMail(newEmail, codeEmail('email-change', code));
-    res.status(200).json({ message: `We have e-mailed a code to ${newEmail}. Enter it to finish.`, pendingEmail: newEmail });
+    dispatchShopMail(newEmail, codeEmail('email-change', code)(languageOf(req)));
+    res.status(200).json({
+      message: t(
+        req,
+        `We have e-mailed a code to ${newEmail}. Enter it to finish.`,
+        `${newEmail} ঠিকানায় একটি কোড ই-মেইল করা হয়েছে। শেষ করতে কোডটি লিখুন।`
+      ),
+      pendingEmail: newEmail,
+    });
   } catch (error) {
     next(error);
   }
@@ -674,14 +796,16 @@ export const confirmEmailChange: RequestHandler = async (req, res, next) => {
     const { code } = req.body as EmailConfirmBody;
     const user = await User.findById(actor.id);
     if (!user?.pendingEmail) {
-      res.status(400).json({ message: 'There is no change of address waiting. Start again.' });
+      res.status(400).json({
+        message: t(req, 'There is no change of address waiting. Start again.', 'ঠিকানা বদলের কোনো অনুরোধ অপেক্ষায় নেই। আবার শুরু করুন।'),
+      });
       return;
     }
     const from = user.email;
     const to = user.pendingEmail;
     const key = `${String(user._id)}:${to}`;
     if (!(await consumeOtpAttempt(key, code, 'email-change'))) {
-      res.status(400).json({ message: 'That code is not correct or has expired. Ask for a new one.' });
+      res.status(400).json({ message: codeNotCorrect(languageOf(req)) });
       return;
     }
 
@@ -696,7 +820,7 @@ export const confirmEmailChange: RequestHandler = async (req, res, next) => {
       );
     } catch (error) {
       if (isDuplicateKeyError(error)) {
-        res.status(409).json({ message: 'Another account already uses that address.' });
+        res.status(409).json({ message: addressTaken(req) });
         return;
       }
       throw error;
@@ -732,7 +856,7 @@ export const confirmEmailChange: RequestHandler = async (req, res, next) => {
     securityEvent(req, 'account.email.changed', { email: from, extra: { new_email_hash: hmacEmail(to) } });
     dispatchShopMail(from, emailChangedEmail(to));
 
-    res.status(200).json({ message: `Your account now uses ${to}.`, email: to });
+    res.status(200).json({ message: t(req, `Your account now uses ${to}.`, `আপনার অ্যাকাউন্ট এখন ${to} ব্যবহার করছে।`), email: to });
   } catch (error) {
     next(error);
   }

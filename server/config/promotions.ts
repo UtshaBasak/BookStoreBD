@@ -9,11 +9,15 @@
  * list is ever emptied.
  */
 
+import { bnDigits, inLanguage, type Language } from '../utils/language.js';
+
 export interface Promotion {
   /** What the buyer types. Matched without regard to case or spaces. */
   code: string;
   /** Shown to the buyer when the code is accepted, e.g. "50 Tk off your first order". */
   description: string;
+  /** The same in Bangla. */
+  descriptionBn?: string;
   /**
    * Taka off, or a percentage of the book total - never more than the books
    * cost - or the delivery charge waived.
@@ -35,6 +39,7 @@ export const PROMOTIONS: readonly Promotion[] = [
   {
     code: 'BookStoreBD',
     description: '50 Tk off your first order',
+    descriptionBn: 'প্রথম অর্ডারে ৫০ টাকা ছাড়',
     discount: { kind: 'fixed', amount: 50 },
     firstOrderOnly: true,
   },
@@ -42,6 +47,7 @@ export const PROMOTIONS: readonly Promotion[] = [
     // Free delivery on a large order is a code rather than automatic.
     code: 'FreeDelivery',
     description: 'Free delivery on orders of 1000 Tk or more',
+    descriptionBn: '১০০০ টাকা বা তার বেশি অর্ডারে ফ্রি ডেলিভারি',
     discount: { kind: 'free-delivery' },
     minBooksTotal: 1000,
   },
@@ -53,6 +59,10 @@ export const findPromotion = (
   code: string,
   promotions: readonly Promotion[] = PROMOTIONS
 ): Promotion | undefined => promotions.find((promo) => normalise(promo.code) === normalise(code));
+
+/** A promotion's description in the language asked for. */
+const describe = (promo: Promotion, language: Language | undefined): string =>
+  inLanguage(language, promo.description, promo.descriptionBn || promo.description);
 
 export type PromotionResult =
   | {
@@ -73,23 +83,29 @@ export type PromotionResult =
  */
 export const applyPromotion = (
   promo: Promotion | undefined,
-  order: { booksTotal: number; isFirstOrder: boolean },
+  order: { booksTotal: number; isFirstOrder: boolean; /** What the messages are written in; English when not given. */ language?: Language },
   now: Date = new Date()
 ): PromotionResult => {
-  if (!promo) return { ok: false, message: 'That code is not valid.' };
-  if (promo.startsAt && now < promo.startsAt) return { ok: false, message: 'That code is not active yet.' };
-  if (promo.endsAt && now > promo.endsAt) return { ok: false, message: 'That code has expired.' };
+  const say = (en: string, bn: string) => inLanguage(order.language, en, bn);
+  if (!promo) return { ok: false, message: say('That code is not valid.', 'এই কোডটি সঠিক নয়।') };
+  if (promo.startsAt && now < promo.startsAt) {
+    return { ok: false, message: say('That code is not active yet.', 'এই কোডটি এখনো চালু হয়নি।') };
+  }
+  if (promo.endsAt && now > promo.endsAt) return { ok: false, message: say('That code has expired.', 'এই কোডের মেয়াদ শেষ হয়ে গেছে।') };
   if (promo.firstOrderOnly && !order.isFirstOrder) {
-    return { ok: false, message: 'That code is for a first order only.' };
+    return { ok: false, message: say('That code is for a first order only.', 'এই কোডটি শুধু প্রথম অর্ডারের জন্য।') };
   }
   if (promo.minBooksTotal && order.booksTotal < promo.minBooksTotal) {
     return {
       ok: false,
-      message: `That code needs books worth at least ${String(promo.minBooksTotal)} Tk.`,
+      message: say(
+        `That code needs books worth at least ${String(promo.minBooksTotal)} Tk.`,
+        `এই কোডের জন্য অন্তত ${bnDigits(promo.minBooksTotal)} টাকার বই লাগবে।`
+      ),
     };
   }
 
-  const accepted = { ok: true as const, code: promo.code, description: promo.description };
+  const accepted = { ok: true as const, code: promo.code, description: describe(promo, order.language) };
 
   if (promo.discount.kind === 'free-delivery') {
     return { ...accepted, discount: 0, freeDelivery: true };
@@ -119,7 +135,8 @@ export interface AdvertisedPromotion {
  */
 export const advertisedPromotions = (
   now: Date = new Date(),
-  promotions: readonly Promotion[] = PROMOTIONS
+  promotions: readonly Promotion[] = PROMOTIONS,
+  language: Language = 'en'
 ): {
   firstOrder: AdvertisedPromotion | null;
   freeDelivery: (AdvertisedPromotion & { minBooksTotal: number }) | null;
@@ -130,7 +147,9 @@ export const advertisedPromotions = (
   const first = running.find((promo) => promo.firstOrderOnly);
   const free = running.find((promo) => promo.discount.kind === 'free-delivery');
   return {
-    firstOrder: first ? { code: first.code, description: first.description } : null,
-    freeDelivery: free ? { code: free.code, description: free.description, minBooksTotal: free.minBooksTotal ?? 0 } : null,
+    firstOrder: first ? { code: first.code, description: describe(first, language) } : null,
+    freeDelivery: free
+      ? { code: free.code, description: describe(free, language), minBooksTotal: free.minBooksTotal ?? 0 }
+      : null,
   };
 };

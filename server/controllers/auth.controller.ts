@@ -41,6 +41,7 @@ import { creditInvites } from '../utils/invites.js';
 import { clearFailures, minutesLocked, recordFailure } from '../utils/loginLock.js';
 import { noteDevice, type DeviceRequest } from '../utils/deviceAlert.js';
 import { securityEvent, type SecurityRequest } from '../utils/securityLog.js';
+import { bnDigits, inLanguage, languageOf, requestedLanguage, t, textIn, type Bilingual, type Language } from '../utils/language.js';
 import { actingUser } from '../middleware/auth.js';
 import { newPasswordProblem } from '../utils/breachedPassword.js';
 import { passwordProblems } from '../utils/passwordPolicy.js';
@@ -69,10 +70,36 @@ const log = createLogger('auth');
  * stuffing run, which begins by narrowing millions of leaked addresses down to
  * the ones a site recognises.
  */
-const INVALID_CREDENTIALS = 'Invalid email or password';
-const RESET_CODE_SENT = 'If that address has an account, a reset code is on its way.';
-const REGISTER_CODE_SENT = 'If that address can be registered, a code is on its way.';
-const INVALID_CODE = 'Invalid or expired code';
+const INVALID_CREDENTIALS: Bilingual = {
+  en: 'Invalid email or password',
+  bn: 'ই-মেইল বা পাসওয়ার্ড ভুল',
+};
+const RESET_CODE_SENT: Bilingual = {
+  en: 'If that address has an account, a reset code is on its way.',
+  bn: 'এই ঠিকানায় অ্যাকাউন্ট থাকলে একটি রিসেট কোড আসছে।',
+};
+const REGISTER_CODE_SENT: Bilingual = {
+  en: 'If that address can be registered, a code is on its way.',
+  bn: 'এই ঠিকানা দিয়ে নিবন্ধন করা গেলে একটি কোড আসছে।',
+};
+const INVALID_CODE: Bilingual = { en: 'Invalid or expired code', bn: 'কোডটি ভুল বা মেয়াদোত্তীর্ণ' };
+const SESSION_EXPIRED: Bilingual = {
+  en: 'Session expired, please sign in again',
+  bn: 'আপনার সেশন শেষ হয়েছে, আবার সাইন ইন করুন',
+};
+const SERVER_ERROR: Bilingual = { en: 'Internal server error', bn: 'সার্ভারে একটি সমস্যা হয়েছে' };
+const USERNAME_EXISTS: Bilingual = { en: 'Username already exists', bn: 'এই ইউজারনেমটি আগেই নেওয়া হয়েছে' };
+const EMAIL_EXISTS: Bilingual = { en: 'Email already exists', bn: 'এই ই-মেইল দিয়ে আগেই অ্যাকাউন্ট আছে' };
+const ACCOUNT_NOT_FOUND: Bilingual = { en: 'Account not found', bn: 'অ্যাকাউন্টটি পাওয়া যায়নি' };
+
+/** Text in both languages, in the one the request asks for. */
+const say = (req: Parameters<typeof languageOf>[0], text: Bilingual): string => textIn(languageOf(req), text);
+
+/** What signing out everywhere else did. */
+const loggedOutOthers = (req: Request, ended: number): string =>
+  ended
+    ? t(req, 'Signed out everywhere else.', 'অন্য সব জায়গা থেকে সাইন আউট করা হয়েছে।')
+    : t(req, 'You were not signed in anywhere else.', 'আপনি অন্য কোথাও সাইন ইন করা ছিলেন না।');
 
 
 /**
@@ -133,6 +160,13 @@ export const startSession = async (
       email: user.email,
       extra: { method, new_browser: newBrowser },
     });
+  // The language the site was being read in, for what is sent to this account
+  // later. Only when the request names one: the app does not, yet.
+  const language = requestedLanguage(req);
+  if (language && user.language !== language) {
+    await User.updateOne({ _id: user._id }, { $set: { language } });
+    user.language = language;
+  }
   const device = appDeviceOf(res);
   if (device) {
     const issued = await issueRefreshToken(user._id, undefined, {
@@ -229,7 +263,7 @@ export const sendOtp = async (
         // caller gets the same 500, so it reveals nothing.
         if (!mailConfigured()) {
             log.error('SMTP credentials missing; cannot send a code');
-            res.status(500).json({ message: "Email service not configured" });
+            res.status(500).json({ message: t(req, 'Email service not configured', 'ই-মেইল পাঠানোর ব্যবস্থা চালু নেই') });
             return;
         }
 
@@ -242,7 +276,9 @@ export const sendOtp = async (
             // strips the key and matches the first user in the collection, which
             // would report a missing username as taken.
             if (username && (await User.findOne({ username: String(username) }))) {
-                res.status(400).json({ message: "Username already taken, try another." });
+                res.status(400).json({
+                    message: t(req, 'Username already taken, try another.', 'এই ইউজারনেমটি আগেই নেওয়া হয়েছে, অন্য একটি চেষ্টা করুন।'),
+                });
                 return;
             }
 
@@ -251,8 +287,8 @@ export const sendOtp = async (
                 // code that could not be used anyway, tell the owner of the
                 // address that somebody tried: useful to them, useless to
                 // anyone else.
-                dispatchEmail(email, alreadyRegisteredEmail());
-                res.json({ message: REGISTER_CODE_SENT });
+                dispatchEmail(email, alreadyRegisteredEmail()(languageOf(req)));
+                res.json({ message: say(req, REGISTER_CODE_SENT) });
                 return;
             }
         } else if (!(await User.findOne({ email: String(email) }))) {
@@ -262,19 +298,19 @@ export const sendOtp = async (
             // else here is also what would let this endpoint mail arbitrary
             // strangers on demand.
             log.info('Code requested for an address with no account');
-            res.json({ message: RESET_CODE_SENT });
+            res.json({ message: say(req, RESET_CODE_SENT) });
             return;
         }
 
         const code = generateOTP();
         await issueCode(email, code);
-        dispatchEmail(email, codeEmail(purpose === 'register' ? 'register' : 'reset', code));
+        dispatchEmail(email, codeEmail(purpose === 'register' ? 'register' : 'reset', code)(languageOf(req)));
         securityEvent(req, 'auth.otp.sent', { email, extra: { purpose: purpose === 'register' ? 'register' : 'reset' } });
 
-        res.json({ message: purpose === 'register' ? REGISTER_CODE_SENT : RESET_CODE_SENT });
+        res.json({ message: say(req, purpose === 'register' ? REGISTER_CODE_SENT : RESET_CODE_SENT) });
     } catch (error) {
         log.error({ err: error }, 'sendOtp failed');
-        res.status(500).json({ message: "Internal server error" });
+        res.status(500).json({ message: say(req, SERVER_ERROR) });
     }
 };
 
@@ -286,7 +322,7 @@ export const verifyOtp = async (
     const email = req.body.email;
     const code = req.body.code;
     if (!email || !code) {
-        res.status(400).json({ message: "Email and code required" });
+        res.status(400).json({ message: t(req, 'Email and code required', 'ই-মেইল ও কোড দিন') });
         return;
     }
     try {
@@ -294,14 +330,14 @@ export const verifyOtp = async (
         // never issued one, and one guessed at too many times.
         if (!(await consumeOtpAttempt(email, code))) {
             securityEvent(req, 'auth.otp.failure', { email, reason: 'invalid_code', extra: { step: 'verify' } });
-            res.status(400).json({ message: INVALID_CODE });
+            res.status(400).json({ message: say(req, INVALID_CODE) });
             return;
         }
         await markVerified(email);
-        res.json({ message: "OTP verified" });
+        res.json({ message: t(req, 'OTP verified', 'কোড যাচাই হয়েছে') });
     } catch (error) {
         log.error({ err: error }, 'verifyOtp failed');
-        res.status(500).json({ message: "Internal server error" });
+        res.status(500).json({ message: say(req, SERVER_ERROR) });
     }
 };
 
@@ -315,14 +351,16 @@ export const signup = async (
     const email = req.body.email;
     const password = req.body.password;
     try {
-        const weak = await newPasswordProblem(password, { email, username });
+        const weak = await newPasswordProblem(password, { email, username }, languageOf(req));
         if (weak) {
             res.status(400).json({ message: weak });
             return;
         }
         // Check OTP
         if (!(await hasVerifiedCode(email))) {
-            res.status(400).json({ message: "Email not verified. Please verify OTP." });
+            res.status(400).json({
+                message: t(req, 'Email not verified. Please verify OTP.', 'ই-মেইল যাচাই হয়নি। অনুগ্রহ করে কোড যাচাই করুন।'),
+            });
             return;
         }
         // Not an enumeration oracle, unlike the checks in `sendOtp`: getting
@@ -332,11 +370,11 @@ export const signup = async (
         const existingUser = await User.findOne({ $or: [{ username }, { email }] });
         if (existingUser) {
             if (existingUser.username === username) {
-                res.status(409).json({ message: "Username already exists" });
+                res.status(409).json({ message: say(req, USERNAME_EXISTS) });
                 return;
             }
             if (existingUser.email === email) {
-                res.status(409).json({ message: "Email already exists" });
+                res.status(409).json({ message: say(req, EMAIL_EXISTS) });
                 return;
             }
         }
@@ -352,11 +390,11 @@ export const signup = async (
         // Handle duplicate key error (in case of race condition)
         if (isDuplicateKeyError(error)) {
             if (error.keyPattern?.username) {
-                res.status(409).json({ message: "Username already exists" });
+                res.status(409).json({ message: say(req, USERNAME_EXISTS) });
                 return;
             }
             if (error.keyPattern?.email) {
-                res.status(409).json({ message: "Email already exists" });
+                res.status(409).json({ message: say(req, EMAIL_EXISTS) });
                 return;
             }
         }
@@ -392,7 +430,11 @@ export const signin = async (
         if (wait) {
             securityEvent(req, 'auth.lockout', { email, reason: 'locked' });
             res.status(429).json({
-                message: `Too many wrong passwords. Try again in ${wait} ${wait === 1 ? 'minute' : 'minutes'}, or reset your password.`,
+                message: t(
+                    req,
+                    `Too many wrong passwords. Try again in ${wait} ${wait === 1 ? 'minute' : 'minutes'}, or reset your password.`,
+                    `অনেকবার ভুল পাসওয়ার্ড দেওয়া হয়েছে। ${bnDigits(wait)} মিনিট পরে আবার চেষ্টা করুন, অথবা পাসওয়ার্ড রিসেট করুন।`
+                ),
             });
             return;
         }
@@ -415,7 +457,7 @@ export const signin = async (
             if (await recordFailure(String(email))) {
                 securityEvent(req, 'auth.lockout', { email, reason: 'too_many_failures' });
             }
-            next(errorHandler(401, INVALID_CREDENTIALS));
+            next(errorHandler(401, say(req, INVALID_CREDENTIALS)));
             return;
         }
         await clearFailures(String(email));
@@ -428,9 +470,9 @@ export const signin = async (
         // Two-step sign-in: the password is right, but the session waits for
         // the code sent to the account's address.
         if (validUser.twoFactor) {
-            const challenge = await beginTwoStep(validUser);
+            const challenge = await beginTwoStep(validUser, languageOf(req));
             if (!challenge) {
-                res.status(503).json({ message: 'Sign-in codes cannot be sent right now. Please try again later.' });
+                res.status(503).json({ message: signinCodesUnavailable(req) });
                 return;
             }
             res.status(200).json(challenge);
@@ -449,20 +491,35 @@ export const signin = async (
  * code to the account's address. Null when e-mail is not set up, since the
  * code could not arrive. Shared by password and Google sign-in.
  */
-export const beginTwoStep = async (user: { email: string }): Promise<TwoFactorChallenge | null> => {
+export const beginTwoStep = async (
+    user: { email: string },
+    language: Language = 'en'
+): Promise<TwoFactorChallenge | null> => {
     if (!mailConfigured()) {
         log.error('Two-step sign-in needs e-mail, which is not configured');
         return null;
     }
     const code = generateOTP();
     await issueCode(user.email, code, 'signin');
-    dispatchEmail(user.email, codeEmail('signin', code));
+    dispatchEmail(user.email, codeEmail('signin', code)(language));
     return {
         twoFactor: true,
         sentTo: maskEmail(user.email),
-        message: 'Enter the 6-digit code we sent to your e-mail.',
+        message: inLanguage(
+            language,
+            'Enter the 6-digit code we sent to your e-mail.',
+            'আপনার ই-মেইলে পাঠানো ৬ সংখ্যার কোডটি লিখুন।'
+        ),
     };
 };
+
+/** The answer when a two-step sign-in's code cannot be sent. */
+export const signinCodesUnavailable = (req: Parameters<typeof languageOf>[0]): string =>
+    t(
+        req,
+        'Sign-in codes cannot be sent right now. Please try again later.',
+        'এখন সাইন-ইন কোড পাঠানো যাচ্ছে না। কিছুক্ষণ পরে আবার চেষ্টা করুন।'
+    );
 
 /** "r•••@gmail.com": enough to recognise one's own address, not to read it. */
 export const maskEmail = (email: string): string => {
@@ -487,7 +544,7 @@ export const verifySignin = async (
             // The password was right, or there would be no code: a wrong one
             // here may be somebody holding a stolen password.
             securityEvent(req, 'auth.2fa.failure', { email, reason: 'invalid_code' });
-            res.status(400).json({ message: INVALID_CODE });
+            res.status(400).json({ message: say(req, INVALID_CODE) });
             return;
         }
         await clearCode(email, 'signin');
@@ -495,7 +552,7 @@ export const verifySignin = async (
         const user = await User.findOne({ email: String(email) });
         if (!user) {
             securityEvent(req, 'auth.2fa.failure', { email, reason: 'unknown_user' });
-            res.status(400).json({ message: INVALID_CODE });
+            res.status(400).json({ message: say(req, INVALID_CODE) });
             return;
         }
         securityEvent(req, 'auth.2fa.success', { userId: String(user._id), email });
@@ -516,7 +573,7 @@ export const passwordCheck = async (
     res: Response
 ): Promise<void> => {
     const { password, email, username } = req.body;
-    const message = await newPasswordProblem(password, { email, username });
+    const message = await newPasswordProblem(password, { email, username }, languageOf(req));
     res.json({ ok: !message, problems: passwordProblems(password, { email, username }), message });
 };
 
@@ -529,11 +586,11 @@ export const resetPassword = async (
     const otp = req.body.otp;
     const newPassword = req.body.newPassword;
     if (!email || !otp || !newPassword) {
-        res.status(400).json({ message: "All fields required" });
+        res.status(400).json({ message: t(req, 'All fields required', 'সব ঘর পূরণ করুন') });
         return;
     }
     // Before the code is spent: a refused password should not cost an attempt.
-    const weak = await newPasswordProblem(newPassword, { email });
+    const weak = await newPasswordProblem(newPassword, { email }, languageOf(req));
     if (weak) {
         res.status(400).json({ message: weak });
         return;
@@ -542,7 +599,7 @@ export const resetPassword = async (
     // one code between them, so five tries is five tries whichever is used.
     if (!(await consumeOtpAttempt(email, otp))) {
         securityEvent(req, 'auth.otp.failure', { email, reason: 'invalid_code', extra: { step: 'reset' } });
-        res.status(400).json({ message: INVALID_CODE });
+        res.status(400).json({ message: say(req, INVALID_CODE) });
         return;
     }
     const user = await User.findOne({ email: String(email) });
@@ -550,7 +607,7 @@ export const resetPassword = async (
         // Unreachable in practice, since a code is only issued to an address
         // that has an account - but if the account went away in the meantime,
         // that is still not news the caller gets to hear.
-        res.status(400).json({ message: INVALID_CODE });
+        res.status(400).json({ message: say(req, INVALID_CODE) });
         return;
     }
     user.password = hashPassword(newPassword);
@@ -565,7 +622,7 @@ export const resetPassword = async (
     clearRefreshCookie(res);
     securityEvent(req, 'auth.password.reset', { userId: String(user._id), email, extra: { sessions_ended: ended } });
 
-    res.json({ message: "Password reset successful" });
+    res.json({ message: t(req, 'Password reset successful', 'পাসওয়ার্ড রিসেট হয়েছে') });
 };
 
 /**
@@ -592,7 +649,7 @@ export const refresh: RequestHandler = async (req, res, next) => {
       clearRefreshCookie(res);
       log.info({ reason: result.reason }, 'Refresh rejected');
       refreshRejected(req, result.reason);
-      res.status(401).json({ message: 'Session expired, please sign in again' });
+      res.status(401).json({ message: say(req, SESSION_EXPIRED) });
       return;
     }
 
@@ -601,7 +658,7 @@ export const refresh: RequestHandler = async (req, res, next) => {
       // The account went away between issuing and refreshing.
       await revokeFamily(result.family);
       clearRefreshCookie(res);
-      res.status(401).json({ message: 'Session expired, please sign in again' });
+      res.status(401).json({ message: say(req, SESSION_EXPIRED) });
       return;
     }
 
@@ -620,13 +677,13 @@ export const logoutOthers: RequestHandler = async (req, res, next) => {
   try {
     const user = await User.findById(actingUser(req).id, { _id: 1 });
     if (!user) {
-      res.status(404).json({ message: 'Account not found' });
+      res.status(404).json({ message: say(req, ACCOUNT_NOT_FOUND) });
       return;
     }
     const ended = await revokeOtherSessions(user._id, readRefreshCookie(req));
     securityEvent(req, 'session.logout_others', { extra: { sessions_ended: ended } });
     res.status(200).json({
-      message: ended ? 'Signed out everywhere else.' : 'You were not signed in anywhere else.',
+      message: loggedOutOthers(req, ended),
       ended,
     });
   } catch (error) {
@@ -658,8 +715,6 @@ export const logout: RequestHandler = async (req, res, next) => {
 // and every refresh is signed with a key in the phone's keystore. These
 // endpoints accept only Android tokens, and the website's only website tokens.
 
-const SESSION_EXPIRED = 'Session expired, please sign in again';
-
 /** The path the app signed: the API prefix and all, without a query. */
 const signedPath = (req: Request): string => `${req.baseUrl}${req.path}`;
 
@@ -683,14 +738,14 @@ export const appRefresh: RequestHandler = async (req, res, next) => {
     if (!result.ok) {
       log.info({ reason: result.reason }, 'App refresh rejected');
       refreshRejected(req, result.reason);
-      res.status(401).json({ message: SESSION_EXPIRED });
+      res.status(401).json({ message: say(req, SESSION_EXPIRED) });
       return;
     }
 
     const user = await User.findById(result.userId);
     if (!user) {
       await revokeFamily(result.family);
-      res.status(401).json({ message: SESSION_EXPIRED });
+      res.status(401).json({ message: say(req, SESSION_EXPIRED) });
       return;
     }
 
@@ -717,14 +772,14 @@ export const appLogoutOthers: RequestHandler = async (req, res, next) => {
   try {
     const user = await User.findById(actingUser(req).id, { _id: 1 });
     if (!user) {
-      res.status(404).json({ message: 'Account not found' });
+      res.status(404).json({ message: say(req, ACCOUNT_NOT_FOUND) });
       return;
     }
     const { refreshToken } = req.body as AppRefreshBody;
     const ended = await revokeOtherSessions(user._id, refreshToken);
     securityEvent(req, 'session.logout_others', { extra: { sessions_ended: ended } });
     res.status(200).json({
-      message: ended ? 'Signed out everywhere else.' : 'You were not signed in anywhere else.',
+      message: loggedOutOthers(req, ended),
       ended,
     });
   } catch (error) {

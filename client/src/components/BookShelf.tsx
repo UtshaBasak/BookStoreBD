@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { FaChevronLeft, FaChevronRight } from 'react-icons/fa';
 
 import './BookShelf.css';
+import { t } from '../utils/language.js';
 
 /**
  * A titled, sideways-scrolling row: every shelf on the homepage.
@@ -17,7 +18,7 @@ export default function BookShelf({
   emoji,
   subtitle,
   seeAllTo,
-  seeAllLabel = 'See all',
+  seeAllLabel,
   children,
   variant = 'books',
 }: {
@@ -54,13 +55,13 @@ export default function BookShelf({
         <div className="shelf-tools">
           {seeAllTo && (
             <Link to={seeAllTo} className="shelf-all">
-              {seeAllLabel} <FaChevronRight aria-hidden="true" />
+              {seeAllLabel ?? t('See all', 'সব দেখুন')} <FaChevronRight aria-hidden="true" />
             </Link>
           )}
-          <button type="button" className="shelf-arrow" onClick={() => scroll(-1)} aria-label={`Scroll ${title} left`}>
+          <button type="button" className="shelf-arrow" onClick={() => scroll(-1)} aria-label={t(`Scroll ${title} left`, `${title} বাঁয়ে সরান`)}>
             <FaChevronLeft />
           </button>
-          <button type="button" className="shelf-arrow" onClick={() => scroll(1)} aria-label={`Scroll ${title} right`}>
+          <button type="button" className="shelf-arrow" onClick={() => scroll(1)} aria-label={t(`Scroll ${title} right`, `${title} ডানে সরান`)}>
             <FaChevronRight />
           </button>
         </div>

@@ -8,10 +8,12 @@ import Logo from '../components/Logo.js';
 import NotificationBell from '../components/NotificationBell.js';
 import { API_BASE_URL, apiFetch } from '../config/api.js';
 import { site } from '../config/site.js';
-import { CATEGORY_GROUPS } from '../config/categories.js';
+import { CATEGORY_GROUPS, categoryLabel } from '../config/categories.js';
 import { useProfile } from '../hooks/queries.js';
 import { ApiRequestError, apiErrorMessage } from '../utils/apiError.js';
 import { getUserEmail } from '../utils/auth.js';
+import { conditionLabel } from '../utils/bookText.js';
+import { formatNumber, pick, t } from '../utils/language.js';
 import { isOwnProfile } from '../utils/profile.js';
 import { uploadImages, type UploadResult } from '../utils/uploadImages.js';
 
@@ -46,6 +48,30 @@ const EMPTY_FORM: BookForm = {
 
 /** The text fields, which is everything except the category checkboxes. */
 type TextField = Exclude<keyof BookForm, 'category' | 'discountType'>;
+
+/** A required field's name in Bangla, for "Please fill"; English names it by its key, as before. */
+const fieldNameBn: Partial<Record<TextField, string>> = {
+  title: 'শিরোনাম',
+  author: 'লেখক',
+  price: 'দাম',
+  bookType: 'বইয়ের ধরন',
+  condition: 'অবস্থা',
+};
+
+/** How a book type or a condition reads. The value itself is what the API is sent. */
+const choiceLabel = (value: string): string => {
+  switch (value) {
+    case 'new':
+      return t('New', 'নতুন');
+    case 'old':
+      return t('Old', 'পুরোনো');
+    default: {
+      // A condition: its Bangla name, or the value capitalised in English.
+      const label = conditionLabel(value);
+      return label.charAt(0).toUpperCase() + label.slice(1);
+    }
+  }
+};
 
 const AddBooks = () => {
   // From the Wanted board's "Have it? List it": the title and author filled in.
@@ -115,7 +141,12 @@ const AddBooks = () => {
     const totalImages = [...images, ...selectedFiles];
 
     if (totalImages.length > 10) {
-      setFeedbackMessage(`Maximum 10 images allowed. You already have ${images.length} images.`);
+      setFeedbackMessage(
+        t(
+          `Maximum 10 images allowed. You already have ${images.length} images.`,
+          `সর্বোচ্চ ${formatNumber(10)}টি ছবি দেওয়া যায়। আপনি ইতিমধ্যে ${formatNumber(images.length)}টি ছবি দিয়েছেন।`
+        )
+      );
       setIsError(true);
       e.target.value = '';
       return;
@@ -143,7 +174,12 @@ const AddBooks = () => {
       field => Data[field] === undefined || Data[field] === null || Data[field].toString().trim() === ''
     );
     if (emptyFields.length > 0) {
-      setFeedbackMessage(`Please fill: ${emptyFields.join(', ')}`);
+      setFeedbackMessage(
+        t(
+          `Please fill: ${emptyFields.join(', ')}`,
+          `এগুলো পূরণ করুন: ${emptyFields.map((field) => fieldNameBn[field] ?? field).join(', ')}`
+        )
+      );
       setIsError(true);
       setLoading(false);
       return;
@@ -151,27 +187,35 @@ const AddBooks = () => {
     if (Data.discountType && salePreview === null) {
       setFeedbackMessage(
         Data.discountType === 'percent'
-          ? 'A discount is between 1% and 90%.'
-          : 'A discount is less than the price, and at most 90% of it.'
+          ? t('A discount is between 1% and 90%.', `ছাড় ${formatNumber(1)}% থেকে ${formatNumber(90)}%-এর মধ্যে হতে হবে।`)
+          : t(
+              'A discount is less than the price, and at most 90% of it.',
+              `ছাড় দামের চেয়ে কম, এবং দামের সর্বোচ্চ ${formatNumber(90)}% হতে হবে।`
+            )
       );
       setIsError(true);
       setLoading(false);
       return;
     }
     if (!Array.isArray(Data.category) || Data.category.length === 0) {
-      setFeedbackMessage("Please select at least one category.");
+      setFeedbackMessage(t('Please select at least one category.', 'অন্তত একটি বিভাগ বেছে নিন।'));
       setIsError(true);
       setLoading(false);
       return;
     }
     if (!Array.isArray(images) || images.length === 0) {
-      setFeedbackMessage("Please select at least one image.");
+      setFeedbackMessage(t('Please select at least one image.', 'অন্তত একটি ছবি বেছে নিন।'));
       setIsError(true);
       setLoading(false);
       return;
     }
     if (images.length > 10) {
-      setFeedbackMessage("Maximum 10 images allowed. Please select fewer images.");
+      setFeedbackMessage(
+        t(
+          'Maximum 10 images allowed. Please select fewer images.',
+          `সর্বোচ্চ ${formatNumber(10)}টি ছবি দেওয়া যায়। কম ছবি বেছে নিন।`
+        )
+      );
       setIsError(true);
       setLoading(false);
       return;
@@ -215,7 +259,12 @@ const AddBooks = () => {
         ? cached.result
         : await uploadImages(images, {
             onProgress: ({ completed, total }) =>
-              setFeedbackMessage(`Uploading image ${completed} of ${total}...`),
+              setFeedbackMessage(
+                t(
+                  `Uploading image ${completed} of ${total}...`,
+                  `${formatNumber(total)}টির মধ্যে ${formatNumber(completed)}টি ছবি আপলোড হচ্ছে...`
+                )
+              ),
           });
 
       uploadedRef.current = { files: [...images], result: uploaded };
@@ -230,12 +279,15 @@ const AddBooks = () => {
       // apiFetch adds the session, as for every other request.
       const res = await apiFetch(`${API_BASE_URL}/user/add-book`, { method: 'POST', body: formData });
       const data = (await res.json().catch(() => ({}))) as { message?: string; waiting?: number };
-      if (!res.ok) throw new ApiRequestError(data.message || 'Request failed', res.status, data);
+      if (!res.ok) throw new ApiRequestError(data.message || t('Request failed', 'অনুরোধটি সফল হয়নি'), res.status, data);
       const waiting = data.waiting ?? 0;
-      const message = data.message ?? 'Book added.';
+      const message = data.message ?? t('Book added.', 'বই যোগ করা হয়েছে।');
       setFeedbackMessage(
         waiting > 0
-          ? `${message} ${waiting} ${waiting === 1 ? 'reader was' : 'readers were'} waiting for it on the Wanted board, and have just been told.`
+          ? t(
+              `${message} ${waiting} ${waiting === 1 ? 'reader was' : 'readers were'} waiting for it on the Wanted board, and have just been told.`,
+              `${message} চাহিদার বোর্ডে ${formatNumber(waiting)} জন পাঠক বইটির অপেক্ষায় ছিলেন, তাঁদের এইমাত্র জানানো হয়েছে।`
+            )
           : message
       );
       setIsError(false);
@@ -246,7 +298,12 @@ const AddBooks = () => {
       if (imageInput instanceof HTMLInputElement) imageInput.value = '';
     } catch (err) {
       // Shows the API's detail, which names the rejected field, not just its generic message.
-      setFeedbackMessage(`Submission failed: ${apiErrorMessage(err, 'please try again')}`);
+      setFeedbackMessage(
+        t(
+          `Submission failed: ${apiErrorMessage(err, 'please try again')}`,
+          `জমা দেওয়া যায়নি: ${apiErrorMessage(err, 'আবার চেষ্টা করুন')}`
+        )
+      );
       setIsError(true);
     } finally {
       setLoading(false);
@@ -256,22 +313,30 @@ const AddBooks = () => {
   return (
     <div className='sl-page'>
       <header className='sl-topbar'>
-        <Link to='/' className='sl-logo-link' aria-label={`${site.name} home`}>
+        <Link to='/' className='sl-logo-link' aria-label={t(`${site.name} home`, `${site.name} হোম`)}>
           <Logo size={34} />
         </Link>
         <div className='sl-topbar-actions'>
           <NotificationBell />
-          <Link to="/profile?mode=seller" className='btn btn-ghost'>← Back</Link>
+          <Link to="/profile?mode=seller" className='btn btn-ghost'>{t('← Back', '← ফিরে যান')}</Link>
         </div>
       </header>
 
       <div className='sl-wrap'>
         <section className='sl-hero'>
-          <span className='sl-kicker'>📚 Sell a book</span>
-          <h1>Book Information</h1>
+          <span className='sl-kicker'>{t('📚 Sell a book', '📚 বই বিক্রি করুন')}</span>
+          <h1>{t('Book Information', 'বইয়ের তথ্য')}</h1>
           <p className='sl-hero-sub'>
-            Give the books you have finished a <span className='sl-hero-highlight'>second life</span>.
-            Clear photos and a fair price sell fastest.
+            {pick(
+              <>
+                Give the books you have finished a <span className='sl-hero-highlight'>second life</span>.
+                Clear photos and a fair price sell fastest.
+              </>,
+              <>
+                পড়া শেষ হওয়া বইকে দিন <span className='sl-hero-highlight'>নতুন জীবন</span>। পরিষ্কার ছবি আর
+                ন্যায্য দামের বই সবচেয়ে তাড়াতাড়ি বিক্রি হয়।
+              </>
+            )}
           </p>
         </section>
 
@@ -284,11 +349,19 @@ const AddBooks = () => {
             <span className='sl-alert-icon' aria-hidden='true'><FaExclamationTriangle /></span>
             <div className='sl-alert-body'>
               <p>
-                <strong>Before you list:</strong> add your bKash merchant number, so we can pay you
-                when your book sells.
+                {pick(
+                  <>
+                    <strong>Before you list:</strong> add your bKash merchant number, so we can pay you
+                    when your book sells.
+                  </>,
+                  <>
+                    <strong>তালিকাভুক্ত করার আগে:</strong> আপনার বিকাশ মার্চেন্ট নম্বর যোগ করুন, যাতে বই
+                    বিক্রি হলে আমরা আপনাকে টাকা পাঠাতে পারি।
+                  </>
+                )}
               </p>
               <Link to='/update-profile#bkash' className='btn btn-primary'>
-                Add it now
+                {t('Add it now', 'এখনই যোগ করুন')}
               </Link>
             </div>
           </div>
@@ -297,12 +370,17 @@ const AddBooks = () => {
         <div className='sl-form-grid'>
           <div>
             <section className='card sl-card'>
-              <h2 className='sl-card-title'><span className='sl-step'>1</span>Photos</h2>
-              <label htmlFor='imageInput' className='sl-label'>Book Images (Max 10) <span className='sl-required'>*</span></label>
+              <h2 className='sl-card-title'><span className='sl-step'>{t('1', '১')}</span>{t('Photos', 'ছবি')}</h2>
+              <label htmlFor='imageInput' className='sl-label'>{t('Book Images (Max 10)', `বইয়ের ছবি (সর্বোচ্চ ${formatNumber(10)}টি)`)} <span className='sl-required'>*</span></label>
               <div className='sl-drop'>
                 <span className='sl-drop-icon' aria-hidden='true'><FaCamera /></span>
-                <span className='sl-drop-title' aria-hidden='true'>Tap to add photos</span>
-                <span className='sl-drop-sub' aria-hidden='true'>or drop them here · JPG, PNG, WebP or GIF · up to 10</span>
+                <span className='sl-drop-title' aria-hidden='true'>{t('Tap to add photos', 'ছবি যোগ করতে ট্যাপ করুন')}</span>
+                <span className='sl-drop-sub' aria-hidden='true'>
+                  {t(
+                    'or drop them here · JPG, PNG, WebP or GIF · up to 10',
+                    `অথবা এখানে টেনে আনুন · JPG, PNG, WebP বা GIF · সর্বোচ্চ ${formatNumber(10)}টি`
+                  )}
+                </span>
                 <input
                   type='file' id='imageInput' multiple onChange={handleImageChange}
                   accept="image/png,image/jpeg,image/webp,image/gif"
@@ -311,27 +389,27 @@ const AddBooks = () => {
               {images.length > 0 && (
                 <>
                   <div className='sl-thumbs-head'>
-                    <span>{images.length} image(s) selected</span>
+                    <span>{t(`${images.length} image(s) selected`, `${formatNumber(images.length)}টি ছবি বেছে নেওয়া হয়েছে`)}</span>
                     <button
                       type="button"
                       onClick={() => setImages([])}
                       className="sl-link-danger"
                     >
-                      Clear All
+                      {t('Clear All', 'সব সরান')}
                     </button>
                   </div>
                   <ul className='sl-thumbs' style={{ listStyle: 'none', margin: 0, padding: 0 }}>
                     {images.map((img, index) => (
                       <li key={index} className='sl-thumb'>
-                        <FilePreview file={img} alt={`Preview of ${img.name}`} max={240} />
-                        {index === 0 && <span className='badge sl-thumb-cover'>Cover</span>}
+                        <FilePreview file={img} alt={t(`Preview of ${img.name}`, `${img.name}-এর প্রিভিউ`)} max={240} />
+                        {index === 0 && <span className='badge sl-thumb-cover'>{t('Cover', 'প্রচ্ছদ')}</span>}
                         <span className='sl-thumb-name'>{img.name}</span>
                         <button
                           type="button"
                           onClick={() => setImages(prev => prev.filter((_, i) => i !== index))}
                           className="sl-thumb-remove"
-                          aria-label={`Remove ${img.name}`}
-                          title='Remove'
+                          aria-label={t(`Remove ${img.name}`, `${img.name} সরান`)}
+                          title={t('Remove', 'সরান')}
                         >
                           <FaTimes aria-hidden='true' />
                         </button>
@@ -343,20 +421,20 @@ const AddBooks = () => {
             </section>
 
             <section className='card sl-card'>
-              <h2 className='sl-card-title'><span className='sl-step'>2</span>About the book</h2>
+              <h2 className='sl-card-title'><span className='sl-step'>{t('2', '২')}</span>{t('About the book', 'বইটি সম্পর্কে')}</h2>
               <div className='sl-fields'>
                 <div className='sl-span'>
-                  <InputField label="Title *" name="title" value={Data.title} onChange={change} placeholder='e.g. Pather Panchali' />
+                  <InputField label={t('Title *', 'শিরোনাম *')} name="title" value={Data.title} onChange={change} placeholder={t('e.g. Pather Panchali', 'যেমন পথের পাঁচালী')} />
                 </div>
                 <div className='sl-span'>
-                  <InputField label="Author *" name="author" value={Data.author} onChange={change} />
+                  <InputField label={t('Author *', 'লেখক *')} name="author" value={Data.author} onChange={change} />
                 </div>
-                <InputField label="Publisher" name="publisher" value={Data.publisher} onChange={change} />
-                <InputField label="Country" name="country" value={Data.country} onChange={change} />
-                <InputField label="Language" name="language" value={Data.language} onChange={change} />
-                <InputField label="ISBN" name="isbn" value={Data.isbn} onChange={change} />
+                <InputField label={t('Publisher', 'প্রকাশক')} name="publisher" value={Data.publisher} onChange={change} />
+                <InputField label={t('Country', 'দেশ')} name="country" value={Data.country} onChange={change} />
+                <InputField label={t('Language', 'ভাষা')} name="language" value={Data.language} onChange={change} />
+                <InputField label={t('ISBN', 'আইএসবিএন')} name="isbn" value={Data.isbn} onChange={change} />
                 <InputField
-                  label="No. of Pages"
+                  label={t('No. of Pages', 'পৃষ্ঠাসংখ্যা')}
                   name="pages"
                   value={Data.pages}
                   onChange={e => {
@@ -371,11 +449,11 @@ const AddBooks = () => {
               </div>
 
               <div style={{ marginTop: '1rem' }}>
-                <label htmlFor='book-desc' className='sl-label'>Book Summary</label>
+                <label htmlFor='book-desc' className='sl-label'>{t('Book Summary', 'বইয়ের সারসংক্ষেপ')}</label>
                 <textarea
                   id='book-desc'
                   name="desc" value={Data.desc} onChange={change} rows={5}
-                  placeholder="Short summary"
+                  placeholder={t('Short summary', 'সংক্ষিপ্ত সারসংক্ষেপ')}
                   className='field'
                   style={{ minHeight: 120, padding: '12px 14px', resize: 'vertical' }}
                 ></textarea>
@@ -385,24 +463,24 @@ const AddBooks = () => {
 
           <div>
             <section className='card sl-card'>
-              <h2 className='sl-card-title'><span className='sl-step'>3</span>Type &amp; condition</h2>
-              <RadioGroup label="Book Type" name="bookType" value={Data.bookType} onChange={change} options={["new", "old"]} split />
+              <h2 className='sl-card-title'><span className='sl-step'>{t('3', '৩')}</span>{t('Type & condition', 'ধরন ও অবস্থা')}</h2>
+              <RadioGroup label={t('Book Type', 'বইয়ের ধরন')} name="bookType" value={Data.bookType} onChange={change} options={["new", "old"]} split />
 
               {Data.bookType === 'old' && (
                 <div style={{ marginTop: '1rem' }}>
                   <RadioGroup
-                    label="Condition"
+                    label={t('Condition', 'অবস্থা')}
                     name="condition"
                     value={Data.condition}
                     onChange={change}
                     options={["mint", "very good", "good", "fair", "poor"]}
                   />
                   <div style={{ marginTop: '1rem' }}>
-                    <label htmlFor='book-conditionDetails' className='sl-label'>Details About Book Condition</label>
+                    <label htmlFor='book-conditionDetails' className='sl-label'>{t('Details About Book Condition', 'বইয়ের অবস্থার বিস্তারিত')}</label>
                     <textarea
                       id='book-conditionDetails'
                       name="conditionDetails" value={Data.conditionDetails} onChange={change} rows={4}
-                      placeholder="Describe the book condition in detail"
+                      placeholder={t('Describe the book condition in detail', 'বইয়ের অবস্থা বিস্তারিত লিখুন')}
                       className='field'
                       style={{ minHeight: 100, padding: '12px 14px', resize: 'vertical' }}
                     ></textarea>
@@ -412,9 +490,9 @@ const AddBooks = () => {
             </section>
 
             <section className='card sl-card'>
-              <h2 className='sl-card-title'><span className='sl-step'>4</span>Price</h2>
+              <h2 className='sl-card-title'><span className='sl-step'>{t('4', '৪')}</span>{t('Price', 'দাম')}</h2>
               <InputField
-                label="Price (Taka) *"
+                label={t('Price (Taka) *', 'দাম (টাকা) *')}
                 name="price"
                 value={Data.price}
                 onChange={e => {
@@ -434,19 +512,37 @@ const AddBooks = () => {
               */}
               <p className='sl-fee-note'>
                 <FaInfoCircle aria-hidden='true' />
-                <span>
-                  Listing is free. When it sells, {site.name} keeps {site.sellerFeePercent}%
-                  {Number(Data.price) > 0 && (
-                    // From what the buyer pays: the sale price, when there is a discount.
-                    <> - you receive <b>{((salePreview ?? Number(Data.price)) * (100 - site.sellerFeePercent) / 100).toFixed(2)} Tk</b> per copy</>
-                  )}
-                  .
-                </span>
+                {pick(
+                  <span>
+                    Listing is free. When it sells, {site.name} keeps {site.sellerFeePercent}%
+                    {Number(Data.price) > 0 && (
+                      // From what the buyer pays: the sale price, when there is a discount.
+                      <> - you receive <b>{((salePreview ?? Number(Data.price)) * (100 - site.sellerFeePercent) / 100).toFixed(2)} Tk</b> per copy</>
+                    )}
+                    .
+                  </span>,
+                  <span>
+                    তালিকাভুক্ত করা বিনামূল্যে। বিক্রি হলে {site.name} রাখে {formatNumber(site.sellerFeePercent)}%
+                    {Number(Data.price) > 0 && (
+                      <>
+                        {' '}- প্রতি কপিতে আপনি পাবেন{' '}
+                        <b>
+                          {formatNumber(((salePreview ?? Number(Data.price)) * (100 - site.sellerFeePercent)) / 100, {
+                            minimumFractionDigits: 2,
+                            maximumFractionDigits: 2,
+                          })}{' '}
+                          টাকা
+                        </b>
+                      </>
+                    )}
+                    ।
+                  </span>
+                )}
               </p>
 
               {/* An optional deal from the start. Changeable later, from the books list. */}
               <div className='sl-discount-new'>
-                <label htmlFor='ab-discount-type' className='sl-label'>Discount (optional)</label>
+                <label htmlFor='ab-discount-type' className='sl-label'>{t('Discount (optional)', 'ছাড় (ঐচ্ছিক)')}</label>
                 <div className='sl-discount-row'>
                   <select
                     id='ab-discount-type'
@@ -459,9 +555,9 @@ const AddBooks = () => {
                       setFeedbackMessage('');
                     }}
                   >
-                    <option value=''>No discount</option>
-                    <option value='percent'>% off</option>
-                    <option value='amount'>৳ off</option>
+                    <option value=''>{t('No discount', 'ছাড় নেই')}</option>
+                    <option value='percent'>{t('% off', '% ছাড়')}</option>
+                    <option value='amount'>{t('৳ off', '৳ ছাড়')}</option>
                   </select>
                   {Data.discountType && (
                     <input
@@ -471,8 +567,8 @@ const AddBooks = () => {
                       inputMode='numeric'
                       className='field'
                       style={{ width: 110 }}
-                      aria-label={Data.discountType === 'percent' ? 'Percent off' : 'Taka off'}
-                      placeholder={Data.discountType === 'percent' ? 'e.g. 15' : 'e.g. 50'}
+                      aria-label={Data.discountType === 'percent' ? t('Percent off', 'শতকরা ছাড়') : t('Taka off', 'টাকা ছাড়')}
+                      placeholder={Data.discountType === 'percent' ? t('e.g. 15', 'যেমন ১৫') : t('e.g. 50', 'যেমন ৫০')}
                       value={Data.discountValue}
                       onChange={e => {
                         setData({ ...Data, discountValue: e.target.value.replace(/\D/g, '') });
@@ -482,7 +578,12 @@ const AddBooks = () => {
                   )}
                 </div>
                 {Data.discountType && salePreview !== null && (
-                  <p className='sl-discount-hint'>Sells for ৳{salePreview} - it will show in Quick deals.</p>
+                  <p className='sl-discount-hint'>
+                    {t(
+                      `Sells for ৳${salePreview} - it will show in Quick deals.`,
+                      `বিক্রি হবে ৳${formatNumber(salePreview)}-এ - বইটি চটজলদি ছাড়-এ দেখা যাবে।`
+                    )}
+                  </p>
                 )}
               </div>
             </section>
@@ -490,13 +591,13 @@ const AddBooks = () => {
             <section className='card sl-card'>
               <fieldset style={{ border: 0, margin: 0, padding: 0, minWidth: 0 }}>
                 <legend className='sl-card-title' style={{ padding: 0 }}>
-                  <span className='sl-step'>5</span><span>Category <span className='sl-required'>*</span></span>
+                  <span className='sl-step'>{t('5', '৫')}</span><span>{t('Category', 'বিভাগ')} <span className='sl-required'>*</span></span>
                 </legend>
-                <p className='sl-card-hint'>Pick all that fit - it helps buyers find it.</p>
+                <p className='sl-card-hint'>{t('Pick all that fit - it helps buyers find it.', 'যতগুলো মেলে সব বেছে নিন - এতে ক্রেতারা বইটি সহজে খুঁজে পান।')}</p>
                 {CATEGORY_GROUPS.map(group => (
                   <div key={group.name} className='sl-choice-group'>
                     <p className='sl-choice-group-name'>
-                      <span aria-hidden='true'>{group.emoji}</span> {group.name}
+                      <span aria-hidden='true'>{group.emoji}</span> {categoryLabel(group.name)}
                     </p>
                     <div className='sl-choices'>
                       {group.items.map(cat => {
@@ -505,7 +606,7 @@ const AddBooks = () => {
                           <label key={cat} className={`sl-choice${on ? ' is-on' : ''}`}>
                             <input name='category' type='checkbox' value={cat} checked={on} onChange={handleCategoryChange} />
                             {on && <FaCheck className='sl-choice-icon' aria-hidden='true' />}
-                            {cat}
+                            {categoryLabel(cat)}
                           </label>
                         );
                       })}
@@ -520,10 +621,10 @@ const AddBooks = () => {
                 type='button'
                 onClick={submit} disabled={loading || needsPayoutNumber}
                 className='btn btn-accent'>
-                {loading ? "Submitting..." : "Submit"}
+                {loading ? t('Submitting...', 'জমা দেওয়া হচ্ছে...') : t('Submit', 'জমা দিন')}
               </button>
               <p className='sl-muted' style={{ margin: '0.75rem 0 0', fontSize: '0.85rem', textAlign: 'center' }}>
-                You can change the price and stock later, from your books.
+                {t('You can change the price and stock later, from your books.', 'দাম ও স্টক পরে আপনার বইয়ের তালিকা থেকে বদলাতে পারবেন।')}
               </p>
 
               {feedbackMessage && (
@@ -591,7 +692,7 @@ const RadioGroup = ({ label, name, value, onChange, options, split = false }: Ra
       {options.map(opt => (
         <label key={opt} className={`sl-choice${value === opt ? ' is-on' : ''}`}>
           <input type="radio" name={name} value={opt} checked={value === opt} onChange={onChange} />
-          {opt.charAt(0).toUpperCase() + opt.slice(1)}
+          {choiceLabel(opt)}
         </label>
       ))}
     </div>

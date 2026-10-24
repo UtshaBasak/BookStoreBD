@@ -1,5 +1,7 @@
 import { FaRegStar, FaStar, FaStarHalfAlt } from 'react-icons/fa';
 
+import { formatNumber, t } from '../utils/language.js';
+
 interface StarsProps {
   /** 0 to 5. Halves are shown, because 4.3 is not 4 and is not 5. */
   value: number;
@@ -18,7 +20,7 @@ export function Stars({ value, size = 16, className = '' }: StarsProps) {
       // One label for the group rather than five unlabelled icons, so a screen
       // reader says "rated 4.3 out of 5" instead of "star star star".
       role="img"
-      aria-label={`Rated ${value} out of 5`}
+      aria-label={t(`Rated ${value} out of 5`, `৫-এর মধ্যে ${formatNumber(value)} রেটিং`)}
     >
       {[1, 2, 3, 4, 5].map((star) => {
         if (rounded >= star) return <FaStar key={star} aria-hidden="true" />;
@@ -43,14 +45,14 @@ interface StarInputProps {
  */
 export function StarInput({ value, onChange, disabled = false }: StarInputProps) {
   return (
-    <div className="flex items-center gap-1" role="group" aria-label="Your rating">
+    <div className="flex items-center gap-1" role="group" aria-label={t('Your rating', 'আপনার রেটিং')}>
       {[1, 2, 3, 4, 5].map((star) => (
         <button
           key={star}
           type="button"
           disabled={disabled}
           onClick={() => onChange(star)}
-          aria-label={`${star} ${star === 1 ? 'star' : 'stars'}`}
+          aria-label={t(`${star} ${star === 1 ? 'star' : 'stars'}`, `${formatNumber(star)}টি তারা`)}
           aria-pressed={value === star}
           className="icon-button"
           style={{ color: star <= value ? '#ff8a3d' : 'var(--color-brand-line)', fontSize: 26 }}

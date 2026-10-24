@@ -1,6 +1,8 @@
 import type { OrderDetail, OrderDetailLine } from '@shared/api.js';
 
-import { site } from '../config/site.js';
+import { site, siteLocation, sitePayment, siteTagline } from '../config/site.js';
+import { digits, formatDateTime, formatNumber, t } from './language.js';
+import { statusLabel } from './orderStatus.js';
 import { CANCELLED } from './orderTotals.js';
 
 export type PdfRole = 'buyer' | 'seller' | 'admin';
@@ -22,9 +24,9 @@ export type PdfRole = 'buyer' | 'seller' | 'admin';
 const escape = (value: unknown): string =>
   String(value ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c] ?? c);
 
-const taka = (amount: number): string => `৳${(Math.round(amount * 100) / 100).toFixed(2)}`;
+const taka = (amount: number): string => `৳${digits((Math.round(amount * 100) / 100).toFixed(2))}`;
 const when = (iso?: string | null): string =>
-  iso ? new Date(iso).toLocaleString('en-GB', { day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '';
+  iso ? formatDateTime(iso, { day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' }, 'en-GB') : '';
 
 const INK = '#111827';
 const MUTED = '#6b7280';
@@ -59,10 +61,10 @@ const lineCells = (line: OrderDetailLine, withSeller: boolean): string[] => {
   const price = Number(line.price) || 0;
   const cancelled = line.status === CANCELLED;
   return [
-    `<strong>${escape(line.title || 'A book')}</strong><br><span style="color:${MUTED};font-size:12px;">${escape(line.author || '')}${
-      withSeller ? ` · sold by ${escape(line.sellerEmail)}` : ''
-    }${cancelled ? ' · cancelled' : line.returnStatus === 'approved' ? ' · returned' : ''}</span>`,
-    String(quantity),
+    `<strong>${escape(line.title || t('A book', 'একটি বই'))}</strong><br><span style="color:${MUTED};font-size:12px;">${escape(line.author || '')}${
+      withSeller ? t(` · sold by ${escape(line.sellerEmail)}`, ` · বিক্রেতা ${escape(line.sellerEmail)}`) : ''
+    }${cancelled ? t(' · cancelled', ' · বাতিল') : line.returnStatus === 'approved' ? t(' · returned', ' · ফেরত এসেছে') : ''}</span>`,
+    formatNumber(quantity),
     taka(price),
     taka(price * quantity),
   ];
@@ -79,20 +81,32 @@ export const orderPdfHtml = (order: OrderDetail, role: PdfRole, viewerEmail?: st
   const booksTotal = counted.reduce((sum, line) => sum + (Number(line.price) || 0) * (Number(line.quantity) || 1), 0);
   const fee = Math.round(booksTotal * site.sellerFeePercent) / 100;
 
-  const title = role === 'seller' ? 'Seller order slip' : role === 'admin' ? 'Order record' : 'Order receipt';
+  const title =
+    role === 'seller'
+      ? t('Seller order slip', 'বিক্রেতার অর্ডার স্লিপ')
+      : role === 'admin'
+        ? t('Order record', 'অর্ডারের রেকর্ড')
+        : t('Order receipt', 'অর্ডারের রসিদ');
   const area = [order.deliveryDistrict, order.deliveryDivision].filter(Boolean).join(', ');
   const address = [order.deliveryAddress, area].filter(Boolean).join(', ');
 
   const people =
     role === 'seller'
-      ? box('Buyer', facts([['Name', order.contactName ?? ''], ['E-mail', order.buyerEmail], ['Delivery area', area]]))
-      : box(
-          role === 'buyer' ? 'Deliver to' : 'Buyer and delivery',
+      ? box(
+          t('Buyer', 'ক্রেতা'),
           facts([
-            ['Name', order.contactName ?? ''],
-            ['Phone', order.contactPhone ?? ''],
-            ...(role === 'admin' ? ([['E-mail', order.buyerEmail]] as [string, string][]) : []),
-            ['Address', address],
+            [t('Name', 'নাম'), order.contactName ?? ''],
+            [t('E-mail', 'ই-মেইল'), order.buyerEmail],
+            [t('Delivery area', 'ডেলিভারির এলাকা'), area],
+          ])
+        )
+      : box(
+          role === 'buyer' ? t('Deliver to', 'যেখানে পাঠানো হবে') : t('Buyer and delivery', 'ক্রেতা ও ডেলিভারি'),
+          facts([
+            [t('Name', 'নাম'), order.contactName ?? ''],
+            [t('Phone', 'ফোন'), order.contactPhone ?? ''],
+            ...(role === 'admin' ? ([[t('E-mail', 'ই-মেইল'), order.buyerEmail]] as [string, string][]) : []),
+            [t('Address', 'ঠিকানা'), address],
           ])
         );
 
@@ -109,24 +123,38 @@ export const orderPdfHtml = (order: OrderDetail, role: PdfRole, viewerEmail?: st
     role === 'seller'
       ? totals(
           [
-            [counted.length < live.length ? 'Your books (not returned)' : 'Your books', taka(booksTotal)],
-            [`${site.name} fee (${site.sellerFeePercent}%)`, `- ${taka(fee)}`],
-            ['You receive', taka(booksTotal - fee)],
+            [
+              counted.length < live.length ? t('Your books (not returned)', 'আপনার বই (ফেরত আসা ছাড়া)') : t('Your books', 'আপনার বই'),
+              taka(booksTotal),
+            ],
+            [
+              t(`${site.name} fee (${site.sellerFeePercent}%)`, `${site.name} ফি (${formatNumber(site.sellerFeePercent)}%)`),
+              `- ${taka(fee)}`,
+            ],
+            [t('You receive', 'আপনি পাবেন'), taka(booksTotal - fee)],
           ],
-          `Paid by bKash once it is delivered and the ${site.returns.windowDays}-day return window has closed.`
+          t(
+            `Paid by bKash once it is delivered and the ${site.returns.windowDays}-day return window has closed.`,
+            `ডেলিভারির পর ${formatNumber(site.returns.windowDays)} দিনের ফেরতের সময়সীমা শেষ হলে বিকাশে পরিশোধ করা হয়।`
+          )
         )
       : totals([
-          ['Books', taka(Number(order.booksTotal) || 0)],
-          ['Delivery', Number(order.shippingCost) ? taka(Number(order.shippingCost)) : 'Free'],
-          ...(Number(order.discount) ? ([[`Discount${order.promo ? ` (${order.promo})` : ''}`, `- ${taka(Number(order.discount))}`]] as [string, string][]) : []),
-          [role === 'buyer' ? 'To pay on delivery' : 'Order total', taka(Number(order.totalCost) || 0)],
+          [t('Books', 'বই'), taka(Number(order.booksTotal) || 0)],
+          [t('Delivery', 'ডেলিভারি'), Number(order.shippingCost) ? taka(Number(order.shippingCost)) : t('Free', 'ফ্রি')],
+          ...(Number(order.discount)
+            ? ([[`${t('Discount', 'ছাড়')}${order.promo ? ` (${order.promo})` : ''}`, `- ${taka(Number(order.discount))}`]] as [string, string][])
+            : []),
+          [
+            role === 'buyer' ? t('To pay on delivery', 'ডেলিভারিতে পরিশোধ') : t('Order total', 'অর্ডারের মোট'),
+            taka(Number(order.totalCost) || 0),
+          ],
         ]);
 
   return `<div style="width:794px;box-sizing:border-box;padding:44px 48px;background:#fff;font-family:'Plus Jakarta Sans','Segoe UI','Noto Sans Bengali','Nirmala UI',Arial,sans-serif;color:${INK};">
   <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:24px;padding-bottom:18px;border-bottom:3px solid ${BRAND};">
     <div>
       <div style="font-size:26px;font-weight:800;letter-spacing:-.5px;">BookStore<span style="color:#ff5c35;">BD</span></div>
-      <div style="margin-top:2px;font-size:12px;color:${MUTED};">${escape(site.tagline)}</div>
+      <div style="margin-top:2px;font-size:12px;color:${MUTED};">${escape(siteTagline())}</div>
     </div>
     <div style="text-align:right;">
       <div style="font-size:18px;font-weight:800;color:${BRAND};">${escape(title)}</div>
@@ -135,16 +163,16 @@ export const orderPdfHtml = (order: OrderDetail, role: PdfRole, viewerEmail?: st
   </div>
 
   <div style="display:flex;gap:14px;margin:20px 0;">
-    ${box('Order', facts([
-      ['Placed on', when(order.createdAt)],
-      ['Status', order.status || 'Order Confirmed'],
-      ['Payment', order.paymentMethod || site.payment],
+    ${box(t('Order', 'অর্ডার'), facts([
+      [t('Placed on', 'অর্ডারের সময়'), when(order.createdAt)],
+      [t('Status', 'অবস্থা'), statusLabel(order.status || 'Order Confirmed')],
+      [t('Payment', 'পেমেন্ট'), !order.paymentMethod || order.paymentMethod === site.payment ? sitePayment() : order.paymentMethod],
     ]))}
     ${people}
   </div>
 
   <table style="width:100%;border-collapse:collapse;margin:0 0 18px;">
-    <thead>${row(['Book', 'Qty', 'Price', 'Total'], { head: true })}</thead>
+    <thead>${row([t('Book', 'বই'), t('Qty', 'পরিমাণ'), t('Price', 'দাম'), t('Total', 'মোট')], { head: true })}</thead>
     <tbody>${lines.map((line) => row(lineCells(line, role !== 'seller'), { struck: line.status === CANCELLED })).join('')}</tbody>
   </table>
 
@@ -152,11 +180,18 @@ export const orderPdfHtml = (order: OrderDetail, role: PdfRole, viewerEmail?: st
     <div style="width:380px;padding:14px 16px;border-radius:12px;background:#f3efff;">${summary}</div>
   </div>
 
-  ${order.buyerNote ? `<div style="margin:0 0 18px;padding:12px 16px;border-radius:12px;background:#fff7ed;color:#9a3412;font-size:13px;"><strong>${role === 'buyer' ? 'Your note to the seller' : 'Note from the buyer'}:</strong> ${escape(order.buyerNote)}</div>` : ''}
+  ${order.buyerNote ? `<div style="margin:0 0 18px;padding:12px 16px;border-radius:12px;background:#fff7ed;color:#9a3412;font-size:13px;"><strong>${role === 'buyer' ? t('Your note to the seller', 'বিক্রেতার জন্য আপনার নোট') : t('Note from the buyer', 'ক্রেতার নোট')}:</strong> ${escape(order.buyerNote)}</div>` : ''}
 
   <div style="padding-top:14px;border-top:1px solid ${LINE};font-size:11px;line-height:1.6;color:${MUTED};">
-    ${role === 'buyer' ? `Something wrong with a book? You can ask for a return within ${site.returns.windowDays} days of delivery, from your orders.<br>` : ''}
-    ${escape(site.name)} · ${escape(site.location)} · ${escape(site.email)} · Downloaded ${escape(when(new Date().toISOString()))}
+    ${
+      role === 'buyer'
+        ? `${t(
+            `Something wrong with a book? You can ask for a return within ${site.returns.windowDays} days of delivery, from your orders.`,
+            `বইয়ে কোনো সমস্যা? ডেলিভারির ${formatNumber(site.returns.windowDays)} দিনের মধ্যে আপনার অর্ডার থেকে ফেরতের অনুরোধ করতে পারেন।`
+          )}<br>`
+        : ''
+    }
+    ${escape(site.name)} · ${escape(siteLocation())} · ${escape(site.email)} · ${t('Downloaded', 'ডাউনলোড')} ${escape(when(new Date().toISOString()))}
   </div>
 </div>`;
 };

@@ -18,6 +18,8 @@ import { useOrder, useUpdateOrderStatus } from '../hooks/queries.js';
 import { messageOf } from '../utils/apiError.js';
 import { isAdmin } from '../utils/auth.js';
 import { conditionOf } from '../utils/bookText.js';
+import { digits, formatDateTime, formatNumber, t } from '../utils/language.js';
+import { statusLabel } from '../utils/orderStatus.js';
 
 const ORDER_STAGES = [
   'Order Confirmed',
@@ -36,6 +38,18 @@ const statusTone = (status: string) =>
       : status === 'Order Confirmed'
         ? 'is-pending'
         : 'is-progress';
+
+/** A sum with its paisa, as the page has always written it; Bangla digits in Bangla. */
+const amount = (value: number): string =>
+  t(value.toFixed(2), formatNumber(value, { minimumFractionDigits: 2, maximumFractionDigits: 2 }));
+
+/** The book type the server stores ('new' | 'old'), as people read it. */
+const bookTypeLabel = (type: string | undefined): string =>
+  type === 'new' ? t('new', 'নতুন') : type === 'old' ? t('old', 'পুরোনো') : (type ?? '');
+
+/** How the order is paid; the stored value is shown as it is unless it is a known one. */
+const paymentLabel = (method: string | undefined): string =>
+  !method || method === 'Cash on Delivery' ? t('Cash on Delivery', 'ক্যাশ অন ডেলিভারি') : method;
 
 export default function AdminOrderTrackingPage() {
   const navigate = useNavigate();
@@ -67,7 +81,7 @@ export default function AdminOrderTrackingPage() {
       await updateStatus(newStatus);
       setStatusOverride(null);
     } catch (error) {
-      setError('Failed to update status: ' + messageOf(error));
+      setError(t('Failed to update status: ', 'অবস্থা হালনাগাদ করা যায়নি: ') + messageOf(error));
       setStatusOverride(null);
     }
   };
@@ -80,10 +94,10 @@ export default function AdminOrderTrackingPage() {
         <Link to="/admin/transactions"
           className="admin-side-button keep-text"
         >
-          ← Back to Admin Panel
+          {t('← Back to Admin Panel', '← অ্যাডমিন প্যানেলে ফিরে যান')}
         </Link>
         <button type="button" className="btn btn-primary" onClick={() => void orderQuery.refetch()} disabled={orderQuery.isFetching}>
-          ⟳ {orderQuery.isFetching ? 'Refreshing...' : 'Refresh'}
+          ⟳ {orderQuery.isFetching ? t('Refreshing...', 'হালনাগাদ হচ্ছে...') : t('Refresh', 'হালনাগাদ করুন')}
         </button>
       </div>
     </header>
@@ -97,10 +111,10 @@ export default function AdminOrderTrackingPage() {
           {orderQuery.error ? (
             // A failed lookup says so, rather than leaving "Loading..." on screen.
             <div className="admin-alert" role="alert">
-              Could not load order {orderNumber}: {orderQuery.error.message}
+              {t(`Could not load order ${orderNumber}:`, `${orderNumber} অর্ডারটি লোড করা যায়নি:`)} {orderQuery.error.message}
             </div>
           ) : (
-            <div className="admin-loading">Loading...</div>
+            <div className="admin-loading">{t('Loading...', 'লোড হচ্ছে...')}</div>
           )}
         </div>
       </div>
@@ -127,16 +141,19 @@ export default function AdminOrderTrackingPage() {
               <span className="admin-page-icon" aria-hidden="true">
                 <FaTruck />
               </span>
-              Track The Order (Admin)
+              {t('Track The Order (Admin)', 'অর্ডার ট্র্যাক করুন (অ্যাডমিন)')}
             </h2>
             <p className="admin-lede">
-              Move the order along as it happens; the buyer sees each step on their own tracking page.
+              {t(
+                'Move the order along as it happens; the buyer sees each step on their own tracking page.',
+                'যা ঘটছে সেই অনুযায়ী অর্ডারের ধাপ এগিয়ে দিন; ক্রেতা নিজের ট্র্যাকিং পাতায় প্রতিটি ধাপ দেখতে পান।'
+              )}
             </p>
           </div>
           <span className="admin-head-tools">
             <OrderPdfButton order={order} role="admin" className="btn btn-ghost admin-btn-sm" />
             <span className={`badge admin-status admin-status-lg ${statusTone(currentStatus)}`}>
-              {currentStatus}
+              {statusLabel(currentStatus)}
             </span>
           </span>
         </header>
@@ -144,7 +161,7 @@ export default function AdminOrderTrackingPage() {
         <section className="admin-card admin-panel-card" style={{ marginBottom: 16 }}>
           <h3>
             <FaRoute aria-hidden="true" />
-            Progress
+            {t('Progress', 'অগ্রগতি')}
           </h3>
           <ol className="admin-steps">
             {ORDER_STAGES.map((stage, idx) => {
@@ -157,9 +174,9 @@ export default function AdminOrderTrackingPage() {
                   aria-current={isCurrent ? 'step' : undefined}
                 >
                   <span className="admin-step-dot" aria-hidden="true">
-                    {isCurrent ? '★' : isActive ? <FaCheck /> : idx + 1}
+                    {isCurrent ? '★' : isActive ? <FaCheck /> : formatNumber(idx + 1)}
                   </span>
-                  <span>{stage}</span>
+                  <span>{statusLabel(stage)}</span>
                 </li>
               );
             })}
@@ -168,10 +185,10 @@ export default function AdminOrderTrackingPage() {
           <div className="admin-status-form">
             {statusOptions.length > 0 && (
               <label>
-                <b>Update Status: </b>
+                <b>{t('Update Status: ', 'অবস্থা হালনাগাদ: ')}</b>
                 <select name="status" value={statusValue} onChange={handleStatusChange} className="field">
                   {statusOptions.map((stage) => (
-                    <option key={stage} value={stage}>{stage}</option>
+                    <option key={stage} value={stage}>{statusLabel(stage)}</option>
                   ))}
                 </select>
               </label>
@@ -185,43 +202,43 @@ export default function AdminOrderTrackingPage() {
           <section className="admin-card admin-panel-card">
             <h3>
               <FaReceipt aria-hidden="true" />
-              Order
+              {t('Order', 'অর্ডার')}
             </h3>
             <dl className="admin-facts">
               <div>
-                <dt>Order Number:</dt>
+                <dt>{t('Order Number:', 'অর্ডার নম্বর:')}</dt>
                 <dd className="admin-mono" style={{ color: 'var(--color-accent)' }}>{order.orderNumber}<CopyButton text={order.orderNumber} /></dd>
               </div>
               <div>
-                <dt>Placed On:</dt>
-                <dd>{order.createdAt ? new Date(order.createdAt).toLocaleString() : ''}</dd>
+                <dt>{t('Placed On:', 'অর্ডারের তারিখ:')}</dt>
+                <dd>{order.createdAt ? formatDateTime(order.createdAt) : ''}</dd>
               </div>
               <div>
-                <dt>Status:</dt>
-                <dd>{currentStatus}</dd>
+                <dt>{t('Status:', 'অবস্থা:')}</dt>
+                <dd>{statusLabel(currentStatus)}</dd>
               </div>
               <div>
-                <dt>Payment Method</dt>
-                <dd>{order.paymentMethod || 'Cash on Delivery'}</dd>
+                <dt>{t('Payment Method', 'পেমেন্ট পদ্ধতি')}</dt>
+                <dd>{paymentLabel(order.paymentMethod)}</dd>
               </div>
             </dl>
           </section>
           <section className="admin-card admin-panel-card">
             <h3>
               <FaUser aria-hidden="true" />
-              Contact Information
+              {t('Contact Information', 'যোগাযোগের তথ্য')}
             </h3>
             <dl className="admin-facts">
               <div>
-                <dt>Name:</dt>
+                <dt>{t('Name:', 'নাম:')}</dt>
                 <dd>{order.contactName || ''}</dd>
               </div>
               <div>
-                <dt>Email:</dt>
+                <dt>{t('Email:', 'ই-মেইল:')}</dt>
                 <dd>{order.buyerEmail || ''}</dd>
               </div>
               <div>
-                <dt>Phone:</dt>
+                <dt>{t('Phone:', 'ফোন:')}</dt>
                 <dd className="admin-mono">{order.contactPhone || ''}</dd>
               </div>
             </dl>
@@ -229,24 +246,24 @@ export default function AdminOrderTrackingPage() {
           <section className="admin-card admin-panel-card">
             <h3>
               <FaMapMarkerAlt aria-hidden="true" />
-              Delivery Information
+              {t('Delivery Information', 'ডেলিভারির তথ্য')}
             </h3>
             <dl className="admin-facts">
               <div>
-                <dt>Division:</dt>
+                <dt>{t('Division:', 'বিভাগ:')}</dt>
                 <dd>{order.deliveryDivision || ''}</dd>
               </div>
               <div>
-                <dt>District:</dt>
+                <dt>{t('District:', 'জেলা:')}</dt>
                 <dd>{order.deliveryDistrict || ''}</dd>
               </div>
               <div>
-                <dt>Address:</dt>
+                <dt>{t('Address:', 'ঠিকানা:')}</dt>
                 <dd>{order.deliveryAddress || ''}</dd>
               </div>
               {order.buyerNote && (
                 <div>
-                  <dt>Buyer&apos;s note:</dt>
+                  <dt>{t("Buyer's note:", 'ক্রেতার নোট:')}</dt>
                   <dd style={{ whiteSpace: 'pre-line' }}>{order.buyerNote}</dd>
                 </div>
               )}
@@ -257,22 +274,22 @@ export default function AdminOrderTrackingPage() {
         <section className="admin-card admin-panel-card">
           <h3>
             <FaBook aria-hidden="true" />
-            Order Details
+            {t('Order Details', 'অর্ডারের বিবরণ')}
           </h3>
           <div className="table-scroll admin-table-round">
             <table className="styled-table">
               <thead>
                 <tr>
-                  <th>Title</th>
-                  <th>Author</th>
-                  <th>Category</th>
-                  <th>Book Type</th>
-                  <th>Condition</th>
-                  <th>No. of Pages</th>
-                  <th>Price (Tk.)</th>
-                  <th>Quantity</th>
-                  <th>Seller</th>
-                  <th>Total Cost</th>
+                  <th>{t('Title', 'শিরোনাম')}</th>
+                  <th>{t('Author', 'লেখক')}</th>
+                  <th>{t('Category', 'বিষয়')}</th>
+                  <th>{t('Book Type', 'বইয়ের ধরন')}</th>
+                  <th>{t('Condition', 'অবস্থা')}</th>
+                  <th>{t('No. of Pages', 'পৃষ্ঠা সংখ্যা')}</th>
+                  <th>{t('Price (Tk.)', 'দাম (টাকা)')}</th>
+                  <th>{t('Quantity', 'পরিমাণ')}</th>
+                  <th>{t('Seller', 'বিক্রেতা')}</th>
+                  <th>{t('Total Cost', 'মোট দাম')}</th>
                 </tr>
               </thead>
               <tbody>
@@ -281,18 +298,18 @@ export default function AdminOrderTrackingPage() {
                     <td className="admin-cell-strong" style={{ minWidth: 150 }}>
                       {ob.title}
                       {ob.status === 'Cancelled' && books.length > 1 && (
-                        <span className="badge admin-status is-bad admin-line-pill">Cancelled</span>
+                        <span className="badge admin-status is-bad admin-line-pill">{statusLabel('Cancelled')}</span>
                       )}
                     </td>
                     <td style={{ minWidth: 130 }}>{ob.author}</td>
                     <td style={{ minWidth: 120 }}>{Array.isArray(ob.category) ? ob.category.join(', ') : ob.category}</td>
-                    <td style={{ textTransform: 'capitalize' }}>{ob.bookType}</td>
+                    <td style={{ textTransform: 'capitalize' }}>{bookTypeLabel(ob.bookType)}</td>
                     <td style={{ textTransform: 'capitalize' }}>{conditionOf(ob) || '-'}</td>
-                    <td className="admin-num">{ob.pages}</td>
-                    <td className="admin-num">{ob.price}</td>
-                    <td className="admin-num">{ob.quantity}</td>
+                    <td className="admin-num">{ob.pages == null ? ob.pages : digits(ob.pages)}</td>
+                    <td className="admin-num">{ob.price == null ? ob.price : digits(ob.price)}</td>
+                    <td className="admin-num">{ob.quantity == null ? ob.quantity : digits(ob.quantity)}</td>
                     <td>{ob.sellerEmail}</td>
-                    <td className="admin-num admin-cell-strong">{(Number(ob.price) * Number(ob.quantity)).toFixed(2)}</td>
+                    <td className="admin-num admin-cell-strong">{amount(Number(ob.price) * Number(ob.quantity))}</td>
                   </tr>
                 ))}
               </tbody>
@@ -302,20 +319,20 @@ export default function AdminOrderTrackingPage() {
               visible on a phone when the table scrolls sideways. */}
           <dl className="admin-totals">
             <div>
-              <dt>Subtotal:</dt>
-              <dd>{itemTotal.toFixed(2)}</dd>
+              <dt>{t('Subtotal:', 'উপমোট:')}</dt>
+              <dd>{amount(itemTotal)}</dd>
             </div>
             <div>
-              <dt>Shipping Cost:</dt>
-              <dd>{Number(shipping).toFixed(2)}</dd>
+              <dt>{t('Shipping Cost:', 'ডেলিভারি চার্জ:')}</dt>
+              <dd>{amount(Number(shipping))}</dd>
             </div>
             <div>
-              <dt>Discount:</dt>
-              <dd>-{Number(discount).toFixed(2)}</dd>
+              <dt>{t('Discount:', 'ছাড়:')}</dt>
+              <dd>-{amount(Number(discount))}</dd>
             </div>
             <div className="admin-grand">
-              <dt>Order Total:</dt>
-              <dd className="admin-price">৳{finalTotal.toFixed(2)}</dd>
+              <dt>{t('Order Total:', 'অর্ডারের মোট:')}</dt>
+              <dd className="admin-price">৳{amount(finalTotal)}</dd>
             </div>
           </dl>
         </section>

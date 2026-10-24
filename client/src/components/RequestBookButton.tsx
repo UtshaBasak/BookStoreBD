@@ -5,6 +5,7 @@ import { useBookRequest, useToggleBookRequest } from '../hooks/queries.js';
 import { useToast } from '../hooks/useToast.js';
 import { getUserEmail } from '../utils/auth.js';
 import { messageOf } from '../utils/apiError.js';
+import { t } from '../utils/language.js';
 
 /**
  * "Tell me when it is back", for a sold-out book: the seller hears somebody is
@@ -38,23 +39,34 @@ export default function RequestBookButton({
       disabled={isPending}
       onClick={() => {
         if (!email) {
-          toast.info('Sign in to ask for this book.', { action: { label: 'Sign in', onClick: () => navigate('/sign-in') } });
+          toast.info(t('Sign in to ask for this book.', 'বইটি চাইতে সাইন ইন করুন।'), {
+            action: { label: t('Sign in', 'সাইন ইন'), onClick: () => navigate('/sign-in') },
+          });
           return;
         }
         mutate(requested, {
           onSuccess: (next) =>
             toast.success(
               next.requested
-                ? "We've told the seller. You'll get a notification when it's back."
-                : 'Request withdrawn.'
+                ? t(
+                    "We've told the seller. You'll get a notification when it's back.",
+                    'বিক্রেতাকে জানানো হয়েছে। বইটি আবার এলে আপনি নোটিফিকেশন পাবেন।'
+                  )
+                : t('Request withdrawn.', 'অনুরোধ তুলে নেওয়া হয়েছে।')
             ),
-          onError: (error) => toast.error(messageOf(error) || 'Could not send the request.'),
+          onError: (error) => toast.error(messageOf(error) || t('Could not send the request.', 'অনুরোধ পাঠানো যায়নি।')),
         });
       }}
-      title={requested ? 'Withdraw your request' : 'Ask the seller to restock it'}
+      title={
+        requested
+          ? t('Withdraw your request', 'আপনার অনুরোধ তুলে নিন')
+          : t('Ask the seller to restock it', 'বিক্রেতাকে বইটি আবার আনতে বলুন')
+      }
     >
       {requested ? <FaCheck aria-hidden="true" /> : <FaBell aria-hidden="true" />}
-      {requested ? 'Requested - we will tell you' : 'Notify me when it is back'}
+      {requested
+        ? t('Requested - we will tell you', 'অনুরোধ করা হয়েছে - আমরা জানাব')
+        : t('Notify me when it is back', 'আবার এলে আমাকে জানান')}
     </button>
   );
 }

@@ -12,20 +12,21 @@ import Pager from '../../components/Pager.js';
 import { Stars } from '../../components/Stars.js';
 import { FilterSelect, RefreshButton, ReviewKindTabs } from './AdminControls.js';
 import { reviewSubject, useReviewKind } from './reviewKind.js';
+import { formatDate, formatNumber, t } from '../../utils/language.js';
 import '../AdminPanel.css';
 
 const PAGE_SIZE = 25;
 
-const SORTS = [
-  { value: 'newest', label: 'Newest first' },
-  { value: 'oldest', label: 'Oldest first' },
-  { value: 'ratingHigh', label: 'Highest rating' },
-  { value: 'ratingLow', label: 'Lowest rating' },
-  { value: 'mostReported', label: 'Most reported' },
+const SORTS = () => [
+  { value: 'newest', label: t('Newest first', 'নতুন আগে') },
+  { value: 'oldest', label: t('Oldest first', 'পুরোনো আগে') },
+  { value: 'ratingHigh', label: t('Highest rating', 'সর্বোচ্চ রেটিং আগে') },
+  { value: 'ratingLow', label: t('Lowest rating', 'সর্বনিম্ন রেটিং আগে') },
+  { value: 'mostReported', label: t('Most reported', 'সবচেয়ে বেশি রিপোর্ট') },
 ];
-const STARS = [
-  { value: '', label: 'Any stars' },
-  ...[5, 4, 3, 2, 1].map((n) => ({ value: String(n), label: `${'★'.repeat(n)} (${n})` })),
+const STARS = () => [
+  { value: '', label: t('Any stars', 'যেকোনো তারা') },
+  ...[5, 4, 3, 2, 1].map((n) => ({ value: String(n), label: `${'★'.repeat(n)} (${formatNumber(n)})` })),
 ];
 const YES_NO = (any: string, yes: string, no: string) => [
   { value: '', label: any },
@@ -34,7 +35,7 @@ const YES_NO = (any: string, yes: string, no: string) => [
 ];
 
 const when = (value?: string): string =>
-  value ? new Date(value).toLocaleDateString(undefined, { dateStyle: 'medium' }) : '';
+  value ? formatDate(value, { dateStyle: 'medium' }) : '';
 
 /**
  * Every review in the shop, for the administrator.
@@ -74,12 +75,16 @@ export default function AllReviews() {
 
   const deleteReview = async (targetId: Id, reviewerEmail: string) => {
     const whose = kind === 'seller' ? "the seller's" : "the book's";
+    const question = t(
+      `Remove this review? It no longer counts towards ${whose} score.`,
+      `রিভিউটি সরাবেন? এটি আর ${kind === 'seller' ? 'বিক্রেতার' : 'বইয়ের'} রেটিংয়ে গোনা হবে না।`
+    );
     // eslint-disable-next-line no-alert -- removing somebody's words needs a yes
-    if (!window.confirm(`Remove this review? It no longer counts towards ${whose} score.`)) return;
+    if (!window.confirm(question)) return;
     try {
       toast.success((await remove({ targetId, reviewerEmail })).message);
     } catch (err) {
-      toast.error(messageOf(err) || 'Could not remove that review.');
+      toast.error(messageOf(err) || t('Could not remove that review.', 'রিভিউটি সরানো যায়নি।'));
     }
   };
 
@@ -93,9 +98,14 @@ export default function AllReviews() {
             <span className="admin-page-icon" aria-hidden="true">
               <FaStar />
             </span>
-            Reviews
+            {t('Reviews', 'রিভিউ')}
           </h2>
-          <p className="admin-lede">Every review buyers have written. Reported ones are also in Reported Reviews.</p>
+          <p className="admin-lede">
+            {t(
+              'Every review buyers have written. Reported ones are also in Reported Reviews.',
+              'ক্রেতাদের লেখা সব রিভিউ। রিপোর্ট করাগুলো রিপোর্ট করা রিভিউতেও আছে।'
+            )}
+          </p>
         </div>
         <RefreshButton onClick={() => void refetch()} busy={isFetching} />
       </header>
@@ -114,40 +124,47 @@ export default function AllReviews() {
             name="q"
             type="text"
             className="field"
-            placeholder={`Search words, reviewer or ${kind === 'seller' ? 'seller' : 'book'}...`}
-            aria-label="Search reviews"
+            placeholder={t(
+              `Search words, reviewer or ${kind === 'seller' ? 'seller' : 'book'}...`,
+              `শব্দ, রিভিউদাতা বা ${kind === 'seller' ? 'বিক্রেতা' : 'বই'} দিয়ে খুঁজুন...`
+            )}
+            aria-label={t('Search reviews', 'রিভিউ খুঁজুন')}
             value={search}
             onChange={(e) => change(setSearch)(e.target.value)}
           />
         </div>
-        <FilterSelect name="sort" label="Sort" value={sort} onChange={change(setSort)} options={SORTS} />
-        <FilterSelect name="rating" label="Stars" value={rating} onChange={change(setRating)} options={STARS} />
+        <FilterSelect name="sort" label={t('Sort', 'সাজান')} value={sort} onChange={change(setSort)} options={SORTS()} />
+        <FilterSelect name="rating" label={t('Stars', 'তারা')} value={rating} onChange={change(setRating)} options={STARS()} />
         <FilterSelect
           name="replied"
-          label="Seller reply"
+          label={t('Seller reply', 'বিক্রেতার উত্তর')}
           value={replied}
           onChange={change(setReplied)}
-          options={YES_NO('Any', 'Answered', 'Not answered')}
+          options={YES_NO(t('Any', 'যেকোনো'), t('Answered', 'উত্তর দেওয়া হয়েছে'), t('Not answered', 'উত্তর দেওয়া হয়নি'))}
         />
         <FilterSelect
           name="reported"
-          label="Reports"
+          label={t('Reports', 'রিপোর্ট')}
           value={reported}
           onChange={change(setReported)}
-          options={YES_NO('Any', 'Reported', 'Not reported')}
+          options={YES_NO(t('Any', 'যেকোনো'), t('Reported', 'রিপোর্ট করা'), t('Not reported', 'রিপোর্ট করা হয়নি'))}
         />
       </div>
 
       {isPending ? (
-        <div className="admin-loading">Loading...</div>
+        <div className="admin-loading">{t('Loading...', 'লোড হচ্ছে...')}</div>
       ) : error ? (
-        <div className="admin-alert">Error: {error.message}</div>
+        <div className="admin-alert">{t('Error:', 'ত্রুটি:')} {error.message}</div>
       ) : reviews.length === 0 ? (
         <div className="admin-card admin-empty">
           <span className="admin-empty-mark" aria-hidden="true">
             ⭐
           </span>
-          <p>{settled || rating || replied || reported ? 'No review matches.' : 'No reviews yet.'}</p>
+          <p>
+            {settled || rating || replied || reported
+              ? t('No review matches.', 'মেলে এমন কোনো রিভিউ নেই।')
+              : t('No reviews yet.', 'এখনো কোনো রিভিউ নেই।')}
+          </p>
         </div>
       ) : (
         <ul className="admin-reviews">
@@ -171,7 +188,10 @@ export default function AllReviews() {
                   {(review.flagCount ?? 0) > 0 && (
                     <span className="badge admin-status is-bad">
                       <FaFlag aria-hidden="true" />
-                      {review.flagCount} report{review.flagCount === 1 ? '' : 's'}
+                      {t(
+                      `${review.flagCount} report${review.flagCount === 1 ? '' : 's'}`,
+                      `${formatNumber(review.flagCount ?? 0)}টি রিপোর্ট`
+                    )}
                     </span>
                   )}
                 </div>
@@ -187,7 +207,7 @@ export default function AllReviews() {
                 {review.reply && (
                   <div className="admin-reasons">
                     <strong>
-                      <FaReply aria-hidden="true" /> {review.reply.byName} replied:
+                      <FaReply aria-hidden="true" /> {t(`${review.reply.byName} replied:`, `${review.reply.byName}-এর উত্তর:`)}
                     </strong>
                     <p style={{ margin: '4px 0 0', whiteSpace: 'pre-line' }}>{review.reply.body}</p>
                   </div>
@@ -195,11 +215,11 @@ export default function AllReviews() {
 
                 <div className="admin-review-actions">
                   <Link to={subject.to} className="btn btn-ghost">
-                    View on {subject.page}
+                    {subject.view}
                   </Link>
                   <button type="button" className="btn btn-danger" onClick={() => void deleteReview(subject.targetId, review.reviewerEmail)}>
                     <FaTrashAlt aria-hidden="true" />
-                    Remove the review
+                    {t('Remove the review', 'রিভিউটি সরান')}
                   </button>
                 </div>
               </li>
@@ -210,7 +230,7 @@ export default function AllReviews() {
 
       {data && (
         <div className="admin-pager">
-          <Pager page={data.page} pageCount={data.pageCount} pageSize={PAGE_SIZE} total={data.total} onPage={setPage} noun="reviews" />
+          <Pager page={data.page} pageCount={data.pageCount} pageSize={PAGE_SIZE} total={data.total} onPage={setPage} noun={t('reviews', 'রিভিউ')} />
         </div>
       )}
     </div>

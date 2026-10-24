@@ -1,5 +1,7 @@
 import { FaChevronLeft, FaChevronRight } from 'react-icons/fa';
 
+import { formatNumber, t } from '../utils/language.js';
+
 interface PagerProps {
   /** The page being shown, as the API reported it. */
   page: number;
@@ -24,7 +26,7 @@ export default function Pager({
   pageSize,
   total,
   onPage,
-  noun = 'rows',
+  noun = t('rows', 'সারি'),
 }: PagerProps) {
   const first = total === 0 ? 0 : (page - 1) * pageSize + 1;
   const last = Math.min(page * pageSize, total);
@@ -32,7 +34,12 @@ export default function Pager({
   return (
     <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
       <span className="text-sm font-medium text-ink-muted">
-        {total === 0 ? `No ${noun}` : `Showing ${first}–${last} of ${total} ${noun}`}
+        {total === 0
+          ? t(`No ${noun}`, `কোনো ${noun} নেই`)
+          : t(
+              `Showing ${first}–${last} of ${total} ${noun}`,
+              `মোট ${formatNumber(total)}টি ${noun}-এর মধ্যে ${formatNumber(first)}–${formatNumber(last)}`
+            )}
       </span>
 
       {pageCount > 1 && (
@@ -46,10 +53,10 @@ export default function Pager({
             disabled={page === 1}
           >
             <FaChevronLeft aria-hidden="true" size={11} />
-            Previous
+            {t('Previous', 'আগের')}
           </button>
           <span className="inline-flex min-h-9 items-center rounded-full bg-brand-fill px-3.5 text-sm font-bold whitespace-nowrap text-white shadow-[0_6px_16px_rgba(109,40,217,0.25)]">
-            Page {page} of {pageCount}
+            {t(`Page ${page} of ${pageCount}`, `পৃষ্ঠা ${formatNumber(page)} / ${formatNumber(pageCount)}`)}
           </span>
           <button
             type="button"
@@ -57,7 +64,7 @@ export default function Pager({
             onClick={() => onPage(page + 1)}
             disabled={page === pageCount}
           >
-            Next
+            {t('Next', 'পরের')}
             <FaChevronRight aria-hidden="true" size={11} />
           </button>
         </div>

@@ -20,6 +20,7 @@ import { RETURN_WINDOW_DAYS, returnDeadline } from '../config/commerce.js';
 import { adminEmails, notify } from '../utils/notify.js';
 import { dispatchShopMail, returnDecidedEmail, returnRequestedSellerEmail } from '../utils/shopMail.js';
 import { securityEvent } from '../utils/securityLog.js';
+import { bnDigits, t } from '../utils/language.js';
 
 const log = createLogger('return');
 
@@ -40,7 +41,7 @@ export const returnBook = async (
     const ids = [...new Set(req.body.orderId.map(String))];
     const lines = await Order.find({ _id: { $in: ids }, buyerEmail: String(userEmail) }).lean();
     if (lines.length !== ids.length) {
-      res.status(404).json({ message: 'Order not found' });
+      res.status(404).json({ message: t(req, 'Order not found', 'অর্ডারটি পাওয়া যায়নি') });
       return;
     }
 
@@ -51,26 +52,46 @@ export const returnBook = async (
     );
     for (const line of lines) {
       const name = lines.length > 1 ? `"${line.title || 'A book'}"` : 'this order';
+      const nameBn = lines.length > 1 ? `"${line.title || 'একটি বই'}"` : 'এই অর্ডার';
       const deadline = returnDeadline(line);
       if (!deadline) {
-        res.status(409).json({ message: `A return can be requested once ${name} has been delivered.` });
+        res.status(409).json({
+          message: t(
+            req,
+            `A return can be requested once ${name} has been delivered.`,
+            `${nameBn} ডেলিভারি হওয়ার পর ফেরতের অনুরোধ করা যাবে।`
+          ),
+        });
         return;
       }
       if (deadline.getTime() < Date.now()) {
         res.status(409).json({
-          message: `The ${String(RETURN_WINDOW_DAYS)}-day return window for ${name} has closed.`,
+          message: t(
+            req,
+            `The ${String(RETURN_WINDOW_DAYS)}-day return window for ${name} has closed.`,
+            `${nameBn}-এর ${bnDigits(RETURN_WINDOW_DAYS)} দিনের ফেরতের সময়সীমা শেষ হয়ে গেছে।`
+          ),
         });
         return;
       }
       // Paid out means the sale is settled; one that reached this point
       // (an order moved back to Delivered by hand) goes to the shop instead.
       if (line.sellerPaidAt) {
-        res.status(409).json({ message: `The sale of ${name} has been settled, so please write to us about a return.` });
+        res.status(409).json({
+          message: t(
+            req,
+            `The sale of ${name} has been settled, so please write to us about a return.`,
+            `${nameBn}-এর বিক্রির হিসাব মিটে গেছে, তাই ফেরতের জন্য আমাদের লিখুন।`
+          ),
+        });
         return;
       }
       if (already.has(String(line._id))) {
         res.status(409).json({
-          message: lines.length > 1 ? `A return has already been requested for ${name}.` : 'A return has already been requested for this book.',
+          message:
+            lines.length > 1
+              ? t(req, `A return has already been requested for ${name}.`, `${nameBn}-এর ফেরতের অনুরোধ আগেই করা হয়েছে।`)
+              : t(req, 'A return has already been requested for this book.', 'এই বইটির ফেরতের অনুরোধ আগেই করা হয়েছে।'),
         });
         return;
       }
@@ -84,7 +105,9 @@ export const returnBook = async (
     // At least one: a return is decided on the photographs, and a request
     // without any can only be answered by asking for them.
     if (!uploaded.images.length) {
-      res.status(400).json({ message: 'Please add at least one photo showing what is wrong.' });
+      res.status(400).json({
+        message: t(req, 'Please add at least one photo showing what is wrong.', 'সমস্যাটি দেখায় এমন অন্তত একটি ছবি দিন।'),
+      });
       return;
     }
 
@@ -112,24 +135,33 @@ export const returnBook = async (
       throw err;
     });
     if (!created) {
-      res.status(409).json({ message: 'A return has already been requested for this book.' });
+      res.status(409).json({
+        message: t(req, 'A return has already been requested for this book.', 'এই বইটির ফেরতের অনুরোধ আগেই করা হয়েছে।'),
+      });
       return;
     }
     // The order line counts as returned only once the return is approved: a
     // request that is turned down leaves the sale as it was.
 
     const titles = lines.map((line) => line.title || 'A book').join(', ');
+    const titlesBn = lines.map((line) => line.title || 'একটি বই').join(', ');
     const orderNumber = lines[0]?.orderNumber ?? '';
     await notify([...new Set(lines.map((line) => line.sellerEmail))], {
       type: 'return-requested',
-      title: `A buyer wants to return ${titles}`,
-      body: `Order ${orderNumber}: "${defectDescription.slice(0, 120)}"`,
+      title: { en: `A buyer wants to return ${titles}`, bn: `একজন ক্রেতা ফেরত দিতে চান: ${titlesBn}` },
+      body: {
+        en: `Order ${orderNumber}: "${defectDescription.slice(0, 120)}"`,
+        bn: `অর্ডার ${orderNumber}: "${defectDescription.slice(0, 120)}"`,
+      },
       link: `/seller/order-tracking/${orderNumber}`,
     });
     await notify(await adminEmails(), {
       type: 'return-requested',
-      title: `Return requested: ${titles}`,
-      body: `Order ${orderNumber}. Decide it in Return Management.`,
+      title: { en: `Return requested: ${titles}`, bn: `ফেরতের অনুরোধ: ${titlesBn}` },
+      body: {
+        en: `Order ${orderNumber}. Decide it in Return Management.`,
+        bn: `অর্ডার ${orderNumber}। রিটার্ন ম্যানেজমেন্টে সিদ্ধান্ত নিন।`,
+      },
       link: '/admin/returns',
     });
     // The seller by e-mail as well: it is their sale on hold.
@@ -145,13 +177,16 @@ export const returnBook = async (
     }
 
     res.status(200).json({
-      message: lines.length > 1 ? `Return requested for ${lines.length} books` : 'Return request submitted successfully',
+      message:
+        lines.length > 1
+          ? t(req, `Return requested for ${lines.length} books`, `${bnDigits(lines.length)}টি বইয়ের ফেরতের অনুরোধ করা হয়েছে`)
+          : t(req, 'Return request submitted successfully', 'ফেরতের অনুরোধ পাঠানো হয়েছে'),
       returnId: created[0]?._id,
       returnIds: created.map((request) => request._id),
     });
   } catch (error) {
     log.error({ err: error }, 'Failed to process return request');
-    res.status(500).json({ message: 'Failed to process return request' });
+    res.status(500).json({ message: t(req, 'Failed to process return request', 'ফেরতের অনুরোধটি নেওয়া যায়নি') });
   }
 };
 
@@ -208,7 +243,7 @@ export const getReturnRequests: RequestHandler = async (req, res) => {
     });
   } catch (error) {
     log.error({ err: error }, 'Error fetching return requests');
-    res.status(500).json({ message: 'Error fetching return requests' });
+    res.status(500).json({ message: t(req, 'Error fetching return requests', 'ফেরতের অনুরোধগুলো আনা যায়নি') });
   }
 };
 
@@ -231,19 +266,19 @@ export const getReturnImage: RequestHandler<{ id: string; index?: string }> = as
       .lean();
 
     if (!request) {
-      res.status(404).json({ message: 'Return request not found' });
+      res.status(404).json({ message: t(req, 'Return request not found', 'ফেরতের অনুরোধটি পাওয়া যায়নি') });
       return;
     }
 
     if (actor.role !== 'admin' && request.userEmail !== actor.email) {
       securityEvent(req, 'authz.denied', { reason: 'not_owner', extra: { resource_type: 'return_request' } });
-      res.status(403).json({ message: 'That return request is not yours' });
+      res.status(403).json({ message: t(req, 'That return request is not yours', 'এই ফেরতের অনুরোধটি আপনার নয়') });
       return;
     }
 
     const image = request.images?.[Number(req.params.index ?? 0)];
     if (!serveStoredImage(req, res, image)) {
-      res.status(404).json({ message: 'Image not found' });
+      res.status(404).json({ message: t(req, 'Image not found', 'ছবিটি পাওয়া যায়নি') });
     }
   } catch (error) {
     next(error);
@@ -275,10 +310,16 @@ export const updateReturnStatus = async (
     if (!updatedRequest) {
       const existing = await ReturnRequest.findById(String(id), { status: 1 }).lean();
       if (!existing) {
-        res.status(404).json({ message: 'Return request not found' });
+        res.status(404).json({ message: t(req, 'Return request not found', 'ফেরতের অনুরোধটি পাওয়া যায়নি') });
         return;
       }
-      res.status(409).json({ message: `This return has already been ${existing.status === 'approved' ? 'approved' : 'turned down'}.` });
+      res.status(409).json({
+        message: t(
+          req,
+          `This return has already been ${existing.status === 'approved' ? 'approved' : 'turned down'}.`,
+          `এই ফেরতের অনুরোধ আগেই ${existing.status === 'approved' ? 'অনুমোদিত হয়েছে' : 'নাকচ করা হয়েছে'}।`
+        ),
+      });
       return;
     }
 
@@ -294,13 +335,23 @@ export const updateReturnStatus = async (
     }
 
     const decided = status === 'approved' ? 'approved' : 'turned down';
+    const decidedBn = status === 'approved' ? 'অনুমোদিত হয়েছে' : 'গ্রহণ করা হয়নি';
     await notify([updatedRequest.userEmail], {
       type: 'return-decided',
-      title: `Your return of "${updatedRequest.bookTitle}" was ${decided}`,
+      title: {
+        en: `Your return of "${updatedRequest.bookTitle}" was ${decided}`,
+        bn: `"${updatedRequest.bookTitle}" ফেরতের অনুরোধ ${decidedBn}`,
+      },
       body:
         status === 'approved'
-          ? 'Send the book back to us; the refund goes to your bKash within 15 working days of it arriving.'
-          : 'Write to support if you would like to know why.',
+          ? {
+              en: 'Send the book back to us; the refund goes to your bKash within 15 working days of it arriving.',
+              bn: 'বইটি আমাদের কাছে ফেরত পাঠান; বই পৌঁছানোর ১৫ কর্মদিবসের মধ্যে টাকা আপনার বিকাশে যাবে।',
+            }
+          : {
+              en: 'Write to support if you would like to know why.',
+              bn: 'কারণ জানতে চাইলে সাপোর্টে লিখুন।',
+            },
       link: '/buyer-books',
     });
     dispatchShopMail(
@@ -317,8 +368,11 @@ export const updateReturnStatus = async (
     );
     await notify([updatedRequest.sellerEmail], {
       type: 'return-decided',
-      title: `The return of "${updatedRequest.bookTitle}" was ${decided}`,
-      body: `Order ${updatedRequest.orderNumber}.`,
+      title: {
+        en: `The return of "${updatedRequest.bookTitle}" was ${decided}`,
+        bn: `"${updatedRequest.bookTitle}" ফেরতের অনুরোধ ${decidedBn}`,
+      },
+      body: { en: `Order ${updatedRequest.orderNumber}.`, bn: `অর্ডার ${updatedRequest.orderNumber}।` },
       link: '/seller-orders',
     });
 
@@ -332,6 +386,6 @@ export const updateReturnStatus = async (
     res.json(updatedRequest);
   } catch (error) {
     log.error({ err: error }, 'Error updating return request');
-    res.status(500).json({ message: 'Error updating return request' });
+    res.status(500).json({ message: t(req, 'Error updating return request', 'ফেরতের অনুরোধটি আপডেট করা যায়নি') });
   }
 };

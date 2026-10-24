@@ -4,6 +4,7 @@ import { FaBookOpen, FaHome } from 'react-icons/fa';
 import Logo from '../components/Logo.js';
 import { useSeo } from '../hooks/useSeo.js';
 import { site } from '../config/site.js';
+import { pick, t } from '../utils/language.js';
 
 /**
  * The 404 page: says what happened and offers a way back into the shop, so an
@@ -11,8 +12,8 @@ import { site } from '../config/site.js';
  */
 export default function NotFound() {
   useSeo({
-    title: 'Page not found',
-    description: 'That page does not exist. Browse the catalogue instead.',
+    title: t('Page not found', 'পেজটি পাওয়া যায়নি'),
+    description: t('That page does not exist. Browse the catalogue instead.', 'এই পেজটি নেই। বরং বইয়ের তালিকা দেখুন।'),
     noIndex: true,
   });
 
@@ -26,7 +27,7 @@ export default function NotFound() {
           'var(--color-page)',
       }}
     >
-      <Link to="/" className="mb-8 inline-flex min-h-11 items-center no-underline" aria-label={`${site.name} home`}>
+      <Link to="/" className="mb-8 inline-flex min-h-11 items-center no-underline" aria-label={t(`${site.name} home`, `${site.name} হোম`)}>
         <Logo size={34} />
       </Link>
 
@@ -44,20 +45,25 @@ export default function NotFound() {
           404
         </p>
         <p className="mb-1 mt-1 text-3xl" aria-hidden="true">📚🔍</p>
-        <h1 className="mb-3 mt-2 text-2xl sm:text-3xl">We cannot find that page</h1>
+        <h1 className="mb-3 mt-2 text-2xl sm:text-3xl">{t('We cannot find that page', 'পেজটি খুঁজে পাওয়া যাচ্ছে না')}</h1>
         <p className="mx-auto mb-0 max-w-md text-ink-soft">
-          The link may be out of date, or the book may have been taken down. Everything
-          {' '}
-          {site.name} has is still one click away.
+          {pick(
+            <>
+              The link may be out of date, or the book may have been taken down. Everything
+              {' '}
+              {site.name} has is still one click away.
+            </>,
+            <>লিংকটি হয়তো পুরোনো, অথবা বইটি সরিয়ে নেওয়া হয়েছে। {site.name}-এর সবকিছু এখনও এক ক্লিক দূরে।</>
+          )}
         </p>
         <div className="mt-7 flex flex-wrap justify-center gap-3">
           <Link to="/" className="btn btn-primary">
             <FaHome aria-hidden="true" />
-            Go to the homepage
+            {t('Go to the homepage', 'হোমপেজে যান')}
           </Link>
           <Link to="/filter" className="btn btn-ghost">
             <FaBookOpen aria-hidden="true" />
-            Browse all books
+            {t('Browse all books', 'সব বই দেখুন')}
           </Link>
         </div>
       </div>

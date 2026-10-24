@@ -10,35 +10,42 @@ import { useDebounced } from '../hooks/useDebounced.js';
 import PriceTag from '../components/PriceTag.js';
 import Pager from '../components/Pager.js';
 import { FilterSelect, RefreshButton } from './admin/AdminControls.js';
+import { categoryLabel } from '../config/categories.js';
 import { conditionOf } from '../utils/bookText.js';
+import { digits, formatDate, t } from '../utils/language.js';
 
 /** Rows per page. Enough to scan, few enough to draw. */
 const PAGE_SIZE = 25;
 
-const TYPES = [
-  { value: '', label: 'New and old' },
-  { value: 'new', label: 'New' },
-  { value: 'old', label: 'Old' },
+// Functions, so the labels are read in the language being shown.
+const TYPES = () => [
+  { value: '', label: t('New and old', 'নতুন ও পুরোনো') },
+  { value: 'new', label: t('New', 'নতুন') },
+  { value: 'old', label: t('Old', 'পুরোনো') },
 ];
-const STOCK = [
-  { value: '', label: 'Any stock' },
-  { value: 'in', label: 'In stock' },
-  { value: 'low', label: 'Running low' },
-  { value: 'out', label: 'Sold out' },
+const STOCK = () => [
+  { value: '', label: t('Any stock', 'যেকোনো স্টক') },
+  { value: 'in', label: t('In stock', 'স্টকে আছে') },
+  { value: 'low', label: t('Running low', 'প্রায় শেষ') },
+  { value: 'out', label: t('Sold out', 'স্টক শেষ') },
 ];
-const DEALS = [
-  { value: '', label: 'Any price' },
-  { value: 'yes', label: 'On discount' },
-  { value: 'no', label: 'Full price' },
+const DEALS = () => [
+  { value: '', label: t('Any price', 'যেকোনো দাম') },
+  { value: 'yes', label: t('On discount', 'ছাড়ে আছে') },
+  { value: 'no', label: t('Full price', 'পুরো দাম') },
 ];
-const SORTS = [
-  { value: 'newest', label: 'Newest first' },
-  { value: 'oldest', label: 'Oldest first' },
-  { value: 'titleAZ', label: 'Title A-Z' },
-  { value: 'priceLow', label: 'Price: low to high' },
-  { value: 'priceHigh', label: 'Price: high to low' },
-  { value: 'stockLow', label: 'Least stock' },
+const SORTS = () => [
+  { value: 'newest', label: t('Newest first', 'নতুন আগে') },
+  { value: 'oldest', label: t('Oldest first', 'পুরোনো আগে') },
+  { value: 'titleAZ', label: t('Title A-Z', 'নাম অনুযায়ী (ক-ঝ)') },
+  { value: 'priceLow', label: t('Price: low to high', 'দাম: কম থেকে বেশি') },
+  { value: 'priceHigh', label: t('Price: high to low', 'দাম: বেশি থেকে কম') },
+  { value: 'stockLow', label: t('Least stock', 'সবচেয়ে কম স্টক') },
 ];
+
+/** A book type as it reads; English shows the stored value, as before. */
+const bookTypeLabel = (value: string): string =>
+  value === 'new' ? t(value, 'নতুন') : value === 'old' ? t(value, 'পুরোনো') : value;
 
 export default function BookList() {
   const [search, setSearch] = useState('');
@@ -85,9 +92,9 @@ export default function BookList() {
             <span className="admin-page-icon" aria-hidden="true">
               <FaBook />
             </span>
-            Book List
+            {t('Book List', 'বইয়ের তালিকা')}
           </h2>
-          <p className="admin-lede">Every listing in the shop, with the seller who owns it.</p>
+          <p className="admin-lede">{t('Every listing in the shop, with the seller who owns it.', 'শপের প্রতিটি লিস্টিং, যে বিক্রেতার তা সহ।')}</p>
         </div>
         <RefreshButton onClick={() => void booksQuery.refetch()} busy={loading} />
       </header>
@@ -97,8 +104,8 @@ export default function BookList() {
           <input name="q"
             type="text"
             className="field"
-            placeholder="Search by title, author, or seller..."
-            aria-label="Search listings"
+            placeholder={t('Search by title, author, or seller...', 'শিরোনাম, লেখক বা বিক্রেতা দিয়ে খুঁজুন...')}
+            aria-label={t('Search listings', 'লিস্টিং খুঁজুন')}
             value={search}
             onChange={(e) => {
               setSearch(e.target.value);
@@ -107,10 +114,10 @@ export default function BookList() {
             }}
           />
         </div>
-        <FilterSelect name="bookType" label="Type" value={bookType} onChange={change(setBookType)} options={TYPES} />
-        <FilterSelect name="stock" label="Stock" value={stock} onChange={change(setStock)} options={STOCK} />
-        <FilterSelect name="deals" label="Discount" value={deals} onChange={change(setDeals)} options={DEALS} />
-        <FilterSelect name="sort" label="Sort" value={sort} onChange={change(setSort)} options={SORTS} />
+        <FilterSelect name="bookType" label={t('Type', 'ধরন')} value={bookType} onChange={change(setBookType)} options={TYPES()} />
+        <FilterSelect name="stock" label={t('Stock', 'স্টক')} value={stock} onChange={change(setStock)} options={STOCK()} />
+        <FilterSelect name="deals" label={t('Discount', 'ছাড়')} value={deals} onChange={change(setDeals)} options={DEALS()} />
+        <FilterSelect name="sort" label={t('Sort', 'সাজান')} value={sort} onChange={change(setSort)} options={SORTS()} />
       </div>
 
       <div className="admin-card">
@@ -118,17 +125,17 @@ export default function BookList() {
           <table className="styled-table">
             <thead>
               <tr>
-                <th>Title</th>
-                <th>Author</th>
-                <th>Category</th>
-                <th>Book Type</th>
-                <th>Condition</th>
-                <th>No. of Pages</th>
-                <th>Price (Tk)</th>
-                <th>Stock</th>
-                <th>Owner</th>
-                <th>Created at</th>
-                <th className="admin-sticky-end">Actions</th>
+                <th>{t('Title', 'শিরোনাম')}</th>
+                <th>{t('Author', 'লেখক')}</th>
+                <th>{t('Category', 'বিভাগ')}</th>
+                <th>{t('Book Type', 'বইয়ের ধরন')}</th>
+                <th>{t('Condition', 'অবস্থা')}</th>
+                <th>{t('No. of Pages', 'পৃষ্ঠাসংখ্যা')}</th>
+                <th>{t('Price (Tk)', 'দাম (টাকা)')}</th>
+                <th>{t('Stock', 'স্টক')}</th>
+                <th>{t('Owner', 'মালিক')}</th>
+                <th>{t('Created at', 'তৈরির তারিখ')}</th>
+                <th className="admin-sticky-end">{t('Actions', 'কাজ')}</th>
               </tr>
             </thead>
             <tbody>
@@ -136,22 +143,22 @@ export default function BookList() {
                 <tr key={book._id}>
                   <td className="admin-cell-strong" style={{ minWidth: 160 }}>{book.title}</td>
                   <td style={{ minWidth: 140 }}>{book.author}</td>
-                  <td>{Array.isArray(book.category) ? book.category.join(', ') : book.category}</td>
-                  <td style={{ textTransform: 'capitalize' }}>{book.bookType}</td>
+                  <td>{Array.isArray(book.category) ? book.category.map(categoryLabel).join(', ') : book.category}</td>
+                  <td style={{ textTransform: 'capitalize' }}>{book.bookType ? bookTypeLabel(book.bookType) : book.bookType}</td>
                   <td style={{ textTransform: 'capitalize' }}>{conditionOf(book) || '-'}</td>
-                  <td className="admin-num">{book.pages}</td>
+                  <td className="admin-num">{book.pages === undefined ? book.pages : digits(book.pages)}</td>
                   <td className="admin-price"><PriceTag book={book} size="sm" /></td>
                   <td>
                     {/* Sold out stands out; the number itself is unchanged. */}
                     <span
                       className={`badge admin-status ${Number(book.stock) > 0 ? 'is-good' : 'is-bad'}`}
                     >
-                      {book.stock}
+                      {digits(book.stock)}
                     </span>
                   </td>
                   <td>{book.sellerName}</td>
                   <td className="admin-nowrap">
-                    {book.createdAt ? new Date(book.createdAt).toLocaleDateString('en-GB') : ''}
+                    {book.createdAt ? formatDate(book.createdAt, undefined, 'en-GB') : ''}
                   </td>
                   <td className="admin-sticky-end">
                     <button
@@ -160,7 +167,7 @@ export default function BookList() {
                       onClick={() => deleteBook(book._id)}
                     >
                       <FaTrashAlt aria-hidden="true" />
-                      Delete
+                      {t('Delete', 'মুছুন')}
                     </button>
                   </td>
                 </tr>
@@ -174,7 +181,11 @@ export default function BookList() {
             <span className="admin-empty-mark" aria-hidden="true">
               📚
             </span>
-            <p>{bookType || stock || deals ? 'No listing matches those filters.' : 'No listing matches that search.'}</p>
+            <p>
+              {bookType || stock || deals
+                ? t('No listing matches those filters.', 'এই ফিল্টারগুলোর সাথে কোনো লিস্টিং মেলেনি।')
+                : t('No listing matches that search.', 'এই খোঁজের সাথে কোনো লিস্টিং মেলেনি।')}
+            </p>
           </div>
         )}
       </div>
@@ -186,7 +197,7 @@ export default function BookList() {
           pageSize={PAGE_SIZE}
           total={total}
           onPage={setPage}
-          noun="listings"
+          noun={t('listings', 'লিস্টিং')}
         />
       </div>
     </div>

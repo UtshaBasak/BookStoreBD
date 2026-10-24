@@ -29,9 +29,11 @@ import InviteFriends from '../components/InviteFriends.js';
 import Logo from '../components/Logo.js';
 import NotificationBell from '../components/NotificationBell.js';
 import { ThemeSetting, ThemeToggle } from '../components/ThemeToggle.js';
+import { LanguageSetting, LanguageToggle } from '../components/LanguageToggle.js';
 import { signOut } from '../config/api.js';
 import { useProfile } from '../hooks/queries.js';
 import { getUserEmail, isAdmin } from '../utils/auth.js';
+import { formatDate, pick, t } from '../utils/language.js';
 import { readProfileMode, rememberProfileMode, type ProfileMode } from '../utils/profileMode.js';
 
 // The homepage's header bar, then this page's own cards.
@@ -90,32 +92,37 @@ export default function Profile() {
     const gender = profileData.gender ?? '';
     const details = [
         showIfFilled(profileData.dateOfBirth) && {
-            label: 'Date of Birth',
-            value: new Date(profileData.dateOfBirth ?? 0).toLocaleDateString(),
+            label: t('Date of Birth', 'জন্মতারিখ'),
+            value: formatDate(profileData.dateOfBirth ?? 0),
             icon: <FaBirthdayCake />,
         },
         showIfFilled(profileData.gender) && {
-            label: 'Gender',
-            value: gender.charAt(0).toUpperCase() + gender.slice(1),
+            label: t('Gender', 'লিঙ্গ'),
+            value:
+                gender === 'male'
+                    ? t('Male', 'পুরুষ')
+                    : gender === 'female'
+                      ? t('Female', 'নারী')
+                      : gender.charAt(0).toUpperCase() + gender.slice(1),
             icon: <FaUser />,
         },
-        showIfFilled(profileData.address) && { label: 'Address', value: profileData.address, icon: <FaMapMarkerAlt /> },
-        showIfFilled(profileData.phone) && { label: 'Phone', value: profileData.phone, icon: <FaPhone /> },
+        showIfFilled(profileData.address) && { label: t('Address', 'ঠিকানা'), value: profileData.address, icon: <FaMapMarkerAlt /> },
+        showIfFilled(profileData.phone) && { label: t('Phone', 'ফোন'), value: profileData.phone, icon: <FaPhone /> },
     ].filter((detail) => detail !== false);
 
     const tiles = [
         {
             key: 'update',
-            title: 'Update Profile',
-            desc: 'Photo, contact details and password',
+            title: t('Update Profile', 'প্রোফাইল আপডেট'),
+            desc: t('Photo, contact details and password', 'ছবি, যোগাযোগের তথ্য ও পাসওয়ার্ড'),
             icon: <FaUserEdit />,
             onClick: () => navigate(`/update-profile?mode=${profileMode}`),
         },
         ...(isSeller
             ? [{
                 key: 'add',
-                title: 'Add Book',
-                desc: 'List a book for sale in a couple of minutes',
+                title: t('Add Book', 'বই যোগ করুন'),
+                desc: t('List a book for sale in a couple of minutes', 'কয়েক মিনিটেই একটি বই বিক্রির জন্য তালিকাভুক্ত করুন'),
                 icon: <FaPlus />,
                 onClick: () => navigate('/add-book'),
                 accent: true,
@@ -123,8 +130,10 @@ export default function Profile() {
             : []),
         {
             key: 'orders',
-            title: 'Order List',
-            desc: isSeller ? 'Orders from your buyers' : 'Track what you have bought',
+            title: t('Order List', 'অর্ডার তালিকা'),
+            desc: isSeller
+                ? t('Orders from your buyers', 'আপনার ক্রেতাদের অর্ডার')
+                : t('Track what you have bought', 'আপনার কেনা জিনিস ট্র্যাক করুন'),
             icon: <FaBoxOpen />,
             onClick: () => {
                 if (profileMode === 'seller') {
@@ -136,8 +145,10 @@ export default function Profile() {
         },
         {
             key: 'books',
-            title: 'Book List',
-            desc: isSeller ? 'The books you are selling' : 'Every book you have bought',
+            title: t('Book List', 'বইয়ের তালিকা'),
+            desc: isSeller
+                ? t('The books you are selling', 'আপনি যে বইগুলো বিক্রি করছেন')
+                : t('Every book you have bought', 'আপনার কেনা সব বই'),
             icon: <FaBook />,
             onClick: () => {
                 if (profileMode === 'seller') {
@@ -154,20 +165,21 @@ export default function Profile() {
             <header className="header">
                 <Link to="/"
                     className="logo-button"
-                    aria-label="BookStoreBD home"
+                    aria-label={t('BookStoreBD home', 'BookStoreBD হোম')}
                 >
                     <Logo size={38} />
                 </Link>
                 <div className="user-options">
+                    <LanguageToggle />
                     <ThemeToggle className="icon-button theme-toggle header-theme-toggle" />
                     <NotificationBell />
                     {/* Cart and wishlist on the buyer side only. */}
                     {profileMode === 'buyer' && (
                         <>
-                            <Link to="/wishlist" className="icon-link" style={{ color: 'var(--color-accent)' }} title="Go to Wishlist" aria-label="Go to Wishlist">
+                            <Link to="/wishlist" className="icon-link" style={{ color: 'var(--color-accent)' }} title={t('Go to Wishlist', 'উইশলিস্টে যান')} aria-label={t('Go to Wishlist', 'উইশলিস্টে যান')}>
                                 <FaHeart />
                             </Link>
-                            <Link to="/cart" className="icon-link" style={{ color: 'var(--color-brand)' }} title="Go to Cart" aria-label="Go to Cart">
+                            <Link to="/cart" className="icon-link" style={{ color: 'var(--color-brand)' }} title={t('Go to Cart', 'কার্টে যান')} aria-label={t('Go to Cart', 'কার্টে যান')}>
                                 <FaShoppingCart />
                             </Link>
                         </>
@@ -188,7 +200,9 @@ export default function Profile() {
                     ) : (
                         <div className={`pf-banner ${isSeller ? 'pf-banner-seller' : ''}`} aria-hidden="true">
                             <Link to={`/update-profile?mode=${profileMode}#banners`} className="pf-banner-add">
-                                Add a {isSeller ? 'seller' : 'buyer'} banner
+                                {isSeller
+                                    ? t('Add a seller banner', 'বিক্রেতা ব্যানার যোগ করুন')
+                                    : t('Add a buyer banner', 'ক্রেতা ব্যানার যোগ করুন')}
                             </Link>
                         </div>
                     )}
@@ -196,7 +210,7 @@ export default function Profile() {
                         {showIfFilled(profileData.profilePicture) ? (
                             <img
                                 src={profileData.profilePicture ?? undefined}
-                                alt="Profile"
+                                alt={t('Profile', 'প্রোফাইল')}
                                 className="pf-avatar"
                             />
                         ) : (
@@ -208,12 +222,12 @@ export default function Profile() {
                         )}
 
                         <div className="pf-identity">
-                            <p className="pf-kicker">Profile</p>
-                            <h1 className="pf-name">{profileData.username || 'Your profile'}</h1>
+                            <p className="pf-kicker">{t('Profile', 'প্রোফাইল')}</p>
+                            <h1 className="pf-name">{profileData.username || t('Your profile', 'আপনার প্রোফাইল')}</h1>
                             <p className="pf-email">{profileData.email}</p>
                         </div>
 
-                        <div className="pf-mode" role="radiogroup" aria-label="Profile mode">
+                        <div className="pf-mode" role="radiogroup" aria-label={t('Profile mode', 'প্রোফাইলের ধরন')}>
                             <label className={`pf-mode-option ${profileMode === 'buyer' ? 'pf-mode-option-on' : ''}`}>
                                 <input
                                     type="radio"
@@ -224,7 +238,7 @@ export default function Profile() {
                                     onChange={() => setProfileMode('buyer')}
                                 />
                                 <FaShoppingBag aria-hidden="true" />
-                                Buyer Profile
+                                {t('Buyer Profile', 'ক্রেতা প্রোফাইল')}
                             </label>
                             <label className={`pf-mode-option ${profileMode === 'seller' ? 'pf-mode-option-on' : ''}`}>
                                 <input
@@ -236,7 +250,7 @@ export default function Profile() {
                                     onChange={() => setProfileMode('seller')}
                                 />
                                 <FaStore aria-hidden="true" />
-                                Seller Profile
+                                {t('Seller Profile', 'বিক্রেতা প্রোফাইল')}
                             </label>
                         </div>
                     </div>
@@ -263,20 +277,23 @@ export default function Profile() {
                     profileData.bkashMerchant ? (
                         <div className="pf-note pf-note-ok">
                             <FaCheckCircle className="pf-note-icon" aria-hidden="true" />
-                            <p><strong>Paid to bKash:</strong> {profileData.bkashMerchant}</p>
+                            <p><strong>{t('Paid to bKash:', 'বিকাশে টাকা যায়:')}</strong> {profileData.bkashMerchant}</p>
                         </div>
                     ) : (
                         <div className="pf-note pf-note-warn">
                             <FaExclamationTriangle className="pf-note-icon" aria-hidden="true" />
                             <p>
-                                <strong>To sell, add your bKash merchant number</strong> so we can pay you.{' '}
+                                {pick(
+                                    <><strong>To sell, add your bKash merchant number</strong> so we can pay you.{' '}</>,
+                                    <><strong>বিক্রি করতে আপনার বিকাশ মার্চেন্ট নম্বর যোগ করুন</strong>, যাতে আমরা টাকা পাঠাতে পারি।{' '}</>
+                                )}
                             </p>
-                            <Link to="/update-profile?mode=seller#bkash" className="btn btn-accent">Add it now</Link>
+                            <Link to="/update-profile?mode=seller#bkash" className="btn btn-accent">{t('Add it now', 'এখনই যোগ করুন')}</Link>
                         </div>
                     )
                 )}
 
-                <h2 className="pf-section-title">{isSeller ? 'Your shop' : 'Your account'}</h2>
+                <h2 className="pf-section-title">{isSeller ? t('Your shop', 'আপনার শপ') : t('Your account', 'আপনার অ্যাকাউন্ট')}</h2>
                 <div className="pf-tiles">
                     {tiles.map((tile) => (
                         <div key={tile.key} className={`card pf-tile ${tile.accent ? 'pf-tile-accent' : ''}`}>
@@ -304,7 +321,7 @@ export default function Profile() {
                         }}
                     >
                         <FaSignOutAlt aria-hidden="true" />
-                        Sign Out
+                        {t('Sign Out', 'সাইন আউট')}
                     </button>
                 </div>
 
@@ -313,6 +330,7 @@ export default function Profile() {
                 <TwoStepSetting />
                 <SessionsSetting />
                 <ThemeSetting />
+                <LanguageSetting />
                 <AccountData />
             </main>
         </div>

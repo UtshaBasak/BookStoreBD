@@ -12,6 +12,7 @@ import {
   listInvites,
   sendInvites,
   setTwoFactor,
+  setLanguage,
   updateNotificationSettings,
   sendConfirmCode,
   requestEmailChange,
@@ -27,6 +28,7 @@ import User from '../models/user.model.js';
 import { API_PREFIX } from '../config/apiPaths.js';
 import { config } from '../config/env.js';
 import { actingUser, requireAuth, requireAdmin, optionalAuth } from '../middleware/auth.js';
+import { languageOf, t } from '../utils/language.js';
 import { imageUpload, verifyImageBytes } from '../middleware/imageUpload.js';
 import { recordAudit } from '../utils/audit.js';
 import { securityEvent } from '../utils/securityLog.js';
@@ -87,7 +89,7 @@ router.get(
       const user = await User.findOne({ email: req.params.email }).select('profilePicture').lean();
 
       if (!serveStoredImage(req, res, user?.profilePicture)) {
-        res.status(404).json({ message: 'No profile picture' });
+        res.status(404).json({ message: t(req, 'No profile picture', 'কোনো প্রোফাইল ছবি নেই') });
       }
     } catch (error) {
       next(error);
@@ -110,7 +112,7 @@ router.get(
         { username: 1, email: 1, profilePicture: 1, sellerBanner: 1, createdAt: 1, updatedAt: 1 }
       ).lean();
       if (!user) {
-        res.status(404).json({ message: 'No shop by that name' });
+        res.status(404).json({ message: t(req, 'No shop by that name', 'এই নামে কোনো শপ নেই') });
         return;
       }
 
@@ -135,7 +137,7 @@ router.get(
         sellerRatingOf(user._id),
       ]);
       if (books === 0) {
-        res.status(404).json({ message: 'That account has no shop yet' });
+        res.status(404).json({ message: t(req, 'That account has no shop yet', 'এই অ্যাকাউন্টের এখনো কোনো শপ নেই') });
         return;
       }
 
@@ -179,7 +181,7 @@ router.get(
       const user = await User.findOne({ email: req.params.email }).select(field).lean();
 
       if (!serveStoredImage(req, res, user?.[field])) {
-        res.status(404).json({ message: 'No banner' });
+        res.status(404).json({ message: t(req, 'No banner', 'কোনো ব্যানার নেই') });
       }
     } catch (error) {
       next(error);
@@ -228,8 +230,11 @@ router.post(
       if (!seller?.bkashMerchant) {
         res.status(409).json({
           code: 'payout-number-required',
-          message:
+          message: t(
+            req,
             'Add your bKash merchant number to your profile first, so we can pay you when your books sell.',
+            'আগে প্রোফাইলে আপনার বিকাশ মার্চেন্ট নম্বর যোগ করুন, যাতে বই বিক্রি হলে আমরা আপনাকে টাকা পাঠাতে পারি।'
+          ),
         });
         return;
       }
@@ -244,7 +249,7 @@ router.post(
         type: req.body.discountType ? req.body.discountType : null,
         value: Number(req.body.discountValue ?? 0),
       };
-      const problem = discountProblem(Number(req.body.price), discount);
+      const problem = discountProblem(Number(req.body.price), discount, languageOf(req));
       if (problem) {
         res.status(400).json({ message: problem });
         return;
@@ -267,11 +272,11 @@ router.post(
       await newBook.save();
       // Anyone waiting for it on the Wanted board hears straight away.
       const waiting = await fulfilWanted(newBook);
-      res.status(201).json({ message: 'Book added successfully!', book: newBook, waiting });
+      res.status(201).json({ message: t(req, 'Book added successfully!', 'বইটি যোগ করা হয়েছে!'), book: newBook, waiting });
     } catch (error) {
       log.error({ err: error }, 'AddBook error');
       // Stack traces must never be returned to clients.
-      res.status(500).json({ message: 'Failed to add book', error: errorMessage(error) });
+      res.status(500).json({ message: t(req, 'Failed to add book', 'বইটি যোগ করা যায়নি'), error: errorMessage(error) });
     }
   }
 );
@@ -291,6 +296,7 @@ router.post('/me/email', requireAuth, validate(userSchemas.emailChange), request
 router.post('/me/email/confirm', requireAuth, validate(userSchemas.emailConfirm), confirmEmailChange);
 
 router.put('/me/two-factor', requireAuth, validate(userSchemas.twoFactor), setTwoFactor);
+router.put('/me/language', requireAuth, validate(userSchemas.language), setLanguage);
 
 router.get('/me/notifications', requireAuth, getNotificationSettings);
 router.put('/me/notifications', requireAuth, validate(userSchemas.notifications), updateNotificationSettings);
@@ -364,7 +370,7 @@ router.get(
       });
     } catch (error) {
       log.error({ err: error }, 'Error fetching users');
-      res.status(500).json({ message: 'Failed to fetch users', error: errorMessage(error) });
+      res.status(500).json({ message: t(req, 'Failed to fetch users', 'ব্যবহারকারীদের তালিকা আনা যায়নি'), error: errorMessage(error) });
     }
   }
 );
@@ -378,13 +384,13 @@ router.delete(
     try {
       const { id } = req.params;
       if (id === actingUser(req).id) {
-        res.status(400).json({ message: 'You cannot delete your own account' });
+        res.status(400).json({ message: t(req, 'You cannot delete your own account', 'নিজের অ্যাকাউন্ট এখান থেকে মোছা যায় না') });
         return;
       }
 
       const user = await User.findById(id);
       if (!user) {
-        res.status(404).json({ message: 'User not found' });
+        res.status(404).json({ message: t(req, 'User not found', 'ব্যবহারকারীকে পাওয়া যায়নি') });
         return;
       }
 
@@ -413,10 +419,10 @@ router.delete(
       });
       securityEvent(req, 'admin.user.deleted', { extra: { target_user_id: id, target_role: role } });
 
-      res.status(200).json({ message: 'User deleted successfully', ...result.summary });
+      res.status(200).json({ message: t(req, 'User deleted successfully', 'ব্যবহারকারীকে মুছে ফেলা হয়েছে'), ...result.summary });
     } catch (error) {
       log.error({ err: error }, 'Error deleting user');
-      res.status(500).json({ message: 'Failed to delete user', error: errorMessage(error) });
+      res.status(500).json({ message: t(req, 'Failed to delete user', 'ব্যবহারকারীকে মোছা যায়নি'), error: errorMessage(error) });
     }
   }
 );

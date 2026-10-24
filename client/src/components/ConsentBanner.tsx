@@ -3,28 +3,46 @@ import { Link } from 'react-router-dom';
 import { FaCookieBite, FaTimes } from 'react-icons/fa';
 
 import { acceptAll, necessaryOnly, onOpenConsentSettings, saveConsent, useConsent, type ConsentCategory } from '../utils/consent.js';
+import { pick, t } from '../utils/language.js';
 import './ConsentBanner.css';
 
-const CHOICES: readonly { id: ConsentCategory | 'necessary'; title: string; text: string }[] = [
+/** A function, so each line is in the language being shown when it is drawn. */
+const choices = (): readonly { id: ConsentCategory | 'necessary'; title: string; text: string; note?: string }[] => [
   {
     id: 'necessary',
-    title: 'Necessary',
-    text: 'Keeps you signed in, keeps your account secure - including the security check on sign-in and sign-up - and remembers these choices. The site cannot work without these.',
+    title: t('Necessary', 'প্রয়োজনীয়'),
+    text: t(
+      'Keeps you signed in, keeps your account secure - including the security check on sign-in and sign-up - and remembers these choices. The site cannot work without these.',
+      'আপনাকে সাইন ইন রাখে, আপনার অ্যাকাউন্ট নিরাপদ রাখে - সাইন ইন ও সাইন আপের নিরাপত্তা যাচাইসহ - এবং এই পছন্দগুলো মনে রাখে। এগুলো ছাড়া সাইট চলে না।'
+    ),
+    note: t(
+      'The language you choose is kept too, as part of the site working.',
+      'আপনার বেছে নেওয়া ভাষাও রাখা হয়, সাইট চালানোরই অংশ হিসেবে।'
+    ),
   },
   {
     id: 'preferences',
-    title: 'Preferences',
-    text: 'Remembers light or dark mode, your voice search language, how lists are sorted and sized, and your recent searches.',
+    title: t('Preferences', 'পছন্দ'),
+    text: t(
+      'Remembers light or dark mode, your voice search language, how lists are sorted and sized, and your recent searches.',
+      'হালকা বা গাঢ় মোড, ভয়েস সার্চের ভাষা, তালিকা কীভাবে সাজানো ও কতটা বড়, আর আপনার সাম্প্রতিক খোঁজগুলো মনে রাখে।'
+    ),
   },
   {
     id: 'personalisation',
-    title: 'Personalisation',
-    text: 'Remembers the books you looked at, for "Recently viewed" and "Top picks for you" on the homepage.',
+    title: t('Personalisation', 'আপনার মতো করে সাজানো'),
+    text: t(
+      'Remembers the books you looked at, for "Recently viewed" and "Top picks for you" on the homepage.',
+      'হোমপেজের "সম্প্রতি দেখা" ও "আপনার জন্য বাছাই"-এর জন্য আপনার দেখা বইগুলো মনে রাখে।'
+    ),
   },
   {
     id: 'diagnostics',
-    title: 'Error reports',
-    text: 'Sends us a report when something breaks on a page, so we can fix it. No advertising, and nothing sold.',
+    title: t('Error reports', 'ত্রুটির রিপোর্ট'),
+    text: t(
+      'Sends us a report when something breaks on a page, so we can fix it. No advertising, and nothing sold.',
+      'কোনো পাতায় কিছু নষ্ট হলে আমাদের একটি রিপোর্ট পাঠায়, যাতে আমরা ঠিক করতে পারি। কোনো বিজ্ঞাপন নেই, কিছু বিক্রিও করা হয় না।'
+    ),
   },
 ];
 
@@ -69,21 +87,32 @@ export default function ConsentBanner() {
         <div ref={dialog} className="card cb-dialog" role="dialog" aria-modal="true" aria-labelledby="cb-title">
           <div className="cb-dialog-head">
             <h2 id="cb-title">
-              <FaCookieBite aria-hidden="true" /> Cookies and storage
+              <FaCookieBite aria-hidden="true" /> {t('Cookies and storage', 'কুকি ও স্টোরেজ')}
             </h2>
-            <button type="button" className="icon-button" aria-label="Close" onClick={() => setCustomising(false)}>
+            <button type="button" className="icon-button" aria-label={t('Close', 'বন্ধ করুন')} onClick={() => setCustomising(false)}>
               <FaTimes aria-hidden="true" />
             </button>
           </div>
           <p className="cb-lead">
-            Choose what we may keep in your browser. You can change this at any time from the footer. See the{' '}
-            <Link to="/privacy#cookies" onClick={() => setCustomising(false)}>
-              privacy policy
-            </Link>
-            .
+            {pick(
+              <>
+                Choose what we may keep in your browser. You can change this at any time from the footer. See the{' '}
+                <Link to="/privacy#cookies" onClick={() => setCustomising(false)}>
+                  privacy policy
+                </Link>
+                .
+              </>,
+              <>
+                আপনার ব্রাউজারে আমরা কী রাখতে পারি, তা বেছে নিন। ফুটার থেকে যেকোনো সময় এটি বদলাতে পারবেন। দেখুন{' '}
+                <Link to="/privacy#cookies" onClick={() => setCustomising(false)}>
+                  গোপনীয়তা নীতি
+                </Link>
+                ।
+              </>
+            )}
           </p>
           <ul className="cb-choices">
-            {CHOICES.map((choice) => {
+            {choices().map((choice) => {
               const necessary = choice.id === 'necessary';
               const on = necessary ? true : draft[choice.id as ConsentCategory];
               return (
@@ -91,6 +120,7 @@ export default function ConsentBanner() {
                   <div>
                     <strong>{choice.title}</strong>
                     <p>{choice.text}</p>
+                    {choice.note && <p>{choice.note}</p>}
                   </div>
                   <label className={`cb-switch${necessary ? ' is-locked' : ''}`}>
                     <input
@@ -98,13 +128,13 @@ export default function ConsentBanner() {
                       role="switch"
                       checked={on}
                       disabled={necessary}
-                      aria-label={necessary ? `${choice.title}: always on` : choice.title}
+                      aria-label={necessary ? t(`${choice.title}: always on`, `${choice.title}: সব সময় চালু`) : choice.title}
                       onChange={(event) =>
                         setDraft((current) => ({ ...current, [choice.id]: event.target.checked }))
                       }
                     />
                     <span aria-hidden="true" />
-                    {necessary && <small>Always on</small>}
+                    {necessary && <small>{t('Always on', 'সব সময় চালু')}</small>}
                   </label>
                 </li>
               );
@@ -119,7 +149,7 @@ export default function ConsentBanner() {
                 setCustomising(false);
               }}
             >
-              Save my choices
+              {t('Save my choices', 'আমার পছন্দ সংরক্ষণ করুন')}
             </button>
             <button
               type="button"
@@ -129,7 +159,7 @@ export default function ConsentBanner() {
                 setCustomising(false);
               }}
             >
-              Accept all
+              {t('Accept all', 'সব মেনে নিন')}
             </button>
           </div>
         </div>
@@ -140,24 +170,33 @@ export default function ConsentBanner() {
   if (consent) return null;
 
   return (
-    <section className="cb-banner" role="region" aria-label="Cookies and storage">
+    <section className="cb-banner" role="region" aria-label={t('Cookies and storage', 'কুকি ও স্টোরেজ')}>
       <span className="cb-icon" aria-hidden="true">
         <FaCookieBite />
       </span>
       <p>
-        We use cookies and similar storage to keep you signed in and the shop secure. With your permission we also
-        remember your preferences, personalise suggestions and receive error reports.{' '}
-        <Link to="/privacy#cookies">How we use cookies</Link>
+        {pick(
+          <>
+            We use cookies and similar storage to keep you signed in and the shop secure. With your permission we also
+            remember your preferences, personalise suggestions and receive error reports.{' '}
+            <Link to="/privacy#cookies">How we use cookies</Link>
+          </>,
+          <>
+            আপনাকে সাইন ইন রাখতে ও শপ নিরাপদ রাখতে আমরা কুকি ও এ ধরনের স্টোরেজ ব্যবহার করি। আপনার অনুমতি পেলে আপনার পছন্দ মনে
+            রাখি, আপনার মতো করে বই সাজাই এবং ত্রুটির রিপোর্ট পাই।{' '}
+            <Link to="/privacy#cookies">আমরা কীভাবে কুকি ব্যবহার করি</Link>
+          </>
+        )}
       </p>
       <div className="cb-actions">
         <button type="button" className="btn btn-primary" onClick={acceptAll}>
-          Accept all
+          {t('Accept all', 'সব মেনে নিন')}
         </button>
         <button type="button" className="btn btn-ghost" onClick={necessaryOnly}>
-          Necessary only
+          {t('Necessary only', 'শুধু প্রয়োজনীয়গুলো')}
         </button>
         <button type="button" className="cb-link" onClick={() => setCustomising(true)}>
-          Choose
+          {t('Choose', 'বেছে নিন')}
         </button>
       </div>
     </section>

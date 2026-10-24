@@ -4,6 +4,7 @@ import type { ApiError, ConfirmCodeRequest } from '@shared/api.js';
 
 import { API_BASE_URL, apiFetch } from '../config/api.js';
 import type { Identity } from '../utils/identity.js';
+import { t } from '../utils/language.js';
 
 /**
  * The re-check before a change that cannot be undone, or that weakens the
@@ -21,7 +22,8 @@ export default function IdentityCheck({
   id: string;
   action: ConfirmCodeRequest['action'];
   passwordSet: boolean;
-  /** "to delete your account", "to turn it off". */
+  /** "to delete your account", "to turn it off" - in the language shown; it
+   * goes before the verb in Bangla ("বন্ধ করতে"). */
   label: string;
   value: Identity;
   onChange: (value: Identity) => void;
@@ -34,7 +36,7 @@ export default function IdentityCheck({
     return (
       <>
         <label className="text-sm font-bold text-ink-soft" htmlFor={id}>
-          Enter your password {label}
+          {t(`Enter your password ${label}`, `${label} আপনার পাসওয়ার্ড দিন`)}
         </label>
         <input
           id={id}
@@ -59,9 +61,9 @@ export default function IdentityCheck({
       });
       const data = (await res.json()) as ApiError;
       if (res.ok) setSent(data.message);
-      else setProblem(data.message || 'Could not send a code.');
+      else setProblem(data.message || t('Could not send a code.', 'কোড পাঠানো যায়নি।'));
     } catch {
-      setProblem('Could not reach the server. Please try again.');
+      setProblem(t('Could not reach the server. Please try again.', 'সার্ভারে পৌঁছানো যায়নি। আবার চেষ্টা করুন।'));
     } finally {
       setSending(false);
     }
@@ -70,11 +72,18 @@ export default function IdentityCheck({
   return (
     <>
       <p className="m-0 text-sm text-ink-soft">
-        Your account signs in with Google, so it has no password. We will e-mail you a code {label}.
+        {t(
+          `Your account signs in with Google, so it has no password. We will e-mail you a code ${label}.`,
+          `আপনার অ্যাকাউন্ট Google দিয়ে সাইন ইন করে, তাই এর কোনো পাসওয়ার্ড নেই। ${label} আমরা আপনাকে একটি কোড ই-মেইল করব।`
+        )}
       </p>
       <div>
         <button type="button" className="btn btn-ghost" disabled={sending} onClick={() => void sendCode()}>
-          {sending ? 'Sending…' : sent ? 'Send another code' : 'E-mail me a code'}
+          {sending
+            ? t('Sending…', 'পাঠানো হচ্ছে…')
+            : sent
+              ? t('Send another code', 'আরেকটি কোড পাঠান')
+              : t('E-mail me a code', 'আমাকে কোড ই-মেইল করুন')}
         </button>
       </div>
       {(sent || problem) && (
@@ -85,7 +94,7 @@ export default function IdentityCheck({
       {sent && (
         <>
           <label className="text-sm font-bold text-ink-soft" htmlFor={id}>
-            The 6-digit code
+            {t('The 6-digit code', '৬ সংখ্যার কোড')}
           </label>
           <input
             id={id}

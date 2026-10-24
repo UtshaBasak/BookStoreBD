@@ -1,4 +1,5 @@
 import { allowed } from './consent.js';
+import { currentLanguage, t } from './language.js';
 
 /**
  * Speech to text for the search box, through the browser's own speech
@@ -32,11 +33,14 @@ export const voiceSearchSupported = (): boolean => constructor() !== null;
 export type VoiceLanguage = 'en-US' | 'bn-BD';
 const LANG_KEY = 'voiceLanguage';
 
+/** The language last chosen for voice search; until one is, the language the site is in. */
 export const readVoiceLanguage = (): VoiceLanguage => {
+  const site: VoiceLanguage = currentLanguage() === 'bn' ? 'bn-BD' : 'en-US';
   try {
-    return localStorage.getItem(LANG_KEY) === 'bn-BD' ? 'bn-BD' : 'en-US';
+    const stored = localStorage.getItem(LANG_KEY);
+    return stored === 'bn-BD' || stored === 'en-US' ? stored : site;
   } catch {
-    return 'en-US';
+    return site;
   }
 };
 
@@ -80,14 +84,22 @@ export const listen = (
     onWords(words.trim(), done);
   };
   recognition.onerror = (event) => {
+    const allowMicrophone = t(
+      'Allow the microphone for this site to search by voice.',
+      'কণ্ঠে খুঁজতে এই সাইটকে মাইক্রোফোন ব্যবহারের অনুমতি দিন।'
+    );
     const messages: Record<string, string> = {
-      'not-allowed': 'Allow the microphone for this site to search by voice.',
-      'service-not-allowed': 'Allow the microphone for this site to search by voice.',
-      'no-speech': 'We did not catch that. Tap the microphone and try again.',
-      'audio-capture': 'No microphone was found.',
-      network: 'Voice search needs an internet connection.',
+      'not-allowed': allowMicrophone,
+      'service-not-allowed': allowMicrophone,
+      'no-speech': t(
+        'We did not catch that. Tap the microphone and try again.',
+        'কিছু শোনা যায়নি। মাইক্রোফোনে ট্যাপ করে আবার চেষ্টা করুন।'
+      ),
+      'audio-capture': t('No microphone was found.', 'কোনো মাইক্রোফোন পাওয়া যায়নি।'),
+      network: t('Voice search needs an internet connection.', 'কণ্ঠে খুঁজতে ইন্টারনেট সংযোগ লাগবে।'),
     };
-    if (event.error !== 'aborted') onFail(messages[event.error] ?? 'Voice search stopped. Please try again.');
+    if (event.error !== 'aborted')
+      onFail(messages[event.error] ?? t('Voice search stopped. Please try again.', 'কণ্ঠে খোঁজা থেমে গেছে। আবার চেষ্টা করুন।'));
   };
   recognition.onend = onStop;
   recognition.start();

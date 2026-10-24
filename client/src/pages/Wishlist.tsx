@@ -12,6 +12,7 @@ import { promptSignIn, useToast } from '../hooks/useToast.js';
 import Logo from '../components/Logo.js';
 import NotificationBell from '../components/NotificationBell.js';
 import { ThemeToggle } from '../components/ThemeToggle.js';
+import { LanguageToggle } from '../components/LanguageToggle.js';
 import RequestBookButton from '../components/RequestBookButton.js';
 import PriceTag from '../components/PriceTag.js';
 import { getUserEmail } from '../utils/auth.js';
@@ -20,26 +21,33 @@ import { PLACEHOLDER_IMAGE } from '../utils/safeImageSrc.js';
 import { cardSrcSet, isCloudinary, sized, CARD_SIZES, IMAGE_WIDTHS } from '../utils/imageUrl.js';
 import { priceOf } from '../utils/pricing.js';
 import { allowed } from '../utils/consent.js';
+import { formatNumber, pick, t } from '../utils/language.js';
 
 /**
  * The orders a wishlist can be put in. The list arrives in the order the books
  * were saved, and is short enough to sort here.
  */
 const SORTS = {
-  recent: { label: 'Recently saved', sort: (books: Book[]) => [...books].reverse() },
-  oldest: { label: 'Saved first', sort: (books: Book[]) => books },
+  recent: { label: () => t('Recently saved', 'সম্প্রতি সংরক্ষিত'), sort: (books: Book[]) => [...books].reverse() },
+  oldest: { label: () => t('Saved first', 'প্রথমে সংরক্ষিত'), sort: (books: Book[]) => books },
   inStock: {
-    label: 'In stock first',
+    label: () => t('In stock first', 'স্টকে আছে আগে'),
     sort: (books: Book[]) => [...books].sort((a, b) => Number(b.stock > 0) - Number(a.stock > 0)),
   },
   deals: {
-    label: 'Biggest discount',
+    label: () => t('Biggest discount', 'সবচেয়ে বেশি ছাড়'),
     sort: (books: Book[]) => [...books].sort((a, b) => Number(b.discountPercent ?? 0) - Number(a.discountPercent ?? 0)),
   },
-  priceLow: { label: 'Price - Low to High', sort: (books: Book[]) => [...books].sort((a, b) => priceOf(a) - priceOf(b)) },
-  priceHigh: { label: 'Price - High to Low', sort: (books: Book[]) => [...books].sort((a, b) => priceOf(b) - priceOf(a)) },
+  priceLow: {
+    label: () => t('Price - Low to High', 'দাম: কম থেকে বেশি'),
+    sort: (books: Book[]) => [...books].sort((a, b) => priceOf(a) - priceOf(b)),
+  },
+  priceHigh: {
+    label: () => t('Price - High to Low', 'দাম: বেশি থেকে কম'),
+    sort: (books: Book[]) => [...books].sort((a, b) => priceOf(b) - priceOf(a)),
+  },
   title: {
-    label: 'Title A-Z',
+    label: () => t('Title A-Z', 'নাম অনুযায়ী (ক-ঝ)'),
     sort: (books: Book[]) => [...books].sort((a, b) => (a.title ?? '').localeCompare(b.title ?? '')),
   },
 } as const;
@@ -73,7 +81,7 @@ export default function Wishlist() {
   };
   const saved = wishlistQuery.data ?? [];
   const wishlist = SORTS[sort].sort(saved);
-  const error = wishlistQuery.isError ? 'Failed to load wishlist.' : null;
+  const error = wishlistQuery.isError ? t('Failed to load wishlist.', 'উইশলিস্ট লোড করা যায়নি।') : null;
 
   // Only the ids are needed for the cart buttons.
   const { data: cart = {} } = useCart({ enabled: signedIn, select: flagsFor });
@@ -117,14 +125,15 @@ export default function Wishlist() {
         </Link>
       </div>
       <div className="user-options">
+        <LanguageToggle />
         <ThemeToggle className="icon-button theme-toggle header-theme-toggle" />
         <NotificationBell />
         <Link
           to="/cart"
           className="icon-link"
           style={{ color: 'var(--color-brand)' }}
-          title="Go to Cart"
-          aria-label="Go to Cart"
+          title={t('Go to Cart', 'কার্টে যান')}
+          aria-label={t('Go to Cart', 'কার্টে যান')}
         >
           <FaShoppingBag />
         </Link>
@@ -138,8 +147,10 @@ export default function Wishlist() {
         {topBar}
         <div className="wishlist-empty card">
           <p className="wishlist-empty-icon" aria-hidden="true">💜</p>
-          <p className="wishlist-empty-title">Please sign in to view your wishlist.</p>
-          <Link to="/sign-in" className="btn btn-primary">Sign in</Link>
+          <p className="wishlist-empty-title">
+            {t('Please sign in to view your wishlist.', 'উইশলিস্ট দেখতে সাইন ইন করুন।')}
+          </p>
+          <Link to="/sign-in" className="btn btn-primary">{t('Sign in', 'সাইন ইন')}</Link>
         </div>
       </div>
     );
@@ -152,7 +163,7 @@ export default function Wishlist() {
         <div className="wishlist-empty card" role="alert">
           <p className="wishlist-empty-title" style={{ color: 'var(--color-danger-ink)' }}>{error}</p>
           <button type="button" className="btn btn-ghost" onClick={() => void wishlistQuery.refetch()}>
-            Try again
+            {t('Try again', 'আবার চেষ্টা করুন')}
           </button>
         </div>
       </div>
@@ -166,24 +177,29 @@ export default function Wishlist() {
       <main className="wishlist-main">
         <div className={`wishlist-heading${wishlist.length === 0 ? ' is-empty' : ''}`}>
           <h1>
-            Wishlist <span aria-hidden="true">💜</span>
+            {t('Wishlist', 'উইশলিস্ট')} <span aria-hidden="true">💜</span>
           </h1>
           {wishlist.length > 0 && (
             <p>
-              {wishlist.length} saved {wishlist.length === 1 ? 'book' : 'books'}
+              {pick(
+                <>
+                  {wishlist.length} saved {wishlist.length === 1 ? 'book' : 'books'}
+                </>,
+                <>সংরক্ষিত {formatNumber(wishlist.length)}টি বই</>
+              )}
             </p>
           )}
           {wishlist.length > 1 && (
             <select
               name="sort"
-              aria-label="Sort your wishlist"
+              aria-label={t('Sort your wishlist', 'উইশলিস্ট সাজান')}
               className="field wishlist-sort"
               value={sort}
               onChange={(e) => setSort(e.target.value as WishlistSort)}
             >
               {Object.entries(SORTS).map(([value, { label }]) => (
                 <option key={value} value={value}>
-                  {label}
+                  {label()}
                 </option>
               ))}
             </select>
@@ -191,15 +207,20 @@ export default function Wishlist() {
         </div>
 
         {wishlistQuery.isPending ? (
-          <p className="wishlist-loading" role="status">Loading your wishlist…</p>
+          <p className="wishlist-loading" role="status">
+            {t('Loading your wishlist…', 'আপনার উইশলিস্ট লোড হচ্ছে…')}
+          </p>
         ) : wishlist.length === 0 ? (
           <div className="wishlist-empty card">
             <p className="wishlist-empty-icon" aria-hidden="true">🤍</p>
-            <p className="wishlist-empty-title">No books in wishlist.</p>
+            <p className="wishlist-empty-title">{t('No books in wishlist.', 'উইশলিস্টে কোনো বই নেই।')}</p>
             <p className="wishlist-empty-sub">
-              Tap the heart on any book to save it here for later.
+              {t(
+                'Tap the heart on any book to save it here for later.',
+                'যেকোনো বইয়ের হার্টে চাপ দিলে পরে দেখার জন্য সেটি এখানে থাকবে।'
+              )}
             </p>
-            <Link to="/filter" className="btn btn-primary">Browse books</Link>
+            <Link to="/filter" className="btn btn-primary">{t('Browse books', 'বই দেখুন')}</Link>
           </div>
         ) : (
           <div className="wishlist-grid">
@@ -228,12 +249,12 @@ export default function Wishlist() {
                             color: isOld ? 'var(--color-brand-dark)' : '#111827',
                           }}
                         >
-                          {isOld ? 'Used' : 'New'}
+                          {isOld ? t('Used', 'পুরোনো') : t('New', 'নতুন')}
                         </span>
                       )}
                       {book.stock === 0 && (
                         <span className="badge wishlist-stock-badge" style={{ background: 'var(--color-danger-tint)', color: 'var(--color-danger-ink)' }}>
-                          Out Of Stock
+                          {t('Out Of Stock', 'স্টক শেষ')}
                         </span>
                       )}
                     </div>
@@ -241,8 +262,8 @@ export default function Wishlist() {
                       type="button"
                       className="wishlist-remove"
                       onClick={() => handleDelete(book._id)}
-                      title="Remove from wishlist"
-                      aria-label="Remove from wishlist"
+                      title={t('Remove from wishlist', 'উইশলিস্ট থেকে সরান')}
+                      aria-label={t('Remove from wishlist', 'উইশলিস্ট থেকে সরান')}
                     >
                       <FaHeart />
                     </button>
@@ -256,7 +277,7 @@ export default function Wishlist() {
                     </h3>
                     <div className="wishlist-author">{book.author}</div>
                     <div className="wishlist-meta">
-                      {Array.isArray(book.category) ? book.category.join(', ') : (book.category || 'N/A')}
+                      {Array.isArray(book.category) ? book.category.join(', ') : (book.category || t('N/A', 'প্রযোজ্য নয়'))}
                     </div>
                     <div className="wishlist-price">
                       <PriceTag book={book} size="md" />
@@ -269,10 +290,10 @@ export default function Wishlist() {
                           type="button"
                           className={inCart ? 'btn btn-danger' : 'btn btn-primary'}
                           onClick={() => handleToggleCart(book._id)}
-                          title={inCart ? 'Remove from cart' : 'Add to cart'}
+                          title={inCart ? t('Remove from cart', 'কার্ট থেকে সরান') : t('Add to cart', 'কার্টে যোগ করুন')}
                         >
                           <FaShoppingCart aria-hidden="true" />
-                          {inCart ? 'Remove from Cart' : 'Add to Cart'}
+                          {inCart ? t('Remove from Cart', 'কার্ট থেকে সরান') : t('Add to Cart', 'কার্টে যোগ করুন')}
                         </button>
                       ) : (
                         <RequestBookButton bookId={book._id} sellerEmail={book.sellerEmail} className="btn btn-ghost wishlist-request" />

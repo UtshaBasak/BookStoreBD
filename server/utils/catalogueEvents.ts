@@ -5,6 +5,7 @@ import Cart from '../models/Cart.model.js';
 import User from '../models/user.model.js';
 import Wishlist from '../models/Wishlist.model.js';
 import { notify } from './notify.js';
+import { bnDigits } from './language.js';
 
 /**
  * What happens when a book's stock or price moves: who is told.
@@ -66,13 +67,17 @@ export const stockChanged = async (
   { actor }: { actor?: string | null } = {}
 ): Promise<void> => {
   const title = book.title || 'A book';
+  const titleBn = book.title || 'একটি বই';
   const link = `/book/${String(book._id)}`;
   try {
     if (before > LOW_STOCK && after <= LOW_STOCK && after > 0) {
       await notify([book.sellerEmail], {
         type: 'stock',
-        title: `Only ${after} left of "${title}"`,
-        body: 'Running low. Add copies from your Book List if you have more.',
+        title: { en: `Only ${after} left of "${title}"`, bn: `"${titleBn}" মাত্র ${bnDigits(after)}টি বাকি` },
+        body: {
+          en: 'Running low. Add copies from your Book List if you have more.',
+          bn: 'স্টক ফুরিয়ে আসছে। আরও কপি থাকলে আপনার বইয়ের তালিকা থেকে যোগ করুন।',
+        },
         link: '/seller-books',
       }, { except: actor });
 
@@ -84,8 +89,11 @@ export const stockChanged = async (
             // A shopper's alert, under "Deals and price drops" - not the
             // seller's own "Your stock".
             type: 'selling-out',
-            title: `Only ${after} left: "${title}"`,
-            body: where === 'cart' ? 'A book in your cart is selling out.' : 'A book on your wishlist is selling out.',
+            title: { en: `Only ${after} left: "${title}"`, bn: `মাত্র ${bnDigits(after)}টি বাকি: "${titleBn}"` },
+            body:
+              where === 'cart'
+                ? { en: 'A book in your cart is selling out.', bn: 'আপনার কার্টের একটি বই শেষ হয়ে আসছে।' }
+                : { en: 'A book on your wishlist is selling out.', bn: 'আপনার উইশলিস্টের একটি বই শেষ হয়ে আসছে।' },
             link,
           },
           { except: actor }
@@ -96,8 +104,11 @@ export const stockChanged = async (
     if (before > 0 && after <= 0) {
       await notify([book.sellerEmail], {
         type: 'stock',
-        title: `"${title}" has sold out`,
-        body: 'Add more copies from your Book List if you have them. Buyers can ask for it meanwhile.',
+        title: { en: `"${title}" has sold out`, bn: `"${titleBn}"-এর স্টক শেষ` },
+        body: {
+          en: 'Add more copies from your Book List if you have them. Buyers can ask for it meanwhile.',
+          bn: 'আরও কপি থাকলে আপনার বইয়ের তালিকা থেকে যোগ করুন। এর মধ্যে ক্রেতারা বইটির জন্য অনুরোধ করতে পারবেন।',
+        },
         link: '/seller-books',
       }, { except: actor });
     }
@@ -107,8 +118,11 @@ export const stockChanged = async (
       if (waiting.length) {
         await notify(waiting.map((request) => request.requester), {
           type: 'back-in-stock',
-          title: `"${title}" is back in stock`,
-          body: `${plural(after, 'copy', 'copies')} available now. You asked to be told.`,
+          title: { en: `"${title}" is back in stock`, bn: `"${titleBn}" আবার স্টকে এসেছে` },
+          body: {
+            en: `${plural(after, 'copy', 'copies')} available now. You asked to be told.`,
+            bn: `এখন ${bnDigits(after)}টি কপি আছে। আপনি জানাতে বলেছিলেন।`,
+          },
           link,
         });
         await BookRequest.updateMany(
@@ -139,6 +153,7 @@ export const priceChanged = async (
 ): Promise<void> => {
   if (!(after < before) || !(Number(book.stock) > 0)) return;
   const title = book.title || 'A book';
+  const titleBn = book.title || 'একটি বই';
   try {
     const interested = (await interestedIn(book._id)).filter((person) => person.email !== book.sellerEmail);
     for (const person of interested) {
@@ -146,11 +161,20 @@ export const priceChanged = async (
       if (!(after < baseline)) continue;
       await notify([person.email], {
         type: 'price-drop',
-        title: `Price drop: "${title}" is now ${after} Tk`,
+        title: {
+          en: `Price drop: "${title}" is now ${after} Tk`,
+          bn: `দাম কমেছে: "${titleBn}" এখন ${bnDigits(after)} টাকা`,
+        },
         body:
           person.where === 'cart'
-            ? `It was ${baseline} Tk when you put it in your cart.`
-            : `It was ${baseline} Tk when you saved it to your wishlist.`,
+            ? {
+                en: `It was ${baseline} Tk when you put it in your cart.`,
+                bn: `কার্টে রাখার সময় দাম ছিল ${bnDigits(baseline)} টাকা।`,
+              }
+            : {
+                en: `It was ${baseline} Tk when you saved it to your wishlist.`,
+                bn: `উইশলিস্টে রাখার সময় দাম ছিল ${bnDigits(baseline)} টাকা।`,
+              },
         link: `/book/${String(book._id)}`,
       }, { except: actor });
     }

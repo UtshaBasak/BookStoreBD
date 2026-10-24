@@ -4,6 +4,7 @@ import type { Request } from 'express';
 
 import { config } from '../config/env.js';
 import { errorHandler } from '../utils/error.js';
+import { t } from '../utils/language.js';
 
 /** What a book cover, a profile picture or a chat attachment may be. */
 export const ALLOWED_IMAGE_TYPES = ['image/png', 'image/jpeg', 'image/webp', 'image/gif'] as const;
@@ -44,12 +45,17 @@ export const sniffImageType = (buffer: Buffer): string | null => {
  * Cheap, and it stops a 5 MB video before it is buffered - but it trusts the
  * client, so `verifyImageBytes` below checks what actually arrived.
  */
-const fileFilter = (_req: Request, file: Express.Multer.File, cb: FileFilterCallback): void => {
+const fileFilter = (req: Request, file: Express.Multer.File, cb: FileFilterCallback): void => {
   if ((ALLOWED_IMAGE_TYPES as readonly string[]).includes(file.mimetype)) {
     cb(null, true);
     return;
   }
-  cb(errorHandler(415, 'Only PNG, JPEG, WebP and GIF images can be uploaded'));
+  cb(
+    errorHandler(
+      415,
+      t(req, 'Only PNG, JPEG, WebP and GIF images can be uploaded', 'শুধু PNG, JPEG, WebP ও GIF ছবি আপলোড করা যায়')
+    )
+  );
 };
 
 /** Images in memory, to be stored as base64 or forwarded to image hosting. */
@@ -81,7 +87,16 @@ export const verifyImageBytes: RequestHandler = (req, res, next) => {
   for (const file of files) {
     const actual = sniffImageType(file.buffer);
     if (!actual) {
-      next(errorHandler(415, `${file.originalname} is not a PNG, JPEG, WebP or GIF image`));
+      next(
+        errorHandler(
+          415,
+          t(
+            req,
+            `${file.originalname} is not a PNG, JPEG, WebP or GIF image`,
+            `${file.originalname} কোনো PNG, JPEG, WebP বা GIF ছবি নয়`
+          )
+        )
+      );
       return;
     }
     file.mimetype = actual;

@@ -47,6 +47,8 @@ const WantedBoard = lazy(() => import('./pages/WantedBoard'));
 import './styles/orderTracking.css';
 import { isAdmin, isAuthenticated } from './utils/auth.js';
 import { useSeo } from './hooks/useSeo.js';
+import { t } from './utils/language.js';
+import { useLanguage } from './utils/useLanguage.js';
 import Spinner from './components/Spinner.js';
 
 /** Every guard below takes the subtree it protects and returns it, or a redirect. */
@@ -91,12 +93,16 @@ function RouteLoading() {
   return (
     <div className="flex min-h-screen items-center justify-center" role="status" aria-live="polite">
       <Spinner />
-      <span className="sr-only">Loading</span>
+      <span className="sr-only">{t('Loading', 'লোড হচ্ছে')}</span>
     </div>
   );
 }
 
 export default function App() {
+  // Read here so the whole tree renders again in a new language: every `t()`
+  // below reads the language as it renders. `key` would remount and lose
+  // whatever someone was typing.
+  useLanguage();
   return (
     <BrowserRouter>
       <Suspense fallback={<RouteLoading />}>
