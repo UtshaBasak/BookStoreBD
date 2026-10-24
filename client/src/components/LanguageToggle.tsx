@@ -1,6 +1,7 @@
 import { FaDesktop } from 'react-icons/fa';
 
-import { t, useLanguage, type LanguageChoice } from '../utils/language.js';
+import { t, type LanguageChoice } from '../utils/language.js';
+import { useLanguage } from '../utils/useLanguage.js';
 
 /**
  * One tap between English and Bangla, for a header. It names the language it
