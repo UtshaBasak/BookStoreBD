@@ -10,6 +10,7 @@ import { publicSiteUrl } from '../config/siteUrl.js';
 import { creditInvites } from '../utils/invites.js';
 import { welcomeNewMember } from '../utils/welcome.js';
 import { applyAdminBootstrap, beginTwoStep, startSession } from './auth.controller.js';
+import { asLanguage } from '../utils/language.js';
 import { hashPassword } from '../utils/passwordHash.js';
 import { securityEvent, type SecurityRequest } from '../utils/securityLog.js';
 
@@ -231,7 +232,7 @@ export const finishGoogleSignIn: RequestHandler = async (req, res) => {
     res.clearCookie(STATE_COOKIE, cookieOptions());
 
     if (user.twoFactor) {
-      const challenge = await beginTwoStep(user);
+      const challenge = await beginTwoStep(user, asLanguage(user.language));
       if (!challenge) return fail(req, res, 'codes');
       // The address the code completes, in the hash: it never reaches a log.
       res.redirect(303, `/sign-in?next=${encodeURIComponent(saved.next)}#google-2fa=${encodeURIComponent(user.email)}`);

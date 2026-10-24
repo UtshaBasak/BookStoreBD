@@ -7,6 +7,7 @@ import AddBook, { type LeanBook } from '../models/AddBook.model.js';
 import { actingUser } from '../middleware/auth.js';
 import { errorMessage } from '../utils/error.js';
 import { toListBook, withCoverUrls } from '../utils/projections.js';
+import { bnDigits, inLanguage, languageOf, t, type Language } from '../utils/language.js';
 
 /** A book in a cart: the book, how many copies, and whether that had to change. */
 type CartBook = LeanBook & { cartQuantity: number; cartAdjusted: boolean };
@@ -43,11 +44,21 @@ const booksInCart = async (userId: Types.ObjectId): Promise<CartBook[]> => {
 const cartOwner = async (email: string) => User.findOne({ email }, { _id: 1 }).lean();
 
 /** Why this many copies of this book cannot go in a cart, or null when they can. */
-const quantityProblem = (book: { stock?: number | null } | null, quantity: number): { status: number; message: string } | null => {
-  if (!book) return { status: 404, message: 'Book not found' };
+const quantityProblem = (
+  book: { stock?: number | null } | null,
+  quantity: number,
+  language: Language
+): { status: number; message: string } | null => {
+  const say = (en: string, bn: string) => inLanguage(language, en, bn);
+  if (!book) return { status: 404, message: say('Book not found', 'বইটি পাওয়া যায়নি') };
   const stock = Number(book.stock) || 0;
-  if (stock === 0) return { status: 409, message: 'This book has sold out.' };
-  if (quantity > stock) return { status: 409, message: `Only ${stock} ${stock === 1 ? 'copy is' : 'copies are'} left.` };
+  if (stock === 0) return { status: 409, message: say('This book has sold out.', 'বইটির স্টক শেষ।') };
+  if (quantity > stock) {
+    return {
+      status: 409,
+      message: say(`Only ${stock} ${stock === 1 ? 'copy is' : 'copies are'} left.`, `মাত্র ${bnDigits(stock)}টি কপি বাকি আছে।`),
+    };
+  }
   return null;
 };
 
@@ -56,7 +67,7 @@ export const Cart_get: RequestHandler = async (req, res) => {
     const { email } = actingUser(req);
     const user = await cartOwner(email);
     if (!user) {
-      res.status(404).json({ message: 'User not found' });
+      res.status(404).json({ message: t(req, 'User not found', 'ব্যবহারকারী পাওয়া যায়নি') });
       return;
     }
 
@@ -78,19 +89,22 @@ export const Cart_add: RequestHandler = async (req, res) => {
     const asked = (req.body as { quantity?: number } | undefined)?.quantity;
     const user = await cartOwner(email);
     if (!user) {
-      res.status(404).json({ message: 'User not found' });
+      res.status(404).json({ message: t(req, 'User not found', 'ব্যবহারকারী পাওয়া যায়নি') });
       return;
     }
 
     const book = await AddBook.findById(bookId, { stock: 1, price: 1, salePrice: 1, sellerEmail: 1 }).lean();
     // Checkout refuses a seller's own book too; saying so here saves them the trip.
     if (book && book.sellerEmail === email) {
-      res.status(409).json({ code: 'own-listing', message: 'This is your own listing, so it cannot go in your cart.' });
+      res.status(409).json({
+        code: 'own-listing',
+        message: t(req, 'This is your own listing, so it cannot go in your cart.', 'এটি আপনার নিজের বই, তাই কার্টে রাখা যাবে না।'),
+      });
       return;
     }
     const existing = await Cart.findOne({ user: user._id, book: bookId }, { quantity: 1 }).lean();
     const quantity = asked ?? existing?.quantity ?? 1;
-    const problem = quantityProblem(book, quantity);
+    const problem = quantityProblem(book, quantity, languageOf(req));
     if (problem) {
       res.status(problem.status).json({ message: problem.message, available: Number(book?.stock) || 0 });
       return;
@@ -117,16 +131,16 @@ export const Cart_setQuantity: RequestHandler = async (req, res) => {
     const { quantity } = req.body as { quantity: number };
     const user = await cartOwner(email);
     if (!user) {
-      res.status(404).json({ message: 'User not found' });
+      res.status(404).json({ message: t(req, 'User not found', 'ব্যবহারকারী পাওয়া যায়নি') });
       return;
     }
     if (!(await Cart.exists({ user: user._id, book: bookId }))) {
-      res.status(404).json({ message: 'That book is not in your cart.' });
+      res.status(404).json({ message: t(req, 'That book is not in your cart.', 'বইটি আপনার কার্টে নেই।') });
       return;
     }
 
     const book = await AddBook.findById(bookId, { stock: 1 }).lean();
-    const problem = quantityProblem(book, quantity);
+    const problem = quantityProblem(book, quantity, languageOf(req));
     if (problem) {
       res.status(problem.status).json({ message: problem.message, available: Number(book?.stock) || 0 });
       return;
@@ -145,7 +159,7 @@ export const Cart_remove: RequestHandler = async (req, res) => {
     const bookId = req.params.id;
     const user = await cartOwner(email);
     if (!user) {
-      res.status(404).json({ message: 'User not found' });
+      res.status(404).json({ message: t(req, 'User not found', 'ব্যবহারকারী পাওয়া যায়নি') });
       return;
     }
 
@@ -162,12 +176,12 @@ export const Cart_clear: RequestHandler = async (req, res) => {
     const { email } = actingUser(req);
     const user = await cartOwner(email);
     if (!user) {
-      res.status(404).json({ message: 'User not found' });
+      res.status(404).json({ message: t(req, 'User not found', 'ব্যবহারকারী পাওয়া যায়নি') });
       return;
     }
 
     await Cart.deleteMany({ user: user._id });
-    res.status(200).json({ message: 'Cart cleared' });
+    res.status(200).json({ message: t(req, 'Cart cleared', 'কার্ট খালি করা হয়েছে') });
   } catch (error) {
     res.status(500).json({ message: errorMessage(error) });
   }

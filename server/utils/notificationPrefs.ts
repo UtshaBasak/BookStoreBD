@@ -1,5 +1,6 @@
 import type { NotificationCategory, NotificationPrefs, NotificationType } from '@shared/api.js';
 
+import { type Bilingual } from './language.js';
 import User from '../models/user.model.js';
 
 /**
@@ -11,8 +12,8 @@ import User from '../models/user.model.js';
  */
 export interface CategoryDefinition {
   id: NotificationCategory;
-  label: string;
-  description: string;
+  label: Bilingual;
+  description: Bilingual;
   types: readonly NotificationType[];
   /** Whether anything in this category is ever e-mailed. */
   email: boolean;
@@ -29,80 +30,110 @@ export interface CategoryDefinition {
 export const CATEGORIES: readonly CategoryDefinition[] = [
   {
     id: 'orders',
-    label: 'Orders',
-    description: 'New orders, each step of delivery, and cancellations.',
+    label: { en: 'Orders', bn: 'অর্ডার' },
+    description: {
+      en: 'New orders, each step of delivery, and cancellations.',
+      bn: 'নতুন অর্ডার, ডেলিভারির প্রতিটি ধাপ এবং অর্ডার বাতিল।',
+    },
     types: ['order-placed', 'order-received', 'order-status', 'order-cancelled'],
     email: true,
     audience: 'everyone',
   },
   {
     id: 'returns',
-    label: 'Returns',
-    description: 'Return requests and decisions.',
+    label: { en: 'Returns', bn: 'রিটার্ন' },
+    description: {
+      en: 'Return requests and decisions.',
+      bn: 'রিটার্নের অনুরোধ ও সিদ্ধান্ত।',
+    },
     types: ['return-requested', 'return-decided'],
     email: true,
     audience: 'everyone',
   },
   {
     id: 'payouts',
-    label: 'Payouts',
-    description: 'When the shop pays you for sold books.',
+    label: { en: 'Payouts', bn: 'পেআউট' },
+    description: {
+      en: 'When the shop pays you for sold books.',
+      bn: 'বিক্রি হওয়া বইয়ের টাকা শপ পাঠালে।',
+    },
     types: ['payout'],
     email: true,
     audience: 'members',
   },
   {
     id: 'reviews',
-    label: 'Reviews and ratings',
-    description: 'New reviews of your books or shop, and replies to yours.',
+    label: { en: 'Reviews and ratings', bn: 'রিভিউ ও রেটিং' },
+    description: {
+      en: 'New reviews of your books or shop, and replies to yours.',
+      bn: 'আপনার বই বা শপের নতুন রিভিউ এবং আপনার রিভিউয়ের উত্তর।',
+    },
     types: ['review', 'review-reply', 'seller-review', 'seller-review-reply'],
     email: false,
     audience: 'members',
   },
   {
     id: 'stock',
-    label: 'Your stock',
-    description: 'Low stock and sold-out listings, and buyers asking for a sold-out book.',
+    label: { en: 'Your stock', bn: 'আপনার স্টক' },
+    description: {
+      en: 'Low stock and sold-out listings, and buyers asking for a sold-out book.',
+      bn: 'স্টক কমে গেলে বা শেষ হয়ে গেলে, এবং স্টক-আউট বই কেউ চাইলে।',
+    },
     types: ['stock', 'book-request'],
     email: false,
     audience: 'members',
   },
   {
     id: 'deals',
-    label: 'Deals and price drops',
-    description: 'Discounts and lower prices on books in your cart or wishlist, books back in stock, and books selling out.',
+    label: { en: 'Deals and price drops', bn: 'ডিল ও দাম কমা' },
+    description: {
+      en: 'Discounts and lower prices on books in your cart or wishlist, books back in stock, and books selling out.',
+      bn: 'আপনার কার্ট বা উইশলিস্টের বইয়ে ছাড় ও কম দাম, বই আবার স্টকে এলে এবং বই ফুরিয়ে এলে।',
+    },
     types: ['deal', 'price-drop', 'back-in-stock', 'selling-out'],
     email: false,
     audience: 'members',
   },
   {
     id: 'wanted',
-    label: 'Wanted books',
-    description: 'When a book you asked for on the Wanted board is listed.',
+    label: { en: 'Wanted books', bn: 'চাওয়া বই' },
+    description: {
+      en: 'When a book you asked for on the Wanted board is listed.',
+      bn: 'ওয়ান্টেড বোর্ডে আপনার চাওয়া বই তালিকাভুক্ত হলে।',
+    },
     types: ['wanted-found'],
     email: true,
     audience: 'members',
   },
   {
     id: 'community',
-    label: 'Friends',
-    description: 'When someone you invited joins.',
+    label: { en: 'Friends', bn: 'বন্ধুরা' },
+    description: {
+      en: 'When someone you invited joins.',
+      bn: 'আপনার আমন্ত্রণ পেয়ে কেউ যোগ দিলে।',
+    },
     types: ['invite-joined'],
     email: false,
     audience: 'members',
   },
   {
     id: 'announcements',
-    label: 'News from BookStoreBD',
-    description: 'Messages from the shop: new features, events and offers.',
+    label: { en: 'News from BookStoreBD', bn: 'বুকস্টোরবিডির খবর' },
+    description: {
+      en: 'Messages from the shop: new features, events and offers.',
+      bn: 'শপের বার্তা: নতুন সুবিধা, ইভেন্ট ও অফার।',
+    },
     types: ['announcement'],
     email: true,
     audience: 'members',
   },
   {
     id: 'moderation',
-    label: 'Moderation',
-    description: 'Reported reviews and ratings waiting for a decision.',
+    label: { en: 'Moderation', bn: 'মডারেশন' },
+    description: {
+      en: 'Reported reviews and ratings waiting for a decision.',
+      bn: 'সিদ্ধান্তের অপেক্ষায় থাকা রিপোর্ট করা রিভিউ ও রেটিং।',
+    },
     types: ['review-reported', 'seller-review-reported'],
     email: false,
     audience: 'admins',

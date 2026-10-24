@@ -236,7 +236,7 @@ describe('the "delivered" e-mail', () => {
   });
 
   it("sends one book's buyer to its review form", () => {
-    const mail = orderDeliveredBuyerEmail({ orderNumber: 'ABC' }, [{ bookId: 'b1', title: 'Deyal', quantity: 1, price: 300 }]);
+    const mail = orderDeliveredBuyerEmail({ orderNumber: 'ABC' }, [{ bookId: 'b1', title: 'Deyal', quantity: 1, price: 300 }])('en');
 
     expect(mail.text).toContain('/book/b1#reviews');
   });
@@ -245,7 +245,7 @@ describe('the "delivered" e-mail', () => {
     const mail = orderDeliveredBuyerEmail({ orderNumber: 'ABC' }, [
       { bookId: 'b1', title: 'Deyal', quantity: 1, price: 300 },
       { bookId: 'b2', title: 'Sapiens', quantity: 1, price: 500 },
-    ]);
+    ])('en');
 
     expect(mail.text).toContain('/buyer/orders');
     expect(mail.text).not.toContain('/order-tracking/');

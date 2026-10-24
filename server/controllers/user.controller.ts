@@ -18,8 +18,17 @@ import { newPasswordProblem } from '../utils/breachedPassword.js';
 import { errorMessage, isDuplicateKeyError } from '../utils/error.js';
 import { hashPassword } from '../utils/passwordHash.js';
 import { securityEvent } from '../utils/securityLog.js';
+import { languageOf, t } from '../utils/language.js';
 
 const log = createLogger('user');
+
+const userNotFound = (req: Parameters<typeof t>[0]): string => t(req, 'User not found', 'ব্যবহারকারীকে পাওয়া যায়নি');
+const serverError = (req: Parameters<typeof t>[0]): string => t(req, 'Server error', 'সার্ভারে একটি সমস্যা হয়েছে');
+const usernameTaken = (req: Parameters<typeof t>[0]): string =>
+    t(req, 'Username already exists', 'এই ইউজারনেমটি আগেই নেওয়া হয়েছে');
+
+/** What each required field is called in Bangla, for the message that it cannot be empty. */
+const FIELD_BN: Record<string, string> = { username: 'ইউজারনেম', email: 'ই-মেইল', password: 'পাসওয়ার্ড' };
 
 // Fetch user profile
 export const getUserProfile = async (
@@ -32,12 +41,12 @@ export const getUserProfile = async (
         const requested = req.query.email;
         const email = requested || req.user?.email;
         if (!email) {
-            res.status(400).json({ message: 'Email required' });
+            res.status(400).json({ message: t(req, 'Email required', 'ই-মেইল দিন') });
             return;
         }
         const user = await User.findOne({ email: String(email) });
         if (!user) {
-            res.status(404).json({ message: 'User not found' });
+            res.status(404).json({ message: userNotFound(req) });
             return;
         }
 
@@ -74,7 +83,7 @@ export const getUserProfile = async (
         res.status(200).json(body);
     } catch (error) {
         log.error({ err: error }, 'Error fetching profile');
-        res.status(500).json({ message: 'Server error' });
+        res.status(500).json({ message: serverError(req) });
     }
 };
 
@@ -132,7 +141,13 @@ export const updateUserProfile = async (
         for (const field of REQUIRED_FIELDS) {
             if (Object.prototype.hasOwnProperty.call(body, field)) {
                 if (body[field] === '' || body[field] === undefined || body[field] === null) {
-                    res.status(400).json({ message: `${field.charAt(0).toUpperCase() + field.slice(1)} cannot be empty` });
+                    res.status(400).json({
+                        message: t(
+                            req,
+                            `${field.charAt(0).toUpperCase() + field.slice(1)} cannot be empty`,
+                            `${FIELD_BN[field] ?? field} ফাঁকা রাখা যাবে না`
+                        ),
+                    });
                     return;
                 }
             }
@@ -159,7 +174,7 @@ export const updateUserProfile = async (
             const weak = await newPasswordProblem(newPassword, {
                 email,
                 username: typeof body.username === 'string' ? body.username : req.user?.username,
-            });
+            }, languageOf(req));
             if (weak) {
                 res.status(400).json({ message: weak });
                 return;
@@ -184,7 +199,7 @@ export const updateUserProfile = async (
             const field = BANNER_FIELDS[role];
             const upload = files[field]?.[0];
             if (upload && upload.size > MAX_BANNER_BYTES) {
-                res.status(413).json({ message: 'A banner can be at most 3 MB' });
+                res.status(413).json({ message: t(req, 'A banner can be at most 3 MB', 'ব্যানার সর্বোচ্চ ৩ MB হতে পারে') });
                 return;
             }
             if (upload || body[field] === '') bannerChanges.push(role);
@@ -193,7 +208,7 @@ export const updateUserProfile = async (
         // Check for unique username/email if changed
         const currentUser = await User.findOne({ email });
         if (!currentUser) {
-            res.status(404).json({ message: 'User not found' });
+            res.status(404).json({ message: userNotFound(req) });
             return;
         }
         /*
@@ -217,7 +232,9 @@ export const updateUserProfile = async (
                 // 403, not 401: the session is fine, and a 401 would sign them out.
                 res.status(403).json({
                     code: 'current-password',
-                    message: given ? 'Your current password is not correct' : 'Enter your current password to change this',
+                    message: given
+                        ? t(req, 'Your current password is not correct', 'বর্তমান পাসওয়ার্ডটি সঠিক নয়')
+                        : t(req, 'Enter your current password to change this', 'এটি বদলাতে বর্তমান পাসওয়ার্ড দিন'),
                 });
                 return;
             }
@@ -232,14 +249,22 @@ export const updateUserProfile = async (
             if (await AddBook.exists({ sellerEmail: currentUser.email, stock: { $gt: 0 } })) {
                 res.status(409).json({
                     code: 'payout-number-in-use',
-                    message: 'Your books on sale need a bKash number so you can be paid. Set their stock to 0 first, or change the number instead.',
+                    message: t(
+                        req,
+                        'Your books on sale need a bKash number so you can be paid. Set their stock to 0 first, or change the number instead.',
+                        'বিক্রির জন্য রাখা বইয়ের টাকা পেতে একটি বিকাশ নম্বর লাগবে। আগে সেগুলোর স্টক ০ করুন, অথবা নম্বরটি বদলে দিন।'
+                    ),
                 });
                 return;
             }
             if (await Order.exists({ sellerEmail: currentUser.email, status: { $ne: 'Cancelled' }, sellerPaidAt: null, isReturned: { $ne: 1 } })) {
                 res.status(409).json({
                     code: 'payout-number-in-use',
-                    message: 'Some of your sales are still to be paid to this number. You can remove it once they have been paid, or change it instead.',
+                    message: t(
+                        req,
+                        'Some of your sales are still to be paid to this number. You can remove it once they have been paid, or change it instead.',
+                        'আপনার কিছু বিক্রির টাকা এখনো এই নম্বরে পাঠানো বাকি। টাকা পাঠানো হয়ে গেলে নম্বরটি সরাতে পারবেন, অথবা এখনই বদলে দিন।'
+                    ),
                 });
                 return;
             }
@@ -248,7 +273,7 @@ export const updateUserProfile = async (
         if (updateFields.username && updateFields.username !== currentUser.username) {
             const usernameExists = await User.findOne({ username: updateFields.username });
             if (usernameExists) {
-                res.status(409).json({ message: 'Username already exists' });
+                res.status(409).json({ message: usernameTaken(req) });
                 return;
             }
         }
@@ -283,7 +308,7 @@ export const updateUserProfile = async (
             { returnDocument: 'after', projection: { password: 0 } }
         );
         if (!user) {
-            res.status(404).json({ message: 'User not found' });
+            res.status(404).json({ message: userNotFound(req) });
             return;
         }
         // The pictures they replace, once the new ones are saved.
@@ -303,19 +328,19 @@ export const updateUserProfile = async (
                 extra: { change: removingPayout ? 'removed' : settingPayout ? 'set' : 'changed' },
             });
         }
-        res.status(200).json({ message: 'Profile updated successfully', user });
+        res.status(200).json({ message: t(req, 'Profile updated successfully', 'প্রোফাইল আপডেট হয়েছে'), user });
     } catch (error) {
         // Handle duplicate key error (in case of race condition)
         if (isDuplicateKeyError(error)) {
             if (error.keyPattern?.username) {
-                res.status(409).json({ message: 'Username already exists' });
+                res.status(409).json({ message: usernameTaken(req) });
                 return;
             }
             if (error.keyPattern?.email) {
-                res.status(409).json({ message: 'Email already exists' });
+                res.status(409).json({ message: t(req, 'Email already exists', 'এই ই-মেইল দিয়ে আগেই অ্যাকাউন্ট আছে') });
                 return;
             }
         }
-        res.status(500).json({ message: 'Server error', error: errorMessage(error) });
+        res.status(500).json({ message: serverError(req), error: errorMessage(error) });
     }
 };

@@ -98,12 +98,12 @@ export const noteDevice = async (req: DeviceRequest, res: Response, user: UserDo
 
     await User.updateOne({ _id: user._id }, { $push: { knownDevices: { $each: [print], $slice: -MAX_KNOWN } } });
     if (known.length) {
-      const when = new Date().toLocaleString('en-GB', { timeZone: 'Asia/Dhaka', dateStyle: 'medium', timeStyle: 'short' });
+      const when = new Date();
       dispatchShopMail(
         user.email,
         app
-          ? newSignInEmail(describeAppDevice(app.deviceName), `${when} (Dhaka time)`, 'app')
-          : newSignInEmail(describeBrowser(String(req.get('user-agent') ?? '')), `${when} (Dhaka time)`)
+          ? newSignInEmail(describeAppDevice(app.deviceName), when, 'app')
+          : newSignInEmail(describeBrowser(String(req.get('user-agent') ?? '')), when)
       );
     }
     return true;

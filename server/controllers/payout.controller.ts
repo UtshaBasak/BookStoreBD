@@ -16,6 +16,7 @@ import { RETURN_WINDOW_DAYS, returnWindowClosedBefore, sellerFeeFor, sellerPayou
 import { contains } from '../utils/regex.js';
 import { notify } from '../utils/notify.js';
 import { dispatchShopMail, payoutSentEmail } from '../utils/shopMail.js';
+import { bnDigits, t } from '../utils/language.js';
 
 const log = createLogger('payout');
 
@@ -177,7 +178,9 @@ export const markPayoutPaid = async (
     const payable = candidates.filter((line) => !held.has(String(line._id)));
 
     if (payable.length === 0) {
-      res.status(409).json({ message: 'Nothing is due to that seller on that order.' });
+      res.status(409).json({
+        message: t(req, 'Nothing is due to that seller on that order.', 'এই অর্ডারে ওই বিক্রেতার কোনো পাওনা নেই।'),
+      });
       return;
     }
 
@@ -199,7 +202,7 @@ export const markPayoutPaid = async (
     );
     const paid = payable.filter((line) => won.has(String(line._id)));
     if (paid.length === 0) {
-      res.status(409).json({ message: 'That payment has already been recorded.' });
+      res.status(409).json({ message: t(req, 'That payment has already been recorded.', 'এই পেমেন্টটি আগেই রেকর্ড করা হয়েছে।') });
       return;
     }
 
@@ -219,8 +222,14 @@ export const markPayoutPaid = async (
 
     await notify([String(sellerEmail)], {
       type: 'payout',
-      title: `You have been paid ${amount.toFixed(2)} Tk`,
-      body: `For order ${String(orderNumber)}, by bKash. Transaction ID ${String(reference)}.`,
+      title: {
+        en: `You have been paid ${amount.toFixed(2)} Tk`,
+        bn: `আপনাকে ${bnDigits(amount.toFixed(2))} টাকা পাঠানো হয়েছে`,
+      },
+      body: {
+        en: `For order ${String(orderNumber)}, by bKash. Transaction ID ${String(reference)}.`,
+        bn: `অর্ডার ${String(orderNumber)}-এর জন্য, বিকাশে। ট্রানজ্যাকশন আইডি ${String(reference)}।`,
+      },
       link: '/seller-orders',
     });
     dispatchShopMail(
@@ -229,9 +238,13 @@ export const markPayoutPaid = async (
       'payouts'
     );
 
-    res.json({ message: `Recorded ${amount.toFixed(2)} Tk paid.`, amount, paidAt: paidAt.toISOString() });
+    res.json({
+      message: t(req, `Recorded ${amount.toFixed(2)} Tk paid.`, `${bnDigits(amount.toFixed(2))} টাকা পরিশোধ রেকর্ড করা হয়েছে।`),
+      amount,
+      paidAt: paidAt.toISOString(),
+    });
   } catch (error) {
     log.error({ err: error }, 'Failed to record a payout');
-    res.status(500).json({ message: 'Could not record the payout.' });
+    res.status(500).json({ message: t(req, 'Could not record the payout.', 'পেমেন্টটি রেকর্ড করা যায়নি।') });
   }
 };

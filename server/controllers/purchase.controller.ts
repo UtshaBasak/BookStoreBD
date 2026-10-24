@@ -5,6 +5,7 @@ import Purchase from '../models/Purchase.model.js';
 import { actingUser } from '../middleware/auth.js';
 import type { CreatePurchaseBody } from '../schemas/index.js';
 import { errorMessage } from '../utils/error.js';
+import { t } from '../utils/language.js';
 
 export const getPurchasesByUser: RequestHandler = async (req, res) => {
   const { email } = actingUser(req);
@@ -28,7 +29,7 @@ export const createPurchase = async (
   try {
     // A record of buying a book that exists, and how many copies.
     if (!(await AddBook.exists({ _id: bookId }))) {
-      res.status(404).json({ message: 'Book not found' });
+      res.status(404).json({ message: t(req, 'Book not found', 'বইটি পাওয়া যায়নি') });
       return;
     }
     const newPurchase = new Purchase({
@@ -38,7 +39,7 @@ export const createPurchase = async (
     });
 
     await newPurchase.save();
-    res.status(201).json({ message: 'Purchase created successfully', purchase: newPurchase });
+    res.status(201).json({ message: t(req, 'Purchase created successfully', 'কেনাকাটা সংরক্ষিত হয়েছে'), purchase: newPurchase });
   } catch (error) {
     res.status(500).json({ message: errorMessage(error) });
   }

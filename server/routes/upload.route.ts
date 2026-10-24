@@ -1,6 +1,7 @@
 import express from 'express';
 
 import { requireAuth } from '../middleware/auth.js';
+import { t } from '../utils/language.js';
 import {
   createUploadSignature,
   isCloudinaryConfigured,
@@ -22,7 +23,7 @@ router.use(requireAuth);
 router.get('/signature', (req, res) => {
   if (!isCloudinaryConfigured()) {
     return res.status(503).json({
-      message: 'Image hosting is not configured',
+      message: t(req, 'Image hosting is not configured', 'ছবি রাখার ব্যবস্থা চালু নেই'),
       // The client falls back to sending base64 to the API.
       fallback: 'inline',
     });

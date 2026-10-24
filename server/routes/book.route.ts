@@ -21,6 +21,7 @@ import {
   type UpdateStockBody,
 } from '../schemas/index.js';
 import { securityEvent } from '../utils/securityLog.js';
+import { bnDigits, languageOf, t } from '../utils/language.js';
 
 const router = express.Router();
 
@@ -34,13 +35,13 @@ const loadOwnedBook = async (
 ): Promise<BookDocument | null> => {
   const book = await AddBook.findById(req.params.id);
   if (!book) {
-    res.status(404).json({ message: 'Book not found' });
+    res.status(404).json({ message: t(req, 'Book not found', 'বইটি পাওয়া যায়নি') });
     return null;
   }
   const actor = actingUser(req);
   if (actor.role !== 'admin' && book.sellerEmail !== actor.email) {
     securityEvent(req, 'authz.denied', { reason: 'not_owner', extra: { resource_type: 'book' } });
-    res.status(403).json({ message: 'You can only manage your own listings' });
+    res.status(403).json({ message: t(req, 'You can only manage your own listings', 'আপনি শুধু নিজের বই পরিচালনা করতে পারেন') });
     return null;
   }
   return book;
@@ -121,7 +122,7 @@ router.put(
       // about the change is decided in one place.
       await stockChanged(book, before, Number(stock), { actor: actingUser(req).email });
 
-      res.status(200).json({ message: 'Stock updated', book });
+      res.status(200).json({ message: t(req, 'Stock updated', 'স্টক আপডেট হয়েছে'), book });
     } catch (error) {
       res.status(500).json({ message: errorMessage(error) });
     }
@@ -144,7 +145,7 @@ router.put(
       await book.save();
       await priceChanged(book, before, Number(book.salePrice ?? book.price), { actor: actingUser(req).email });
 
-      res.status(200).json({ message: 'Price updated', book });
+      res.status(200).json({ message: t(req, 'Price updated', 'দাম আপডেট হয়েছে'), book });
     } catch (error) {
       res.status(500).json({ message: errorMessage(error) });
     }
@@ -166,7 +167,7 @@ router.put(
       if (!book) return;
 
       const discount = req.body.type === 'none' ? { type: null, value: 0 } : { type: req.body.type, value: req.body.value };
-      const problem = discountProblem(Number(book.price), discount);
+      const problem = discountProblem(Number(book.price), discount, languageOf(req));
       if (problem) {
         res.status(400).json({ message: problem });
         return;
@@ -181,7 +182,10 @@ router.put(
       // cart or on a wishlist hears of it, if it beats what they saw.
       await priceChanged(book, before, Number(book.salePrice ?? book.price), { actor: actingUser(req).email });
 
-      res.status(200).json({ message: discount.type ? 'Discount saved' : 'Discount removed', book });
+      res.status(200).json({
+        message: discount.type ? t(req, 'Discount saved', 'ছাড় সংরক্ষিত হয়েছে') : t(req, 'Discount removed', 'ছাড় সরানো হয়েছে'),
+        book,
+      });
     } catch (error) {
       res.status(500).json({ message: errorMessage(error) });
     }
@@ -202,7 +206,7 @@ router.delete(
       // Otherwise the assets would stay in the hosting account, still billed.
       await destroyAssets(book.imagePublicIds);
 
-      res.status(200).json({ message: 'Book deleted successfully' });
+      res.status(200).json({ message: t(req, 'Book deleted successfully', 'বইটি মুছে ফেলা হয়েছে') });
     } catch (error) {
       res.status(500).json({ message: errorMessage(error) });
     }
@@ -239,15 +243,19 @@ router.post('/:id/request', requireAuth, validate(bookSchemas.byId), async (req:
     const email = String(actingUser(req).email);
     const book = await AddBook.findById(String(req.params.id), { title: 1, sellerEmail: 1, stock: 1 }).lean();
     if (!book) {
-      res.status(404).json({ message: 'Book not found' });
+      res.status(404).json({ message: t(req, 'Book not found', 'বইটি পাওয়া যায়নি') });
       return;
     }
     if (book.sellerEmail === email) {
-      res.status(400).json({ message: 'This is your own book. Add copies from your Book List.' });
+      res.status(400).json({
+        message: t(req, 'This is your own book. Add copies from your Book List.', 'এটি আপনার নিজের বই। আপনার বইয়ের তালিকা থেকে কপি যোগ করুন।'),
+      });
       return;
     }
     if (Number(book.stock) > 0) {
-      res.status(409).json({ message: 'This book is in stock. You can add it to your cart.' });
+      res.status(409).json({
+        message: t(req, 'This book is in stock. You can add it to your cart.', 'বইটি স্টকে আছে। আপনি এটি কার্টে যোগ করতে পারেন।'),
+      });
       return;
     }
 
@@ -260,8 +268,14 @@ router.post('/:id/request', requireAuth, validate(bookSchemas.byId), async (req:
     if (created.upsertedCount) {
       await notify([book.sellerEmail], {
         type: 'book-request',
-        title: `Someone wants "${book.title}" back in stock`,
-        body: `${status.count} ${status.count === 1 ? 'person is' : 'people are'} waiting. Add copies and they will be told.`,
+        title: {
+          en: `Someone wants "${book.title}" back in stock`,
+          bn: `একজন ক্রেতা "${book.title}" আবার স্টকে চান`,
+        },
+        body: {
+          en: `${status.count} ${status.count === 1 ? 'person is' : 'people are'} waiting. Add copies and they will be told.`,
+          bn: `${bnDigits(status.count)} জন অপেক্ষা করছেন। কপি যোগ করলেই তাঁদের জানানো হবে।`,
+        },
         link: '/seller-books',
       });
     }

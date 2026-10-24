@@ -9,14 +9,17 @@ export const welcomeNewMember = async (user: { email: string; username: string }
   dispatchShopMail(user.email, welcomeEmail(user.username));
   await notify([user.email], {
     type: 'welcome',
-    title: 'Finish setting up your profile',
-    body: 'Add your phone and address so orders reach you - it takes a minute.',
+    title: { en: 'Finish setting up your profile', bn: 'আপনার প্রোফাইল সাজানো শেষ করুন' },
+    body: {
+      en: 'Add your phone and address so orders reach you - it takes a minute.',
+      bn: 'অর্ডার যেন আপনার কাছে পৌঁছায়, তাই ফোন নম্বর ও ঠিকানা দিন - এক মিনিটও লাগবে না।',
+    },
     link: '/profile#setup',
   });
   await notify([user.email], {
     type: 'welcome',
-    title: `Welcome to BookStoreBD, ${user.username}!`,
-    body: 'See how buying and selling work, in a few taps.',
+    title: { en: `Welcome to BookStoreBD, ${user.username}!`, bn: `BookStoreBD-তে স্বাগতম, ${user.username}!` },
+    body: { en: 'See how buying and selling work, in a few taps.', bn: 'কয়েকটি ট্যাপেই দেখে নিন কেনাবেচা কীভাবে হয়।' },
     link: '/how-it-works',
   });
 };

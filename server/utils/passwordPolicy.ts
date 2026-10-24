@@ -16,6 +16,8 @@
  * alone.
  */
 
+import { bnDigits, inLanguage, type Language } from './language.js';
+
 export const PASSWORD_MIN = 12;
 export const PASSWORD_MAX = 128;
 
@@ -29,16 +31,16 @@ export type PasswordRule =
   | 'common'
   | 'pattern';
 
-/** Each rule as the form lists it. */
-export const PASSWORD_RULES: readonly { id: PasswordRule; label: string }[] = [
-  { id: 'length', label: `At least ${PASSWORD_MIN} characters` },
-  { id: 'lower', label: 'A lowercase letter' },
-  { id: 'upper', label: 'An uppercase letter' },
-  { id: 'number', label: 'A number' },
-  { id: 'symbol', label: 'A symbol, such as ! @ # ?' },
-  { id: 'personal', label: 'Not your name or e-mail address' },
-  { id: 'common', label: 'Not a common or easily guessed password' },
-  { id: 'pattern', label: 'No runs like "aaaa", "1234" or "qwer"' },
+/** Each rule as the form lists it, in English and (as the website words it) in Bangla. */
+export const PASSWORD_RULES: readonly { id: PasswordRule; label: string; labelBn: string }[] = [
+  { id: 'length', label: `At least ${PASSWORD_MIN} characters`, labelBn: `কমপক্ষে ${bnDigits(PASSWORD_MIN)} অক্ষর` },
+  { id: 'lower', label: 'A lowercase letter', labelBn: 'একটি ছোট হাতের অক্ষর' },
+  { id: 'upper', label: 'An uppercase letter', labelBn: 'একটি বড় হাতের অক্ষর' },
+  { id: 'number', label: 'A number', labelBn: 'একটি সংখ্যা' },
+  { id: 'symbol', label: 'A symbol, such as ! @ # ?', labelBn: 'একটি চিহ্ন, যেমন ! @ # ?' },
+  { id: 'personal', label: 'Not your name or e-mail address', labelBn: 'আপনার নাম বা ই-মেইল নয়' },
+  { id: 'common', label: 'Not a common or easily guessed password', labelBn: 'সহজে অনুমানযোগ্য পাসওয়ার্ড নয়' },
+  { id: 'pattern', label: 'No runs like "aaaa", "1234" or "qwer"', labelBn: '"aaaa", "1234" বা "qwer"-এর মতো ধারা নয়' },
 ];
 
 /**
@@ -161,13 +163,22 @@ export const passwordProblems = (
   return problems;
 };
 
-/** The sentence a refused password is answered with. */
-export const passwordMessage = (problems: readonly PasswordRule[]): string => {
+/** The sentence a refused password is answered with, in the language given (English by default). */
+export const passwordMessage = (problems: readonly PasswordRule[], language: Language = 'en'): string => {
   if (!problems.length) return '';
   const first = PASSWORD_RULES.find((rule) => rule.id === problems[0]);
-  if (problems[0] === 'length' && first) return `Your password needs ${first.label.toLowerCase()} (and at most ${PASSWORD_MAX}).`;
-  return `Your password needs: ${problems
-    .map((id) => PASSWORD_RULES.find((rule) => rule.id === id)?.label.toLowerCase())
-    .filter(Boolean)
-    .join('; ')}.`;
+  if (problems[0] === 'length' && first)
+    return inLanguage(
+      language,
+      `Your password needs ${first.label.toLowerCase()} (and at most ${PASSWORD_MAX}).`,
+      `আপনার পাসওয়ার্ডে ${first.labelBn} লাগবে (সর্বোচ্চ ${bnDigits(PASSWORD_MAX)})।`
+    );
+  const rules = problems
+    .map((id) => PASSWORD_RULES.find((rule) => rule.id === id))
+    .filter((rule) => rule !== undefined);
+  return inLanguage(
+    language,
+    `Your password needs: ${rules.map((rule) => rule.label.toLowerCase()).join('; ')}.`,
+    `পাসওয়ার্ডটি যেমন হতে হবে: ${rules.map((rule) => rule.labelBn).join('; ')}।`
+  );
 };

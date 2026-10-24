@@ -18,6 +18,7 @@ import { publicSiteUrl } from '../config/siteUrl.js';
 import RefreshToken from '../models/RefreshToken.model.js';
 import { hashToken } from '../utils/refreshToken.js';
 import { pushConfigured, registerPushDevice } from '../utils/push.js';
+import { t } from '../utils/language.js';
 
 /**
  * What only the Android app uses, under /api/v1/app. Everything else the app
@@ -81,11 +82,14 @@ router.post('/push', requireAuth, validate(appSchemas.push), async (req, res, ne
       { user: 1, family: 1 }
     ).lean();
     if (!session || String(session.user) !== actingUser(req).id) {
-      res.status(401).json({ message: 'Session expired, please sign in again' });
+      res.status(401).json({ message: t(req, 'Session expired, please sign in again', 'আপনার সেশন শেষ হয়েছে, আবার সাইন ইন করুন') });
       return;
     }
     await registerPushDevice(session.user, session.family, pushToken);
-    res.status(200).json({ message: 'Push notifications are on for this phone.', enabled: pushConfigured() });
+    res.status(200).json({
+      message: t(req, 'Push notifications are on for this phone.', 'এই ফোনে পুশ নোটিফিকেশন চালু হয়েছে।'),
+      enabled: pushConfigured(),
+    });
   } catch (error) {
     next(error);
   }

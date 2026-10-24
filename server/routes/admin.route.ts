@@ -12,6 +12,7 @@ import { recipientsWanting } from '../utils/notificationPrefs.js';
 import { adminMessageEmail, sendShopMailNow } from '../utils/shopMail.js';
 import { recordAudit } from '../utils/audit.js';
 import { securityEvent } from '../utils/securityLog.js';
+import { bnDigits, t } from '../utils/language.js';
 import { createLogger } from '../config/logger.js';
 
 /**
@@ -69,7 +70,7 @@ router.post('/message', validate(adminSchemas.message), async (req: Request, res
     const { channel, audience, emails, title, body, link } = req.body as AdminMessageBody;
     const recipients = await recipientsFor(audience, emails);
     if (!recipients.length) {
-      res.status(400).json({ message: 'Nobody matches that audience.' });
+      res.status(400).json({ message: t(req, 'Nobody matches that audience.', 'এই দলে কেউ নেই।') });
       return;
     }
 
@@ -82,7 +83,13 @@ router.post('/message', validate(adminSchemas.message), async (req: Request, res
     let notified = 0;
     if (channel !== 'email') {
       const people = await optedIn('inApp');
-      await notify(people, { type: direct ? 'shop-message' : 'announcement', title, body, link: link || '' });
+      // The administrator's own words, the same in either language.
+      await notify(people, {
+        type: direct ? 'shop-message' : 'announcement',
+        title: { en: title, bn: title },
+        body: { en: body, bn: body },
+        link: link || '',
+      });
       notified = people.length;
     }
 
@@ -112,8 +119,17 @@ router.post('/message', validate(adminSchemas.message), async (req: Request, res
       emailed ? `${emailed} e-mailed` : '',
       failed ? `${failed} e-mails could not be sent` : '',
     ].filter(Boolean);
+    const partsBn = [
+      notified ? `${bnDigits(notified)} জনকে নোটিফিকেশন` : '',
+      emailed ? `${bnDigits(emailed)} জনকে ই-মেইল` : '',
+      failed ? `${bnDigits(failed)}টি ই-মেইল পাঠানো যায়নি` : '',
+    ].filter(Boolean);
     const response: AdminMessageResponse = {
-      message: `Sent to ${recipients.length} ${recipients.length === 1 ? 'person' : 'people'}: ${parts.join(', ') || 'nothing was sent'}.`,
+      message: t(
+        req,
+        `Sent to ${recipients.length} ${recipients.length === 1 ? 'person' : 'people'}: ${parts.join(', ') || 'nothing was sent'}.`,
+        `${bnDigits(recipients.length)} জনকে পাঠানো হয়েছে: ${partsBn.join(', ') || 'কিছুই পাঠানো হয়নি'}।`
+      ),
       recipients: recipients.length,
       notified,
       emailed,
