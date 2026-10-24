@@ -1,6 +1,8 @@
 import { useMemo } from 'react';
 import { useSnackbar, type SnackbarKey, type VariantType } from 'notistack';
 
+import { t } from '../utils/language.js';
+
 /** A button offered alongside the message, for the obvious next step. */
 export interface ToastAction {
   label: string;
@@ -94,7 +96,10 @@ export const promptSignIn = (
   goToSignIn: () => void,
   what: 'cart' | 'wishlist'
 ): void => {
-  toast.info(`Sign in to use your ${what}.`, {
-    action: { label: 'Sign in', onClick: goToSignIn },
-  });
+  toast.info(
+    what === 'cart'
+      ? t('Sign in to use your cart.', 'কার্ট ব্যবহার করতে সাইন ইন করুন।')
+      : t('Sign in to use your wishlist.', 'উইশলিস্ট ব্যবহার করতে সাইন ইন করুন।'),
+    { action: { label: t('Sign in', 'সাইন ইন'), onClick: goToSignIn } }
+  );
 };

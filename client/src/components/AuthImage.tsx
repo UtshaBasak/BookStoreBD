@@ -1,6 +1,7 @@
 import { useEffect, useState, type CSSProperties } from 'react';
 
 import { apiFetch } from '../config/api.js';
+import { t } from '../utils/language.js';
 import { reportError } from '../utils/report.js';
 
 interface AuthImageProps {
@@ -59,7 +60,7 @@ export default function AuthImage({ src, alt, className, style }: AuthImageProps
   if (failed) {
     return (
       <span className={className} style={{ ...style, fontSize: 13, opacity: 0.7 }}>
-        Attachment unavailable
+        {t('Attachment unavailable', 'সংযুক্ত ফাইলটি পাওয়া যাচ্ছে না')}
       </span>
     );
   }
@@ -70,7 +71,7 @@ export default function AuthImage({ src, alt, className, style }: AuthImageProps
       <span
         className={className}
         style={{ ...style, display: 'block', minHeight: 60, opacity: 0.4 }}
-        aria-label={`${alt} (loading)`}
+        aria-label={t(`${alt} (loading)`, `${alt} (লোড হচ্ছে)`)}
       />
     );
   }

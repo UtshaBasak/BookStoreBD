@@ -6,6 +6,8 @@
  * change one and change the other.
  */
 
+import { formatNumber, t } from './language.js';
+
 export const PASSWORD_MIN = 12;
 export const PASSWORD_MAX = 128;
 
@@ -19,16 +21,19 @@ export type PasswordRule =
   | 'common'
   | 'pattern';
 
-/** Each rule as the form lists it. */
-export const PASSWORD_RULES: readonly { id: PasswordRule; label: string }[] = [
-  { id: 'length', label: `At least ${PASSWORD_MIN} characters` },
-  { id: 'lower', label: 'A lowercase letter' },
-  { id: 'upper', label: 'An uppercase letter' },
-  { id: 'number', label: 'A number' },
-  { id: 'symbol', label: 'A symbol, such as ! @ # ?' },
-  { id: 'personal', label: 'Not your name or e-mail address' },
-  { id: 'common', label: 'Not a common or easily guessed password' },
-  { id: 'pattern', label: 'No runs like "aaaa", "1234" or "qwer"' },
+/**
+ * Each rule as the form lists it. `label` is a function so it reads the
+ * language when it is shown, not when this module loads.
+ */
+export const PASSWORD_RULES: readonly { id: PasswordRule; label: () => string }[] = [
+  { id: 'length', label: () => t(`At least ${PASSWORD_MIN} characters`, `কমপক্ষে ${formatNumber(PASSWORD_MIN)} অক্ষর`) },
+  { id: 'lower', label: () => t('A lowercase letter', 'একটি ছোট হাতের অক্ষর') },
+  { id: 'upper', label: () => t('An uppercase letter', 'একটি বড় হাতের অক্ষর') },
+  { id: 'number', label: () => t('A number', 'একটি সংখ্যা') },
+  { id: 'symbol', label: () => t('A symbol, such as ! @ # ?', 'একটি চিহ্ন, যেমন ! @ # ?') },
+  { id: 'personal', label: () => t('Not your name or e-mail address', 'আপনার নাম বা ই-মেইল নয়') },
+  { id: 'common', label: () => t('Not a common or easily guessed password', 'সহজে অনুমানযোগ্য পাসওয়ার্ড নয়') },
+  { id: 'pattern', label: () => t('No runs like "aaaa", "1234" or "qwer"', '"aaaa", "1234" বা "qwer"-এর মতো ধারা নয়') },
 ];
 
 /**
@@ -155,11 +160,18 @@ export const passwordProblems = (
 export const passwordMessage = (problems: readonly PasswordRule[]): string => {
   if (!problems.length) return '';
   const first = PASSWORD_RULES.find((rule) => rule.id === problems[0]);
-  if (problems[0] === 'length' && first) return `Your password needs ${first.label.toLowerCase()} (and at most ${PASSWORD_MAX}).`;
-  return `Your password needs: ${problems
-    .map((id) => PASSWORD_RULES.find((rule) => rule.id === id)?.label.toLowerCase())
-    .filter(Boolean)
-    .join('; ')}.`;
+  if (problems[0] === 'length' && first)
+    return t(
+      `Your password needs ${first.label().toLowerCase()} (and at most ${PASSWORD_MAX}).`,
+      `আপনার পাসওয়ার্ডে ${first.label()} লাগবে (সর্বোচ্চ ${formatNumber(PASSWORD_MAX)})।`
+    );
+  const labels = problems
+    .map((id) => PASSWORD_RULES.find((rule) => rule.id === id)?.label())
+    .filter(Boolean);
+  return t(
+    `Your password needs: ${labels.map((label) => label?.toLowerCase()).join('; ')}.`,
+    `পাসওয়ার্ডটি যেমন হতে হবে: ${labels.join('; ')}।`
+  );
 };
 
 /** Whether a password meets every rule the form shows. */

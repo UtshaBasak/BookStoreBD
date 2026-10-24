@@ -15,65 +15,84 @@ import {
 } from '../hooks/queries.js';
 import { useToast } from '../hooks/useToast.js';
 import { messageOf } from '../utils/apiError.js';
+import { digits, formatDate, formatNumber, t } from '../utils/language.js';
 
-/** What the section says, for a book's reviews and for a seller's ratings. */
-const COPY = {
-  book: {
-    heading: 'Ratings and reviews',
-    none: 'No reviews yet.',
-    one: 'review',
-    many: 'reviews',
-    signIn: 'to leave a review.',
-    write: 'Write a review',
-    edit: 'Edit your review',
-    post: 'Post review',
-    bodyLabel: 'What should another buyer know? (optional)',
-    badge: 'Verified purchase',
-    updated: 'Your review has been updated.',
-    thanks: 'Thank you for your review.',
-    removed: 'Your review has been removed.',
-    reported: 'Thank you. An administrator will look at this review.',
-    unsaved: 'Could not save your review.',
-  },
-  seller: {
-    heading: 'Seller ratings',
-    none: 'No ratings yet.',
-    one: 'rating',
-    many: 'ratings',
-    signIn: 'to rate this seller.',
-    write: 'Rate this seller',
-    edit: 'Edit your rating',
-    post: 'Post rating',
-    bodyLabel: 'How was buying from them - packing, delivery, replies? (optional)',
-    badge: 'Verified buyer',
-    updated: 'Your rating has been updated.',
-    thanks: 'Thank you for rating this seller.',
-    removed: 'Your rating has been removed.',
-    reported: 'Thank you. An administrator will look at this rating.',
-    unsaved: 'Could not save your rating.',
-  },
-} as const satisfies Record<ReviewKind, Record<string, string>>;
+/**
+ * What the section says, for a book's reviews and for a seller's ratings. A
+ * function, so it is in the language being shown when it is drawn.
+ */
+const copyFor = (kind: ReviewKind) =>
+  (
+    ({
+      book: {
+        heading: t('Ratings and reviews', 'রেটিং ও রিভিউ'),
+        none: t('No reviews yet.', 'এখনো কোনো রিভিউ নেই।'),
+        loading: t('Loading reviews…', 'রিভিউ লোড হচ্ছে…'),
+        count: (total: number) => t(`${total} ${total === 1 ? 'review' : 'reviews'}`, `${formatNumber(total)}টি রিভিউ`),
+        signIn: t('to leave a review.', 'করে রিভিউ লিখুন।'),
+        write: t('Write a review', 'রিভিউ লিখুন'),
+        edit: t('Edit your review', 'আপনার রিভিউ সম্পাদনা'),
+        post: t('Post review', 'রিভিউ প্রকাশ করুন'),
+        bodyLabel: t('What should another buyer know? (optional)', 'অন্য ক্রেতাদের কী জানা দরকার? (ঐচ্ছিক)'),
+        badge: t('Verified purchase', 'যাচাইকৃত ক্রয়'),
+        updated: t('Your review has been updated.', 'আপনার রিভিউ হালনাগাদ হয়েছে।'),
+        thanks: t('Thank you for your review.', 'রিভিউ দেওয়ার জন্য ধন্যবাদ।'),
+        removed: t('Your review has been removed.', 'আপনার রিভিউ সরানো হয়েছে।'),
+        reported: t('Thank you. An administrator will look at this review.', 'ধন্যবাদ। একজন অ্যাডমিন রিভিউটি দেখবেন।'),
+        unsaved: t('Could not save your review.', 'আপনার রিভিউ সংরক্ষণ করা যায়নি।'),
+      },
+      seller: {
+        heading: t('Seller ratings', 'বিক্রেতার রেটিং'),
+        none: t('No ratings yet.', 'এখনো কোনো রেটিং নেই।'),
+        loading: t('Loading ratings…', 'রেটিং লোড হচ্ছে…'),
+        count: (total: number) => t(`${total} ${total === 1 ? 'rating' : 'ratings'}`, `${formatNumber(total)}টি রেটিং`),
+        signIn: t('to rate this seller.', 'করে এই বিক্রেতাকে রেটিং দিন।'),
+        write: t('Rate this seller', 'বিক্রেতাকে রেটিং দিন'),
+        edit: t('Edit your rating', 'আপনার রেটিং সম্পাদনা'),
+        post: t('Post rating', 'রেটিং প্রকাশ করুন'),
+        bodyLabel: t(
+          'How was buying from them - packing, delivery, replies? (optional)',
+          'তাঁর কাছ থেকে কেনা কেমন ছিল - প্যাকিং, ডেলিভারি, উত্তর? (ঐচ্ছিক)'
+        ),
+        badge: t('Verified buyer', 'যাচাইকৃত ক্রেতা'),
+        updated: t('Your rating has been updated.', 'আপনার রেটিং হালনাগাদ হয়েছে।'),
+        thanks: t('Thank you for rating this seller.', 'বিক্রেতাকে রেটিং দেওয়ার জন্য ধন্যবাদ।'),
+        removed: t('Your rating has been removed.', 'আপনার রেটিং সরানো হয়েছে।'),
+        reported: t('Thank you. An administrator will look at this rating.', 'ধন্যবাদ। একজন অ্যাডমিন রেটিংটি দেখবেন।'),
+        unsaved: t('Could not save your rating.', 'আপনার রেটিং সংরক্ষণ করা যায়নি।'),
+      },
+    }) satisfies Record<ReviewKind, Record<string, string | ((total: number) => string)>>
+  )[kind];
 
 /** Why the form is not on offer, said plainly rather than left blank. */
-const BLOCKED: Record<string, string> = {
-  'own-listing': 'You cannot review your own listing.',
-  'own-shop': 'You cannot rate your own shop.',
-};
-const NOT_PURCHASED: Record<ReviewKind, string> = {
-  book: 'Only somebody who has bought this book can review it.',
-  seller: 'Only somebody who has bought from this seller can rate them.',
-};
-const NOT_DELIVERED: Record<ReviewKind, string> = {
-  book: 'You can review this book once it has been delivered.',
-  seller: 'You can rate this seller once your order from them has been delivered.',
-};
+const blockedReason = (reason: string): string | undefined =>
+  (
+    {
+      'own-listing': t('You cannot review your own listing.', 'নিজের বইয়ের রিভিউ লেখা যায় না।'),
+      'own-shop': t('You cannot rate your own shop.', 'নিজের শপকে রেটিং দেওয়া যায় না।'),
+    } as Record<string, string>
+  )[reason];
+const notPurchased = (kind: ReviewKind): string =>
+  kind === 'book'
+    ? t('Only somebody who has bought this book can review it.', 'যিনি বইটি কিনেছেন, শুধু তিনিই রিভিউ লিখতে পারেন।')
+    : t(
+        'Only somebody who has bought from this seller can rate them.',
+        'যিনি এই বিক্রেতার কাছ থেকে কিনেছেন, শুধু তিনিই রেটিং দিতে পারেন।'
+      );
+const notDelivered = (kind: ReviewKind): string =>
+  kind === 'book'
+    ? t('You can review this book once it has been delivered.', 'বইটি ডেলিভারি হওয়ার পর আপনি রিভিউ লিখতে পারবেন।')
+    : t(
+        'You can rate this seller once your order from them has been delivered.',
+        'এই বিক্রেতার কাছ থেকে আপনার অর্ডার ডেলিভারি হওয়ার পর আপনি রেটিং দিতে পারবেন।'
+      );
 
 /** Reply, Report and the like: words rather than buttons, but a thumb's width. */
 const TEXT_BUTTON =
   'inline-flex min-h-10 items-center rounded-full bg-transparent px-3 font-semibold underline hover:bg-brand-tint disabled:no-underline disabled:opacity-70';
 
 const when = (value?: string): string =>
-  value ? new Date(value).toLocaleDateString(undefined, { dateStyle: 'medium' }) : '';
+  value ? formatDate(value, { dateStyle: 'medium' }) : '';
 
 /**
  * Reviews of a book, or ratings of a seller, and the form for writing one.
@@ -84,7 +103,7 @@ const when = (value?: string): string =>
  */
 export default function Reviews({ kind, id }: { kind: ReviewKind; id: Id | undefined }) {
   const toast = useToast();
-  const copy = COPY[kind];
+  const copy = copyFor(kind);
   const { data, isPending } = useReviews(id, kind);
   const { mutateAsync: writeReview, isPending: saving } = useWriteReview(id, kind);
   const { mutateAsync: removeReview } = useDeleteReview(id, kind);
@@ -99,15 +118,15 @@ export default function Reviews({ kind, id }: { kind: ReviewKind; id: Id | undef
 
   const submitReply = async (reviewId: string, body: string) => {
     if (!body.trim()) {
-      toast.warning('Write something before replying.');
+      toast.warning(t('Write something before replying.', 'উত্তর দেওয়ার আগে কিছু লিখুন।'));
       return;
     }
     try {
       await sendReply({ reviewId, body: body.trim() });
       setReplyTo(null);
-      toast.success('Your reply is published.');
+      toast.success(t('Your reply is published.', 'আপনার উত্তর প্রকাশিত হয়েছে।'));
     } catch (error) {
-      toast.error(messageOf(error) || 'Could not save that reply.');
+      toast.error(messageOf(error) || t('Could not save that reply.', 'উত্তরটি সংরক্ষণ করা যায়নি।'));
     }
   };
 
@@ -117,7 +136,7 @@ export default function Reviews({ kind, id }: { kind: ReviewKind; id: Id | undef
       setReported((already) => [...already, reviewId]);
       toast.success(answer.message || copy.reported);
     } catch (error) {
-      toast.error(messageOf(error) || 'Could not send that report.');
+      toast.error(messageOf(error) || t('Could not send that report.', 'রিপোর্টটি পাঠানো যায়নি।'));
     }
   };
 
@@ -141,12 +160,12 @@ export default function Reviews({ kind, id }: { kind: ReviewKind; id: Id | undef
   const setBody = (value: string) => setDraft({ ...form, body: value });
 
   if (isPending || !data) {
-    return <p style={{ color: 'var(--color-ink-muted)' }}>Loading {copy.many}…</p>;
+    return <p style={{ color: 'var(--color-ink-muted)' }}>{copy.loading}</p>;
   }
 
   const submit = async () => {
     if (rating < 1) {
-      toast.warning('Choose a star rating first.');
+      toast.warning(t('Choose a star rating first.', 'আগে তারা দিয়ে রেটিং বেছে নিন।'));
       return;
     }
     try {
@@ -166,7 +185,7 @@ export default function Reviews({ kind, id }: { kind: ReviewKind; id: Id | undef
       setEditing(false);
       toast.success(copy.removed);
     } catch (error) {
-      toast.error(messageOf(error) || 'Could not remove it.');
+      toast.error(messageOf(error) || t('Could not remove it.', 'সরানো যায়নি।'));
     }
   };
 
@@ -183,7 +202,7 @@ export default function Reviews({ kind, id }: { kind: ReviewKind; id: Id | undef
 
       {total === 0 ? (
         <p className="mb-4" style={{ color: 'var(--color-ink-muted)' }}>
-          {copy.none} {data.canReview ? 'Yours would be the first.' : ''}
+          {copy.none} {data.canReview ? t('Yours would be the first.', 'প্রথমটি আপনারই হতে পারে।') : ''}
         </p>
       ) : (
         <div
@@ -192,12 +211,12 @@ export default function Reviews({ kind, id }: { kind: ReviewKind; id: Id | undef
         >
           <div className="flex items-center gap-3">
             <span className="text-4xl font-extrabold" style={{ color: 'var(--color-ink)', letterSpacing: '-0.03em' }}>
-              {data.average.toFixed(1)}
+              {digits(data.average.toFixed(1))}
             </span>
             <div>
               <Stars value={data.average} size={18} />
               <p className="m-0 text-sm" style={{ color: 'var(--color-ink-muted)' }}>
-                {total} {total === 1 ? copy.one : copy.many}
+                {copy.count(total)}
               </p>
             </div>
           </div>
@@ -210,14 +229,14 @@ export default function Reviews({ kind, id }: { kind: ReviewKind; id: Id | undef
               const share = total === 0 ? 0 : Math.round((count / total) * 100);
               return (
                 <div key={star} className="flex items-center gap-2 text-sm">
-                  <span className="w-8 shrink-0 text-right font-semibold" style={{ color: 'var(--color-ink-soft)' }}>{star}★</span>
+                  <span className="w-8 shrink-0 text-right font-semibold" style={{ color: 'var(--color-ink-soft)' }}>{digits(star)}★</span>
                   <span className="h-2 flex-1 rounded-full" style={{ background: 'var(--color-brand-line)' }}>
                     <span
                       className="block h-2 rounded-full"
                       style={{ width: `${share}%`, background: 'linear-gradient(90deg, #ff8a3d, #ff5c35)' }}
                     />
                   </span>
-                  <span className="w-8 shrink-0" style={{ color: 'var(--color-ink-muted)' }}>{count}</span>
+                  <span className="w-8 shrink-0" style={{ color: 'var(--color-ink-muted)' }}>{digits(count)}</span>
                 </div>
               );
             })}
@@ -234,16 +253,16 @@ export default function Reviews({ kind, id }: { kind: ReviewKind; id: Id | undef
           {data.reason === 'sign-in' ? (
             <>
               <Link to="/sign-in" className="font-bold underline">
-                Sign in
+                {t('Sign in', 'সাইন ইন')}
               </Link>{' '}
               {copy.signIn}
             </>
           ) : data.reason === 'not-purchased' ? (
-            NOT_PURCHASED[kind]
+            notPurchased(kind)
           ) : data.reason === 'not-delivered' ? (
-            NOT_DELIVERED[kind]
+            notDelivered(kind)
           ) : (
-            BLOCKED[data.reason]
+            blockedReason(data.reason)
           )}
         </p>
       )}
@@ -254,7 +273,7 @@ export default function Reviews({ kind, id }: { kind: ReviewKind; id: Id | undef
             {copy.edit}
           </button>
           <button type="button" onClick={remove} className="btn btn-danger">
-            Remove it
+            {t('Remove it', 'সরিয়ে দিন')}
           </button>
         </div>
       )}
@@ -267,7 +286,7 @@ export default function Reviews({ kind, id }: { kind: ReviewKind; id: Id | undef
           <StarInput value={rating} onChange={setRating} disabled={saving} />
 
           <label className="mb-1 mt-3 block text-sm font-semibold" htmlFor={`${field}-title`} style={{ color: 'var(--color-ink-soft)' }}>
-            Headline (optional)
+            {t('Headline (optional)', 'শিরোনাম (ঐচ্ছিক)')}
           </label>
           <input
             id={`${field}-title`}
@@ -298,7 +317,7 @@ export default function Reviews({ kind, id }: { kind: ReviewKind; id: Id | undef
               className="btn btn-primary"
               style={{ cursor: saving ? 'not-allowed' : 'pointer', opacity: saving ? 0.7 : 1 }}
             >
-              {data.mine ? 'Save changes' : copy.post}
+              {data.mine ? t('Save changes', 'পরিবর্তন সংরক্ষণ করুন') : copy.post}
             </button>
             {data.mine && (
               <button
@@ -309,7 +328,7 @@ export default function Reviews({ kind, id }: { kind: ReviewKind; id: Id | undef
                 }}
                 className="btn btn-ghost"
               >
-                Cancel
+                {t('Cancel', 'বাতিল')}
               </button>
             )}
           </div>
@@ -351,7 +370,7 @@ export default function Reviews({ kind, id }: { kind: ReviewKind; id: Id | undef
                 <div className="flex flex-wrap items-center gap-2">
                   <strong style={{ color: 'var(--color-ink)' }}>{review.reply.byName}</strong>
                   <span className="badge" style={{ background: 'var(--color-surface)', color: 'var(--color-brand-dark)' }}>
-                    Seller
+                    {t('Seller', 'বিক্রেতা')}
                   </span>
                   <span className="text-sm" style={{ color: 'var(--color-ink-muted)' }}>{when(review.reply.at)}</span>
                 </div>
@@ -371,7 +390,7 @@ export default function Reviews({ kind, id }: { kind: ReviewKind; id: Id | undef
                       setReplyTo({ id: String(review._id), body: review.reply?.body ?? '' })
                     }
                   >
-                    {review.reply ? 'Edit your reply' : 'Reply'}
+                    {review.reply ? t('Edit your reply', 'আপনার উত্তর সম্পাদনা') : t('Reply', 'উত্তর দিন')}
                   </button>
                 ))}
 
@@ -382,7 +401,7 @@ export default function Reviews({ kind, id }: { kind: ReviewKind; id: Id | undef
                   style={{ color: 'var(--color-danger-dark)' }}
                   onClick={() => void removeReply(String(review._id))}
                 >
-                  Remove reply
+                  {t('Remove reply', 'উত্তর সরান')}
                 </button>
               )}
 
@@ -396,7 +415,7 @@ export default function Reviews({ kind, id }: { kind: ReviewKind; id: Id | undef
                   disabled={reported.includes(String(review._id))}
                   onClick={() => void report(String(review._id))}
                 >
-                  {reported.includes(String(review._id)) ? 'Reported' : 'Report'}
+                  {reported.includes(String(review._id)) ? t('Reported', 'রিপোর্ট করা হয়েছে') : t('Report', 'রিপোর্ট করুন')}
                 </button>
               )}
             </div>
@@ -408,7 +427,7 @@ export default function Reviews({ kind, id }: { kind: ReviewKind; id: Id | undef
                   className="mb-1 block text-sm font-semibold"
                   style={{ color: 'var(--color-ink-soft)' }}
                 >
-                  Your reply, as the seller
+                  {t('Your reply, as the seller', 'বিক্রেতা হিসেবে আপনার উত্তর')}
                 </label>
                 <textarea
                   id={`reply-${String(review._id)}`}
@@ -425,10 +444,10 @@ export default function Reviews({ kind, id }: { kind: ReviewKind; id: Id | undef
                     className="btn btn-primary"
                     onClick={() => void submitReply(String(review._id), replyTo.body)}
                   >
-                    {replying ? 'Publishing...' : 'Publish reply'}
+                    {replying ? t('Publishing...', 'প্রকাশ হচ্ছে...') : t('Publish reply', 'উত্তর প্রকাশ করুন')}
                   </button>
                   <button type="button" className="btn btn-ghost" onClick={() => setReplyTo(null)}>
-                    Cancel
+                    {t('Cancel', 'বাতিল')}
                   </button>
                 </div>
               </div>

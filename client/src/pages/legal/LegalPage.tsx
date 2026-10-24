@@ -5,12 +5,16 @@ import { FaArrowLeft } from 'react-icons/fa';
 import Footer from '../../components/Footer.js';
 import Logo from '../../components/Logo.js';
 import { useSeo } from '../../hooks/useSeo.js';
+import { formatDate, pick, t } from '../../utils/language.js';
 
 interface LegalPageProps {
   title: string;
   /** One line under the heading saying what the page is for. */
   intro: string;
-  /** Shown as "Last updated" — omitted on pages that are not policies. */
+  /**
+   * Shown as "Last updated" — omitted on pages that are not policies. A date
+   * that parses is shown in the reader's language; anything else as written.
+   */
   updated?: string;
   children: ReactNode;
 }
@@ -31,6 +35,11 @@ export default function LegalPage({ title, intro, updated, children }: LegalPage
    * to it, but a route change in the app does not, so this does it instead.
    */
   const { hash } = useLocation();
+
+  const updatedShown =
+    updated && !Number.isNaN(Date.parse(updated))
+      ? formatDate(updated, { day: 'numeric', month: 'long', year: 'numeric' }, 'en-GB')
+      : updated;
   useEffect(() => {
     if (!hash) return;
     document.getElementById(decodeURIComponent(hash.slice(1)))?.scrollIntoView();
@@ -46,7 +55,7 @@ export default function LegalPage({ title, intro, updated, children }: LegalPage
           </Link>
           <Link to="/" className="btn btn-ghost">
             <FaArrowLeft aria-hidden="true" size={13} />
-            Back to books
+            {t('Back to books', 'বইয়ের পাতায় ফিরুন')}
           </Link>
         </div>
       </header>
@@ -67,9 +76,21 @@ export default function LegalPage({ title, intro, updated, children }: LegalPage
             <p className="m-0 max-w-160 text-lg text-ink-soft">{intro}</p>
             {updated && (
               <p className="mt-4 mb-0 inline-flex items-center rounded-full border border-brand-line bg-surface/80 px-3 py-1 text-sm font-semibold text-brand-dark">
-                Last updated {updated}
+                {pick(<>Last updated {updatedShown}</>, <>সর্বশেষ হালনাগাদ: {updatedShown}</>)}
               </p>
             )}
+            {/*
+              Only policies carry a date, and only in Bangla: the English text
+              is the one that binds, and the reader should know it.
+            */}
+            {updated &&
+              pick(
+                null,
+                <p className="mt-3 mb-0 max-w-160 text-sm text-ink-soft">
+                  এই বাংলা লেখাটি আপনার সুবিধার জন্য দেওয়া হয়েছে। ইংরেজি ও বাংলা লেখায় কোনো অমিল থাকলে ইংরেজি
+                  সংস্করণটিই প্রযোজ্য হবে।
+                </p>
+              )}
           </div>
         </div>
 

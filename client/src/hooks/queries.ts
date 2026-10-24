@@ -64,6 +64,7 @@ import type {
 import { apiFetch, apiUrl } from '../config/api.js';
 import { ApiRequestError } from '../utils/apiError.js';
 import { getUserEmail } from '../utils/auth.js';
+import { t } from '../utils/language.js';
 
 /**
  * Data fetching for the whole app, through React Query.
@@ -77,7 +78,7 @@ const request = async <T>(path: string, options?: RequestInit): Promise<T> => {
   const res = await apiFetch(apiUrl(path), options);
 
   if (!res.ok) {
-    let message = `Request failed with ${res.status}`;
+    let message = t(`Request failed with ${res.status}`, `অনুরোধটি সম্পন্ন হয়নি (${res.status})`);
     let body: unknown;
     try {
       body = await res.json();

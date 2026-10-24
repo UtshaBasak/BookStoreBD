@@ -51,7 +51,7 @@ export function LanguageSetting() {
       <p className="mb-4 text-sm text-ink-muted">
         {t(
           'The site, and the e-mails and notifications we send you, in English or Bangla.',
-          'সাইট, এবং আমাদের পাঠানো ই-মেইল ও নোটিফিকেশন, ইংরেজি বা বাংলায়।'
+          'সাইট এবং আমাদের পাঠানো ই-মেইল ও নোটিফিকেশন ইংরেজিতে বা বাংলায়।'
         )}
       </p>
       <div role="radiogroup" aria-labelledby="language-title" className="flex flex-wrap gap-2">

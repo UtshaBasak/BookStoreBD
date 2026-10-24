@@ -9,6 +9,8 @@ import { useReturnRequests, useUpdateReturnStatus } from '../../hooks/queries.js
 import { useDebounced } from '../../hooks/useDebounced.js';
 import { useToast } from '../../hooks/useToast.js';
 import { messageOf } from '../../utils/apiError.js';
+import { formatNumber, t } from '../../utils/language.js';
+import { returnStatusLabel } from '../../utils/orderStatus.js';
 import Pager from '../../components/Pager.js';
 import { FilterSelect, RefreshButton } from './AdminControls.js';
 import '../AdminPanel.css';
@@ -20,15 +22,15 @@ const statusTone = (status: string) =>
 /** Requests per page. */
 const PAGE_SIZE = 25;
 
-const STATUSES = [
-  { value: '', label: 'Any status' },
-  { value: 'pending', label: 'Pending' },
-  { value: 'approved', label: 'Approved' },
-  { value: 'rejected', label: 'Rejected' },
+const STATUSES = () => [
+  { value: '', label: t('Any status', 'যেকোনো অবস্থা') },
+  { value: 'pending', label: t('Pending', 'অপেক্ষমাণ') },
+  { value: 'approved', label: t('Approved', 'অনুমোদিত') },
+  { value: 'rejected', label: t('Rejected', 'প্রত্যাখ্যাত') },
 ];
-const SORTS = [
-  { value: 'newest', label: 'Newest first' },
-  { value: 'oldest', label: 'Oldest first' },
+const SORTS = () => [
+  { value: 'newest', label: t('Newest first', 'নতুন আগে') },
+  { value: 'oldest', label: t('Oldest first', 'পুরোনো আগে') },
 ];
 
 export default function ReturnManagement() {
@@ -73,20 +75,22 @@ export default function ReturnManagement() {
     setOpening(url);
     try {
       const response = await apiFetch(url);
-      if (!response.ok) throw new Error(`Could not load that image (${response.status})`);
+      if (!response.ok) {
+        throw new Error(t(`Could not load that image (${response.status})`, `ছবিটি লোড করা যায়নি (${response.status})`));
+      }
 
       const blob = await response.blob();
       // A blob opens in this origin, so its type matters: a text/html blob in
       // a tab would run as the site. The endpoint serves only images; this
       // check enforces that here as well.
-      if (!blob.type.startsWith('image/')) throw new Error('That file is not an image');
+      if (!blob.type.startsWith('image/')) throw new Error(t('That file is not an image', 'ফাইলটি ছবি নয়'));
 
       const objectUrl = URL.createObjectURL(blob);
       window.open(objectUrl, '_blank', 'noopener');
       // The new tab has it now; this handle is released once it has loaded.
       setTimeout(() => URL.revokeObjectURL(objectUrl), 60_000);
     } catch (error) {
-      toast.error(messageOf(error) || 'Could not open that image.');
+      toast.error(messageOf(error) || t('Could not open that image.', 'ছবিটি খোলা যায়নি।'));
     } finally {
       setOpening(null);
     }
@@ -97,9 +101,14 @@ export default function ReturnManagement() {
       // The mutation invalidates the list, so the table reflects the change
       // without this component keeping its own copy in sync.
       await updateStatus({ id: requestId, status });
-      toast.success(`Return request ${status}.`);
+      toast.success(
+        t(
+          `Return request ${status}.`,
+          status === 'approved' ? 'ফেরতের অনুরোধ অনুমোদন করা হয়েছে।' : 'ফেরতের অনুরোধ প্রত্যাখ্যান করা হয়েছে।'
+        )
+      );
     } catch (error) {
-      toast.error(messageOf(error) || 'Could not update the return request.');
+      toast.error(messageOf(error) || t('Could not update the return request.', 'ফেরতের অনুরোধ হালনাগাদ করা যায়নি।'));
     }
   };
 
@@ -111,11 +120,13 @@ export default function ReturnManagement() {
             <span className="admin-page-icon" aria-hidden="true">
               <FaUndoAlt />
             </span>
-            Return Request Management
+            {t('Return Request Management', 'ফেরতের অনুরোধ ব্যবস্থাপনা')}
           </h2>
           <p className="admin-lede">
-            Check the buyer&apos;s photographs, then approve or reject. An approved refund is paid to
-            the bKash number shown.
+            {t(
+              "Check the buyer's photographs, then approve or reject. An approved refund is paid to the bKash number shown.",
+              'ক্রেতার ছবিগুলো দেখে অনুমোদন বা প্রত্যাখ্যান করুন। অনুমোদিত হলে টাকা দেখানো বিকাশ নম্বরে ফেরত পাঠানো হয়।'
+            )}
           </p>
         </div>
         <RefreshButton onClick={() => void requestsQuery.refetch()} busy={requestsQuery.isFetching} />
@@ -127,8 +138,8 @@ export default function ReturnManagement() {
           <input name="q"
             type="text"
             className="field"
-            aria-label="Search return requests"
-            placeholder="Search by book, buyer, seller, or description..."
+            aria-label={t('Search return requests', 'ফেরতের অনুরোধ খুঁজুন')}
+            placeholder={t('Search by book, buyer, seller, or description...', 'বই, ক্রেতা, বিক্রেতা বা বিবরণ দিয়ে খুঁজুন...')}
             value={search}
             onChange={(e) => {
               setSearch(e.target.value);
@@ -138,34 +149,34 @@ export default function ReturnManagement() {
         </div>
         <FilterSelect
           name="status"
-          label="Status"
+          label={t('Status', 'অবস্থা')}
           value={status}
           onChange={(value) => {
             setStatus(value);
             setPage(1);
           }}
-          options={STATUSES}
+          options={STATUSES()}
         />
         <FilterSelect
           name="sort"
-          label="Sort"
+          label={t('Sort', 'সাজান')}
           value={sort}
           onChange={(value) => {
             setSort(value);
             setPage(1);
           }}
-          options={SORTS}
+          options={SORTS()}
         />
       </div>
 
       {loading ? (
-        <p className="admin-loading">Loading...</p>
+        <p className="admin-loading">{t('Loading...', 'লোড হচ্ছে...')}</p>
       ) : returnRequests.length === 0 ? (
         <div className="admin-card admin-empty">
           <span className="admin-empty-mark" aria-hidden="true">
             📦
           </span>
-          <p>No return requests found</p>
+          <p>{t('No return requests found', 'কোনো ফেরতের অনুরোধ পাওয়া যায়নি')}</p>
         </div>
       ) : (
         <div className="admin-card">
@@ -173,33 +184,33 @@ export default function ReturnManagement() {
           <table className="styled-table">
             <thead>
               <tr>
-                <th>Book Title</th>
-                <th>Order</th>
-                <th>Buyer</th>
-                <th>Refund to (bKash)</th>
-                <th>Seller</th>
-                <th>Description</th>
-                <th>Images</th>
-                <th>Status</th>
-                <th className="admin-sticky-end">Actions</th>
+                <th>{t('Book Title', 'বইয়ের নাম')}</th>
+                <th>{t('Order', 'অর্ডার')}</th>
+                <th>{t('Buyer', 'ক্রেতা')}</th>
+                <th>{t('Refund to (bKash)', 'টাকা ফেরত (বিকাশ)')}</th>
+                <th>{t('Seller', 'বিক্রেতা')}</th>
+                <th>{t('Description', 'বিবরণ')}</th>
+                <th>{t('Images', 'ছবি')}</th>
+                <th>{t('Status', 'অবস্থা')}</th>
+                <th className="admin-sticky-end">{t('Actions', 'কাজ')}</th>
               </tr>
             </thead>
             <tbody>
               {returnRequests.map((request) => (
                 <tr key={request._id}>
-                  <td className="admin-cell-strong" style={{ minWidth: 140 }}>{request.bookTitle || 'N/A'}</td>
+                  <td className="admin-cell-strong" style={{ minWidth: 140 }}>{request.bookTitle || t('N/A', 'নেই')}</td>
                   <td>
                     {request.orderNumber ? (
                       <Link className="admin-mono" to={`/admin/order-tracking/${request.orderNumber}`}>{request.orderNumber}</Link>
                     ) : (
-                      'N/A'
+                      t('N/A', 'নেই')
                     )}
                   </td>
-                  <td>{request.userEmail || 'N/A'}</td>
+                  <td>{request.userEmail || t('N/A', 'নেই')}</td>
                   {/* Refunds are paid by bKash; without this an approval could not be paid. */}
-                  <td className="admin-mono admin-nowrap">{request.refundBkash || 'Not given'}</td>
-                  <td>{request.sellerEmail || 'N/A'}</td>
-                  <td style={{ minWidth: 200, maxWidth: 320 }}>{request.defectDescription || 'N/A'}</td>
+                  <td className="admin-mono admin-nowrap">{request.refundBkash || t('Not given', 'দেওয়া হয়নি')}</td>
+                  <td>{request.sellerEmail || t('N/A', 'নেই')}</td>
+                  <td style={{ minWidth: 200, maxWidth: 320 }}>{request.defectDescription || t('N/A', 'নেই')}</td>
                   <td>
                     {request.images && request.images.length > 0 ? (
                       <div className="admin-row-actions" style={{ flexWrap: 'nowrap' }}>
@@ -212,17 +223,17 @@ export default function ReturnManagement() {
                             className="btn btn-ghost admin-btn-sm"
                           >
                             <FaImage aria-hidden="true" />
-                            {opening === image ? 'Opening...' : `View ${index + 1}`}
+                            {opening === image ? t('Opening...', 'খোলা হচ্ছে...') : t(`View ${index + 1}`, `দেখুন ${formatNumber(index + 1)}`)}
                           </button>
                         ))}
                       </div>
                     ) : (
-                      <span className="admin-cell-muted">No images</span>
+                      <span className="admin-cell-muted">{t('No images', 'কোনো ছবি নেই')}</span>
                     )}
                   </td>
                   <td>
                     <span className={`badge admin-status ${statusTone(request.status || 'pending')}`}>
-                      {request.status || 'pending'}
+                      {returnStatusLabel(request.status || 'pending', request.status || 'pending')}
                     </span>
                   </td>
                   <td className="admin-sticky-end">
@@ -234,7 +245,7 @@ export default function ReturnManagement() {
                           className="btn btn-primary admin-btn-sm"
                         >
                           <FaCheck aria-hidden="true" />
-                          Approve
+                          {t('Approve', 'অনুমোদন করুন')}
                         </button>
                         <button
                           type="button"
@@ -242,7 +253,7 @@ export default function ReturnManagement() {
                           className="btn btn-danger admin-btn-sm"
                         >
                           <FaTimes aria-hidden="true" />
-                          Reject
+                          {t('Reject', 'প্রত্যাখ্যান করুন')}
                         </button>
                       </div>
                     )}
@@ -262,7 +273,7 @@ export default function ReturnManagement() {
           pageSize={PAGE_SIZE}
           total={total}
           onPage={setPage}
-          noun="requests"
+          noun={t('requests', 'অনুরোধ')}
         />
       </div>
     </div>

@@ -5,9 +5,10 @@ import type { Book, HomeSections } from '@shared/api.js';
 import './HomeShelves.css';
 import BookCard from './BookCard.js';
 import BookShelf, { ShelfSkeleton } from './BookShelf.js';
-import { CATEGORY_GROUPS, categoryLink, groupOf } from '../config/categories.js';
+import { CATEGORY_GROUPS, categoryLabel, categoryLink, groupOf } from '../config/categories.js';
 import { useBooksByIds, useFeatured, useForYou, useHomeSections } from '../hooks/queries.js';
 import { getRecentlyViewed } from '../utils/recentlyViewed.js';
+import { formatNumber, t } from '../utils/language.js';
 
 export interface ShelfActions {
   signedIn: boolean;
@@ -94,43 +95,57 @@ export default function HomeShelves(actions: ShelfActions) {
       )}
 
       {firstShelvesReady && shelf('deals', s.deals, {
-        title: 'Quick deals',
+        title: t('Quick deals', 'চটজলদি ছাড়'),
         emoji: '⚡',
-        subtitle: 'Discounts from our sellers, the biggest first.',
+        subtitle: t('Discounts from our sellers, the biggest first.', 'বিক্রেতাদের দেওয়া ছাড়, সবচেয়ে বড়টি আগে।'),
         seeAllTo: '/filter?deals=1&sort=dealPercent',
       })}
 
       {!firstShelvesReady ? null : shelfEmpty ? (
         <section className="shelf" aria-labelledby="latest-title">
           <h2 id="latest-title" className="shelf-title">
-            <span className="shelf-emoji" aria-hidden="true">🆕</span>Latest books
+            <span className="shelf-emoji" aria-hidden="true">🆕</span>{t('Latest books', 'সদ্য আসা বই')}
           </h2>
           <div role="status" className="home-empty">
-            <p className="home-empty-title">No books on the shelf yet.</p>
-            <p>Have books you have finished with? Listing is free - be the first to sell one.</p>
+            <p className="home-empty-title">{t('No books on the shelf yet.', 'তাকে এখনো কোনো বই নেই।')}</p>
+            <p>
+              {t(
+                'Have books you have finished with? Listing is free - be the first to sell one.',
+                'পড়া শেষ এমন বই আছে? তালিকাভুক্ত করা বিনামূল্যে - প্রথম বিক্রেতা হোন।'
+              )}
+            </p>
             <Link to="/add-book" className="btn btn-primary">
-              List a book
+              {t('List a book', 'বই তালিকাভুক্ত করুন')}
             </Link>
           </div>
         </section>
       ) : latest.length ? (
-        <BookShelf id="latest" title="Latest books" emoji="🆕" subtitle="Just listed, one copy of each." seeAllTo="/filter?sort=newest">
+        <BookShelf
+          id="latest"
+          title={t('Latest books', 'সদ্য আসা বই')}
+          emoji="🆕"
+          subtitle={t('Just listed, one copy of each.', 'সদ্য তালিকায় আসা, প্রতিটির একটি করে।')}
+          seeAllTo="/filter?sort=newest"
+        >
           {row(latest)}
         </BookShelf>
       ) : null}
 
       {shelf('trending', s.trending, {
-        title: 'Trending now',
+        title: t('Trending now', 'এখন জনপ্রিয়'),
         emoji: '🔥',
-        subtitle: 'What readers have been buying and saving this fortnight.',
+        subtitle: t('What readers have been buying and saving this fortnight.', 'গত দুই সপ্তাহে পাঠকেরা যা কিনছেন ও সংরক্ষণ করছেন।'),
       })}
 
       {shelf('for-you', forYou.data?.items, {
-        title: 'Top picks for you',
+        title: t('Top picks for you', 'আপনার জন্য বাছাই'),
         emoji: '✨',
         subtitle: forYou.data?.personal
-          ? 'Chosen from what you have bought, saved and looked at.'
-          : 'The best-rated books in stock - browse a little and these become yours.',
+          ? t('Chosen from what you have bought, saved and looked at.', 'আপনি যা কিনেছেন, সংরক্ষণ করেছেন ও দেখেছেন, তা থেকে বাছাই।')
+          : t(
+              'The best-rated books in stock - browse a little and these become yours.',
+              'স্টকে থাকা সেরা রেটিংয়ের বই - কিছু বই দেখলেই এগুলো আপনার পছন্দমতো হয়ে উঠবে।'
+            ),
       })}
 
       {/* One row, like the other shelves, rather than a wall of tiles.
@@ -139,11 +154,14 @@ export default function HomeShelves(actions: ShelfActions) {
       {tiles.length > 0 && !sections.isPending && (
         <BookShelf
           id="categories"
-          title="Shop by category"
+          title={t('Shop by category', 'বিষয় অনুযায়ী কিনুন')}
           emoji="🗂️"
-          subtitle={`${CATEGORY_GROUPS.reduce((n, g) => n + g.items.length, 0)} subjects, from admission tests to manga.`}
+          subtitle={t(
+            `${CATEGORY_GROUPS.reduce((n, g) => n + g.items.length, 0)} subjects, from admission tests to manga.`,
+            `ভর্তি পরীক্ষা থেকে মাঙ্গা, ${formatNumber(CATEGORY_GROUPS.reduce((n, g) => n + g.items.length, 0))}টি বিষয়।`
+          )}
           seeAllTo="/filter"
-          seeAllLabel="All books"
+          seeAllLabel={t('All books', 'সব বই')}
           variant="categories"
         >
           {tiles.map((tile, index) => (
@@ -151,27 +169,37 @@ export default function HomeShelves(actions: ShelfActions) {
               <span className="cat-tile-emoji" aria-hidden="true">
                 {groupOf(tile.name)?.emoji ?? '📚'}
               </span>
-              <span className="cat-tile-name">{tile.name}</span>
-              {tile.books > 0 && <span className="cat-tile-count">{tile.books} {tile.books === 1 ? 'book' : 'books'}</span>}
+              <span className="cat-tile-name">{categoryLabel(tile.name)}</span>
+              {tile.books > 0 && (
+                <span className="cat-tile-count">
+                  {t(`${tile.books} ${tile.books === 1 ? 'book' : 'books'}`, `${formatNumber(tile.books)}টি বই`)}
+                </span>
+              )}
             </Link>
           ))}
         </BookShelf>
       )}
 
       {shelf('bestsellers', s.bestsellers, {
-        title: 'Bestsellers',
+        title: t('Bestsellers', 'বেস্টসেলার'),
         emoji: '🏆',
-        subtitle: 'The most copies sold, ever.',
+        subtitle: t('The most copies sold, ever.', 'এ যাবৎ সবচেয়ে বেশি কপি বিক্রি হওয়া বই।'),
       })}
 
       {shelf('popular', s.popular, {
-        title: 'Most popular',
+        title: t('Most popular', 'সবচেয়ে জনপ্রিয়'),
         emoji: '❤️',
-        subtitle: 'The books most saved to wishlists.',
+        subtitle: t('The books most saved to wishlists.', 'উইশলিস্টে সবচেয়ে বেশি রাখা বই।'),
       })}
 
       {s.writers && s.writers.length > 0 && (
-        <BookShelf id="writers" title="Popular writers" emoji="✍️" subtitle="The authors readers keep coming back to." variant="writers">
+        <BookShelf
+          id="writers"
+          title={t('Popular writers', 'জনপ্রিয় লেখক')}
+          emoji="✍️"
+          subtitle={t('The authors readers keep coming back to.', 'যে লেখকদের কাছে পাঠকেরা বারবার ফিরে আসেন।')}
+          variant="writers"
+        >
           {s.writers.map((writer) => (
             <Link key={writer.name} to={`/filter?search=${encodeURIComponent(writer.name)}`} className="writer">
               <span className="writer-photo" aria-hidden="true">
@@ -179,8 +207,8 @@ export default function HomeShelves(actions: ShelfActions) {
               </span>
               <span className="writer-name">{writer.name}</span>
               <span className="writer-meta">
-                {writer.books} {writer.books === 1 ? 'book' : 'books'}
-                {writer.sold > 0 ? ` · ${writer.sold} sold` : ''}
+                {t(`${writer.books} ${writer.books === 1 ? 'book' : 'books'}`, `${formatNumber(writer.books)}টি বই`)}
+                {writer.sold > 0 ? t(` · ${writer.sold} sold`, ` · ${formatNumber(writer.sold)}টি বিক্রি`) : ''}
               </span>
             </Link>
           ))}
@@ -188,30 +216,30 @@ export default function HomeShelves(actions: ShelfActions) {
       )}
 
       {shelf('top-rated', s.topRated, {
-        title: 'Top rated',
+        title: t('Top rated', 'সেরা রেটিং'),
         emoji: '⭐',
-        subtitle: 'Scored highest by readers who bought them.',
+        subtitle: t('Scored highest by readers who bought them.', 'যাঁরা কিনেছেন, সেই পাঠকদের দেওয়া সবচেয়ে বেশি নম্বর।'),
         seeAllTo: '/filter?sort=rated',
       })}
 
       {shelf('budget', s.budget, {
-        title: 'Under ৳300',
+        title: t('Under ৳300', '৳৩০০-এর মধ্যে'),
         emoji: '💸',
-        subtitle: 'Good reads that leave change in your pocket.',
+        subtitle: t('Good reads that leave change in your pocket.', 'ভালো বই, পকেটেও টাকা থাকবে।'),
         seeAllTo: '/filter?maxPrice=300&sort=priceLowHigh',
       })}
 
       {shelf('discover', s.discover, {
-        title: 'Discover something new',
+        title: t('Discover something new', 'নতুন কিছু খুঁজে নিন'),
         emoji: '🎲',
-        subtitle: 'A different handful every visit.',
+        subtitle: t('A different handful every visit.', 'প্রতিবার এলে নতুন কয়েকটি বই।'),
       })}
 
       {recentBooks.length > 0 &&
         shelf('recent', recentBooks, {
-          title: 'Recently viewed',
+          title: t('Recently viewed', 'সম্প্রতি দেখা'),
           emoji: '🕘',
-          subtitle: 'Kept on this device only.',
+          subtitle: t('Kept on this device only.', 'শুধু এই ডিভাইসে রাখা।'),
         })}
     </>
   );

@@ -6,6 +6,7 @@ import type { ChatMessage, ChatMessagesResponse } from '@shared/api.js';
 import { API_BASE_URL, apiFetch } from '../config/api.js';
 import { useToast } from '../hooks/useToast.js';
 import { getUserEmail } from '../utils/auth.js';
+import { formatDate, formatTime, t } from '../utils/language.js';
 import { subscribeToMessages } from '../utils/socket.js';
 import { reportError } from '../utils/report.js';
 import AuthImage from './AuthImage.js';
@@ -100,7 +101,7 @@ export default function ChatWindow({ receiver, receiverName, onClose }: ChatWind
       setSelectedImage(null);
     } catch (err) {
       reportError('Error sending message:', err);
-      toast.error('Message not sent. Please try again.');
+      toast.error(t('Message not sent. Please try again.', 'মেসেজ পাঠানো যায়নি। আবার চেষ্টা করুন।'));
     }
   };
 
@@ -109,18 +110,18 @@ export default function ChatWindow({ receiver, receiverName, onClose }: ChatWind
   // Same bubbles and composer as the messages page (Chat.css), in a floating
   // card with a deep-indigo head, spanning the width of a phone.
   return (
-    <div className="chat-window" role="region" aria-label={`Chat with ${receiverName}`}>
+    <div className="chat-window" role="region" aria-label={t(`Chat with ${receiverName}`, `${receiverName}-এর সঙ্গে চ্যাট`)}>
       {/* Chat Header */}
       <div className="chat-window-head">
         <span className="chat-avatar is-tiny" aria-hidden="true">
           {initialsOf(receiverName || receiver)}
         </span>
-        <span className="chat-window-title">Chat with {receiverName}</span>
+        <span className="chat-window-title">{t(`Chat with ${receiverName}`, `${receiverName}-এর সঙ্গে চ্যাট`)}</span>
         <button
           type="button"
           className="chat-window-close"
           onClick={onClose}
-          aria-label="Close chat"
+          aria-label={t('Close chat', 'চ্যাট বন্ধ করুন')}
         >
           <FaTimes size={15} />
         </button>
@@ -137,7 +138,7 @@ export default function ChatWindow({ receiver, receiverName, onClose }: ChatWind
               {msg.image && (
                 <AuthImage
                   src={msg.image}
-                  alt="Chat attachment"
+                  alt={t('Chat attachment', 'চ্যাটের সংযুক্ত ছবি')}
                   className="chat-bubble-image"
                 />
               )}
@@ -166,20 +167,20 @@ export default function ChatWindow({ receiver, receiverName, onClose }: ChatWind
           type="button"
           className="chat-attach"
           onClick={() => fileInputRef.current?.click()}
-          title="Add image"
-          aria-label="Add image"
+          title={t('Add image', 'ছবি যোগ করুন')}
+          aria-label={t('Add image', 'ছবি যোগ করুন')}
         >
           <FaImage size={18} />
         </button>
 
         {selectedImage && (
           <div className="chat-preview">
-            <FilePreview file={selectedImage} alt="Selected" max={120} />
+            <FilePreview file={selectedImage} alt={t('Selected', 'বেছে নেওয়া ছবি')} max={120} />
             <button
               type="button"
               className="chat-preview-remove"
               onClick={() => setSelectedImage(null)}
-              aria-label="Remove image"
+              aria-label={t('Remove image', 'ছবি সরান')}
             >
               ×
             </button>
@@ -191,13 +192,13 @@ export default function ChatWindow({ receiver, receiverName, onClose }: ChatWind
           value={message}
           onChange={(e) => setMessage(e.target.value)}
           onKeyPress={(e) => e.key === 'Enter' && sendMessage()}
-          placeholder="Type a message..."
+          placeholder={t('Type a message...', 'মেসেজ লিখুন...')}
         />
         <button
           type="button"
           className="btn btn-primary chat-send"
           onClick={sendMessage}
-          aria-label="Send message"
+          aria-label={t('Send message', 'মেসেজ পাঠান')}
         >
           <FaPaperPlane size={15} />
         </button>
@@ -217,8 +218,8 @@ function initialsOf(name: string) {
 function timeOf(iso: string) {
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return '';
-  const time = d.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+  const time = formatTime(d, { hour: 'numeric', minute: '2-digit' });
   return d.toDateString() === new Date().toDateString()
     ? time
-    : `${d.toLocaleDateString([], { day: 'numeric', month: 'short' })}, ${time}`;
+    : `${formatDate(d, { day: 'numeric', month: 'short' })}, ${time}`;
 }

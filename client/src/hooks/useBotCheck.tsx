@@ -1,6 +1,7 @@
 import { useCallback, useRef, useState, type ReactNode } from 'react';
 
 import BotCheck, { type BotCheckHandle } from '../components/BotCheck.js';
+import { t } from '../utils/language.js';
 import { useAuthConfig } from './queries.js';
 
 /**
@@ -24,8 +25,10 @@ export const useBotCheck = (): { element: ReactNode; token: string | undefined; 
         <BotCheck ref={handle} siteKey={siteKey} onToken={setToken} onFail={fail} />
         {failed && (
           <p className="auth-message auth-message-error" role="alert">
-            The security check could not load. Allow challenges.cloudflare.com in your browser or ad blocker, then
-            reload the page.
+            {t(
+              'The security check could not load. Allow challenges.cloudflare.com in your browser or ad blocker, then reload the page.',
+              'নিরাপত্তা যাচাই লোড হয়নি। আপনার ব্রাউজার বা অ্যাড ব্লকারে challenges.cloudflare.com চালু করুন, তারপর পাতাটি আবার লোড করুন।'
+            )}
           </p>
         )}
       </>

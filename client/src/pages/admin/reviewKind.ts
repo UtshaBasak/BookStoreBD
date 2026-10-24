@@ -3,6 +3,7 @@ import { useSearchParams } from 'react-router-dom';
 import type { FlaggedReview, FlaggedSellerReview, Id } from '@shared/api.js';
 
 import type { ReviewKind } from '../../hooks/queries.js';
+import { t } from '../../utils/language.js';
 
 /**
  * Which reviews an admin review page shows: book reviews, or seller ratings
@@ -20,9 +21,9 @@ export interface ReviewSubject {
   /** "on" a book, "about" a seller. */
   prefix: string;
   label: string;
-  /** Where it is read, and what that page is called. */
+  /** Where it is read, and the link that goes there ("View on the book page"). */
   to: string;
-  page: string;
+  view: string;
   /** The id its removal is filed under. */
   targetId: Id;
 }
@@ -30,16 +31,16 @@ export interface ReviewSubject {
 export const reviewSubject = (review: FlaggedReview | FlaggedSellerReview): ReviewSubject =>
   'bookTitle' in review
     ? {
-        prefix: 'on',
+        prefix: t('on', 'বই:'),
         label: `“${review.bookTitle}”`,
         to: `/book/${review.book}#reviews`,
-        page: 'the book page',
+        view: t('View on the book page', 'বইয়ের পাতায় দেখুন'),
         targetId: review.book,
       }
     : {
-        prefix: 'about the seller',
+        prefix: t('about the seller', 'বিক্রেতা:'),
         label: review.sellerName,
         to: `/shop/${encodeURIComponent(review.sellerName)}#ratings`,
-        page: 'the shop page',
+        view: t('View on the shop page', 'শপের পাতায় দেখুন'),
         targetId: review.seller,
       };

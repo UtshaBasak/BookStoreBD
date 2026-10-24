@@ -14,6 +14,8 @@ import { CANCELLED, orderTotals } from '../../utils/orderTotals.js';
 import { ORDER_SORTS, ORDER_STATUS_FILTER } from '../admin/orderFilters.js';
 import '../../styles/orderTracking.css';
 import { conditionOf } from '../../utils/bookText.js';
+import { digits, formatDate, formatNumber, pick, t } from '../../utils/language.js';
+import { returnStatusLabel, statusLabel } from '../../utils/orderStatus.js';
 
 /** Orders per page. Each one may be several rows. */
 const PAGE_SIZE = 25;
@@ -80,7 +82,7 @@ export default function BuyerOrderList() {
       <div className="ot-wrap" style={{ maxWidth: 1200 }}>
         <div className="ot-toolbar">
           <Link to="/profile?mode=buyer" className="btn btn-ghost">
-            ← Return to Profile
+            {t('← Return to Profile', '← প্রোফাইলে ফিরুন')}
           </Link>
           <span className="ot-toolbar-end">
             <NotificationBell />
@@ -91,13 +93,15 @@ export default function BuyerOrderList() {
               disabled={refreshing}
               style={{ cursor: refreshing ? 'not-allowed' : 'pointer' }}
             >
-              {refreshing ? 'Refreshing...' : 'Refresh'}
+              {refreshing ? t('Refreshing...', 'রিফ্রেশ হচ্ছে...') : t('Refresh', 'রিফ্রেশ')}
             </button>
           </span>
         </div>
 
-        <p className="ot-kicker">🛍️ Orders</p>
-        <h1 className="m-0" style={{ fontSize: 'clamp(1.6rem, 1.2rem + 1.6vw, 2.2rem)' }}>Your Orders (as Buyer)</h1>
+        <p className="ot-kicker">🛍️ {t('Orders', 'অর্ডার')}</p>
+        <h1 className="m-0" style={{ fontSize: 'clamp(1.6rem, 1.2rem + 1.6vw, 2.2rem)' }}>
+          {t('Your Orders (as Buyer)', 'আপনার অর্ডার (ক্রেতা হিসেবে)')}
+        </h1>
 
         <div className="mt-4 mb-5 flex flex-wrap items-center gap-2">
         <div className="relative min-w-0 flex-1" style={{ maxWidth: 440, minWidth: 220 }}>
@@ -109,8 +113,11 @@ export default function BuyerOrderList() {
             type="text"
             className="field"
             style={{ paddingLeft: 42, borderRadius: 999 }}
-            placeholder="Search by order number, title, author or seller..."
-            aria-label="Search your orders"
+            placeholder={t(
+              'Search by order number, title, author or seller...',
+              'অর্ডার নম্বর, বইয়ের নাম, লেখক বা বিক্রেতা দিয়ে খুঁজুন...'
+            )}
+            aria-label={t('Search your orders', 'আপনার অর্ডার খুঁজুন')}
             value={search}
             onChange={(e) => {
               setSearch(e.target.value);
@@ -119,7 +126,7 @@ export default function BuyerOrderList() {
           />
         </div>
         <label className="ot-filter">
-          <span className="sr-only">Status</span>
+          <span className="sr-only">{t('Status', 'অবস্থা')}</span>
           <select
             name="status"
             className="field"
@@ -135,7 +142,7 @@ export default function BuyerOrderList() {
           </select>
         </label>
         <label className="ot-filter">
-          <span className="sr-only">Sort</span>
+          <span className="sr-only">{t('Sort', 'সাজান')}</span>
           <select
             name="sort"
             className="field"
@@ -154,11 +161,11 @@ export default function BuyerOrderList() {
 
         <div>
           {loading ? (
-            <div className="py-10 text-center font-semibold text-ink-muted">Loading...</div>
+            <div className="py-10 text-center font-semibold text-ink-muted">{t('Loading...', 'লোড হচ্ছে...')}</div>
           ) : Object.keys(grouped).length === 0 ? (
             <div className="card p-8 text-center text-ink-muted">
-              {search || status ? 'No order matches.' : 'No orders yet.'}{' '}
-              {!search && !status && <Link to="/filter">Find a book</Link>}
+              {search || status ? t('No order matches.', 'কোনো অর্ডার মেলেনি।') : t('No orders yet.', 'এখনো কোনো অর্ডার নেই।')}{' '}
+              {!search && !status && <Link to="/filter">{t('Find a book', 'বই খুঁজুন')}</Link>}
             </div>
           ) : (
             Object.entries(grouped).map(([orderNumber, orderBooks]) => {
@@ -179,14 +186,14 @@ export default function BuyerOrderList() {
                   <div className="flex flex-wrap items-start justify-between gap-3">
                     <div className="min-w-0">
                       <div className="text-sm text-ink-muted">
-                        Order Placed On: {order.createdAt ? new Date(order.createdAt).toLocaleDateString() : ''}
+                        {t('Order Placed On:', 'অর্ডারের তারিখ:')} {order.createdAt ? formatDate(order.createdAt) : ''}
                       </div>
                       <div className="mt-1 text-lg font-bold text-ink">
-                        Order Number: <span className="ot-mono">{displayOrderNumber}</span>
+                        {t('Order Number:', 'অর্ডার নম্বর:')} <span className="ot-mono">{displayOrderNumber}</span>
                         <CopyButton text={displayOrderNumber} />
                       </div>
                       <span className="ot-pill mt-2" style={statusColours(status)}>
-                        Status: {status}
+                        {t('Status:', 'অবস্থা:')} {statusLabel(status)}
                       </span>
                     </div>
                     <div className="flex flex-wrap gap-2">
@@ -204,7 +211,9 @@ export default function BuyerOrderList() {
                           }
                         >
                           <FaUndoAlt aria-hidden="true" size={12} />
-                          {canReturn.length === live.length ? 'Return the whole order' : `Return these ${canReturn.length} books`}
+                          {canReturn.length === live.length
+                            ? t('Return the whole order', 'পুরো অর্ডার ফেরত দিন')
+                            : t(`Return these ${canReturn.length} books`, `এই ${formatNumber(canReturn.length)}টি বই ফেরত দিন`)}
                         </button>
                       )}
                       {canReturn.length === 1 && (
@@ -217,13 +226,17 @@ export default function BuyerOrderList() {
                             })
                           }
                         >
-                          <FaUndoAlt aria-hidden="true" size={12} /> Return {live.length > 1 ? 'a book' : 'it'}
+                          <FaUndoAlt aria-hidden="true" size={12} />{' '}
+                          {pick(
+                            <>Return {live.length > 1 ? 'a book' : 'it'}</>,
+                            <>{live.length > 1 ? 'একটি বই ফেরত দিন' : 'বইটি ফেরত দিন'}</>
+                          )}
                         </button>
                       )}
                       <Link to={`/order-tracking/${order.orderNumber ? order.orderNumber : order._id}`}
                         className="btn btn-primary"
                       >
-                        <FaTruck aria-hidden="true" /> Track Your Order
+                        <FaTruck aria-hidden="true" /> {t('Track Your Order', 'অর্ডার ট্র্যাক করুন')}
                       </Link>
                     </div>
                   </div>
@@ -236,16 +249,16 @@ export default function BuyerOrderList() {
                   <table className="styled-table ot-table">
                     <thead>
                       <tr>
-                        <th>Title</th>
-                        <th>Author</th>
-                        <th>Category</th>
-                        <th>Book Type</th>
-                        <th>Condition</th>
-                        <th>No. of Pages</th>
-                        <th>Price (Tk.)</th>
-                        <th>Quantity</th>
-                        <th>Seller</th>
-                        <th>Total Cost</th>
+                        <th>{t('Title', 'বইয়ের নাম')}</th>
+                        <th>{t('Author', 'লেখক')}</th>
+                        <th>{t('Category', 'ক্যাটাগরি')}</th>
+                        <th>{t('Book Type', 'বইয়ের ধরন')}</th>
+                        <th>{t('Condition', 'অবস্থা')}</th>
+                        <th>{t('No. of Pages', 'পৃষ্ঠা সংখ্যা')}</th>
+                        <th>{t('Price (Tk.)', 'দাম (টাকা)')}</th>
+                        <th>{t('Quantity', 'পরিমাণ')}</th>
+                        <th>{t('Seller', 'বিক্রেতা')}</th>
+                        <th>{t('Total Cost', 'মোট দাম')}</th>
                       </tr>
                     </thead>
 
@@ -256,21 +269,23 @@ export default function BuyerOrderList() {
                             <Link to={`/book/${ob.bookId}`}>{ob.title}</Link>
                             {/* A delivered book can be reviewed, on its own page. */}
                             {ob.status === 'Delivered' && (
-                              <Link to={`/book/${ob.bookId}#reviews`} className="ml-2 text-xs font-semibold underline">Review it</Link>
+                              <Link to={`/book/${ob.bookId}#reviews`} className="ml-2 text-xs font-semibold underline">
+                                {t('Review it', 'রিভিউ লিখুন')}
+                              </Link>
                             )}
-                            {ob.status === CANCELLED && orderBooks.length > 1 && <span className="ot-line-pill">Cancelled</span>}
-                            {ob.returnStatus && <span className="ot-line-pill is-return">Return {ob.returnStatus}</span>}
+                            {ob.status === CANCELLED && orderBooks.length > 1 && <span className="ot-line-pill">{statusLabel(CANCELLED)}</span>}
+                            {ob.returnStatus && <span className="ot-line-pill is-return">{returnStatusLabel(ob.returnStatus)}</span>}
                           </td>
                           <td>{ob.author}</td>
                           <td>{Array.isArray(ob.category) ? ob.category.join(', ') : ob.category}</td>
-                          <td>{ob.bookType}</td>
+                          <td>{ob.bookType === 'old' ? t('old', 'পুরোনো') : ob.bookType === 'new' ? t('new', 'নতুন') : ob.bookType}</td>
                           <td>{conditionOf(ob) || '-'}</td>
-                          <td>{ob.pages}</td>
-                          <td>{ob.price}</td>
-                          <td>{ob.quantity}</td>
+                          <td>{ob.pages == null ? ob.pages : digits(ob.pages)}</td>
+                          <td>{ob.price == null ? ob.price : digits(ob.price)}</td>
+                          <td>{ob.quantity == null ? ob.quantity : digits(ob.quantity)}</td>
                           <td>{ob.sellerEmail}</td>
                           <td className="font-bold" style={{ color: 'var(--color-accent)' }}>
-                            {(Number(ob.price) * Number(ob.quantity)).toFixed(2)}
+                            {digits((Number(ob.price) * Number(ob.quantity)).toFixed(2))}
                           </td>
                         </tr>
                       ))}
@@ -280,10 +295,10 @@ export default function BuyerOrderList() {
                   {/* Under the table rather than in its footer, so the totals
                       stay on screen when the table scrolls sideways on a phone. */}
                   <div className="ot-totals">
-                    <div><span>Subtotal:</span><span>৳{booksTotal.toFixed(2)}</span></div>
-                    <div><span>Shipping Cost:</span><span>৳{Number(shippingCost).toFixed(2)}</span></div>
-                    <div><span>Discount:</span><span>-৳{Number(discount).toFixed(2)}</span></div>
-                    <div className="ot-grand"><span>Order Total:</span><span>৳{totalCost.toFixed(2)}</span></div>
+                    <div><span>{t('Subtotal:', 'উপমোট:')}</span><span>৳{digits(booksTotal.toFixed(2))}</span></div>
+                    <div><span>{t('Shipping Cost:', 'ডেলিভারি চার্জ:')}</span><span>৳{digits(Number(shippingCost).toFixed(2))}</span></div>
+                    <div><span>{t('Discount:', 'ছাড়:')}</span><span>-৳{digits(Number(discount).toFixed(2))}</span></div>
+                    <div className="ot-grand"><span>{t('Order Total:', 'অর্ডারের মোট:')}</span><span>৳{digits(totalCost.toFixed(2))}</span></div>
                   </div>
                 </section>
               );
@@ -296,7 +311,7 @@ export default function BuyerOrderList() {
             pageSize={PAGE_SIZE}
             total={total}
             onPage={setPage}
-            noun="orders"
+            noun={t('orders', 'অর্ডার')}
           />
         </div>
       </div>

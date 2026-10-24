@@ -28,7 +28,9 @@ import { getUserEmail } from '../utils/auth.js';
 import { flagsFor } from '../utils/bookFlags.js';
 import { Stars } from '../components/Stars.js';
 import BookCard from '../components/BookCard.js';
-import { CATEGORY_GROUPS } from '../config/categories.js';
+import { CATEGORY_GROUPS, categoryLabel } from '../config/categories.js';
+import { conditionLabel } from '../utils/bookText.js';
+import { digits, formatNumber, t } from '../utils/language.js';
 import Logo from '../components/Logo.js';
 import SearchField from '../components/SearchField.js';
 import NotificationBell from '../components/NotificationBell.js';
@@ -73,15 +75,15 @@ const storedPageSize = (): number => {
 
 const capitalise = (value: string): string => value.charAt(0).toUpperCase() + value.slice(1);
 
-/** The orders the catalogue offers, and what each is called. */
-const SORTS: readonly { value: CatalogueSort; label: string }[] = [
-  { value: 'relevant', label: 'Relevant - deals first' },
-  { value: 'dealPercent', label: 'Deals - biggest % off' },
-  { value: 'dealAmount', label: 'Deals - biggest ৳ saving' },
-  { value: 'newest', label: 'Newest first' },
-  { value: 'rated', label: 'Highest rated' },
-  { value: 'priceLowHigh', label: 'Price - Low to High' },
-  { value: 'priceHighLow', label: 'Price - High to Low' },
+/** The orders the catalogue offers, and what each is called (in the language being shown). */
+const SORTS: readonly { value: CatalogueSort; label: () => string }[] = [
+  { value: 'relevant', label: () => t('Relevant - deals first', 'প্রাসঙ্গিক - ছাড় আগে') },
+  { value: 'dealPercent', label: () => t('Deals - biggest % off', 'ছাড় - সবচেয়ে বেশি % আগে') },
+  { value: 'dealAmount', label: () => t('Deals - biggest ৳ saving', 'ছাড় - সবচেয়ে বেশি ৳ সাশ্রয় আগে') },
+  { value: 'newest', label: () => t('Newest first', 'নতুন আগে') },
+  { value: 'rated', label: () => t('Highest rated', 'সেরা রেটিং আগে') },
+  { value: 'priceLowHigh', label: () => t('Price - Low to High', 'দাম - কম থেকে বেশি') },
+  { value: 'priceHighLow', label: () => t('Price - High to Low', 'দাম - বেশি থেকে কম') },
 ];
 const isSort = (value: string | null): value is CatalogueSort => SORTS.some((sort) => sort.value === value);
 
@@ -159,10 +161,16 @@ export default function BookFilter() {
   const searchTerm = active.searchTerm ?? fromUrl.searchTerm;
 
   useSeo({
-    title: searchTerm ? `\u201c${searchTerm}\u201d` : 'Browse books',
+    title: searchTerm ? `\u201c${searchTerm}\u201d` : t('Browse books', 'বই দেখুন'),
     description: searchTerm
-      ? `Books matching \u201c${searchTerm}\u201d - new and second-hand, from sellers across Bangladesh.`
-      : 'Browse every book on sale: new and second-hand, filtered by category, condition and price.',
+      ? t(
+          `Books matching \u201c${searchTerm}\u201d - new and second-hand, from sellers across Bangladesh.`,
+          `\u201c${searchTerm}\u201d-এর সঙ্গে মেলে এমন বই - নতুন ও পুরোনো, সারা বাংলাদেশের বিক্রেতাদের কাছ থেকে।`
+        )
+      : t(
+          'Browse every book on sale: new and second-hand, filtered by category, condition and price.',
+          'বিক্রির সব বই দেখুন: নতুন ও পুরোনো, বিষয়, অবস্থা ও দাম দিয়ে বাছাই করে।'
+        ),
   });
   const inStockOnly = active.inStockOnly ?? fromUrl.inStockOnly;
   const dealsOnly = active.dealsOnly ?? fromUrl.dealsOnly;
@@ -311,7 +319,7 @@ export default function BookFilter() {
           the way home. */}
       <header className="header">
         <div className="logo">
-          <Link to="/" className="logo-button">
+          <Link to="/" className="logo-button" aria-label={t('BookStoreBD home', 'BookStoreBD হোম')}>
             <Logo size={38} />
           </Link>
         </div>
@@ -325,12 +333,12 @@ export default function BookFilter() {
             inputProps={{
               id: 'catalogue-search',
               name: 'search',
-              'aria-label': 'Search books, authors or sellers',
-              placeholder: 'Search books, authors or sellers...',
+              'aria-label': t('Search books, authors or sellers', 'বই, লেখক বা বিক্রেতা খুঁজুন'),
+              placeholder: t('Search books, authors or sellers...', 'বই, লেখক বা বিক্রেতা খুঁজুন...'),
             }}
           />
-          <button type="button" onClick={() => handleSearch()} aria-label="Search">
-            Search
+          <button type="button" onClick={() => handleSearch()} aria-label={t('Search', 'খুঁজুন')}>
+            {t('Search', 'খুঁজুন')}
           </button>
         </div>
 
@@ -341,17 +349,17 @@ export default function BookFilter() {
           <Link to="/wishlist"
             className="icon-button"
             style={{ color: 'var(--color-accent)' }}
-            title="Wishlist"
-            aria-label="Wishlist"
+            title={t('Wishlist', 'উইশলিস্ট')}
+            aria-label={t('Wishlist', 'উইশলিস্ট')}
           >
             <FaHeart />
           </Link>
-          <Link to="/cart" className="icon-link" style={{ color: 'var(--color-brand)' }} title="Cart" aria-label="Cart">
+          <Link to="/cart" className="icon-link" style={{ color: 'var(--color-brand)' }} title={t('Cart', 'কার্ট')} aria-label={t('Cart', 'কার্ট')}>
             <FaShoppingBag />
           </Link>
           {!signedIn && (
             <Link to="/sign-in" className="btn btn-primary" style={{ minHeight: 40, padding: '0 1.1rem' }}>
-              Sign in
+              {t('Sign in', 'সাইন ইন')}
             </Link>
           )}
         </div>
@@ -371,8 +379,8 @@ export default function BookFilter() {
           <span className="inline-flex items-center gap-2">
             <FaSlidersH aria-hidden="true" style={{ color: 'var(--color-brand)' }} />
             <span>
-              Filters
-              {activeFilterCount > 0 ? ` · ${activeFilterCount} on` : ''}
+              {t('Filters', 'ফিল্টার')}
+              {activeFilterCount > 0 ? t(` · ${activeFilterCount} on`, ` · ${formatNumber(activeFilterCount)}টি চালু`) : ''}
             </span>
           </span>
           <span aria-hidden="true" style={{ color: 'var(--color-brand)' }}>
@@ -385,11 +393,11 @@ export default function BookFilter() {
           // Full width above the results on a phone; a 280px column beside
           // them on a desktop, where there is room for one.
           className={`${showFilters ? 'flex' : 'hidden'} card filter-panel z-30 lg:flex`}
-          aria-label="Filters"
+          aria-label={t('Filters', 'ফিল্টার')}
         >
           {/* Deals: books a seller has discounted. */}
           <div className="filter-group">
-            <h2>Deals</h2>
+            <h2>{t('Deals', 'ছাড়')}</h2>
             <div className="filter-chips">
               <button
                 type="button"
@@ -403,12 +411,12 @@ export default function BookFilter() {
                 }}
               >
                 <span aria-hidden="true">⚡</span>
-                Quick deals only
+                {t('Quick deals only', 'শুধু চটজলদি ছাড়')}
               </button>
             </div>
           </div>
           <div className="filter-group">
-            <h2>Book Type</h2>
+            <h2>{t('Book Type', 'বইয়ের ধরন')}</h2>
             <div className="filter-chips">
               {['old', 'new'].map((type) => (
                 <button
@@ -420,7 +428,7 @@ export default function BookFilter() {
                 >
                   {/* Hidden from the name of the button, which stays "OLD". */}
                   <span aria-hidden="true">{type === 'old' ? '♻️' : '✨'}</span>
-                  {type.toUpperCase()}
+                  {t(type.toUpperCase(), type === 'old' ? 'পুরোনো' : 'নতুন')}
                 </button>
               ))}
             </div>
@@ -428,7 +436,7 @@ export default function BookFilter() {
           {/* Condition applies to old books only. */}
           {filters.bookType === 'old' && (
             <div className="filter-group">
-              <h2>Condition</h2>
+              <h2>{t('Condition', 'অবস্থা')}</h2>
               <div className="filter-chips">
                 {['mint', 'very good', 'good', 'fair', 'poor'].map((cond) => (
                   <button
@@ -438,7 +446,7 @@ export default function BookFilter() {
                     aria-pressed={filters.condition === cond}
                     onClick={() => handleRadioToggle('condition', cond)}
                   >
-                    {capitalise(cond)}
+                    {t(capitalise(cond), conditionLabel(cond))}
                   </button>
                 ))}
               </div>
@@ -448,14 +456,14 @@ export default function BookFilter() {
               itself when one of its categories is on, so a filter cannot be
               hidden inside a closed group. */}
           <div className="filter-group">
-            <h2>Category</h2>
+            <h2>{t('Category', 'বিষয়')}</h2>
             {CATEGORY_GROUPS.map((group) => {
               const onHere = group.items.filter((cat) => filters.category.includes(cat.toLowerCase())).length;
               return (
                 <details key={group.name} className="filter-cat-group" open={onHere > 0 || undefined}>
                   <summary>
-                    <span aria-hidden="true">{group.emoji}</span> {group.name}
-                    {onHere > 0 && <span className="filter-cat-count">{onHere}</span>}
+                    <span aria-hidden="true">{group.emoji}</span> {categoryLabel(group.name)}
+                    {onHere > 0 && <span className="filter-cat-count">{digits(onHere)}</span>}
                   </summary>
                   <div className="filter-chips">
                     {group.items.map((cat) => {
@@ -469,7 +477,7 @@ export default function BookFilter() {
                           aria-pressed={selected}
                           onClick={() => handleCategoryToggle(catKey)}
                         >
-                          {cat}
+                          {categoryLabel(cat)}
                         </button>
                       );
                     })}
@@ -479,14 +487,14 @@ export default function BookFilter() {
             })}
           </div>
           <div className="filter-group">
-            <h2>Price (Taka)</h2>
+            <h2>{t('Price (Taka)', 'দাম (টাকা)')}</h2>
             <div className="price-fields">
               <input
                 type="number"
                 id="price-from"
                 name="minPrice"
-                aria-label="Lowest price in Taka"
-                placeholder="From"
+                aria-label={t('Lowest price in Taka', 'সর্বনিম্ন দাম, টাকায়')}
+                placeholder={t('From', 'থেকে')}
                 className="field"
                 inputMode="numeric"
                 value={priceFilter.from}
@@ -501,8 +509,8 @@ export default function BookFilter() {
                 type="number"
                 id="price-to"
                 name="maxPrice"
-                aria-label="Highest price in Taka"
-                placeholder="To"
+                aria-label={t('Highest price in Taka', 'সর্বোচ্চ দাম, টাকায়')}
+                placeholder={t('To', 'পর্যন্ত')}
                 className="field"
                 inputMode="numeric"
                 value={priceFilter.to}
@@ -515,7 +523,7 @@ export default function BookFilter() {
             </div>
           </div>
           <div className="filter-group">
-            <h2>Rating</h2>
+            <h2>{t('Rating', 'রেটিং')}</h2>
             <div className="filter-chips">
               {[5, 4, 3, 2, 1].map((floor) => (
                 <button
@@ -535,15 +543,15 @@ export default function BookFilter() {
                   >
                     <Stars value={floor} size={13} />
                   </span>
-                  <span className="sr-only">{floor} star{floor === 1 ? '' : 's'}</span>
-                  {floor < 5 && <span>&amp; up</span>}
+                  <span className="sr-only">{t(`${floor} star${floor === 1 ? '' : 's'}`, `${digits(floor)} তারা`)}</span>
+                  {floor < 5 && <span>{t('& up', 'বা তার বেশি')}</span>}
                 </button>
               ))}
             </div>
           </div>
 
           <div className="filter-group">
-            <h2>Stock</h2>
+            <h2>{t('Stock', 'স্টক')}</h2>
             <div className="filter-chips">
               <button
                 type="button"
@@ -553,7 +561,7 @@ export default function BookFilter() {
                 // here started a new search and lost every other choice.
                 onClick={() => setInStockOnly((v) => !v)}
               >
-                In Stock Only
+                {t('In Stock Only', 'শুধু স্টকে থাকা বই')}
               </button>
             </div>
           </div>
@@ -561,18 +569,20 @@ export default function BookFilter() {
 
         {/* Results. `min-width: 0` in Filter.css lets this flex child shrink
             below its content's width, so the grid never widens the page. */}
-        <section className="results" aria-label="Results">
+        <section className="results" aria-label={t('Results', 'ফলাফল')}>
           <div className="results-bar">
             <div className="min-w-0">
-              <h1>{searchTerm ? `Results for “${searchTerm}”` : 'Browse books'}</h1>
+              <h1>{searchTerm ? t(`Results for “${searchTerm}”`, `“${searchTerm}”-এর ফলাফল`) : t('Browse books', 'বই দেখুন')}</h1>
               <p className="results-count">
-                {catalogue ? `${total} ${total === 1 ? 'book' : 'books'}` : 'Finding books…'}
+                {catalogue
+                  ? t(`${total} ${total === 1 ? 'book' : 'books'}`, `${formatNumber(total)}টি বই`)
+                  : t('Finding books…', 'বই খোঁজা হচ্ছে…')}
               </p>
             </div>
             <select
               id="catalogue-sort"
               name="sort"
-              aria-label="Sort books"
+              aria-label={t('Sort books', 'বই সাজান')}
               className="field sort-field"
               value={sortOption}
               onChange={(e) => {
@@ -580,19 +590,19 @@ export default function BookFilter() {
                 // A new order starts from its first page.
                 update({ page: 1 });
               }}
-              title="Sort books"
+              title={t('Sort books', 'বই সাজান')}
             >
               {SORTS.map((sort) => (
                 <option key={sort.value} value={sort.value}>
-                  {sort.label}
+                  {sort.label()}
                 </option>
               ))}
             </select>
           </div>
 
           {sellers.length > 0 && (
-            <div className="seller-hits" aria-label="Sellers">
-              <h2>Sellers</h2>
+            <div className="seller-hits" aria-label={t('Sellers', 'বিক্রেতা')}>
+              <h2>{t('Sellers', 'বিক্রেতা')}</h2>
               <ul>
                 {sellers.map((seller) => (
                   <li key={seller.username}>
@@ -607,7 +617,10 @@ export default function BookFilter() {
                       <span>
                         <span className="seller-hit-name">{seller.username}</span>
                         <span className="seller-hit-books">
-                          {seller.books} {seller.books === 1 ? 'book' : 'books'} · Visit shop
+                          {t(
+                            `${seller.books} ${seller.books === 1 ? 'book' : 'books'} · Visit shop`,
+                            `${formatNumber(seller.books)}টি বই · দোকানে যান`
+                          )}
                         </span>
                       </span>
                     </Link>
@@ -618,7 +631,7 @@ export default function BookFilter() {
           )}
 
           {/* Book List: two to a row on a phone, as many as fit above that. */}
-          <h2 className="sr-only">Books</h2>
+          <h2 className="sr-only">{t('Books', 'বই')}</h2>
           <div
             className="results-grid"
             style={{
@@ -642,15 +655,17 @@ export default function BookFilter() {
             ) : total === 0 ? (
               <div className="empty-results">
                 <p style={{ fontSize: 34, marginBottom: 6 }} aria-hidden="true">🔎</p>
-                <p style={{ fontSize: 18, fontWeight: 700, color: 'var(--color-ink)' }}>No book or author found</p>
-                <p style={{ marginTop: 6 }}>Try a shorter search, or turn a filter or two off.</p>
+                <p style={{ fontSize: 18, fontWeight: 700, color: 'var(--color-ink)' }}>{t('No book or author found', 'কোনো বই বা লেখক পাওয়া যায়নি')}</p>
+                <p style={{ marginTop: 6 }}>
+                  {t('Try a shorter search, or turn a filter or two off.', 'ছোট করে খুঁজে দেখুন, অথবা দু-একটি ফিল্টার বন্ধ করুন।')}
+                </p>
                 {/* Nobody selling it: ask for it, rather than leave empty-handed. */}
                 <p style={{ marginTop: 14 }}>
-                  Still not here?{' '}
+                  {t('Still not here?', 'এখনো পাননি?')}{' '}
                   <Link to={`/wanted${searchTerm ? `?ask=${encodeURIComponent(searchTerm)}` : ''}`} className="font-bold underline">
-                    Ask for it on the Wanted board
+                    {t('Ask for it on the Wanted board', 'চাহিদার বোর্ডে বইটি চান')}
                   </Link>{' '}
-                  and hear the moment someone lists it.
+                  {t('and hear the moment someone lists it.', 'কেউ তালিকাভুক্ত করলেই জানতে পারবেন।')}
                 </p>
               </div>
             ) : (
@@ -674,10 +689,13 @@ export default function BookFilter() {
             <div className="pager">
               <div className="flex flex-wrap items-center gap-3">
                 <p className="m-0 text-sm" style={{ color: 'var(--color-ink-muted)' }}>
-                  Showing {firstOnPage}&ndash;{lastOnPage} of {total}
+                  {t(
+                    `Showing ${firstOnPage}\u2013${lastOnPage} of ${total}`,
+                    `মোট ${formatNumber(total)}টির মধ্যে ${formatNumber(firstOnPage)}\u2013${formatNumber(lastOnPage)}`
+                  )}
                 </p>
                 <label className="pager-size">
-                  <span>Per page</span>
+                  <span>{t('Per page', 'প্রতি পাতায়')}</span>
                   <select
                     name="pageSize"
                     className="field"
@@ -686,7 +704,7 @@ export default function BookFilter() {
                   >
                     {PAGE_SIZES.map((size) => (
                       <option key={size} value={size}>
-                        {size}
+                        {digits(size)}
                       </option>
                     ))}
                   </select>
@@ -701,11 +719,11 @@ export default function BookFilter() {
                     disabled={currentPage === 1}
                     className="btn btn-ghost"
                   >
-                    Previous
+                    {t('Previous', 'আগের')}
                   </button>
 
                   <span className="px-1 text-sm font-semibold" style={{ color: 'var(--color-ink-soft)' }}>
-                    Page {currentPage} of {pageCount}
+                    {t(`Page ${currentPage} of ${pageCount}`, `পাতা ${formatNumber(currentPage)} / ${formatNumber(pageCount)}`)}
                   </span>
 
                   <button
@@ -714,7 +732,7 @@ export default function BookFilter() {
                     disabled={currentPage === pageCount}
                     className="btn btn-ghost"
                   >
-                    Next
+                    {t('Next', 'পরের')}
                   </button>
 
                   <form
@@ -725,7 +743,7 @@ export default function BookFilter() {
                     }}
                   >
                     <label htmlFor="go-to-page" className="sr-only">
-                      Go to page (1 to {pageCount})
+                      {t(`Go to page (1 to ${pageCount})`, `পাতায় যান (${formatNumber(1)} থেকে ${formatNumber(pageCount)})`)}
                     </label>
                     <input
                       id="go-to-page"
@@ -734,13 +752,13 @@ export default function BookFilter() {
                       inputMode="numeric"
                       min={1}
                       max={pageCount}
-                      placeholder="Page"
+                      placeholder={t('Page', 'পাতা')}
                       className="field"
                       value={pageDraft}
                       onChange={(e) => setPageDraft(e.target.value)}
                     />
                     <button type="submit" className="btn btn-primary" disabled={!pageDraft}>
-                      Go
+                      {t('Go', 'যান')}
                     </button>
                   </form>
                 </div>

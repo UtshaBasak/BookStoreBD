@@ -5,7 +5,8 @@ import { useSyncExternalStore } from 'react';
  * what it needs to work.
  *
  * Necessary - always on, and not a choice: staying signed in, security
- * checks on sign-in and sign-up, and this choice itself. Everything else
+ * checks on sign-in and sign-up, the language the site is read in (see
+ * utils/language.ts), and this choice itself. Everything else
  * waits for a yes:
  *
  * - preferences: light or dark, the voice search language, list sizes and

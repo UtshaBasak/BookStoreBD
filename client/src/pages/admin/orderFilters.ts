@@ -1,17 +1,56 @@
-/** The status and sort choices every order list offers, in the API's spelling. */
+import { t } from '../../utils/language.js';
+import { statusLabel } from '../../utils/orderStatus.js';
+
+/**
+ * The status and sort choices every order list offers, in the API's spelling.
+ * Each `label` is a getter, so it is worded in the language shown when it is
+ * read, not the one the page first loaded in.
+ */
+const status = (value: string) => ({
+  value,
+  get label() {
+    return statusLabel(value);
+  },
+});
+
 export const ORDER_STATUS_FILTER = [
-  { value: '', label: 'Any status' },
-  { value: 'Order Confirmed', label: 'Order Confirmed' },
-  { value: 'Processing', label: 'Processing' },
-  { value: 'Shipped', label: 'Shipped' },
-  { value: 'Out for Delivery', label: 'Out for Delivery' },
-  { value: 'Delivered', label: 'Delivered' },
-  { value: 'Cancelled', label: 'Cancelled' },
+  {
+    value: '',
+    get label() {
+      return t('Any status', 'যেকোনো অবস্থা');
+    },
+  },
+  status('Order Confirmed'),
+  status('Processing'),
+  status('Shipped'),
+  status('Out for Delivery'),
+  status('Delivered'),
+  status('Cancelled'),
 ];
 
 export const ORDER_SORTS = [
-  { value: 'newest', label: 'Newest first' },
-  { value: 'oldest', label: 'Oldest first' },
-  { value: 'totalHigh', label: 'Total: high to low' },
-  { value: 'totalLow', label: 'Total: low to high' },
+  {
+    value: 'newest',
+    get label() {
+      return t('Newest first', 'নতুন আগে');
+    },
+  },
+  {
+    value: 'oldest',
+    get label() {
+      return t('Oldest first', 'পুরোনো আগে');
+    },
+  },
+  {
+    value: 'totalHigh',
+    get label() {
+      return t('Total: high to low', 'মোট: বেশি থেকে কম');
+    },
+  },
+  {
+    value: 'totalLow',
+    get label() {
+      return t('Total: low to high', 'মোট: কম থেকে বেশি');
+    },
+  },
 ];

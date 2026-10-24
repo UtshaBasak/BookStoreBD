@@ -8,6 +8,7 @@ import { useMarkPayoutPaid, usePayouts } from '../../hooks/queries.js';
 import { useToast } from '../../hooks/useToast.js';
 import { useDebounced } from '../../hooks/useDebounced.js';
 import { messageOf } from '../../utils/apiError.js';
+import { formatDate, formatNumber, pick, t } from '../../utils/language.js';
 import { site } from '../../config/site.js';
 import Pager from '../../components/Pager.js';
 import { FilterSelect, RefreshButton } from './AdminControls.js';
@@ -15,26 +16,27 @@ import '../AdminPanel.css';
 
 const PAGE_SIZE = 25;
 
-const taka = (amount: number) => `${amount.toFixed(2)} Tk`;
-const date = (iso: string | null) => (iso ? new Date(iso).toLocaleDateString() : '');
+const taka = (amount: number) =>
+  t(`${amount.toFixed(2)} Tk`, `${formatNumber(amount, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} টাকা`);
+const date = (iso: string | null) => (iso ? formatDate(iso) : '');
 
 type State = 'due' | 'upcoming' | 'paid';
-const TABS: { value: State; label: string }[] = [
-  { value: 'due', label: 'To pay' },
-  { value: 'upcoming', label: 'In return window' },
-  { value: 'paid', label: 'Paid' },
+const TABS: { value: State; label: () => string }[] = [
+  { value: 'due', label: () => t('To pay', 'পরিশোধ বাকি') },
+  { value: 'upcoming', label: () => t('In return window', 'ফেরতের সময়সীমায়') },
+  { value: 'paid', label: () => t('Paid', 'পরিশোধিত') },
 ];
-const SORTS = [
-  { value: 'oldest', label: 'Oldest first' },
-  { value: 'newest', label: 'Newest first' },
-  { value: 'amountHigh', label: 'Amount: high to low' },
-  { value: 'amountLow', label: 'Amount: low to high' },
+const SORTS = () => [
+  { value: 'oldest', label: t('Oldest first', 'পুরোনো আগে') },
+  { value: 'newest', label: t('Newest first', 'নতুন আগে') },
+  { value: 'amountHigh', label: t('Amount: high to low', 'পরিমাণ: বেশি থেকে কম') },
+  { value: 'amountLow', label: t('Amount: low to high', 'পরিমাণ: কম থেকে বেশি') },
 ];
-const EMPTY: Record<State, [string, string]> = {
-  due: ['🎉', 'Nothing is due to any seller right now.'],
-  upcoming: ['📭', 'No delivered order is waiting out its return window.'],
-  paid: ['🗂️', 'No payouts recorded yet.'],
-};
+const EMPTY = (): Record<State, [string, string]> => ({
+  due: ['🎉', t('Nothing is due to any seller right now.', 'এই মুহূর্তে কোনো বিক্রেতার পাওনা বাকি নেই।')],
+  upcoming: ['📭', t('No delivered order is waiting out its return window.', 'ফেরতের সময়সীমা শেষ হওয়ার অপেক্ষায় কোনো ডেলিভারি হওয়া অর্ডার নেই।')],
+  paid: ['🗂️', t('No payouts recorded yet.', 'এখনো কোনো পেমেন্ট রেকর্ড করা হয়নি।')],
+});
 
 /**
  * What sellers are owed, and a record of what they have been paid.
@@ -67,12 +69,21 @@ export default function SellerPayouts() {
             <span className="admin-page-icon" aria-hidden="true">
               <FaMoneyBillWave />
             </span>
-            Seller Payouts
+            {t('Seller Payouts', 'বিক্রেতার পেমেন্ট')}
           </h2>
           <p className="admin-lede">
-            Pay each seller by bKash, then record the transaction ID here. An order is due once
-            its {site.returns.windowDays}-day return window has closed; {site.name} keeps{' '}
-            {site.sellerFeePercent}% of the books.
+            {pick(
+              <>
+                Pay each seller by bKash, then record the transaction ID here. An order is due once
+                its {site.returns.windowDays}-day return window has closed; {site.name} keeps{' '}
+                {site.sellerFeePercent}% of the books.
+              </>,
+              <>
+                প্রত্যেক বিক্রেতাকে বিকাশে টাকা পাঠান, তারপর এখানে ট্রানজ্যাকশন আইডি লিখে রাখুন।{' '}
+                {formatNumber(site.returns.windowDays)} দিনের ফেরতের সময়সীমা শেষ হলে অর্ডারের টাকা পাওনা হয়;
+                বইয়ের দামের {formatNumber(site.sellerFeePercent)}% {site.name} রাখে।
+              </>
+            )}
           </p>
         </div>
         <RefreshButton onClick={() => void payoutsQuery.refetch()} busy={payoutsQuery.isFetching} />
@@ -92,7 +103,7 @@ export default function SellerPayouts() {
               }}
               className="admin-tab"
             >
-              {tab.label}
+              {tab.label()}
             </button>
           ))}
         </div>
@@ -102,8 +113,8 @@ export default function SellerPayouts() {
             name="q"
             type="text"
             className="field"
-            placeholder="Search by seller, order or book..."
-            aria-label="Search payouts"
+            placeholder={t('Search by seller, order or book...', 'বিক্রেতা, অর্ডার বা বই দিয়ে খুঁজুন...')}
+            aria-label={t('Search payouts', 'পেমেন্ট খুঁজুন')}
             value={search}
             onChange={(e) => {
               setSearch(e.target.value);
@@ -113,33 +124,42 @@ export default function SellerPayouts() {
         </div>
         <FilterSelect
           name="sort"
-          label="Sort"
+          label={t('Sort', 'সাজান')}
           value={sort}
           onChange={(value) => {
             setSort(value);
             setPage(1);
           }}
-          options={SORTS}
+          options={SORTS()}
         />
       </div>
 
       {state === 'upcoming' && (
         <p className="admin-note" role="note">
           <FaHourglassHalf aria-hidden="true" />
-          These orders are delivered, but the buyer can still ask for a return for{' '}
-          {site.returns.windowDays} days. Each one moves to To pay on the date shown, unless a
-          return is asked for.
+          {pick(
+            <>
+              These orders are delivered, but the buyer can still ask for a return for{' '}
+              {site.returns.windowDays} days. Each one moves to To pay on the date shown, unless a
+              return is asked for.
+            </>,
+            <>
+              এই অর্ডারগুলো ডেলিভারি হয়েছে, তবে ক্রেতা এখনো {formatNumber(site.returns.windowDays)} দিন পর্যন্ত
+              ফেরতের অনুরোধ করতে পারেন। ফেরতের অনুরোধ না এলে প্রতিটি অর্ডার দেখানো তারিখে &ldquo;পরিশোধ বাকি&rdquo;-তে
+              চলে যাবে।
+            </>
+          )}
         </p>
       )}
 
       {payoutsQuery.isPending ? (
-        <p className="admin-loading">Loading...</p>
+        <p className="admin-loading">{t('Loading...', 'লোড হচ্ছে...')}</p>
       ) : rows.length === 0 ? (
         <div className="admin-card admin-empty">
           <span className="admin-empty-mark" aria-hidden="true">
-            {EMPTY[state][0]}
+            {EMPTY()[state][0]}
           </span>
-          <p>{settled ? 'No payout matches that search.' : EMPTY[state][1]}</p>
+          <p>{settled ? t('No payout matches that search.', 'এই খোঁজের সঙ্গে মেলে এমন কোনো পেমেন্ট নেই।') : EMPTY()[state][1]}</p>
         </div>
       ) : (
         <div className="admin-card">
@@ -147,15 +167,21 @@ export default function SellerPayouts() {
           <table className="styled-table">
             <thead>
               <tr>
-                <th>Seller</th>
-                <th>bKash merchant</th>
-                <th className="admin-num">Pay</th>
-                <th>{state === 'due' ? 'Record payment' : state === 'upcoming' ? 'Payable from' : 'Paid'}</th>
-                <th>Order</th>
-                <th>Books</th>
-                <th className="admin-num">Books total</th>
-                <th className="admin-num">Fee</th>
-                <th>Delivered</th>
+                <th>{t('Seller', 'বিক্রেতা')}</th>
+                <th>{t('bKash merchant', 'বিকাশ মার্চেন্ট')}</th>
+                <th className="admin-num">{t('Pay', 'পাঠাতে হবে')}</th>
+                <th>
+                  {state === 'due'
+                    ? t('Record payment', 'পেমেন্ট রেকর্ড করুন')
+                    : state === 'upcoming'
+                      ? t('Payable from', 'পরিশোধযোগ্য যেদিন থেকে')
+                      : t('Paid', 'পরিশোধিত')}
+                </th>
+                <th>{t('Order', 'অর্ডার')}</th>
+                <th>{t('Books', 'বই')}</th>
+                <th className="admin-num">{t('Books total', 'বইয়ের মোট')}</th>
+                <th className="admin-num">{t('Fee', 'ফি')}</th>
+                <th>{t('Delivered', 'ডেলিভারি')}</th>
               </tr>
             </thead>
             <tbody>
@@ -166,7 +192,7 @@ export default function SellerPayouts() {
                     <div className="admin-cell-muted">{row.sellerEmail}</div>
                   </td>
                   <td className="admin-mono admin-nowrap">
-                    {row.bkashMerchant ?? <span className="badge admin-status is-bad">Not given</span>}
+                    {row.bkashMerchant ?? <span className="badge admin-status is-bad">{t('Not given', 'দেওয়া হয়নি')}</span>}
                   </td>
                   <td className="admin-price" style={{ textAlign: 'right' }}>{taka(row.payout)}</td>
                   <td>
@@ -207,7 +233,7 @@ export default function SellerPayouts() {
           pageSize={PAGE_SIZE}
           total={payoutsQuery.data?.total ?? 0}
           onPage={setPage}
-          noun="payouts"
+          noun={t('payouts', 'পেমেন্ট')}
         />
       </div>
     </div>
@@ -240,7 +266,7 @@ function RecordPayment({
       });
       onDone(result.message);
     } catch (error) {
-      onError(messageOf(error) || 'Could not record the payout.');
+      onError(messageOf(error) || t('Could not record the payout.', 'পেমেন্ট রেকর্ড করা যায়নি।'));
     }
   };
 
@@ -254,13 +280,13 @@ function RecordPayment({
       }}
     >
       <label htmlFor={id} className="sr-only">
-        bKash transaction ID for {row.orderNumber}
+        {t(`bKash transaction ID for ${row.orderNumber}`, `${row.orderNumber} অর্ডারের বিকাশ ট্রানজ্যাকশন আইডি`)}
       </label>
       <input
         id={id}
         value={reference}
         onChange={(e) => setReference(e.target.value)}
-        placeholder="bKash TrxID"
+        placeholder={t('bKash TrxID', 'বিকাশ TrxID')}
         autoComplete="off"
         className="field admin-mono admin-input-sm"
       />
@@ -270,7 +296,7 @@ function RecordPayment({
         className="btn btn-primary admin-btn-sm"
       >
         <FaCheck aria-hidden="true" />
-        {isPending ? 'Saving...' : 'Mark paid'}
+        {isPending ? t('Saving...', 'সংরক্ষণ হচ্ছে...') : t('Mark paid', 'পরিশোধিত চিহ্নিত করুন')}
       </button>
     </form>
   );

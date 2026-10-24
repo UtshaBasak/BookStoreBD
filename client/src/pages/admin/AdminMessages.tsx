@@ -7,19 +7,36 @@ import { useAudienceCount, useSendAdminMessage, useUsers } from '../../hooks/que
 import { useDebounced } from '../../hooks/useDebounced.js';
 import { useToast } from '../../hooks/useToast.js';
 import { messageOf } from '../../utils/apiError.js';
+import { digits, t } from '../../utils/language.js';
 import '../AdminPanel.css';
 
-const CHANNELS: { value: MessageChannel; label: string; icon: typeof FaBell }[] = [
-  { value: 'notification', label: 'Notification', icon: FaBell },
-  { value: 'email', label: 'E-mail', icon: FaEnvelope },
-  { value: 'both', label: 'Both', icon: FaPaperPlane },
+const CHANNELS = (): { value: MessageChannel; label: string; icon: typeof FaBell }[] => [
+  { value: 'notification', label: t('Notification', 'নোটিফিকেশন'), icon: FaBell },
+  { value: 'email', label: t('E-mail', 'ই-মেইল'), icon: FaEnvelope },
+  { value: 'both', label: t('Both', 'দুটোই'), icon: FaPaperPlane },
 ];
 
-const AUDIENCES: { value: MessageAudience; label: string; note: string }[] = [
-  { value: 'all', label: 'Everyone', note: 'Every buyer and seller. Never administrators.' },
-  { value: 'buyers', label: 'Buyers', note: 'Accounts without a seller payout number.' },
-  { value: 'sellers', label: 'Sellers', note: 'Accounts set up to sell, with a bKash merchant number.' },
-  { value: 'users', label: 'Chosen people', note: 'One or more accounts you pick below.' },
+const AUDIENCES = (): { value: MessageAudience; label: string; note: string }[] => [
+  {
+    value: 'all',
+    label: t('Everyone', 'সবাই'),
+    note: t('Every buyer and seller. Never administrators.', 'সব ক্রেতা ও বিক্রেতা। অ্যাডমিনরা কখনো নন।'),
+  },
+  {
+    value: 'buyers',
+    label: t('Buyers', 'ক্রেতা'),
+    note: t('Accounts without a seller payout number.', 'যেসব অ্যাকাউন্টে বিক্রেতার পেমেন্ট নম্বর নেই।'),
+  },
+  {
+    value: 'sellers',
+    label: t('Sellers', 'বিক্রেতা'),
+    note: t('Accounts set up to sell, with a bKash merchant number.', 'বিকাশ মার্চেন্ট নম্বরসহ বিক্রির জন্য তৈরি অ্যাকাউন্ট।'),
+  },
+  {
+    value: 'users',
+    label: t('Chosen people', 'বাছাই করা মানুষ'),
+    note: t('One or more accounts you pick below.', 'নিচে আপনার বেছে নেওয়া এক বা একাধিক অ্যাকাউন্ট।'),
+  },
 ];
 
 interface Person {
@@ -80,7 +97,7 @@ export default function AdminMessages() {
       setLink('');
       setChosen([]);
     } catch (error) {
-      toast.error(messageOf(error) || 'Could not send the message.');
+      toast.error(messageOf(error) || t('Could not send the message.', 'বার্তাটি পাঠানো যায়নি।'));
     } finally {
       setConfirming(false);
     }
@@ -94,19 +111,22 @@ export default function AdminMessages() {
             <span className="admin-page-icon" aria-hidden="true">
               <FaPaperPlane />
             </span>
-            Messages
+            {t('Messages', 'বার্তা')}
           </h2>
           <p className="admin-lede">
-            Tell buyers and sellers something: a notification in their bell, an e-mail, or both.
+            {t(
+              'Tell buyers and sellers something: a notification in their bell, an e-mail, or both.',
+              'ক্রেতা ও বিক্রেতাদের কিছু জানান: তাঁদের ঘণ্টায় একটি নোটিফিকেশন, একটি ই-মেইল, বা দুটোই।'
+            )}
           </p>
         </div>
       </header>
 
       <form className="admin-card am-form" onSubmit={(e) => void submit(e)}>
         <fieldset className="am-group">
-          <legend>Send as</legend>
+          <legend>{t('Send as', 'যেভাবে পাঠাবেন')}</legend>
           <div className="am-chips">
-            {CHANNELS.map(({ value, label, icon: Icon }) => (
+            {CHANNELS().map(({ value, label, icon: Icon }) => (
               <label key={value} className={`chip${channel === value ? ' is-on' : ''}`}>
                 <input
                   type="radio"
@@ -126,9 +146,9 @@ export default function AdminMessages() {
         </fieldset>
 
         <fieldset className="am-group">
-          <legend>To</legend>
+          <legend>{t('To', 'প্রাপক')}</legend>
           <div className="am-chips">
-            {AUDIENCES.map(({ value, label }) => (
+            {AUDIENCES().map(({ value, label }) => (
               <label key={value} className={`chip${audience === value ? ' is-on' : ''}`}>
                 <input
                   type="radio"
@@ -145,12 +165,12 @@ export default function AdminMessages() {
               </label>
             ))}
           </div>
-          <p className="am-note">{AUDIENCES.find((a) => a.value === audience)?.note}</p>
+          <p className="am-note">{AUDIENCES().find((a) => a.value === audience)?.note}</p>
 
           {audience === 'users' && (
             <div className="am-people">
               {chosen.length > 0 && (
-                <ul className="am-chosen" aria-label="Chosen people">
+                <ul className="am-chosen" aria-label={t('Chosen people', 'বাছাই করা মানুষ')}>
                   {chosen.map((person) => (
                     <li key={person.email}>
                       <span>
@@ -158,7 +178,7 @@ export default function AdminMessages() {
                       </span>
                       <button
                         type="button"
-                        aria-label={`Remove ${person.username}`}
+                        aria-label={t(`Remove ${person.username}`, `${person.username}-কে সরান`)}
                         onClick={() => setChosen((list) => list.filter((p) => p.email !== person.email))}
                       >
                         <FaTimes aria-hidden="true" />
@@ -173,8 +193,8 @@ export default function AdminMessages() {
                   name="findPerson"
                   type="search"
                   className="field"
-                  placeholder="Find someone by name or e-mail..."
-                  aria-label="Find someone to add"
+                  placeholder={t('Find someone by name or e-mail...', 'নাম বা ই-মেইল দিয়ে কাউকে খুঁজুন...')}
+                  aria-label={t('Find someone to add', 'যোগ করার জন্য কাউকে খুঁজুন')}
                   value={find}
                   onChange={(e) => setFind(e.target.value)}
                 />
@@ -194,12 +214,12 @@ export default function AdminMessages() {
                           disabled={picked}
                           onClick={() => add({ email: user.email, username: user.username })}
                         >
-                          <FaUserPlus aria-hidden="true" /> {picked ? 'Added' : 'Add'}
+                          <FaUserPlus aria-hidden="true" /> {picked ? t('Added', 'যোগ হয়েছে') : t('Add', 'যোগ করুন')}
                         </button>
                       </li>
                     );
                   })}
-                  {found && found.items.length === 0 && <li className="admin-cell-muted">Nobody matches.</li>}
+                  {found && found.items.length === 0 && <li className="admin-cell-muted">{t('Nobody matches.', 'কেউ মেলেনি।')}</li>}
                 </ul>
               )}
             </div>
@@ -207,7 +227,7 @@ export default function AdminMessages() {
         </fieldset>
 
         <label className="am-field">
-          <span>Title</span>
+          <span>{t('Title', 'শিরোনাম')}</span>
           <input
             name="title"
             className="field"
@@ -217,11 +237,11 @@ export default function AdminMessages() {
               setTitle(e.target.value);
               setConfirming(false);
             }}
-            placeholder="Eid sale: 20% off this weekend"
+            placeholder={t('Eid sale: 20% off this weekend', 'ঈদের সেল: এই সপ্তাহান্তে ২০% ছাড়')}
           />
         </label>
         <label className="am-field">
-          <span>Message</span>
+          <span>{t('Message', 'বার্তা')}</span>
           <textarea
             name="body"
             className="field"
@@ -232,12 +252,16 @@ export default function AdminMessages() {
               setBody(e.target.value);
               setConfirming(false);
             }}
-            placeholder="Write what you want to tell them. A blank line starts a new paragraph in the e-mail."
+            placeholder={t(
+              'Write what you want to tell them. A blank line starts a new paragraph in the e-mail.',
+              'যা জানাতে চান লিখুন। একটি ফাঁকা লাইন দিলে ই-মেইলে নতুন অনুচ্ছেদ শুরু হয়।'
+            )}
           />
         </label>
         <label className="am-field">
           <span>
-            Link <span className="admin-cell-muted">(optional, a page on this site)</span>
+            {t('Link', 'লিংক')}{' '}
+            <span className="admin-cell-muted">{t('(optional, a page on this site)', '(ঐচ্ছিক, এই সাইটের একটি পাতা)')}</span>
           </span>
           <input
             name="link"
@@ -248,34 +272,40 @@ export default function AdminMessages() {
             placeholder="/filter?deals=1"
             aria-invalid={!linkOk}
           />
-          {!linkOk && <small className="am-error">Start it with /, for a page on this site.</small>}
+          {!linkOk && <small className="am-error">{t('Start it with /, for a page on this site.', 'এই সাইটের পাতার জন্য / দিয়ে শুরু করুন।')}</small>}
         </label>
 
         {(title || body) && (
-          <div className="am-preview" aria-label="Preview">
+          <div className="am-preview" aria-label={t('Preview', 'প্রিভিউ')}>
             <span className="am-preview-icon" aria-hidden="true">
               📣
             </span>
             <span>
-              <b>{title || 'Title'}</b>
-              <span className="am-preview-body">{body || 'Message'}</span>
+              <b>{title || t('Title', 'শিরোনাম')}</b>
+              <span className="am-preview-body">{body || t('Message', 'বার্তা')}</span>
             </span>
           </div>
         )}
 
         <div className="am-send">
           <p className="am-reach">
-            Reaches <b>{reach}</b> {reach === 1 ? 'person' : 'people'}
-            {channel !== 'notification' && reach > 50 ? ' · e-mails to many people take a while to send' : ''}
+            {t('Reaches', 'পৌঁছাবে')} <b>{digits(reach)}</b> {t(reach === 1 ? 'person' : 'people', 'জনের কাছে')}
+            {channel !== 'notification' && reach > 50
+              ? t(' · e-mails to many people take a while to send', ' · অনেকের কাছে ই-মেইল পাঠাতে একটু সময় লাগে')
+              : ''}
           </p>
           {confirming && (
             <button type="button" className="btn btn-ghost" onClick={() => setConfirming(false)}>
-              Change something
+              {t('Change something', 'কিছু বদলান')}
             </button>
           )}
           <button type="submit" className="btn btn-primary" disabled={!ready || isPending}>
             <FaPaperPlane aria-hidden="true" />
-            {isPending ? 'Sending...' : confirming ? `Yes, send to ${reach}` : 'Send'}
+            {isPending
+              ? t('Sending...', 'পাঠানো হচ্ছে...')
+              : confirming
+                ? t(`Yes, send to ${reach}`, `হ্যাঁ, ${digits(reach)} জনকে পাঠান`)
+                : t('Send', 'পাঠান')}
           </button>
         </div>
       </form>

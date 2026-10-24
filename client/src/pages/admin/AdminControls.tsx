@@ -1,6 +1,7 @@
 import { FaSyncAlt } from 'react-icons/fa';
 
 import type { ReviewKind } from '../../hooks/queries.js';
+import { t } from '../../utils/language.js';
 
 export interface FilterOption {
   value: string;
@@ -42,11 +43,11 @@ export function FilterSelect({
 /** Book reviews or seller ratings, on the two review pages. */
 export function ReviewKindTabs({ kind, onChange }: { kind: ReviewKind; onChange: (kind: ReviewKind) => void }) {
   const tabs: readonly { value: ReviewKind; label: string }[] = [
-    { value: 'book', label: 'Book reviews' },
-    { value: 'seller', label: 'Seller ratings' },
+    { value: 'book', label: t('Book reviews', 'বইয়ের রিভিউ') },
+    { value: 'seller', label: t('Seller ratings', 'বিক্রেতার রেটিং') },
   ];
   return (
-    <div role="tablist" aria-label="Which reviews" className="admin-tabs">
+    <div role="tablist" aria-label={t('Which reviews', 'কোন রিভিউ')} className="admin-tabs">
       {tabs.map((tab) => (
         <button
           key={tab.value}
@@ -68,7 +69,7 @@ export function RefreshButton({ onClick, busy }: { onClick: () => void; busy: bo
   return (
     <button type="button" className="btn btn-ghost admin-btn-sm" onClick={onClick} disabled={busy}>
       <FaSyncAlt aria-hidden="true" className={busy ? 'admin-spin' : undefined} />
-      {busy ? 'Refreshing...' : 'Refresh'}
+      {busy ? t('Refreshing...', 'হালনাগাদ হচ্ছে...') : t('Refresh', 'হালনাগাদ করুন')}
     </button>
   );
 }
