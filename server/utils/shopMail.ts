@@ -30,7 +30,7 @@ const inFlight = new Set<Promise<void>>();
  */
 const languageOfAccount = async (email: string): Promise<Language> => {
   try {
-    const user = await User.findOne({ email }, { language: 1 }).lean();
+    const user = await User.findOne({ email: { $eq: email } }, { language: 1 }).lean();
     return asLanguage(user?.language);
   } catch (err) {
     log.warn({ err }, 'Could not look up the recipient language');
