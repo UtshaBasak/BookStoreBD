@@ -10,6 +10,7 @@ import { recordAudit } from '../utils/audit.js';
 import { contains } from '../utils/regex.js';
 import { isSameBook, keyOf, listedAlready, normaliseIsbn } from '../utils/wanted.js';
 import type { CreateWantedBody, WantedListQuery } from '../schemas/index.js';
+import { bnDigits, t } from '../utils/language.js';
 
 /** Open requests one person may have at a time: plenty to ask, too few to flood the board. */
 export const MAX_OPEN_PER_PERSON = 20;
@@ -68,9 +69,13 @@ export const listWanted: RequestHandler = async (req, res, next) => {
 };
 
 /** Why someone cannot ask for one more book, or null when they can. */
-const overLimit = async (email: string): Promise<string | null> =>
+const overLimit = async (req: Parameters<typeof t>[0], email: string): Promise<string | null> =>
   (await WantedBook.countDocuments({ status: 'open', 'requesters.email': email })) >= MAX_OPEN_PER_PERSON
-    ? `You can ask for up to ${MAX_OPEN_PER_PERSON} books at a time. Remove one you no longer need first.`
+    ? t(
+        req,
+        `You can ask for up to ${MAX_OPEN_PER_PERSON} books at a time. Remove one you no longer need first.`,
+        `একসঙ্গে সর্বোচ্চ ${bnDigits(MAX_OPEN_PER_PERSON)}টি বই চাইতে পারেন। আগে যেটি আর দরকার নেই, সেটি সরান।`
+      )
     : null;
 
 /**
@@ -100,7 +105,7 @@ export const createWanted: RequestHandler = async (req, res, next) => {
     const request = { title, author, isbn: normaliseIsbn(isbn), titleKey: keyOf(title), authorKey: keyOf(author) };
 
     if (request.titleKey.length < 2) {
-      res.status(400).json({ message: 'Give the title as it is printed on the book' });
+      res.status(400).json({ message: t(req, 'Give the title as it is printed on the book', 'বইয়ে যেভাবে ছাপা আছে, সেভাবে শিরোনাম লিখুন') });
       return;
     }
 
@@ -108,7 +113,7 @@ export const createWanted: RequestHandler = async (req, res, next) => {
     if (listed) {
       const body: CreateWantedResponse = {
         result: 'listed',
-        message: 'Good news: this book is in the shop already.',
+        message: t(req, 'Good news: this book is in the shop already.', 'সুখবর: বইটি শপে আগে থেকেই আছে।'),
         book: { _id: String(listed._id), title: listed.title },
       };
       res.status(200).json(body);
@@ -124,7 +129,7 @@ export const createWanted: RequestHandler = async (req, res, next) => {
     if (existing) {
       if (!existing.requesters.some((r) => r.email === actor.email)) {
         // Joining counts towards the limit as asking does.
-        const limit = await overLimit(actor.email);
+        const limit = await overLimit(req, actor.email);
         if (limit) {
           res.status(429).json({ message: limit });
           return;
@@ -142,15 +147,23 @@ export const createWanted: RequestHandler = async (req, res, next) => {
         result: 'joined',
         message:
           others > 0
-            ? `${others} ${others === 1 ? 'other reader has' : 'other readers have'} asked for this too. You are on the list, and everyone hears the moment it is listed.`
-            : 'You have asked for this already. You will hear the moment it is listed.',
+            ? t(
+                req,
+                `${others} ${others === 1 ? 'other reader has' : 'other readers have'} asked for this too. You are on the list, and everyone hears the moment it is listed.`,
+                `আরও ${bnDigits(others)} জন পাঠক বইটি চেয়েছেন। আপনিও তালিকায় আছেন; বইটি তালিকায় আসামাত্র সবাইকে জানানো হবে।`
+              )
+            : t(
+                req,
+                'You have asked for this already. You will hear the moment it is listed.',
+                'আপনি বইটি আগেই চেয়েছেন। তালিকায় আসামাত্র আপনাকে জানানো হবে।'
+              ),
         item: toItem(fresh, actor.email),
       };
       res.status(200).json(body);
       return;
     }
 
-    const limit = await overLimit(actor.email);
+    const limit = await overLimit(req, actor.email);
     if (limit) {
       res.status(429).json({ message: limit });
       return;
@@ -165,7 +178,11 @@ export const createWanted: RequestHandler = async (req, res, next) => {
     });
     const body: CreateWantedResponse = {
       result: 'created',
-      message: 'It is on the Wanted board. We will tell you the moment someone lists it.',
+      message: t(
+        req,
+        'It is on the Wanted board. We will tell you the moment someone lists it.',
+        'বইটি চাহিদার বোর্ডে উঠেছে। কেউ তালিকায় দেওয়ামাত্র আপনাকে জানাব।'
+      ),
       item: toItem(entry.toObject(), actor.email),
     };
     res.status(201).json(body);
@@ -180,11 +197,11 @@ export const joinWanted: RequestHandler<{ id: string }> = async (req, res, next)
     const actor = actingUser(req);
     const entry = await WantedBook.findOne({ _id: String(req.params.id), status: 'open' });
     if (!entry) {
-      res.status(404).json({ message: 'That request is no longer open' });
+      res.status(404).json({ message: t(req, 'That request is no longer open', 'এই অনুরোধটি আর খোলা নেই') });
       return;
     }
     if (!entry.requesters.some((r) => r.email === actor.email)) {
-      const limit = await overLimit(actor.email);
+      const limit = await overLimit(req, actor.email);
       if (limit) {
         res.status(429).json({ message: limit });
         return;
@@ -204,18 +221,21 @@ export const leaveWanted: RequestHandler<{ id: string }> = async (req, res, next
     const actor = actingUser(req);
     const entry = await WantedBook.findById(String(req.params.id));
     if (!entry) {
-      res.status(404).json({ message: 'Request not found' });
+      res.status(404).json({ message: t(req, 'Request not found', 'অনুরোধটি পাওয়া যায়নি') });
       return;
     }
     entry.set('requesters', entry.requesters.filter((r) => r.email !== actor.email));
     entry.requesterCount = entry.requesters.length;
     if (entry.requesterCount === 0 && entry.status === 'open') {
       await entry.deleteOne();
-      res.status(200).json({ message: 'Removed from the Wanted board' });
+      res.status(200).json({ message: t(req, 'Removed from the Wanted board', 'চাহিদার বোর্ড থেকে সরানো হয়েছে') });
       return;
     }
     await entry.save();
-    res.status(200).json({ message: 'You are off the list for this book', item: toItem(entry.toObject(), actor.email) });
+    res.status(200).json({
+      message: t(req, 'You are off the list for this book', 'এই বইয়ের তালিকা থেকে আপনাকে সরানো হয়েছে'),
+      item: toItem(entry.toObject(), actor.email),
+    });
   } catch (error) {
     next(error);
   }
@@ -226,7 +246,7 @@ export const removeWanted: RequestHandler<{ id: string }> = async (req, res, nex
   try {
     const entry = await WantedBook.findByIdAndDelete(String(req.params.id));
     if (!entry) {
-      res.status(404).json({ message: 'Request not found' });
+      res.status(404).json({ message: t(req, 'Request not found', 'অনুরোধটি পাওয়া যায়নি') });
       return;
     }
     await recordAudit(req, {
@@ -235,7 +255,7 @@ export const removeWanted: RequestHandler<{ id: string }> = async (req, res, nex
       targetId: String(entry._id),
       details: { title: entry.title, requesters: entry.requesterCount },
     });
-    res.status(200).json({ message: 'Request removed' });
+    res.status(200).json({ message: t(req, 'Request removed', 'অনুরোধটি সরানো হয়েছে') });
   } catch (error) {
     next(error);
   }

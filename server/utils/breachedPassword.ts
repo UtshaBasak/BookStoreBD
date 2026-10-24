@@ -2,6 +2,7 @@ import crypto from 'node:crypto';
 
 import { createLogger } from '../config/logger.js';
 import { passwordMessage, passwordProblems } from './passwordPolicy.js';
+import { inLanguage, type Language } from './language.js';
 
 const log = createLogger('password');
 
@@ -50,17 +51,21 @@ export const isBreached = async (password: string): Promise<boolean> => {
 export const BREACHED_MESSAGE =
   'This password has appeared in a data breach elsewhere, so attackers already try it. Please choose a different one.';
 
+export const BREACHED_MESSAGE_BN =
+  'এই পাসওয়ার্ডটি অন্য কোথাও তথ্য ফাঁসের ঘটনায় প্রকাশ পেয়েছে, তাই হ্যাকাররা এটি আগে থেকেই চেষ্টা করে। অন্য একটি পাসওয়ার্ড বেছে নিন।';
+
 /**
- * Everything wrong with a password somebody is about to set, as one message,
- * or '' when it may be used. The rules first, then the breach check, which is
+ * Everything wrong with a password somebody is about to set, as one message in
+ * the language given, or '' when it may be used. The rules first, then the breach check, which is
  * only worth a network round trip for a password that passes the rest.
  */
 export const newPasswordProblem = async (
   password: string,
-  context: { email?: string | null; username?: string | null }
+  context: { email?: string | null; username?: string | null },
+  language: Language = 'en'
 ): Promise<string> => {
   const problems = passwordProblems(password, context);
-  if (problems.length) return passwordMessage(problems);
-  if (await isBreached(password)) return BREACHED_MESSAGE;
+  if (problems.length) return passwordMessage(problems, language);
+  if (await isBreached(password)) return inLanguage(language, BREACHED_MESSAGE, BREACHED_MESSAGE_BN);
   return '';
 };

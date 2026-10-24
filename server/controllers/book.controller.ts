@@ -9,6 +9,7 @@ import { serveStoredImage } from '../utils/serveImage.js';
 import { contains } from '../utils/regex.js';
 import { createLogger } from '../config/logger.js';
 import { countView } from '../utils/bookStats.js';
+import { t } from '../utils/language.js';
 
 const log = createLogger('book');
 
@@ -34,12 +35,12 @@ export const getBookCover: RequestHandler<{ id: string; index?: string }> = asyn
         const book = await AddBook.findById(req.params.id).select('images').lean();
         const image = book?.images?.[index];
         if (!image) {
-            res.status(404).json({ message: 'Cover not found' });
+            res.status(404).json({ message: t(req, 'Cover not found', 'প্রচ্ছদ পাওয়া যায়নি') });
             return;
         }
 
         if (!serveStoredImage(req, res, image)) {
-            res.status(404).json({ message: 'Cover not found' });
+            res.status(404).json({ message: t(req, 'Cover not found', 'প্রচ্ছদ পাওয়া যায়নি') });
         }
     } catch (error) {
         next(error);
@@ -51,7 +52,7 @@ export const getBookById: RequestHandler = async (req, res) => {
     try {
         const book = await AddBook.findById(req.params.id);
         if (!book) {
-            res.status(404).json({ message: 'Book not found' });
+            res.status(404).json({ message: t(req, 'Book not found', 'বইটি পাওয়া যায়নি') });
             return;
         }
 
@@ -79,7 +80,7 @@ export const getBookById: RequestHandler = async (req, res) => {
         res.status(200).json(bookResponse);
     } catch (error) {
         log.error({ err: error }, 'Error fetching book');
-        res.status(500).json({ message: 'Error fetching book details' });
+        res.status(500).json({ message: t(req, 'Error fetching book details', 'বইয়ের বিস্তারিত আনা যায়নি') });
     }
 };
 
@@ -141,6 +142,6 @@ export const adminBookList: RequestHandler = async (req, res) => {
     });
   } catch (error) {
     log.error({ err: error }, 'Error listing books for an administrator');
-    res.status(500).json({ message: 'Error listing books' });
+    res.status(500).json({ message: t(req, 'Error listing books', 'বইয়ের তালিকা আনা যায়নি') });
   }
 };

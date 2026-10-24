@@ -10,6 +10,8 @@
  * checkout and in the policy pages. Change one, change the other.
  */
 
+import { inLanguage, type Language } from '../utils/language.js';
+
 export const DELIVERY = {
   /** Taka, for an address in Dhaka district. */
   insideDhaka: 70,
@@ -127,24 +129,32 @@ export const statusChangeProblem = (
   role: 'admin' | 'seller',
   from: string | null | undefined,
   to: string,
-  { deliveredLocked = false }: { deliveredLocked?: boolean } = {}
+  { deliveredLocked = false }: { deliveredLocked?: boolean } = {},
+  language: Language = 'en'
 ): string | null => {
-  if (from === CANCELLED) return 'A cancelled order cannot be changed.';
-  if (stageOf(to) === -1) return 'That is not a status an order can have.';
+  const say = (en: string, bn: string): string => inLanguage(language, en, bn);
+  if (from === CANCELLED) return say('A cancelled order cannot be changed.', 'বাতিল হওয়া অর্ডার আর বদলানো যায় না।');
+  if (stageOf(to) === -1) return say('That is not a status an order can have.', 'অর্ডারের এমন কোনো স্ট্যাটাস হয় না।');
   if (role === 'admin') {
     if (from === 'Delivered' && to !== 'Delivered' && deliveredLocked) {
-      return 'This order has been paid out or has a return request, so it stays Delivered.';
+      return say(
+        'This order has been paid out or has a return request, so it stays Delivered.',
+        'এই অর্ডারের টাকা পরিশোধ হয়ে গেছে বা রিটার্নের অনুরোধ আছে, তাই এটি ডেলিভারড থাকবে।'
+      );
     }
     return null;
   }
   if (stageOf(from) > stageOf(SELLER_LAST_STAGE)) {
-    return 'Once an order is past Shipped, only the shop can update it.';
+    return say('Once an order is past Shipped, only the shop can update it.', 'অর্ডার শিপড হওয়ার পর শুধু শপ এটি হালনাগাদ করতে পারে।');
   }
   if (stageOf(to) > stageOf(SELLER_LAST_STAGE)) {
-    return 'Out for Delivery and Delivered are set by the shop.';
+    return say('Out for Delivery and Delivered are set by the shop.', '"ডেলিভারির পথে" ও "ডেলিভারড" শপ নিজে ঠিক করে।');
   }
   if (stageOf(to) < stageOf(from)) {
-    return 'An order moves forward only. Message the shop if it needs correcting.';
+    return say(
+      'An order moves forward only. Message the shop if it needs correcting.',
+      'অর্ডার শুধু সামনের দিকে এগোয়। শুধরাতে হলে শপকে মেসেজ করুন।'
+    );
   }
   return null;
 };

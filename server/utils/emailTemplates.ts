@@ -9,11 +9,13 @@
  * no HTML and for anything that reads mail as text.
  */
 import { SHOP_LOCATION, SUPPORT_EMAIL } from '../config/contact.js';
+import { bnDigits, inLanguage, type Language } from './language.js';
 import { OTP_TTL_MS } from './otpStore.js';
 
 const SHOP = 'BookStoreBD';
 const SUPPORT = SUPPORT_EMAIL;
 const PLACE = SHOP_LOCATION;
+const PLACE_BN = 'ঢাকা, বাংলাদেশ';
 
 const BRAND = '#6d28d9';
 const BRAND_DARK = '#5b21b6';
@@ -30,11 +32,22 @@ export interface Email {
   html: string;
 }
 
+/**
+ * A template waiting for a language. Every e-mail is written in both, and the
+ * one that goes out is chosen when it is sent: by the recipient's account
+ * (`dispatchShopMail`), or by the request that caused it where the recipient
+ * has no account yet.
+ */
+export type MailFor = (language: Language) => Email;
+
 /** Only for our own fixed strings and digits, but escaped regardless. */
 const escape = (value: string): string =>
   value.replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c] ?? c);
 
 const minutes = Math.round(OTP_TTL_MS / 60000);
+
+/** A number inside text: Bangla digits in Bangla. */
+const num = (language: Language, value: number | string): string => (language === 'bn' ? bnDigits(value) : String(value));
 
 /** The site's address, when known, for a link back to it. */
 const siteUrl = (): string =>
@@ -44,11 +57,21 @@ const siteUrl = (): string =>
  * The frame every message shares: a coloured header with the shop's name and
  * what the message is, the body, and a footer saying who sent it and why.
  */
-const layout = ({ heading, preheader, body }: { heading: string; preheader: string; body: string }): string => {
+const layout = ({
+  heading,
+  preheader,
+  body,
+  language,
+}: {
+  heading: string;
+  preheader: string;
+  body: string;
+  language: Language;
+}): string => {
   const url = siteUrl();
-  const year = new Date().getFullYear();
+  const year = num(language, new Date().getFullYear());
   return `<!doctype html>
-<html lang="en">
+<html lang="${language}">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -69,8 +92,8 @@ const layout = ({ heading, preheader, body }: { heading: string; preheader: stri
 ${body}
 </td></tr>
 <tr><td style="padding:20px 32px 28px;border-top:1px solid #ece8f7;font-family:${SANS};font-size:12px;line-height:1.6;color:${MUTED};" align="center">
-Questions? Write to <a href="mailto:${SUPPORT}" style="color:${BRAND_DARK};">${SUPPORT}</a>${url ? ` &middot; <a href="${escape(url)}" style="color:${BRAND_DARK};">${escape(url.replace(/^https?:\/\//, ''))}</a>` : ''}<br>
-&copy; ${year} ${SHOP}, ${PLACE}
+${inLanguage(language, 'Questions? Write to', 'প্রশ্ন থাকলে লিখুন:')} <a href="mailto:${SUPPORT}" style="color:${BRAND_DARK};">${SUPPORT}</a>${url ? ` &middot; <a href="${escape(url)}" style="color:${BRAND_DARK};">${escape(url.replace(/^https?:\/\//, ''))}</a>` : ''}<br>
+&copy; ${year} ${SHOP}, ${inLanguage(language, PLACE, PLACE_BN)}
 </td></tr>
 </table>
 </td></tr>
@@ -82,59 +105,113 @@ Questions? Write to <a href="mailto:${SUPPORT}" style="color:${BRAND_DARK};">${S
 const paragraph = (html: string, extra = ''): string =>
   `<p style="margin:0 0 16px;${extra}">${html}</p>`;
 
-const textFooter = (): string => {
+const textFooter = (language: Language): string => {
   const url = siteUrl();
-  return [`Questions? Write to ${SUPPORT}.`, url, `${SHOP}, ${PLACE}`].filter(Boolean).join('\n');
+  return [
+    inLanguage(language, `Questions? Write to ${SUPPORT}.`, `প্রশ্ন থাকলে লিখুন: ${SUPPORT}`),
+    url,
+    `${SHOP}, ${inLanguage(language, PLACE, PLACE_BN)}`,
+  ]
+    .filter(Boolean)
+    .join('\n');
 };
 
 type CodePurpose = 'register' | 'reset' | 'signin' | 'delete-account' | 'two-factor-off' | 'email-change';
 
-const COPY: Record<CodePurpose, { subject: string; heading: string; lead: string; ignore?: string }> = {
-  register: {
-    subject: `Your ${SHOP} sign-up code`,
-    heading: 'Confirm your e-mail address',
-    lead: `Welcome to ${SHOP}! Enter this code on the sign-up page to finish creating your account.`,
-  },
-  reset: {
-    subject: `Your ${SHOP} password reset code`,
-    heading: 'Reset your password',
-    lead: 'Enter this code on the password reset page to choose a new password.',
-  },
-  signin: {
-    subject: `Your ${SHOP} sign-in code`,
-    heading: 'Confirm it is you',
-    lead: 'Your password was just entered on the sign-in page. Enter this code there to finish signing in.',
-    ignore:
-      "If this wasn't you, someone knows your password: reset it from the sign-in page. They cannot sign in without this code.",
-  },
-  'delete-account': {
-    subject: `Your ${SHOP} code to delete your account`,
-    heading: 'Confirm deleting your account',
-    lead: 'You asked to delete your account. Enter this code on your profile to confirm. Deleting an account cannot be undone.',
-    ignore: "If you didn't ask for this, you can ignore this e-mail - your account stays as it is.",
-  },
-  'two-factor-off': {
-    subject: `Your ${SHOP} code to turn off two-step sign-in`,
-    heading: 'Confirm turning off two-step sign-in',
-    lead: 'You asked to turn off two-step sign-in. Enter this code on your profile to confirm.',
-    ignore: "If you didn't ask for this, you can ignore this e-mail - two-step sign-in stays on.",
-  },
-  'email-change': {
-    subject: `Your ${SHOP} code to confirm your new e-mail address`,
-    heading: 'Confirm your new e-mail address',
-    lead: `You asked to move your ${SHOP} account to this address. Enter this code on your profile to confirm it.`,
-    ignore: "If you didn't ask for this, you can ignore this e-mail - nothing changes without the code.",
-  },
+const copyFor = (
+  purpose: CodePurpose,
+  language: Language
+): { subject: string; heading: string; lead: string; ignore?: string } => {
+  const say = (en: string, bn: string): string => inLanguage(language, en, bn);
+  switch (purpose) {
+    case 'register':
+      return {
+        subject: say(`Your ${SHOP} sign-up code`, `আপনার ${SHOP} সাইন আপ কোড`),
+        heading: say('Confirm your e-mail address', 'আপনার ই-মেইল ঠিকানা নিশ্চিত করুন'),
+        lead: say(
+          `Welcome to ${SHOP}! Enter this code on the sign-up page to finish creating your account.`,
+          `${SHOP}-এ স্বাগতম! অ্যাকাউন্ট তৈরি শেষ করতে সাইন আপ পেজে এই কোডটি লিখুন।`
+        ),
+      };
+    case 'reset':
+      return {
+        subject: say(`Your ${SHOP} password reset code`, `আপনার ${SHOP} পাসওয়ার্ড রিসেট কোড`),
+        heading: say('Reset your password', 'পাসওয়ার্ড রিসেট করুন'),
+        lead: say(
+          'Enter this code on the password reset page to choose a new password.',
+          'নতুন পাসওয়ার্ড বেছে নিতে পাসওয়ার্ড রিসেট পেজে এই কোডটি লিখুন।'
+        ),
+      };
+    case 'signin':
+      return {
+        subject: say(`Your ${SHOP} sign-in code`, `আপনার ${SHOP} সাইন ইন কোড`),
+        heading: say('Confirm it is you', 'নিশ্চিত করুন এটি আপনিই'),
+        lead: say(
+          'Your password was just entered on the sign-in page. Enter this code there to finish signing in.',
+          'সাইন ইন পেজে এইমাত্র আপনার পাসওয়ার্ড দেওয়া হয়েছে। সাইন ইন শেষ করতে সেখানে এই কোডটি লিখুন।'
+        ),
+        ignore: say(
+          "If this wasn't you, someone knows your password: reset it from the sign-in page. They cannot sign in without this code.",
+          'এটি আপনি না হলে কেউ আপনার পাসওয়ার্ড জানে: সাইন ইন পেজ থেকে সেটি রিসেট করুন। এই কোড ছাড়া তারা সাইন ইন করতে পারবে না।'
+        ),
+      };
+    case 'delete-account':
+      return {
+        subject: say(`Your ${SHOP} code to delete your account`, `আপনার ${SHOP} অ্যাকাউন্ট মুছে ফেলার কোড`),
+        heading: say('Confirm deleting your account', 'অ্যাকাউন্ট মুছে ফেলা নিশ্চিত করুন'),
+        lead: say(
+          'You asked to delete your account. Enter this code on your profile to confirm. Deleting an account cannot be undone.',
+          'আপনি অ্যাকাউন্ট মুছে ফেলতে চেয়েছেন। নিশ্চিত করতে প্রোফাইলে এই কোডটি লিখুন। মুছে ফেলা অ্যাকাউন্ট আর ফিরিয়ে আনা যায় না।'
+        ),
+        ignore: say(
+          "If you didn't ask for this, you can ignore this e-mail - your account stays as it is.",
+          'আপনি এটি না চেয়ে থাকলে এই ই-মেইল উপেক্ষা করতে পারেন - আপনার অ্যাকাউন্ট যেমন আছে তেমনই থাকবে।'
+        ),
+      };
+    case 'two-factor-off':
+      return {
+        subject: say(`Your ${SHOP} code to turn off two-step sign-in`, `আপনার ${SHOP} টু-স্টেপ সাইন ইন বন্ধ করার কোড`),
+        heading: say('Confirm turning off two-step sign-in', 'টু-স্টেপ সাইন ইন বন্ধ করা নিশ্চিত করুন'),
+        lead: say(
+          'You asked to turn off two-step sign-in. Enter this code on your profile to confirm.',
+          'আপনি টু-স্টেপ সাইন ইন বন্ধ করতে চেয়েছেন। নিশ্চিত করতে প্রোফাইলে এই কোডটি লিখুন।'
+        ),
+        ignore: say(
+          "If you didn't ask for this, you can ignore this e-mail - two-step sign-in stays on.",
+          'আপনি এটি না চেয়ে থাকলে এই ই-মেইল উপেক্ষা করতে পারেন - টু-স্টেপ সাইন ইন চালু থাকবে।'
+        ),
+      };
+    case 'email-change':
+      return {
+        subject: say(`Your ${SHOP} code to confirm your new e-mail address`, `আপনার নতুন ই-মেইল ঠিকানা নিশ্চিত করার ${SHOP} কোড`),
+        heading: say('Confirm your new e-mail address', 'আপনার নতুন ই-মেইল ঠিকানা নিশ্চিত করুন'),
+        lead: say(
+          `You asked to move your ${SHOP} account to this address. Enter this code on your profile to confirm it.`,
+          `আপনি আপনার ${SHOP} অ্যাকাউন্ট এই ঠিকানায় নিতে চেয়েছেন। নিশ্চিত করতে প্রোফাইলে এই কোডটি লিখুন।`
+        ),
+        ignore: say(
+          "If you didn't ask for this, you can ignore this e-mail - nothing changes without the code.",
+          'আপনি এটি না চেয়ে থাকলে এই ই-মেইল উপেক্ষা করতে পারেন - কোড ছাড়া কিছুই বদলাবে না।'
+        ),
+      };
+  }
 };
 
 /** A one-time code: signing up, resetting a password, two-step sign-in, or confirming an account change. */
-export const codeEmail = (purpose: CodePurpose, code: string): Email => {
-  const copy = COPY[purpose];
+export const codeEmail = (purpose: CodePurpose, code: string): MailFor => (language) => {
+  const copy = copyFor(purpose, language);
   const safeCode = escape(code);
+  const say = (en: string, bn: string): string => inLanguage(language, en, bn);
+  const mins = num(language, minutes);
+  const defaultIgnore = say(
+    "If you didn't ask for it, you can ignore this e-mail - nothing happens without the code.",
+    'আপনি এটি না চেয়ে থাকলে এই ই-মেইল উপেক্ষা করতে পারেন - কোড ছাড়া কিছুই হবে না।'
+  );
 
   const html = layout({
+    language,
     heading: copy.heading,
-    preheader: `Your code is ${code}. It expires in ${minutes} minutes.`,
+    preheader: say(`Your code is ${code}. It expires in ${minutes} minutes.`, `আপনার কোড ${code}। এটি ${mins} মিনিট পর মেয়াদোত্তীর্ণ হবে।`),
     body: [
       paragraph(escape(copy.lead)),
       `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:8px 0 20px;">
@@ -142,13 +219,21 @@ export const codeEmail = (purpose: CodePurpose, code: string): Email => {
 <div style="font-family:'Courier New',Courier,monospace;font-size:34px;font-weight:bold;letter-spacing:10px;color:${BRAND_DARK};padding-left:10px;">${safeCode}</div>
 </td></tr>
 </table>`,
-      paragraph(`This code expires in <strong>${minutes} minutes</strong> and can be used once.`),
       paragraph(
-        `<strong>Never share it.</strong> ${SHOP} will never ask you for this code by phone, chat or e-mail.`,
+        say(
+          `This code expires in <strong>${minutes} minutes</strong> and can be used once.`,
+          `এই কোডটি <strong>${mins} মিনিট</strong> পর মেয়াদোত্তীর্ণ হবে এবং একবারই ব্যবহার করা যাবে।`
+        )
+      ),
+      paragraph(
+        say(
+          `<strong>Never share it.</strong> ${SHOP} will never ask you for this code by phone, chat or e-mail.`,
+          `<strong>কাউকে এটি জানাবেন না।</strong> ${SHOP} ফোন, চ্যাট বা ই-মেইলে কখনো এই কোড চাইবে না।`
+        ),
         `font-size:14px;color:${MUTED};`
       ),
       paragraph(
-        escape(copy.ignore ?? "If you didn't ask for it, you can ignore this e-mail - nothing happens without the code."),
+        escape(copy.ignore ?? defaultIgnore),
         `font-size:14px;color:${MUTED};`
       ),
     ].join('\n'),
@@ -159,13 +244,19 @@ export const codeEmail = (purpose: CodePurpose, code: string): Email => {
     '',
     copy.lead,
     '',
-    `Your code: ${code}`,
+    say(`Your code: ${code}`, `আপনার কোড: ${code}`),
     '',
-    `It expires in ${minutes} minutes and can be used once.`,
-    `Never share it: ${SHOP} will never ask you for this code.`,
-    copy.ignore ?? "If you didn't ask for it, you can ignore this e-mail.",
+    say(
+      `It expires in ${minutes} minutes and can be used once.`,
+      `এটি ${mins} মিনিট পর মেয়াদোত্তীর্ণ হবে এবং একবারই ব্যবহার করা যাবে।`
+    ),
+    say(
+      `Never share it: ${SHOP} will never ask you for this code.`,
+      `কাউকে এটি জানাবেন না: ${SHOP} কখনো আপনার কাছে এই কোড চাইবে না।`
+    ),
+    copy.ignore ?? say("If you didn't ask for it, you can ignore this e-mail.", 'আপনি এটি না চেয়ে থাকলে এই ই-মেইল উপেক্ষা করতে পারেন।'),
     '',
-    textFooter(),
+    textFooter(language),
   ].join('\n');
 
   return { subject: copy.subject, text, html };
@@ -176,45 +267,50 @@ export const codeEmail = (purpose: CodePurpose, code: string): Email => {
  * form. No code is issued; the owner is told, which is useful to them and
  * useless to whoever was checking whether the address is registered.
  */
-export const alreadyRegisteredEmail = (): Email => {
+export const alreadyRegisteredEmail = (): MailFor => (language) => {
   const url = siteUrl();
   const signIn = url ? `${url}/sign-in` : '';
+  const say = (en: string, bn: string): string => inLanguage(language, en, bn);
+  const heading = say('Someone tried to sign up with your address', 'কেউ আপনার ঠিকানা দিয়ে সাইন আপ করার চেষ্টা করেছে');
 
   const html = layout({
-    heading: 'Someone tried to sign up with your address',
-    preheader: 'Nothing was created, and your account has not changed.',
+    language,
+    heading,
+    preheader: say('Nothing was created, and your account has not changed.', 'কিছু তৈরি হয়নি, আর আপনার অ্যাকাউন্টও বদলায়নি।'),
     body: [
-      paragraph('Someone entered this e-mail address on our sign-up form.'),
+      paragraph(say('Someone entered this e-mail address on our sign-up form.', 'কেউ আমাদের সাইন আপ ফর্মে এই ই-মেইল ঠিকানাটি দিয়েছে।')),
       paragraph(
-        'This address already has an account, so <strong>nothing was created</strong> and no verification code was issued.'
+        say(
+          'This address already has an account, so <strong>nothing was created</strong> and no verification code was issued.',
+          'এই ঠিকানায় আগে থেকেই একটি অ্যাকাউন্ট আছে, তাই <strong>কিছু তৈরি হয়নি</strong> এবং কোনো ভেরিফিকেশন কোডও পাঠানো হয়নি।'
+        )
       ),
       signIn
         ? `<table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:4px 0 20px;"><tr><td bgcolor="${BRAND}" style="background:${BRAND};border-radius:999px;">
-<a href="${escape(signIn)}" style="display:inline-block;padding:13px 24px;font-family:${SANS};font-size:15px;font-weight:bold;color:#ffffff;text-decoration:none;">Sign in to ${SHOP}</a>
+<a href="${escape(signIn)}" style="display:inline-block;padding:13px 24px;font-family:${SANS};font-size:15px;font-weight:bold;color:#ffffff;text-decoration:none;">${say(`Sign in to ${SHOP}`, `${SHOP}-এ সাইন ইন করুন`)}</a>
 </td></tr></table>`
         : '',
       paragraph(
-        'If that was you, sign in instead - or use "Forgot password" if you cannot remember it. If it was not you, you can ignore this message. <strong>Your account has not changed.</strong>',
+        say(
+          'If that was you, sign in instead - or use "Forgot password" if you cannot remember it. If it was not you, you can ignore this message. <strong>Your account has not changed.</strong>',
+          'এটি আপনি হলে বরং সাইন ইন করুন - পাসওয়ার্ড মনে না থাকলে "পাসওয়ার্ড ভুলে গেছেন" ব্যবহার করুন। আপনি না হলে এই বার্তা উপেক্ষা করতে পারেন। <strong>আপনার অ্যাকাউন্ট বদলায়নি।</strong>'
+        ),
         `font-size:14px;color:${MUTED};`
       ),
     ].join('\n'),
   });
 
   const text = [
-    'Someone entered this address on our sign-up form.',
+    ...say(
+      'Someone entered this address on our sign-up form.\n\nThis address already has an account, so nothing was created and no\nverification code was issued.\n\nIf that was you, sign in instead - or use "Forgot password" if you cannot\nremember it. If it was not you, you can ignore this message. Your account\nhas not changed.',
+      'কেউ আমাদের সাইন আপ ফর্মে এই ঠিকানাটি দিয়েছে।\n\nএই ঠিকানায় আগে থেকেই একটি অ্যাকাউন্ট আছে, তাই কিছু তৈরি হয়নি এবং\nকোনো ভেরিফিকেশন কোডও পাঠানো হয়নি।\n\nএটি আপনি হলে বরং সাইন ইন করুন - পাসওয়ার্ড মনে না থাকলে "পাসওয়ার্ড ভুলে গেছেন"\nব্যবহার করুন। আপনি না হলে এই বার্তা উপেক্ষা করতে পারেন। আপনার অ্যাকাউন্ট\nবদলায়নি।'
+    ).split('\n'),
+    ...(signIn ? ['', `${say('Sign in', 'সাইন ইন')}: ${signIn}`] : []),
     '',
-    'This address already has an account, so nothing was created and no',
-    'verification code was issued.',
-    '',
-    'If that was you, sign in instead - or use "Forgot password" if you cannot',
-    'remember it. If it was not you, you can ignore this message. Your account',
-    'has not changed.',
-    ...(signIn ? ['', `Sign in: ${signIn}`] : []),
-    '',
-    textFooter(),
+    textFooter(language),
   ].join('\n');
 
-  return { subject: 'Someone tried to sign up with your address', text, html };
+  return { subject: heading, text, html };
 };
 
 // ---------------------------------------------------------------- notices
@@ -250,7 +346,7 @@ const TABLE = 'role="presentation" width="100%" cellpadding="0" cellspacing="0" 
 /** Plain text as HTML: escaped, with its own line breaks kept. */
 const textToHtml = (value: string): string => escape(value).replace(/\r?\n/g, '<br>');
 
-export const noticeEmail = (input: NoticeInput): Email => {
+export const noticeEmail = (input: NoticeInput, language: Language = 'en'): Email => {
   const url = siteUrl();
   const link = input.button && url ? `${url}${input.button.path}` : '';
 
@@ -283,6 +379,7 @@ ${input.facts
     : '';
 
   const html = layout({
+    language,
     heading: input.heading,
     preheader: input.preheader,
     body: [
@@ -306,7 +403,7 @@ ${input.facts
     ...(input.facts?.length ? [...input.facts.map(([label, value]) => `${label}: ${value}`), ''] : []),
     ...(link ? [`${input.button?.label}: ${link}`, ''] : []),
     ...(input.after ?? []).flatMap((line) => [line, '']),
-    textFooter(),
+    textFooter(language),
   ].join('\n');
 
   return { subject: input.subject, text, html };

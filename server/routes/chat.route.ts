@@ -21,6 +21,7 @@ import {
   type SendChatBody,
 } from '../schemas/index.js';
 import { securityEvent } from '../utils/securityLog.js';
+import { t } from '../utils/language.js';
 
 const log = createLogger('chat');
 
@@ -45,7 +46,7 @@ router.get(
         const { sender, receiver, page, limit } = validatedQuery<ChatMessagesQuery>(req);
         if (!isParticipant(req, sender, receiver)) {
             securityEvent(req, 'authz.denied', { reason: 'not_owner', extra: { resource_type: 'chat' } });
-            res.status(403).json({ message: 'Not a participant in this conversation' });
+            res.status(403).json({ message: t(req, 'Not a participant in this conversation', 'আপনি এই কথোপকথনে নেই') });
             return;
         }
 
@@ -99,18 +100,18 @@ router.get(
             .lean();
 
         if (!message || (message.deletedFor ?? []).includes(actingUser(req).email)) {
-            res.status(404).json({ message: 'Message not found' });
+            res.status(404).json({ message: t(req, 'Message not found', 'মেসেজটি পাওয়া যায়নি') });
             return;
         }
 
         if (!isParticipant(req, message.sender, message.receiver)) {
             securityEvent(req, 'authz.denied', { reason: 'not_owner', extra: { resource_type: 'chat' } });
-            res.status(403).json({ message: 'Not a participant in this conversation' });
+            res.status(403).json({ message: t(req, 'Not a participant in this conversation', 'আপনি এই কথোপকথনে নেই') });
             return;
         }
 
         if (!serveStoredImage(req, res, message.image)) {
-            res.status(404).json({ message: 'No attachment on that message' });
+            res.status(404).json({ message: t(req, 'No attachment on that message', 'এই মেসেজে কোনো সংযুক্তি নেই') });
         }
     } catch (error) {
         next(error);
@@ -216,7 +217,7 @@ router.post(
         // One or the other. An empty message with nothing attached is not a
         // message; a picture on its own is.
         if (!message?.trim() && !req.file) {
-            res.status(400).json({ message: 'Write something or attach a picture' });
+            res.status(400).json({ message: t(req, 'Write something or attach a picture', 'কিছু লিখুন বা একটি ছবি যোগ করুন') });
             return;
         }
 
@@ -266,7 +267,7 @@ router.delete(
         const { user1, user2 } = req.body;
         if (!isParticipant(req, user1, user2)) {
             securityEvent(req, 'authz.denied', { reason: 'not_owner', extra: { resource_type: 'chat' } });
-            res.status(403).json({ message: 'Not a participant in this conversation' });
+            res.status(403).json({ message: t(req, 'Not a participant in this conversation', 'আপনি এই কথোপকথনে নেই') });
             return;
         }
 
@@ -282,7 +283,7 @@ router.delete(
             // An administrator removing a conversation they are not in:
             // moderation, so it goes for both.
             await ChatMessage.deleteMany(thread);
-            res.status(200).json({ message: 'Conversation deleted for both people' });
+            res.status(200).json({ message: t(req, 'Conversation deleted for both people', 'দুজনের জন্যই কথোপকথনটি মুছে ফেলা হয়েছে') });
             return;
         }
 
@@ -296,7 +297,7 @@ router.delete(
         await ChatMessage.updateMany({ ...thread, receiver: actor, read: false }, { $set: { read: true } });
         await ChatMessage.deleteMany({ ...thread, deletedFor: { $all: [user1, user2] } });
 
-        res.status(200).json({ message: 'Conversation deleted for you' });
+        res.status(200).json({ message: t(req, 'Conversation deleted for you', 'আপনার জন্য কথোপকথনটি মুছে ফেলা হয়েছে') });
     } catch (error) {
         res.status(500).json({ message: errorMessage(error) });
     }

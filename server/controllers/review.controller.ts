@@ -16,8 +16,15 @@ import { contains } from '../utils/regex.js';
 import { validatedQuery } from '../middleware/validate.js';
 import type { AdminReviewQuery, FlaggedReviewQuery } from '../schemas/index.js';
 import { securityEvent } from '../utils/securityLog.js';
+import { bnDigits, t, type Bilingual } from '../utils/language.js';
 
 const log = createLogger('review');
+
+/** What somebody wrote, the same in either language. */
+const asWritten = (text: string): Bilingual => ({ en: text, bn: text });
+
+const reviewNotFound = (req: Parameters<typeof t>[0]): string => t(req, 'Review not found', 'রিভিউটি পাওয়া যায়নি');
+const bookNotFound = (req: Parameters<typeof t>[0]): string => t(req, 'Book not found', 'বইটি পাওয়া যায়নি');
 
 /** A rating as stars, by its value; anything but 1 to 5 has none. */
 const STARS: readonly string[] = ['', '★', '★★', '★★★', '★★★★', '★★★★★'];
@@ -81,7 +88,7 @@ export const listReviews: RequestHandler<{ id: string }> = async (req, res, next
     const bookId = req.params.id;
     const book = await AddBook.findById(bookId).select('sellerEmail ratingAverage ratingCount').lean();
     if (!book) {
-      res.status(404).json({ message: 'Book not found' });
+      res.status(404).json({ message: bookNotFound(req) });
       return;
     }
 
@@ -145,12 +152,12 @@ export const upsertReview: RequestHandler<{ id: string }> = async (req, res, nex
 
     const book = await AddBook.findById(bookId).select('sellerEmail title').lean();
     if (!book) {
-      res.status(404).json({ message: 'Book not found' });
+      res.status(404).json({ message: bookNotFound(req) });
       return;
     }
 
     if (actor.email === book.sellerEmail) {
-      res.status(403).json({ message: 'You cannot review your own listing' });
+      res.status(403).json({ message: t(req, 'You cannot review your own listing', 'নিজের বইয়ের রিভিউ লেখা যায় না') });
       return;
     }
 
@@ -158,8 +165,8 @@ export const upsertReview: RequestHandler<{ id: string }> = async (req, res, nex
     if (!orderNumber) {
       res.status(403).json({
         message: ordered
-          ? 'You can review this book once it has been delivered.'
-          : 'Only somebody who bought this book can review it',
+          ? t(req, 'You can review this book once it has been delivered.', 'বইটি ডেলিভারি হওয়ার পর রিভিউ লিখতে পারবেন।')
+          : t(req, 'Only somebody who bought this book can review it', 'শুধু যিনি বইটি কিনেছেন তিনিই রিভিউ লিখতে পারেন'),
       });
       return;
     }
@@ -192,8 +199,16 @@ export const upsertReview: RequestHandler<{ id: string }> = async (req, res, nex
         type: 'review',
         // A fixed row of stars rather than `repeat(rating)`: a string sized by
         // a request value is how a long one gets built.
-        title: `New ${STARS[Number(rating)] ?? ''} review of "${book.title}"`,
-        body: String(title || body).slice(0, 140) || `${reviewer?.username || 'A buyer'} rated it ${rating} out of 5.`,
+        title: {
+          en: `New ${STARS[Number(rating)] ?? ''} review of "${book.title}"`,
+          bn: `"${book.title}"-এর নতুন ${STARS[Number(rating)] ?? ''} রিভিউ`,
+        },
+        body: String(title || body).slice(0, 140)
+          ? asWritten(String(title || body).slice(0, 140))
+          : {
+              en: `${reviewer?.username || 'A buyer'} rated it ${rating} out of 5.`,
+              bn: `${reviewer?.username || 'একজন ক্রেতা'} ৫-এর মধ্যে ${bnDigits(rating)} রেটিং দিয়েছেন।`,
+            },
         link: `/book/${String(bookId)}#reviews`,
       });
     }
@@ -218,7 +233,7 @@ export const deleteReview: RequestHandler<{ id: string }> = async (req, res, nex
 
     const review = await Review.findOneAndDelete(filter);
     if (!review) {
-      res.status(404).json({ message: 'Review not found' });
+      res.status(404).json({ message: reviewNotFound(req) });
       return;
     }
 
@@ -237,7 +252,7 @@ export const deleteReview: RequestHandler<{ id: string }> = async (req, res, nex
       });
     }
 
-    res.status(200).json({ message: 'Review removed' });
+    res.status(200).json({ message: t(req, 'Review removed', 'রিভিউটি সরানো হয়েছে') });
   } catch (error) {
     next(error);
   }
@@ -259,14 +274,16 @@ export const replyToReview: RequestHandler<{ id: string }> = async (req, res, ne
 
     const review = await Review.findById(reviewId);
     if (!review) {
-      res.status(404).json({ message: 'Review not found' });
+      res.status(404).json({ message: reviewNotFound(req) });
       return;
     }
 
     const book = await AddBook.findById(review.book).select('sellerEmail').lean();
     if (!book || book.sellerEmail !== actor.email) {
       securityEvent(req, 'authz.denied', { reason: 'not_owner', extra: { resource_type: 'review' } });
-      res.status(403).json({ message: 'Only the seller of this book can reply to its reviews' });
+      res.status(403).json({
+        message: t(req, 'Only the seller of this book can reply to its reviews', 'শুধু এই বইয়ের বিক্রেতাই এর রিভিউয়ের উত্তর দিতে পারেন'),
+      });
       return;
     }
 
@@ -282,12 +299,12 @@ export const replyToReview: RequestHandler<{ id: string }> = async (req, res, ne
 
     await notify([review.reviewerEmail], {
       type: 'review-reply',
-      title: 'The seller replied to your review',
-      body: body.slice(0, 140),
+      title: { en: 'The seller replied to your review', bn: 'বিক্রেতা আপনার রিভিউয়ের উত্তর দিয়েছেন' },
+      body: asWritten(body.slice(0, 140)),
       link: `/book/${String(review.book)}#reviews`,
     });
 
-    res.status(200).json({ message: 'Reply saved', reply: review.reply });
+    res.status(200).json({ message: t(req, 'Reply saved', 'উত্তর সংরক্ষণ করা হয়েছে'), reply: review.reply });
   } catch (error) {
     next(error);
   }
@@ -300,13 +317,13 @@ export const deleteReply: RequestHandler<{ id: string }> = async (req, res, next
     const review = await Review.findById(req.params.id);
 
     if (!review?.reply) {
-      res.status(404).json({ message: 'No reply to remove' });
+      res.status(404).json({ message: t(req, 'No reply to remove', 'সরানোর মতো কোনো উত্তর নেই') });
       return;
     }
 
     if (actor.role !== 'admin' && review.reply.byEmail !== actor.email) {
       securityEvent(req, 'authz.denied', { reason: 'not_owner', extra: { resource_type: 'review_reply' } });
-      res.status(403).json({ message: 'That reply is not yours' });
+      res.status(403).json({ message: t(req, 'That reply is not yours', 'এই উত্তরটি আপনার নয়') });
       return;
     }
 
@@ -323,7 +340,7 @@ export const deleteReply: RequestHandler<{ id: string }> = async (req, res, next
       });
     }
 
-    res.status(200).json({ message: 'Reply removed' });
+    res.status(200).json({ message: t(req, 'Reply removed', 'উত্তরটি সরানো হয়েছে') });
   } catch (error) {
     next(error);
   }
@@ -346,12 +363,12 @@ export const flagReview: RequestHandler<{ id: string }> = async (req, res, next)
 
     const review = await Review.findById(reviewId).select('reviewerEmail').lean();
     if (!review) {
-      res.status(404).json({ message: 'Review not found' });
+      res.status(404).json({ message: reviewNotFound(req) });
       return;
     }
 
     if (review.reviewerEmail === actor.email) {
-      res.status(400).json({ message: 'You cannot report your own review' });
+      res.status(400).json({ message: t(req, 'You cannot report your own review', 'নিজের রিভিউ রিপোর্ট করা যায় না') });
       return;
     }
 
@@ -366,13 +383,15 @@ export const flagReview: RequestHandler<{ id: string }> = async (req, res, next)
       await Review.findByIdAndUpdate(reviewId, { $inc: { flagCount: 1 } });
       await notify(await adminEmails(), {
         type: 'review-reported',
-        title: 'A review was reported',
-        body: reason ? `"${reason.slice(0, 120)}"` : 'Nobody gave a reason.',
+        title: { en: 'A review was reported', bn: 'একটি রিভিউ রিপোর্ট করা হয়েছে' },
+        body: reason ? asWritten(`"${reason.slice(0, 120)}"`) : { en: 'Nobody gave a reason.', bn: 'কেউ কারণ জানাননি।' },
         link: '/admin/reviews',
       });
     }
 
-    res.status(200).json({ message: 'Thank you. An administrator will look at this review.' });
+    res.status(200).json({
+      message: t(req, 'Thank you. An administrator will look at this review.', 'ধন্যবাদ। একজন অ্যাডমিন রিভিউটি দেখবেন।'),
+    });
   } catch (error) {
     next(error);
   }
@@ -509,7 +528,7 @@ export const dismissFlags: RequestHandler<{ id: string }> = async (req, res, nex
 
     const review = await Review.findByIdAndUpdate(reviewId, { flagCount: 0 });
     if (!review) {
-      res.status(404).json({ message: 'Review not found' });
+      res.status(404).json({ message: reviewNotFound(req) });
       return;
     }
     await ReviewFlag.deleteMany({ review: reviewId });
@@ -521,7 +540,7 @@ export const dismissFlags: RequestHandler<{ id: string }> = async (req, res, nex
       details: { reviewer: review.reviewerEmail },
     });
 
-    res.status(200).json({ message: 'Reports cleared' });
+    res.status(200).json({ message: t(req, 'Reports cleared', 'রিপোর্টগুলো মুছে ফেলা হয়েছে') });
   } catch (error) {
     next(error);
   }

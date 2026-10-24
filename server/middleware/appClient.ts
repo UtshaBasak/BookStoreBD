@@ -1,6 +1,7 @@
 import type { RequestHandler } from 'express';
 
 import { androidMinVersionCode } from '../config/android.js';
+import { t } from '../utils/language.js';
 
 /**
  * The Android app names itself on every request with `X-Client:
@@ -27,7 +28,11 @@ export const requireSupportedApp: RequestHandler = (req, res, next) => {
   }
   res.status(426).json({
     code: 'app-update-required',
-    message: 'This version of the app is no longer supported. Please update it to carry on.',
+    message: t(
+      req,
+      'This version of the app is no longer supported. Please update it to carry on.',
+      'অ্যাপের এই সংস্করণটি আর চলে না। চালিয়ে যেতে অ্যাপটি আপডেট করুন।'
+    ),
     minVersionCode: minimum,
   });
 };

@@ -3,6 +3,9 @@ import type { ZodError, ZodType } from 'zod';
 
 import type { ValidationIssue } from '@shared/api.js';
 
+import { languageOf } from '../utils/language.js';
+import { VALIDATION_FAILED_BN, validationMessageBn } from '../schemas/messagesBn.js';
+
 /**
  * Validates `body`, `query` and `params` against Zod schemas and replaces them
  * with the parsed result, so handlers work with values whose shape and type are
@@ -64,6 +67,15 @@ export const validate =
     }
 
     if (errors.length) {
+      // The schemas speak English (they are built before any request); a
+      // request in Bangla gets each message looked up in schemas/messagesBn.ts.
+      if (languageOf(req) === 'bn') {
+        res.status(400).json({
+          message: VALIDATION_FAILED_BN,
+          errors: errors.map((issue) => ({ ...issue, message: validationMessageBn(issue.message) })),
+        });
+        return;
+      }
       res.status(400).json({ message: 'Validation failed', errors });
       return;
     }

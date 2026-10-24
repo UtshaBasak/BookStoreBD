@@ -8,7 +8,8 @@ import type { AppNonceResponse } from '@shared/api.js';
 import AuthNonce from '../models/AuthNonce.model.js';
 import { createLogger } from '../config/logger.js';
 import type { AppGoogleBody } from '../schemas/index.js';
-import { applyAdminBootstrap, beginTwoStep, startSession } from './auth.controller.js';
+import { applyAdminBootstrap, beginTwoStep, signinCodesUnavailable, startSession } from './auth.controller.js';
+import { languageOf, t } from '../utils/language.js';
 import { googleAccountFor, type GoogleIdentity } from './google.controller.js';
 import { securityEvent } from '../utils/securityLog.js';
 
@@ -79,30 +80,34 @@ const verifyIdToken = async (idToken: string): Promise<(GoogleIdentity & { nonce
   }
 };
 
-const NOT_COMPLETED = 'Google sign-in could not be completed. Please try again.';
+const notCompleted = (req: Parameters<typeof t>[0]): string =>
+  t(req, 'Google sign-in could not be completed. Please try again.', 'Google দিয়ে সাইন ইন শেষ করা যায়নি। আবার চেষ্টা করুন।');
 
 /** POST /api/v1/app/auth/google - signs in, or up, with a Google ID token. */
 export const appGoogleSignIn: RequestHandler = async (req, res, next) => {
   try {
     if (!appGoogleConfigured()) {
-      res.status(503).json({ message: 'Google sign-in is not available right now.' });
+      res.status(503).json({ message: t(req, 'Google sign-in is not available right now.', 'Google দিয়ে সাইন ইন এখন চালু নেই।') });
       return;
     }
     const { idToken, nonce } = req.body as AppGoogleBody;
     const identity = await verifyIdToken(idToken);
     if (!identity?.email || !identity.sub) {
       securityEvent(req, 'auth.google.failure', { reason: 'bad_id_token' });
-      res.status(401).json({ message: NOT_COMPLETED });
+      res.status(401).json({ message: notCompleted(req) });
       return;
     }
     if (identity.nonce !== nonce || !(await consumeNonce(nonce))) {
       securityEvent(req, 'auth.google.failure', { reason: 'bad_nonce' });
-      res.status(401).json({ message: NOT_COMPLETED });
+      res.status(401).json({ message: notCompleted(req) });
       return;
     }
     if (!identity.emailVerified) {
       securityEvent(req, 'auth.google.failure', { reason: 'unverified' });
-      res.status(401).json({ code: 'google-unverified', message: 'That Google account has no verified e-mail address.' });
+      res.status(401).json({
+        code: 'google-unverified',
+        message: t(req, 'That Google account has no verified e-mail address.', 'এই Google অ্যাকাউন্টে কোনো যাচাই করা ই-মেইল ঠিকানা নেই।'),
+      });
       return;
     }
 
@@ -110,9 +115,9 @@ export const appGoogleSignIn: RequestHandler = async (req, res, next) => {
 
     // Two-step sign-in still asks for its code, as it does on the website.
     if (user.twoFactor) {
-      const challenge = await beginTwoStep(user);
+      const challenge = await beginTwoStep(user, languageOf(req));
       if (!challenge) {
-        res.status(503).json({ message: 'Sign-in codes cannot be sent right now. Please try again later.' });
+        res.status(503).json({ message: signinCodesUnavailable(req) });
         return;
       }
       // The app did not type the address, so it is told which one the code completes.

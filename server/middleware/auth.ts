@@ -5,6 +5,7 @@ import type { SessionUser } from '@shared/api.js';
 import User from '../models/user.model.js';
 import { checkAccessToken, extractBearerToken } from '../utils/jwt.js';
 import { securityEvent } from '../utils/securityLog.js';
+import { t } from '../utils/language.js';
 
 /**
  * Resolves the caller from the bearer token and hangs it on `req.user`.
@@ -36,7 +37,7 @@ export const requireAuth: RequestHandler = async (req, res, next) => {
   try {
     const user = await resolveUser(req);
     if (!user) {
-      res.status(401).json({ message: 'Authentication required' });
+      res.status(401).json({ message: t(req, 'Authentication required', 'অনুগ্রহ করে সাইন ইন করুন') });
       return;
     }
     req.user = user;
@@ -58,7 +59,7 @@ export const optionalAuth: RequestHandler = async (req, res, next) => {
   try {
     const user = await resolveUser(req);
     if (!user && extractBearerToken(req.headers.authorization)) {
-      res.status(401).json({ message: 'Session expired' });
+      res.status(401).json({ message: t(req, 'Session expired', 'আপনার সেশন শেষ হয়েছে') });
       return;
     }
     req.user = user;
@@ -87,7 +88,7 @@ export const bestEffortAuth: RequestHandler = async (req, res, next) => {
 export const requireAdmin: RequestHandler = (req, res, next) => {
   if (req.user?.role !== 'admin') {
     securityEvent(req, 'authz.denied', { reason: 'not_admin', extra: { required_role: 'admin' } });
-    res.status(403).json({ message: 'Administrator access required' });
+    res.status(403).json({ message: t(req, 'Administrator access required', 'এর জন্য অ্যাডমিন অ্যাকসেস লাগবে') });
     return;
   }
   next();
