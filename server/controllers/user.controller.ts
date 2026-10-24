@@ -17,6 +17,7 @@ import { dispatchShopMail, passwordChangedEmail, payoutNumberChangedEmail } from
 import { newPasswordProblem } from '../utils/breachedPassword.js';
 import { errorMessage, isDuplicateKeyError } from '../utils/error.js';
 import { hashPassword } from '../utils/passwordHash.js';
+import { securityEvent } from '../utils/securityLog.js';
 
 const log = createLogger('user');
 
@@ -209,6 +210,10 @@ export const updateUserProfile = async (
         if ((changingPassword || changingPayout || removingPayout) && currentUser.passwordSet !== false) {
             const given = typeof body.currentPassword === 'string' ? body.currentPassword : '';
             if (!given || !bcryptjs.compareSync(given, currentUser.password)) {
+                securityEvent(req, 'account.reauth.failure', {
+                    reason: given ? 'bad_password' : 'missing_password',
+                    extra: { change: changingPassword ? 'password' : 'bkash' },
+                });
                 // 403, not 401: the session is fine, and a 401 would sign them out.
                 res.status(403).json({
                     code: 'current-password',
@@ -286,10 +291,18 @@ export const updateUserProfile = async (
         if (changingPassword) {
             // Everywhere else signed out, and the owner told: if it was not
             // them, they know at once, and whoever did it is out.
-            await revokeOtherSessions(currentUser._id, readRefreshCookie(req));
+            const ended = await revokeOtherSessions(currentUser._id, readRefreshCookie(req));
+            securityEvent(req, 'account.password.changed', { extra: { sessions_ended: ended } });
             dispatchShopMail(currentUser.email, passwordChangedEmail());
         }
         if (changingPayout || removingPayout) dispatchShopMail(currentUser.email, payoutNumberChangedEmail(removingPayout));
+        // Where a seller's money goes. Never the number itself.
+        const settingPayout = typeof updateFields.bkashMerchant === 'string' && !currentUser.bkashMerchant;
+        if (changingPayout || removingPayout || settingPayout) {
+            securityEvent(req, 'account.bkash.changed', {
+                extra: { change: removingPayout ? 'removed' : settingPayout ? 'set' : 'changed' },
+            });
+        }
         res.status(200).json({ message: 'Profile updated successfully', user });
     } catch (error) {
         // Handle duplicate key error (in case of race condition)

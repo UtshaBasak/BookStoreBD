@@ -15,6 +15,7 @@ import { adminEmails, notify } from '../utils/notify.js';
 import { contains } from '../utils/regex.js';
 import { validatedQuery } from '../middleware/validate.js';
 import type { AdminReviewQuery, FlaggedReviewQuery } from '../schemas/index.js';
+import { securityEvent } from '../utils/securityLog.js';
 
 const log = createLogger('review');
 
@@ -264,6 +265,7 @@ export const replyToReview: RequestHandler<{ id: string }> = async (req, res, ne
 
     const book = await AddBook.findById(review.book).select('sellerEmail').lean();
     if (!book || book.sellerEmail !== actor.email) {
+      securityEvent(req, 'authz.denied', { reason: 'not_owner', extra: { resource_type: 'review' } });
       res.status(403).json({ message: 'Only the seller of this book can reply to its reviews' });
       return;
     }
@@ -303,6 +305,7 @@ export const deleteReply: RequestHandler<{ id: string }> = async (req, res, next
     }
 
     if (actor.role !== 'admin' && review.reply.byEmail !== actor.email) {
+      securityEvent(req, 'authz.denied', { reason: 'not_owner', extra: { resource_type: 'review_reply' } });
       res.status(403).json({ message: 'That reply is not yours' });
       return;
     }

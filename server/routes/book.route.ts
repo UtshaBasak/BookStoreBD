@@ -20,6 +20,7 @@ import {
   type UpdatePriceBody,
   type UpdateStockBody,
 } from '../schemas/index.js';
+import { securityEvent } from '../utils/securityLog.js';
 
 const router = express.Router();
 
@@ -38,6 +39,7 @@ const loadOwnedBook = async (
   }
   const actor = actingUser(req);
   if (actor.role !== 'admin' && book.sellerEmail !== actor.email) {
+    securityEvent(req, 'authz.denied', { reason: 'not_owner', extra: { resource_type: 'book' } });
     res.status(403).json({ message: 'You can only manage your own listings' });
     return null;
   }
