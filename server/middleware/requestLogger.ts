@@ -8,6 +8,7 @@ import type { SerializedRequest } from 'pino-std-serializers';
 import { pinoHttp, type Options } from 'pino-http';
 
 import { logger } from '../config/logger.js';
+import { loggablePath } from '../utils/loggablePath.js';
 
 /**
  * Either shape this module sees a request in: the raw one Express passes to the
@@ -15,8 +16,12 @@ import { logger } from '../config/logger.js';
  */
 type LoggedRequest = { url?: string; originalUrl?: string };
 
-/** The URL as the client asked for it, before Express rewrote it for a router. */
-const reqUrl = (req: LoggedRequest): string => req.originalUrl ?? req.url ?? '';
+/**
+ * The URL as the client asked for it, before Express rewrote it for a router -
+ * without its query string or any e-mail address in the path, which are not
+ * the log's to keep (utils/loggablePath.ts).
+ */
+const reqUrl = (req: LoggedRequest): string => loggablePath(req.originalUrl ?? req.url);
 
 /**
  * Logs one line per request and hangs a correlation id on `req.id`.
