@@ -1,6 +1,7 @@
 import type { UploadSignature } from '@shared/api.js';
 
 import { apiFetch, apiUrl } from '../config/api.js';
+import { t } from './language.js';
 
 export interface UploadProgress {
   completed: number;
@@ -46,7 +47,7 @@ export const uploadImages = async (
 
   // 503 means image hosting is not configured; anything else is a real failure.
   if (signatureRes.status === 503) return { hosted: false };
-  if (!signatureRes.ok) throw new Error('Could not start the upload');
+  if (!signatureRes.ok) throw new Error(t('Could not start the upload', 'আপলোড শুরু করা যায়নি'));
 
   const { signature, timestamp, folder, apiKey, uploadUrl } =
     (await signatureRes.json()) as UploadSignature;
@@ -67,7 +68,9 @@ export const uploadImages = async (
     const res = await fetch(uploadUrl, { method: 'POST', body: form });
 
     if (!res.ok) {
-      throw new Error(`Upload failed for ${file.name || 'image'}`);
+      throw new Error(
+        t(`Upload failed for ${file.name || 'image'}`, `${file.name || 'ছবি'} আপলোড করা যায়নি`)
+      );
     }
 
     const result = (await res.json()) as { secure_url: string; public_id: string };

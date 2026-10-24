@@ -2,6 +2,7 @@ import type { Book } from '@shared/api.js';
 
 import './PriceTag.css';
 import { hasDeal, priceOf, taka } from '../utils/pricing.js';
+import { digits, t } from '../utils/language.js';
 
 /**
  * A book's price: on a deal, the sale price with the listed price struck
@@ -22,16 +23,18 @@ export default function PriceTag({
   }
 
   const saving =
-    book.discountType === 'amount' ? `${taka(Number(book.discountAmount))} off` : `${Number(book.discountPercent)}% off`;
+    book.discountType === 'amount'
+      ? t(`${taka(Number(book.discountAmount))} off`, `${taka(Number(book.discountAmount))} ছাড়`)
+      : t(`${Number(book.discountPercent)}% off`, `${digits(Number(book.discountPercent))}% ছাড়`);
 
   return (
     <span className={`price-tag price-tag-${size}`}>
       <span className="price-now">
-        <span className="sr-only">Now </span>
+        <span className="sr-only">{t('Now ', 'এখন ')}</span>
         {taka(priceOf(book))}
       </span>
       <s className="price-was">
-        <span className="sr-only">, was </span>
+        <span className="sr-only">{t(', was ', ', আগে ছিল ')}</span>
         {taka(Number(book.price))}
       </s>
       {showSaving && <span className="price-off">{saving}</span>}

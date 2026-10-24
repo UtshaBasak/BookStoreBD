@@ -1,6 +1,7 @@
 import { useEffect, useImperativeHandle, useRef, type Ref } from 'react';
 
 import { resolveTheme, readTheme } from '../utils/theme.js';
+import { currentLanguage } from '../utils/language.js';
 
 /** What the page can do with the check: start it again after a token is used. */
 export interface BotCheckHandle {
@@ -76,6 +77,8 @@ export default function BotCheck({
         widget.current = turnstile.render(box.current, {
           sitekey: siteKey,
           theme: resolveTheme(readTheme()),
+          // Turnstile's own words, in the site's language.
+          language: currentLanguage() === 'bn' ? 'bn' : 'auto',
           // Out of sight unless a person is needed.
           appearance: 'interaction-only',
           callback: (token: string) => onToken(token),

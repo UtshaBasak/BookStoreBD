@@ -7,6 +7,9 @@ import { FaSearch, FaUndoAlt } from 'react-icons/fa';
 import { useBuyerOrders } from '../hooks/queries.js';
 import { useDebounced } from '../hooks/useDebounced.js';
 import Pager from '../components/Pager.js';
+import { conditionLabel } from '../utils/bookText.js';
+import { digits, formatDate, t } from '../utils/language.js';
+import { returnStatusLabel, statusLabel } from '../utils/orderStatus.js';
 import '../styles/orderTracking.css';
 
 /** Orders per page. Each one may be several rows. */
@@ -64,10 +67,14 @@ export default function BuyerBookList() {
    */
   const returnLabel = (order: BuyerOrderLine) =>
     order.status === 'Cancelled'
-      ? 'Cancelled'
+      ? statusLabel('Cancelled')
       : order.status === 'Delivered'
-        ? 'Return period over'
-        : 'Returns open on delivery';
+        ? t('Return period over', 'ফেরতের সময় শেষ')
+        : t('Returns open on delivery', 'ডেলিভারির পরে ফেরত দেওয়া যাবে');
+
+  /** A book's type as shown; the stored value otherwise. */
+  const bookTypeLabel = (type?: string | null) =>
+    type === 'old' ? t('old', 'পুরোনো') : type === 'new' ? t('new', 'নতুন') : type;
 
   // No `overflow-x: hidden` on the page: it would clip the toolbar rather
   // than let it wrap.
@@ -76,17 +83,23 @@ export default function BuyerBookList() {
       <div className="ot-wrap" style={{ maxWidth: 1200 }}>
         <div className="ot-toolbar">
           <Link to="/profile?mode=buyer" className="btn btn-ghost">
-            ← Return to Profile
+            {t('← Return to Profile', '← প্রোফাইলে ফিরুন')}
           </Link>
         </div>
 
         <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
           <div>
-            <p className="ot-kicker">📚 Your library</p>
-            <h1 className="m-0" style={{ fontSize: 'clamp(1.6rem, 1.2rem + 1.6vw, 2.2rem)' }}>Your Purchased Books</h1>
+            <p className="ot-kicker">📚 {t('Your library', 'আপনার লাইব্রেরি')}</p>
+            <h1 className="m-0" style={{ fontSize: 'clamp(1.6rem, 1.2rem + 1.6vw, 2.2rem)' }}>
+              {t('Your Purchased Books', 'আপনার কেনা বই')}
+            </h1>
             <p className="m-0 mt-1 text-sm text-ink-muted">
-              Something wrong with a book? Ask for a return from its row, or send back a whole order
-              at once from <Link to="/buyer/orders">Your Orders</Link>.
+              {t(
+                'Something wrong with a book? Ask for a return from its row, or send back a whole order at once from',
+                'বইয়ে কোনো সমস্যা? সেই সারি থেকে ফেরতের অনুরোধ করুন, অথবা পুরো অর্ডার একসঙ্গে ফেরত দিন এখান থেকে:'
+              )}{' '}
+              <Link to="/buyer/orders">{t('Your Orders', 'আপনার অর্ডার')}</Link>
+              {t('.', '।')}
             </p>
           </div>
         </div>
@@ -101,7 +114,7 @@ export default function BuyerBookList() {
               type="text"
               className="field"
               style={{ paddingLeft: 42, borderRadius: 999 }}
-              placeholder="Search by title, author, or seller..."
+              placeholder={t('Search by title, author, or seller...', 'বইয়ের নাম, লেখক বা বিক্রেতা দিয়ে খুঁজুন...')}
               value={search}
               onChange={(e) => {
                 setSearch(e.target.value);
@@ -116,7 +129,7 @@ export default function BuyerBookList() {
             disabled={refreshing}
             style={{ cursor: refreshing ? 'not-allowed' : 'pointer' }}
           >
-            {refreshing ? 'Refreshing...' : 'Refresh'}
+            {refreshing ? t('Refreshing...', 'রিফ্রেশ হচ্ছে...') : t('Refresh', 'রিফ্রেশ')}
           </button>
         </div>
 
@@ -124,29 +137,31 @@ export default function BuyerBookList() {
         <table className="styled-table ot-table">
           <thead>
             <tr>
-              <th>Title</th>
+              <th>{t('Title', 'বইয়ের নাম')}</th>
               {/*
                 Next to the title: on a phone this table scrolls sideways, and
                 here the return button stays on screen.
               */}
-              <th>Return</th>
-              <th>Author</th>
-              <th>Category</th>
-              <th>Book Type</th>
-              <th>Condition</th>
-              <th>No. of Pages</th>
-              <th>Price (Tk.)</th>
-              <th>Quantity</th>
-              <th>Seller</th>
-              <th>Created at</th>
+              <th>{t('Return', 'ফেরত')}</th>
+              <th>{t('Author', 'লেখক')}</th>
+              <th>{t('Category', 'ক্যাটাগরি')}</th>
+              <th>{t('Book Type', 'বইয়ের ধরন')}</th>
+              <th>{t('Condition', 'অবস্থা')}</th>
+              <th>{t('No. of Pages', 'পৃষ্ঠা সংখ্যা')}</th>
+              <th>{t('Price (Tk.)', 'দাম (টাকা)')}</th>
+              <th>{t('Quantity', 'পরিমাণ')}</th>
+              <th>{t('Seller', 'বিক্রেতা')}</th>
+              <th>{t('Created at', 'তারিখ')}</th>
             </tr>
           </thead>
           <tbody>
             {loading ? (
-              <tr><td colSpan={11}>Loading...</td></tr>
+              <tr><td colSpan={11}>{t('Loading...', 'লোড হচ্ছে...')}</td></tr>
             ) : orders.length === 0 ? (
               <tr><td colSpan={11} className="py-8 text-center text-ink-muted">
-                {settledSearch ? `No bought books match "${settledSearch}".` : 'No books purchased yet.'}
+                {settledSearch
+                  ? t(`No bought books match "${settledSearch}".`, `"${settledSearch}"-এর সঙ্গে মেলে এমন কোনো কেনা বই নেই।`)
+                  : t('No books purchased yet.', 'এখনো কোনো বই কেনা হয়নি।')}
               </td></tr>
             ) : (
               orders.map((order, idx) => (
@@ -157,7 +172,7 @@ export default function BuyerBookList() {
                   <td style={{ minWidth: 150 }}>
                     {order.returnStatus ? (
                       <span className="ot-pill" style={returnColours(order.returnStatus)}>
-                        Return {order.returnStatus}
+                        {returnStatusLabel(order.returnStatus)}
                       </span>
                     ) : order.returnableUntil ? (
                       <div className="flex flex-col items-start gap-1">
@@ -167,10 +182,10 @@ export default function BuyerBookList() {
                           className="btn btn-primary"
                           style={{ minHeight: 44, padding: '0 18px' }}
                         >
-                          <FaUndoAlt aria-hidden="true" size={12} /> Return
+                          <FaUndoAlt aria-hidden="true" size={12} /> {t('Return', 'ফেরত দিন')}
                         </button>
                         <span className="text-xs text-ink-muted">
-                          Until {new Date(order.returnableUntil).toLocaleDateString()}
+                          {t('Until', 'শেষ সময়')} {formatDate(order.returnableUntil)}
                         </span>
                       </div>
                     ) : (
@@ -178,19 +193,19 @@ export default function BuyerBookList() {
                     )}
                     {order.returnStatus === 'approved' && (
                       <p className="m-0 mt-1 text-xs text-ink-muted">
-                        We have e-mailed you where to send it.
+                        {t('We have e-mailed you where to send it.', 'কোথায় পাঠাতে হবে, তা আমরা আপনাকে ই-মেইল করেছি।')}
                       </p>
                     )}
                   </td>
                   <td>{order.author}</td>
                   <td>{Array.isArray(order.category) ? order.category.join(', ') : order.category}</td>
-                  <td>{order.bookType}</td>
-                  <td>{order.condition}</td>
-                  <td>{order.pages}</td>
-                  <td className="font-bold" style={{ color: 'var(--color-accent)' }}>{order.price}</td>
-                  <td>{order.quantity}</td>
+                  <td>{bookTypeLabel(order.bookType)}</td>
+                  <td>{order.condition ? conditionLabel(order.condition) : order.condition}</td>
+                  <td>{order.pages == null ? order.pages : digits(order.pages)}</td>
+                  <td className="font-bold" style={{ color: 'var(--color-accent)' }}>{order.price == null ? order.price : digits(order.price)}</td>
+                  <td>{order.quantity == null ? order.quantity : digits(order.quantity)}</td>
                   <td>{order.sellerEmail}</td>
-                  <td>{order.createdAt ? new Date(order.createdAt).toLocaleDateString() : ''}</td>
+                  <td>{order.createdAt ? formatDate(order.createdAt) : ''}</td>
                 </tr>
               ))
             )}
@@ -204,7 +219,7 @@ export default function BuyerBookList() {
           pageSize={PAGE_SIZE}
           total={total}
           onPage={setPage}
-          noun="orders"
+          noun={t('orders', 'অর্ডার')}
         />
       </div>
     </div>

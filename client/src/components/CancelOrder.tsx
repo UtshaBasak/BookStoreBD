@@ -6,25 +6,47 @@ import type { OrderLine } from '@shared/api.js';
 import { useCancelOrder } from '../hooks/queries.js';
 import { useToast } from '../hooks/useToast.js';
 import { messageOf } from '../utils/apiError.js';
+import { formatDate, formatNumber, pick, t } from '../utils/language.js';
 import { CANCELLED } from '../utils/orderTotals.js';
 import './CancelOrder.css';
 
-const WHAT: Record<'buyer' | 'seller' | 'admin', { button: string; note: string }> = {
-  buyer: {
-    button: 'Cancel this order',
-    note: 'You can cancel until the seller starts preparing it. Nothing has been charged for cash on delivery.',
-  },
-  seller: {
-    button: 'Cancel my books in this order',
-    note: 'Only your books in this order are cancelled, and they go back on sale. The buyer is told why.',
-  },
-  admin: {
-    button: 'Cancel the order',
-    note: 'Every book still in the order is cancelled and goes back on sale. The buyer and sellers are told why.',
-  },
+const what = (who: 'buyer' | 'seller' | 'admin'): { button: string; note: string } => {
+  switch (who) {
+    case 'buyer':
+      return {
+        button: t('Cancel this order', 'অর্ডারটি বাতিল করুন'),
+        note: t(
+          'You can cancel until the seller starts preparing it. Nothing has been charged for cash on delivery.',
+          'বিক্রেতা অর্ডারটি প্রস্তুত করা শুরু করার আগ পর্যন্ত বাতিল করতে পারবেন। ক্যাশ অন ডেলিভারিতে এখনো কিছু নেওয়া হয়নি।'
+        ),
+      };
+    case 'seller':
+      return {
+        button: t('Cancel my books in this order', 'এই অর্ডারে আমার বই বাতিল করুন'),
+        note: t(
+          'Only your books in this order are cancelled, and they go back on sale. The buyer is told why.',
+          'এই অর্ডারে শুধু আপনার বইগুলো বাতিল হবে, আর সেগুলো আবার বিক্রির জন্য ফিরে যাবে। ক্রেতাকে কারণ জানানো হবে।'
+        ),
+      };
+    default:
+      return {
+        button: t('Cancel the order', 'অর্ডারটি বাতিল করুন'),
+        note: t(
+          'Every book still in the order is cancelled and goes back on sale. The buyer and sellers are told why.',
+          'অর্ডারে থাকা প্রতিটি বই বাতিল হবে এবং আবার বিক্রির জন্য ফিরে যাবে। ক্রেতা ও বিক্রেতাদের কারণ জানানো হবে।'
+        ),
+      };
+  }
 };
 
-const BY: Record<string, string> = { buyer: 'the buyer', seller: 'the seller', admin: 'BookStoreBD' };
+const by = (who: string): string =>
+  who === 'buyer'
+    ? t('the buyer', 'ক্রেতা')
+    : who === 'seller'
+      ? t('the seller', 'বিক্রেতা')
+      : who === 'admin'
+        ? 'BookStoreBD'
+        : who;
 
 /** Who called off which books, when and why; nothing when none were. */
 export function CancelledNote({ lines }: { lines: readonly OrderLine[] }) {
@@ -34,17 +56,39 @@ export function CancelledNote({ lines }: { lines: readonly OrderLine[] }) {
   const all = cancelled.length === lines.length;
   return (
     <div className="co-cancelled" role="status">
-      <p>
-        <b>
-          {all
-            ? 'This order was cancelled'
-            : `${cancelled.length} of ${lines.length} books in this order ${cancelled.length === 1 ? 'was' : 'were'} cancelled`}
-        </b>
-        {first.cancelledBy ? ` by ${BY[first.cancelledBy] ?? first.cancelledBy}` : ''}
-        {first.cancelledAt ? ` on ${new Date(first.cancelledAt).toLocaleDateString(undefined, { dateStyle: 'medium' })}` : ''}.
-      </p>
-      {first.cancelReason && <p>Reason: “{first.cancelReason}”</p>}
-      {!all && <p>They are not charged for, and the totals below leave them out.</p>}
+      {pick(
+        <p>
+          <b>
+            {all
+              ? 'This order was cancelled'
+              : `${cancelled.length} of ${lines.length} books in this order ${cancelled.length === 1 ? 'was' : 'were'} cancelled`}
+          </b>
+          {first.cancelledBy ? ` by ${by(first.cancelledBy)}` : ''}
+          {first.cancelledAt ? ` on ${formatDate(first.cancelledAt, { dateStyle: 'medium' })}` : ''}.
+        </p>,
+        <p>
+          <b>
+            {all
+              ? 'এই অর্ডারটি বাতিল হয়েছে'
+              : `এই অর্ডারের ${formatNumber(lines.length)}টি বইয়ের মধ্যে ${formatNumber(cancelled.length)}টি বাতিল হয়েছে`}
+          </b>
+          {first.cancelledBy ? ` — বাতিল করেছেন ${by(first.cancelledBy)}` : ''}
+          {first.cancelledAt ? `, ${formatDate(first.cancelledAt, { dateStyle: 'medium' })}` : ''}।
+        </p>
+      )}
+      {first.cancelReason && (
+        <p>
+          {t('Reason', 'কারণ')}: “{first.cancelReason}”
+        </p>
+      )}
+      {!all && (
+        <p>
+          {t(
+            'They are not charged for, and the totals below leave them out.',
+            'এগুলোর জন্য কোনো টাকা নেওয়া হবে না, আর নিচের মোট হিসাবে এগুলো ধরা হয়নি।'
+          )}
+        </p>
+      )}
     </div>
   );
 }
@@ -65,10 +109,14 @@ export default function CancelOrder({ orderNumber, who }: { orderNumber: string;
   const confirm = async () => {
     try {
       await cancel({ reason: reason.trim() || undefined });
-      toast.success(who === 'seller' ? 'Your books in this order are cancelled.' : 'The order is cancelled.');
+      toast.success(
+        who === 'seller'
+          ? t('Your books in this order are cancelled.', 'এই অর্ডারে আপনার বইগুলো বাতিল হয়েছে।')
+          : t('The order is cancelled.', 'অর্ডারটি বাতিল হয়েছে।')
+      );
       setOpen(false);
     } catch (error) {
-      toast.error(messageOf(error) || 'Could not cancel the order.');
+      toast.error(messageOf(error) || t('Could not cancel the order.', 'অর্ডারটি বাতিল করা যায়নি।'));
     }
   };
 
@@ -76,16 +124,16 @@ export default function CancelOrder({ orderNumber, who }: { orderNumber: string;
     return (
       <button type="button" className="btn btn-danger" onClick={() => setOpen(true)}>
         <FaTimesCircle aria-hidden="true" />
-        {WHAT[who].button}
+        {what(who).button}
       </button>
     );
   }
 
   return (
-    <div className="co-panel" role="group" aria-label="Cancel the order">
-      <p className="co-note">{WHAT[who].note}</p>
+    <div className="co-panel" role="group" aria-label={t('Cancel the order', 'অর্ডারটি বাতিল করুন')}>
+      <p className="co-note">{what(who).note}</p>
       <label className="co-label">
-        Reason <span>(optional)</span>
+        {t('Reason', 'কারণ')} <span>{t('(optional)', '(ঐচ্ছিক)')}</span>
         <textarea
           name="cancelReason"
           className="field"
@@ -93,15 +141,19 @@ export default function CancelOrder({ orderNumber, who }: { orderNumber: string;
           maxLength={200}
           value={reason}
           onChange={(e) => setReason(e.target.value)}
-          placeholder={who === 'buyer' ? 'Ordered the wrong book, found it elsewhere...' : 'Out of stock, damaged copy...'}
+          placeholder={
+            who === 'buyer'
+              ? t('Ordered the wrong book, found it elsewhere...', 'ভুল বই অর্ডার করেছি, অন্য কোথাও পেয়েছি...')
+              : t('Out of stock, damaged copy...', 'স্টকে নেই, কপিটি নষ্ট...')
+          }
         />
       </label>
       <div className="co-actions">
         <button type="button" className="btn btn-danger-solid" onClick={() => void confirm()} disabled={isPending}>
-          {isPending ? 'Cancelling...' : 'Yes, cancel'}
+          {isPending ? t('Cancelling...', 'বাতিল হচ্ছে...') : t('Yes, cancel', 'হ্যাঁ, বাতিল করুন')}
         </button>
         <button type="button" className="btn btn-ghost" onClick={() => setOpen(false)} disabled={isPending}>
-          Keep the order
+          {t('Keep the order', 'অর্ডারটি রাখুন')}
         </button>
       </div>
     </div>

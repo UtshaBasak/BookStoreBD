@@ -1,5 +1,6 @@
 import React, { type CSSProperties, type ErrorInfo, type ReactNode } from 'react';
 import { reportError } from '../utils/report.js';
+import { t } from '../utils/language.js';
 
 interface ErrorBoundaryProps {
   children?: ReactNode;
@@ -50,10 +51,12 @@ export default class ErrorBoundary extends React.Component<
           <div aria-hidden="true" style={styles.icon}>
             📖
           </div>
-          <h1 style={styles.heading}>Something went wrong</h1>
+          <h1 style={styles.heading}>{t('Something went wrong', 'কিছু একটা সমস্যা হয়েছে')}</h1>
           <p style={styles.body}>
-            The page hit an unexpected error. You can try again, or go back to the
-            catalogue.
+            {t(
+              'The page hit an unexpected error. You can try again, or go back to the catalogue.',
+              'পাতাটিতে একটি অপ্রত্যাশিত ত্রুটি হয়েছে। আবার চেষ্টা করতে পারেন, অথবা বইয়ের তালিকায় ফিরে যেতে পারেন।'
+            )}
           </p>
 
           {import.meta.env.DEV && (
@@ -62,10 +65,10 @@ export default class ErrorBoundary extends React.Component<
 
           <div style={styles.actions}>
             <button type="button" onClick={this.handleReset} className="btn btn-primary">
-              Try again
+              {t('Try again', 'আবার চেষ্টা করুন')}
             </button>
             <a href="/" className="btn btn-ghost">
-              Back to books
+              {t('Back to books', 'বইয়ে ফিরুন')}
             </a>
           </div>
         </div>

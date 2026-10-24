@@ -9,13 +9,14 @@ import Logo from '../components/Logo.js';
 import Pager from '../components/Pager.js';
 import { useMarkNotificationsRead, useNotifications } from '../hooks/queries.js';
 import { useSeo } from '../hooks/useSeo.js';
+import { formatNumber, t } from '../utils/language.js';
 import { NOTIFICATION_ICON, timeAgo } from '../utils/notificationLook.js';
 
 const PAGE_SIZE = 20;
 
 /** Everything the bell has told you, a page at a time. */
 export default function NotificationsPage() {
-  useSeo({ title: 'Notifications', noIndex: true });
+  useSeo({ title: t('Notifications', 'নোটিফিকেশন'), noIndex: true });
   const navigate = useNavigate();
   const [page, setPage] = useState(1);
   const [unreadOnly, setUnreadOnly] = useState(false);
@@ -33,7 +34,7 @@ export default function NotificationsPage() {
   return (
     <div className="np-page">
       <header className="header">
-        <Link to="/" className="logo-button" aria-label="BookStoreBD home">
+        <Link to="/" className="logo-button" aria-label={t('BookStoreBD home', 'BookStoreBD হোম')}>
           <Logo size={38} />
         </Link>
       </header>
@@ -41,8 +42,12 @@ export default function NotificationsPage() {
       <main className="np-main">
         <div className="np-head">
           <div>
-            <h1>Notifications</h1>
-            <p>{unread ? `${unread} unread` : 'You are all caught up.'}</p>
+            <h1>{t('Notifications', 'নোটিফিকেশন')}</h1>
+            <p>
+              {unread
+                ? t(`${unread} unread`, `${formatNumber(unread)}টি পড়া হয়নি`)
+                : t('You are all caught up.', 'সব পড়া হয়ে গেছে।')}
+            </p>
           </div>
           <div className="np-tools">
             <button
@@ -54,23 +59,30 @@ export default function NotificationsPage() {
                 setPage(1);
               }}
             >
-              Unread only
+              {t('Unread only', 'শুধু না-পড়া')}
             </button>
             <Link to="/profile#notification-settings" className="btn btn-ghost">
-              Settings
+              {t('Settings', 'সেটিংস')}
             </Link>
             <button type="button" className="btn btn-ghost" onClick={() => markRead()} disabled={!unread || marking}>
-              Mark all read
+              {t('Mark all read', 'সব পড়া হয়েছে চিহ্নিত করুন')}
             </button>
           </div>
         </div>
 
         {isPending ? (
-          <div className="card np-empty">Loading…</div>
+          <div className="card np-empty">{t('Loading…', 'লোড হচ্ছে…')}</div>
         ) : items.length === 0 ? (
           <div className="card np-empty">
             <span aria-hidden="true">🔔</span>
-            <p>{unreadOnly ? 'No unread notifications.' : 'Nothing yet. Orders, returns, payouts and deals will show up here.'}</p>
+            <p>
+              {unreadOnly
+                ? t('No unread notifications.', 'কোনো না-পড়া নোটিফিকেশন নেই।')
+                : t(
+                    'Nothing yet. Orders, returns, payouts and deals will show up here.',
+                    'এখনও কিছু নেই। অর্ডার, রিটার্ন, পেমেন্ট ও ছাড়ের খবর এখানে দেখা যাবে।'
+                  )}
+            </p>
           </div>
         ) : (
           <ul className="card np-list">
@@ -85,7 +97,7 @@ export default function NotificationsPage() {
                     {item.body && <span className="np-body">{item.body}</span>}
                     <span className="np-time">{timeAgo(item.createdAt)}</span>
                   </span>
-                  {!item.read && <span className="np-dot" aria-label="Unread" />}
+                  {!item.read && <span className="np-dot" aria-label={t('Unread', 'পড়া হয়নি')} />}
                 </button>
               </li>
             ))}
@@ -93,7 +105,7 @@ export default function NotificationsPage() {
         )}
 
         {data && data.pageCount > 1 && (
-          <Pager page={data.page} pageCount={data.pageCount} total={data.total} pageSize={PAGE_SIZE} onPage={setPage} noun="notifications" />
+          <Pager page={data.page} pageCount={data.pageCount} total={data.total} pageSize={PAGE_SIZE} onPage={setPage} noun={t('notifications', 'নোটিফিকেশন')} />
         )}
       </main>
     </div>

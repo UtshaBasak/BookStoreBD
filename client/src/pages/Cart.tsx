@@ -10,7 +10,8 @@ import RequestBookButton from '../components/RequestBookButton.js';
 import PriceTag from '../components/PriceTag.js';
 import { priceOf } from '../utils/pricing.js';
 import { API_BASE_URL } from '../config/api.js';
-import { site } from '../config/site.js';
+import { site, sitePayment } from '../config/site.js';
+import { digits, formatNumber, pick, t } from '../utils/language.js';
 import { useCart, useSetCartQuantity, useToggleCart, useToggleWishlist, useWishlist } from '../hooks/queries.js';
 import { promptSignIn, useToast } from '../hooks/useToast.js';
 import { getUserEmail } from '../utils/auth.js';
@@ -24,12 +25,23 @@ import './Cart.css';
 function CartTopBar() {
   return (
     <header className="header shop-topbar">
-      <Link to="/" className="logo-button" title="Go to Homepage" aria-label="BookStoreBD home">
+      <Link
+        to="/"
+        className="logo-button"
+        title={t('Go to Homepage', 'হোমপেজে যান')}
+        aria-label={t('BookStoreBD home', 'BookStoreBD হোম')}
+      >
         <Logo size={34} />
       </Link>
       <div className="user-options">
         <NotificationBell />
-        <Link to="/wishlist" className="icon-link" title="Go to Wishlist" aria-label="Go to Wishlist" style={{ color: 'var(--color-accent)' }}>
+        <Link
+          to="/wishlist"
+          className="icon-link"
+          title={t('Go to Wishlist', 'উইশলিস্টে যান')}
+          aria-label={t('Go to Wishlist', 'উইশলিস্টে যান')}
+          style={{ color: 'var(--color-accent)' }}
+        >
           <FaHeart size={20} />
         </Link>
       </div>
@@ -45,7 +57,7 @@ export default function Cart() {
 
   const cartQuery = useCart({ enabled: signedIn });
   const cartBooks = cartQuery.data ?? [];
-  const error = cartQuery.isError ? 'Failed to load cart.' : null;
+  const error = cartQuery.isError ? t('Failed to load cart.', 'কার্ট লোড করা যায়নি।') : null;
 
   // Only the ids are needed for the heart icons, so the response is mapped as
   // it arrives rather than searched on every row.
@@ -97,8 +109,10 @@ export default function Cart() {
         <main className="shop-main">
           <div className="card mx-auto max-w-md p-8 text-center">
             <FaShoppingBag aria-hidden="true" className="mx-auto mb-3 text-4xl text-brand" />
-            <p className="m-0 mb-5 text-lg font-semibold text-ink">Please sign in to view your cart.</p>
-            <Link to="/sign-in" className="btn btn-primary">Sign in</Link>
+            <p className="m-0 mb-5 text-lg font-semibold text-ink">
+              {t('Please sign in to view your cart.', 'কার্ট দেখতে সাইন ইন করুন।')}
+            </p>
+            <Link to="/sign-in" className="btn btn-primary">{t('Sign in', 'সাইন ইন')}</Link>
           </div>
         </main>
       </div>
@@ -125,14 +139,18 @@ export default function Cart() {
       <main className="shop-main">
         <div className="mb-5 flex flex-wrap items-end justify-between gap-2">
           <div>
-            <h1 className="shop-title">Cart</h1>
+            <h1 className="shop-title">{t('Cart', 'কার্ট')}</h1>
             {cartBooks.length > 0 && (
               // Copies, as the summary counts them; a sold-out book is named
               // apart, since it is not part of what checkout will order.
               <p className="shop-sub">
-                {copyCount > 0 && `${copyCount} book${copyCount === 1 ? '' : 's'} ready for checkout`}
+                {copyCount > 0 &&
+                  t(
+                    `${copyCount} book${copyCount === 1 ? '' : 's'} ready for checkout`,
+                    `${formatNumber(copyCount)}টি বই চেকআউটের জন্য তৈরি`
+                  )}
                 {copyCount > 0 && soldOutCount > 0 && ', '}
-                {soldOutCount > 0 && `${soldOutCount} sold out`}
+                {soldOutCount > 0 && t(`${soldOutCount} sold out`, `${formatNumber(soldOutCount)}টির স্টক শেষ`)}
               </p>
             )}
           </div>
@@ -147,9 +165,11 @@ export default function Cart() {
             >
               <FaShoppingBag />
             </div>
-            <p className="m-0 text-lg font-bold text-ink">No books in cart.</p>
-            <p className="mx-0 mt-1 mb-5 text-ink-muted">Find something good to read - new and second-hand.</p>
-            <Link to="/filter" className="btn btn-primary">Browse books</Link>
+            <p className="m-0 text-lg font-bold text-ink">{t('No books in cart.', 'কার্টে কোনো বই নেই।')}</p>
+            <p className="mx-0 mt-1 mb-5 text-ink-muted">
+              {t('Find something good to read - new and second-hand.', 'পড়ার মতো ভালো কিছু খুঁজে নিন - নতুন ও পুরোনো।')}
+            </p>
+            <Link to="/filter" className="btn btn-primary">{t('Browse books', 'বই দেখুন')}</Link>
           </div>
         ) : (
           <div className="grid items-start gap-5 lg:grid-cols-[minmax(0,1fr)_360px]">
@@ -177,13 +197,13 @@ export default function Cart() {
                               color: book.bookType === 'old' ? 'var(--color-brand-dark)' : '#111827',
                             }}
                           >
-                            {book.bookType === 'old' ? 'Used' : book.bookType.toUpperCase()}
+                            {book.bookType === 'old' ? t('Used', 'পুরোনো') : t(book.bookType.toUpperCase(), 'নতুন')}
                           </span>
                         )}
                         <h2 className="cart-item-title">
                           <Link to={`/book/${book._id}`}>{book.title}</Link>
                         </h2>
-                        <p className="m-0 mt-0.5 text-sm text-ink-muted">by {book.author}</p>
+                        <p className="m-0 mt-0.5 text-sm text-ink-muted">{t('by', 'লেখক:')} {book.author}</p>
                       </div>
 
                       <button
@@ -191,21 +211,28 @@ export default function Cart() {
                         className="icon-button shrink-0"
                         style={{ color: wishlist[book._id] ? 'var(--color-accent)' : 'var(--color-ink-faint)', fontSize: 20 }}
                         onClick={() => handleToggleWishlist(book._id)}
-                        title={wishlist[book._id] ? 'Remove from wishlist' : 'Add to wishlist'}
-                        aria-label="Toggle wishlist"
+                        title={
+                          wishlist[book._id]
+                            ? t('Remove from wishlist', 'উইশলিস্ট থেকে সরান')
+                            : t('Add to wishlist', 'উইশলিস্টে যোগ করুন')
+                        }
+                        aria-label={t('Toggle wishlist', 'উইশলিস্টে রাখুন বা সরান')}
                       >
                         {wishlist[book._id] ? <FaHeart /> : <FaRegHeart />}
                       </button>
                     </div>
 
                     <p className="m-0 mt-1 text-xs text-ink-muted">
-                      {Array.isArray(book.category) ? book.category.join(', ') : (book.category || 'N/A')}
+                      {Array.isArray(book.category) ? book.category.join(', ') : (book.category || t('N/A', 'প্রযোজ্য নয়'))}
                     </p>
 
                     {!inStock(book) ? (
                       <>
                         <p role="status" className="cart-note is-out">
-                          Sold out. It stays here, and you can order it when it is back.
+                          {t(
+                            'Sold out. It stays here, and you can order it when it is back.',
+                            'স্টক শেষ। বইটি এখানেই থাকবে, আবার এলে অর্ডার করতে পারবেন।'
+                          )}
                         </p>
                         <div className="mt-2">
                           <RequestBookButton bookId={book._id} sellerEmail={book.sellerEmail} className="btn btn-ghost cart-request" />
@@ -213,10 +240,18 @@ export default function Cart() {
                       </>
                     ) :  book.cartAdjusted ? (
                       <p role="status" className="cart-note">
-                        Only {book.stock} left, so we lowered your quantity to {copies(book)}.
+                        {pick(
+                          <>Only {book.stock} left, so we lowered your quantity to {copies(book)}.</>,
+                          <>
+                            মাত্র {formatNumber(Number(book.stock))}টি বাকি, তাই আপনার পরিমাণ কমিয়ে{' '}
+                            {formatNumber(copies(book))}টি করা হয়েছে।
+                          </>
+                        )}
                       </p>
                     ) : Number(book.stock) <= 5 ? (
-                      <p className="cart-note">Only {book.stock} left.</p>
+                      <p className="cart-note">
+                        {pick(<>Only {book.stock} left.</>, <>মাত্র {formatNumber(Number(book.stock))}টি বাকি।</>)}
+                      </p>
                     ) : null}
 
                     <div className="mt-auto flex flex-wrap items-center justify-between gap-2 pt-3">
@@ -231,11 +266,14 @@ export default function Cart() {
                           onChange={(quantity) =>
                             setQuantity(
                               { bookId: book._id, quantity },
-                              { onError: (err) => toast.error(err.message || 'Could not change the quantity.') }
+                              {
+                                onError: (err) =>
+                                  toast.error(err.message || t('Could not change the quantity.', 'পরিমাণ বদলানো যায়নি।')),
+                              }
                             )
                           }
                           disabled={savingQuantity}
-                          label={`Copies of ${book.title}`}
+                          label={t(`Copies of ${book.title}`, `${book.title} - কপির সংখ্যা`)}
                         />
                       )}
 
@@ -244,10 +282,10 @@ export default function Cart() {
                         className="btn btn-danger"
                         style={{ minHeight: 40, padding: '0 14px', fontSize: 14 }}
                         onClick={() => handleRemoveFromCart(book._id)}
-                        title="Remove from cart"
-                        aria-label="Remove from cart"
+                        title={t('Remove from cart', 'কার্ট থেকে সরান')}
+                        aria-label={t('Remove from cart', 'কার্ট থেকে সরান')}
                       >
-                        <FaTrash aria-hidden="true" size={12} /> Remove
+                        <FaTrash aria-hidden="true" size={12} /> {t('Remove', 'সরান')}
                       </button>
                     </div>
                   </div>
@@ -256,25 +294,39 @@ export default function Cart() {
             </ul>
 
             {/* On a desktop the summary stays in view beside a long basket. */}
-            <aside className="card p-5 sm:p-6 lg:sticky lg:top-24" aria-label="Order summary">
-              <h2 className="m-0 mb-3 text-lg">Order summary</h2>
+            <aside className="card p-5 sm:p-6 lg:sticky lg:top-24" aria-label={t('Order summary', 'অর্ডারের সারসংক্ষেপ')}>
+              <h2 className="m-0 mb-3 text-lg">{t('Order summary', 'অর্ডারের সারসংক্ষেপ')}</h2>
               <div className="sum-row">
-                <span>Subtotal ({copyCount} book{copyCount === 1 ? '' : 's'})</span>
-                <span>৳{subtotal.toFixed(2)}</span>
+                <span>
+                  {pick(
+                    <>Subtotal ({copyCount} book{copyCount === 1 ? '' : 's'})</>,
+                    <>উপমোট ({formatNumber(copyCount)}টি বই)</>
+                  )}
+                </span>
+                <span>৳{digits(subtotal.toFixed(2))}</span>
               </div>
               <div className="sum-row">
-                <span>Delivery</span>
-                <span className="text-sm">Worked out at checkout</span>
+                <span>{t('Delivery', 'ডেলিভারি')}</span>
+                <span className="text-sm">{t('Worked out at checkout', 'চেকআউটে হিসাব হবে')}</span>
               </div>
               <p className="m-0 text-xs leading-relaxed text-ink-muted">
-                {site.delivery.insideDhaka} Tk inside Dhaka, {site.delivery.outsideDhaka} Tk elsewhere.
-                {buyable.length < cartBooks.length && ' Sold-out books are not included.'}
+                {pick(
+                  <>
+                    {site.delivery.insideDhaka} Tk inside Dhaka, {site.delivery.outsideDhaka} Tk elsewhere.
+                    {buyable.length < cartBooks.length && ' Sold-out books are not included.'}
+                  </>,
+                  <>
+                    ঢাকার ভেতরে {formatNumber(site.delivery.insideDhaka)} টাকা, অন্যত্র{' '}
+                    {formatNumber(site.delivery.outsideDhaka)} টাকা।
+                    {buyable.length < cartBooks.length && ' স্টক শেষ হওয়া বই এতে ধরা হয়নি।'}
+                  </>
+                )}
               </p>
               {/* Delivery depends on the district, chosen at checkout, so this
                   total says it is before delivery rather than looking final. */}
               <div className="sum-total">
-                <span>Total before delivery</span>
-                <span>৳{subtotal.toFixed(2)}</span>
+                <span>{t('Total before delivery', 'ডেলিভারি চার্জ ছাড়া মোট')}</span>
+                <span>৳{digits(subtotal.toFixed(2))}</span>
               </div>
 
               {buyable.length > 0 ? (
@@ -282,23 +334,35 @@ export default function Cart() {
                   className="btn btn-accent mt-5 w-full"
                   style={{ minHeight: 52, fontSize: 17 }}
                 >
-                  Proceed to Checkout
+                  {t('Proceed to Checkout', 'চেকআউটে যান')}
                 </Link>
               ) : (
                 <button type="button" className="btn btn-accent mt-5 w-full" style={{ minHeight: 52, fontSize: 17 }} disabled>
-                  Nothing in stock to check out
+                  {t('Nothing in stock to check out', 'চেকআউট করার মতো কোনো বই স্টকে নেই')}
                 </button>
               )}
               <Link to="/filter" className="btn btn-ghost mt-2 w-full">
-                Continue shopping
+                {t('Continue shopping', 'কেনাকাটা চালিয়ে যান')}
               </Link>
 
               <ul className="trust-list">
-                <li><FaMoneyBillWave aria-hidden="true" /> {site.payment} - pay when it arrives</li>
-                <li><FaUndoAlt aria-hidden="true" /> {site.returns.windowDays}-day returns if a book is not as described</li>
                 <li>
-                  <FaTruck aria-hidden="true" /> {site.delivery.daysInsideDhaka} working days in Dhaka,{' '}
-                  {site.delivery.daysOutsideDhaka} elsewhere
+                  <FaMoneyBillWave aria-hidden="true" /> {sitePayment()}
+                  {t(' - pay when it arrives', ' - বই হাতে পেলে পরিশোধ করুন')}
+                </li>
+                <li>
+                  <FaUndoAlt aria-hidden="true" />{' '}
+                  {t(
+                    `${site.returns.windowDays}-day returns if a book is not as described`,
+                    `বর্ণনার সঙ্গে না মিললে ${formatNumber(site.returns.windowDays)} দিনে ফেরত`
+                  )}
+                </li>
+                <li>
+                  <FaTruck aria-hidden="true" />{' '}
+                  {t(
+                    `${site.delivery.daysInsideDhaka} working days in Dhaka, ${site.delivery.daysOutsideDhaka} elsewhere`,
+                    `ঢাকায় ${formatNumber(site.delivery.daysInsideDhaka)} কর্মদিবস, অন্যত্র ${formatNumber(site.delivery.daysOutsideDhaka)} কর্মদিবস`
+                  )}
                 </li>
               </ul>
             </aside>

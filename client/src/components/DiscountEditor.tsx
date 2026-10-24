@@ -6,6 +6,7 @@ import PriceTag from './PriceTag.js';
 import { useUpdateDiscount } from '../hooks/queries.js';
 import { useToast } from '../hooks/useToast.js';
 import { messageOf } from '../utils/apiError.js';
+import { formatNumber, t } from '../utils/language.js';
 
 /** The same ceiling the server holds (server/config/pricing.ts). */
 const MAX_PERCENT = 90;
@@ -44,7 +45,7 @@ export default function DiscountEditor({ book }: { book: Book }) {
       });
       toast.success(res.message);
     } catch (error) {
-      toast.error(messageOf(error) || 'Could not save the discount.');
+      toast.error(messageOf(error) || t('Could not save the discount.', 'ছাড় সংরক্ষণ করা যায়নি।'));
     }
   };
 
@@ -57,11 +58,11 @@ export default function DiscountEditor({ book }: { book: Book }) {
           className="sl-edit"
           value={type}
           onChange={(e) => setType(e.target.value as DiscountType | 'none')}
-          aria-label={`Discount type for ${book.title}`}
+          aria-label={t(`Discount type for ${book.title}`, `${book.title}-এর ছাড়ের ধরন`)}
         >
-          <option value="none">No discount</option>
-          <option value="percent">% off</option>
-          <option value="amount">৳ off</option>
+          <option value="none">{t('No discount', 'ছাড় নেই')}</option>
+          <option value="percent">{t('% off', '% ছাড়')}</option>
+          <option value="amount">{t('৳ off', '৳ ছাড়')}</option>
         </select>
         {type !== 'none' && (
           <input
@@ -76,7 +77,11 @@ export default function DiscountEditor({ book }: { book: Book }) {
             onChange={(e) => {
               if (/^\d*$/.test(e.target.value)) setValue(e.target.value);
             }}
-            aria-label={type === 'percent' ? `Percent off ${book.title}` : `Taka off ${book.title}`}
+            aria-label={
+              type === 'percent'
+                ? t(`Percent off ${book.title}`, `${book.title}-এ শতকরা ছাড়`)
+                : t(`Taka off ${book.title}`, `${book.title}-এ টাকা ছাড়`)
+            }
             placeholder={type === 'percent' ? '10' : '50'}
           />
         )}
@@ -86,16 +91,19 @@ export default function DiscountEditor({ book }: { book: Book }) {
           onClick={save}
           disabled={isPending || unchanged || (type !== 'none' && preview === null)}
         >
-          {isPending ? 'Saving…' : 'Apply'}
+          {isPending ? t('Saving…', 'সংরক্ষণ হচ্ছে…') : t('Apply', 'প্রয়োগ করুন')}
         </button>
       </div>
       {type !== 'none' && value !== '' && !unchanged && (
         <p className={`sl-discount-hint${preview === null ? ' is-bad' : ''}`} role="status">
           {preview === null
             ? type === 'percent'
-              ? `Between 1% and ${MAX_PERCENT}%.`
-              : `Less than the price, and at most ${MAX_PERCENT}% of it.`
-            : `Sells for ৳${preview}.`}
+              ? t(`Between 1% and ${MAX_PERCENT}%.`, `${formatNumber(1)}% থেকে ${formatNumber(MAX_PERCENT)}%-এর মধ্যে।`)
+              : t(
+                  `Less than the price, and at most ${MAX_PERCENT}% of it.`,
+                  `দামের চেয়ে কম, এবং দামের সর্বোচ্চ ${formatNumber(MAX_PERCENT)}%।`
+                )
+            : t(`Sells for ৳${preview}.`, `বিক্রি হবে ৳${formatNumber(preview)}-এ।`)}
         </p>
       )}
     </div>

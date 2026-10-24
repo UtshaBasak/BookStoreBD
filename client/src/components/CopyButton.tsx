@@ -2,13 +2,14 @@ import { useState } from 'react';
 import { FaCheck, FaRegCopy } from 'react-icons/fa';
 
 import { copyText } from '../utils/copyText.js';
+import { t } from '../utils/language.js';
 import './CopyButton.css';
 
 /**
  * A small button that copies some text, such as an order number to quote on
  * the phone or in chat.
  */
-export default function CopyButton({ text, label = 'Copy' }: { text: string; label?: string }) {
+export default function CopyButton({ text, label = t('Copy', 'কপি করুন') }: { text: string; label?: string }) {
   const [copied, setCopied] = useState(false);
 
   const copy = async () => {
@@ -26,12 +27,12 @@ export default function CopyButton({ text, label = 'Copy' }: { text: string; lab
         event.stopPropagation();
         void copy();
       }}
-      aria-label={copied ? 'Copied' : `${label} ${text}`}
-      title={copied ? 'Copied' : label}
+      aria-label={copied ? t('Copied', 'কপি হয়েছে') : `${label} ${text}`}
+      title={copied ? t('Copied', 'কপি হয়েছে') : label}
     >
       {copied ? <FaCheck aria-hidden="true" /> : <FaRegCopy aria-hidden="true" />}
       <span className="copy-btn-text" aria-live="polite">
-        {copied ? 'Copied' : label}
+        {copied ? t('Copied', 'কপি হয়েছে') : label}
       </span>
     </button>
   );

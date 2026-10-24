@@ -3,6 +3,7 @@ import { FaEnvelope, FaFacebook, FaLink, FaShareNodes, FaTelegram, FaWhatsapp, F
 
 import { useToast } from '../hooks/useToast.js';
 import { copyText } from '../utils/copyText.js';
+import { t } from '../utils/language.js';
 import './ShareBook.css';
 
 /**
@@ -19,7 +20,9 @@ export default function ShareBook({ bookId, title, author }: { bookId: string; t
   const panelId = useId();
 
   const url = `${window.location.origin}/book/${bookId}`;
-  const text = author ? `"${title}" by ${author} on BookStoreBD` : `"${title}" on BookStoreBD`;
+  const text = author
+    ? t(`"${title}" by ${author} on BookStoreBD`, `BookStoreBD-তে ${author}-এর “${title}”`)
+    : t(`"${title}" on BookStoreBD`, `BookStoreBD-তে “${title}”`);
   const encodedUrl = encodeURIComponent(url);
   const encodedText = encodeURIComponent(text);
   const canNativeShare = typeof navigator !== 'undefined' && typeof navigator.share === 'function';
@@ -41,8 +44,8 @@ export default function ShareBook({ bookId, title, author }: { bookId: string; t
   }, [open]);
 
   const copy = async () => {
-    if (await copyText(url)) toast.success('Link copied.');
-    else toast.error(`Could not copy it. The link is ${url}`);
+    if (await copyText(url)) toast.success(t('Link copied.', 'লিংক কপি হয়েছে।'));
+    else toast.error(t(`Could not copy it. The link is ${url}`, `কপি করা যায়নি। লিংকটি হলো ${url}`));
     setOpen(false);
   };
 
@@ -60,7 +63,7 @@ export default function ShareBook({ bookId, title, author }: { bookId: string; t
     { label: 'WhatsApp', icon: FaWhatsapp, href: `https://wa.me/?text=${encodeURIComponent(`${text} ${url}`)}`, tone: '#25d366' },
     { label: 'X', icon: FaXTwitter, href: `https://twitter.com/intent/tweet?url=${encodedUrl}&text=${encodedText}`, tone: 'var(--color-ink)' },
     { label: 'Telegram', icon: FaTelegram, href: `https://t.me/share/url?url=${encodedUrl}&text=${encodedText}`, tone: '#229ed9' },
-    { label: 'E-mail', icon: FaEnvelope, href: `mailto:?subject=${encodedText}&body=${encodeURIComponent(`${text}\n${url}`)}`, tone: 'var(--color-brand)' },
+    { label: t('E-mail', 'ই-মেইল'), icon: FaEnvelope, href: `mailto:?subject=${encodedText}&body=${encodeURIComponent(`${text}\n${url}`)}`, tone: 'var(--color-brand)' },
   ];
 
   return (
@@ -72,10 +75,10 @@ export default function ShareBook({ bookId, title, author }: { bookId: string; t
         aria-controls={panelId}
         onClick={() => setOpen((value) => !value)}
       >
-        <FaShareNodes aria-hidden="true" /> Share
+        <FaShareNodes aria-hidden="true" /> {t('Share', 'শেয়ার')}
       </button>
       {open && (
-        <div id={panelId} className="share-panel" role="dialog" aria-label="Share this book">
+        <div id={panelId} className="share-panel" role="dialog" aria-label={t('Share this book', 'বইটি শেয়ার করুন')}>
           <ul>
             {targets.map(({ label, icon: Icon, href, tone }) => (
               <li key={label}>
@@ -93,14 +96,14 @@ export default function ShareBook({ bookId, title, author }: { bookId: string; t
             <li>
               <button type="button" onClick={() => void copy()}>
                 <FaLink aria-hidden="true" />
-                Copy link
+                {t('Copy link', 'লিংক কপি করুন')}
               </button>
             </li>
             {canNativeShare && (
               <li>
                 <button type="button" onClick={() => void nativeShare()}>
                   <FaShareNodes aria-hidden="true" />
-                  More options
+                  {t('More options', 'আরও অপশন')}
                 </button>
               </li>
             )}

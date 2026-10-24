@@ -34,7 +34,10 @@ import { useSeo } from '../hooks/useSeo.js';
 import BookReviews from '../components/BookReviews.js';
 import { Stars } from '../components/Stars.js';
 import { messageOf } from '../utils/apiError.js';
-import { site } from '../config/site.js';
+import { site, sitePayment } from '../config/site.js';
+import { conditionLabel } from '../utils/bookText.js';
+import { categoryLabel } from '../config/categories.js';
+import { digits, formatNumber, t } from '../utils/language.js';
 import Logo from '../components/Logo.js';
 import SearchField from '../components/SearchField.js';
 import RequestBookButton from '../components/RequestBookButton.js';
@@ -136,7 +139,7 @@ export default function BookView() {
         }
 
         if (!book || book.stock <= 0) {
-            toast.warning('This book is out of stock.');
+            toast.warning(t('This book is out of stock.', 'বইটির স্টক শেষ।'));
             return;
         }
 
@@ -148,15 +151,15 @@ export default function BookView() {
             await toggleCartMutation({ bookId, inCart: isInCart, quantity });
             toast.success(
                 isInCart
-                    ? 'Removed from your cart.'
+                    ? t('Removed from your cart.', 'কার্ট থেকে সরানো হয়েছে।')
                     : quantity > 1
-                      ? `${quantity} copies added to your cart.`
-                      : 'Added to your cart.'
+                      ? t(`${quantity} copies added to your cart.`, `${formatNumber(quantity)}টি কপি কার্টে যোগ হয়েছে।`)
+                      : t('Added to your cart.', 'কার্টে যোগ হয়েছে।')
             );
             if (isInCart) setCopies(1);
         } catch (error) {
             reportError('Cart error:', error);
-            toast.error(messageOf(error) || 'Could not update your cart.');
+            toast.error(messageOf(error) || t('Could not update your cart.', 'কার্ট আপডেট করা যায়নি।'));
         }
     };
 
@@ -170,11 +173,13 @@ export default function BookView() {
         try {
             await toggleWishlistMutation({ bookId, inWishlist: isInWishlist });
             toast.success(
-                isInWishlist ? 'Removed from your wishlist.' : 'Added to your wishlist.'
+                isInWishlist
+                    ? t('Removed from your wishlist.', 'উইশলিস্ট থেকে সরানো হয়েছে।')
+                    : t('Added to your wishlist.', 'উইশলিস্টে যোগ হয়েছে।')
             );
         } catch (error) {
             reportError('Wishlist error:', error);
-            toast.error(messageOf(error) || 'Could not update your wishlist.');
+            toast.error(messageOf(error) || t('Could not update your wishlist.', 'উইশলিস্ট আপডেট করা যায়নি।'));
         }
     };
 
@@ -188,7 +193,10 @@ export default function BookView() {
     const cover = book?.images?.[0];
     const coverUrl = cover && /^https?:\/\//.test(cover) ? cover : undefined;
     const summary = book
-        ? `${book.title} by ${book.author}. ${book.bookType === 'old' ? 'Second-hand' : 'New'}, ${priceOf(book)} Tk${(book.discountPercent ?? 0) > 0 ? ` (${book.discountPercent}% off)` : ''}${book.stock > 0 ? ', in stock' : ', out of stock'}.`
+        ? t(
+              `${book.title} by ${book.author}. ${book.bookType === 'old' ? 'Second-hand' : 'New'}, ${priceOf(book)} Tk${(book.discountPercent ?? 0) > 0 ? ` (${book.discountPercent}% off)` : ''}${book.stock > 0 ? ', in stock' : ', out of stock'}.`,
+              `${book.author}-এর ${book.title}। ${book.bookType === 'old' ? 'পুরোনো' : 'নতুন'}, ${digits(priceOf(book))} টাকা${(book.discountPercent ?? 0) > 0 ? ` (${digits(book.discountPercent ?? 0)}% ছাড়)` : ''}${book.stock > 0 ? ', স্টকে আছে' : ', স্টক শেষ'}।`
+          )
         : undefined;
 
     useSeo({
@@ -265,7 +273,7 @@ export default function BookView() {
         return (
             <div className="book-page-state" role="status">
                 <span className="book-page-spinner" aria-hidden="true" />
-                Loading...
+                {t('Loading...', 'লোড হচ্ছে...')}
             </div>
         );
     }
@@ -273,8 +281,8 @@ export default function BookView() {
     if (error) {
         return (
             <div className="book-page-state" role="alert" style={{ color: 'var(--color-danger-ink)' }}>
-                Error: {error}
-                <Link to="/filter" className="btn btn-ghost">Browse books</Link>
+                {t('Error:', 'সমস্যা:')} {error}
+                <Link to="/filter" className="btn btn-ghost">{t('Browse books', 'বই দেখুন')}</Link>
             </div>
         );
     }
@@ -282,8 +290,8 @@ export default function BookView() {
     if (!book) {
         return (
             <div className="book-page-state">
-                Book not found
-                <Link to="/filter" className="btn btn-ghost">Browse books</Link>
+                {t('Book not found', 'বইটি পাওয়া যায়নি')}
+                <Link to="/filter" className="btn btn-ghost">{t('Browse books', 'বই দেখুন')}</Link>
             </div>
         );
     }
@@ -305,7 +313,7 @@ export default function BookView() {
                         on their own, as on the homepage. */}
                     <Link to="/"
                         className="logo-button"
-                        aria-label="BookStoreBD home"
+                        aria-label={t('BookStoreBD home', 'BookStoreBD হোম')}
                     >
                         <Logo size={38} />
                     </Link>
@@ -317,9 +325,9 @@ export default function BookView() {
                         value={searchQuery}
                         onChange={setSearchQuery}
                         onSubmit={(text) => navigate(`/filter?search=${encodeURIComponent(text.trim())}`)}
-                        inputProps={{ name: 'q', 'aria-label': 'Search books', placeholder: 'Search books...' }}
+                        inputProps={{ name: 'q', 'aria-label': t('Search books', 'বই খুঁজুন'), placeholder: t('Search books...', 'বই খুঁজুন...') }}
                     />
-                    <button onClick={() => navigate(`/filter?search=${encodeURIComponent(searchQuery.trim())}`)}>Search</button>
+                    <button onClick={() => navigate(`/filter?search=${encodeURIComponent(searchQuery.trim())}`)}>{t('Search', 'খুঁজুন')}</button>
                 </div>
 
                 <div className="user-options" style={{ position: 'relative' }}>
@@ -327,13 +335,13 @@ export default function BookView() {
                         <Link to="/chat"
                             className="chat-icon icon-button"
                             style={{ color: 'var(--color-brand)' }}
-                            title="Chat"
-                            aria-label="Chat"
+                            title={t('Chat', 'চ্যাট')}
+                            aria-label={t('Chat', 'চ্যাট')}
                         >
                             <FaComments />
                             {unreadCount > 0 && (
                                 <span className="book-page-unread">
-                                    {unreadCount > 99 ? '99+' : unreadCount}
+                                    {unreadCount > 99 ? digits('99+') : digits(unreadCount)}
                                 </span>
                             )}
                         </Link>
@@ -347,19 +355,19 @@ export default function BookView() {
                     <Link to="/wishlist"
                         className="wishlist-icon icon-button"
                         style={{ color: 'var(--color-accent)' }}
-                        title="Wishlist"
-                        aria-label="Wishlist"
+                        title={t('Wishlist', 'উইশলিস্ট')}
+                        aria-label={t('Wishlist', 'উইশলিস্ট')}
                     >
                         <FaHeart />
                     </Link>
 
-                    <Link to="/cart" className="icon-link" style={{ color: 'var(--color-brand)' }} title="Cart" aria-label="Cart">
+                    <Link to="/cart" className="icon-link" style={{ color: 'var(--color-brand)' }} title={t('Cart', 'কার্ট')} aria-label={t('Cart', 'কার্ট')}>
                         <FaShoppingBag />
                     </Link>
 
                     {user ? (
                         // A link to the profile, and nothing on hover.
-                        <Link to="/profile" className="profile-link" title="Your profile" aria-label="Your profile">
+                        <Link to="/profile" className="profile-link" title={t('Your profile', 'আপনার প্রোফাইল')} aria-label={t('Your profile', 'আপনার প্রোফাইল')}>
                             <img
                                 src={
                                     profilePic ||
@@ -382,7 +390,7 @@ export default function BookView() {
                             className="btn btn-primary"
                             style={{ minHeight: 40, padding: '0 1.1rem' }}
                         >
-                            Sign In
+                            {t('Sign In', 'সাইন ইন')}
                         </Link>
                     )}
                 </div>
@@ -408,21 +416,21 @@ export default function BookView() {
                                     boxShadow: '0 2px 8px rgba(30,27,75,0.18)',
                                 }}
                             >
-                                {isOld ? 'Used' : 'New'}
+                                {isOld ? t('Used', 'পুরোনো') : t('New', 'নতুন')}
                             </span>
                         </div>
 
                         {/* The other photographs, when a seller took more than
                             one - the back cover, the spine, a worn corner. */}
                         {images.length > 1 && (
-                            <div className="book-thumbs" role="group" aria-label="Photos of this book">
+                            <div className="book-thumbs" role="group" aria-label={t('Photos of this book', 'বইটির ছবি')}>
                                 {images.map((img, index) => (
                                     <button
                                         key={index}
                                         type="button"
                                         className={`book-thumb${index === shownIndex ? ' is-on' : ''}`}
                                         onClick={() => setPicked({ id, index })}
-                                        aria-label={`Photo ${index + 1} of ${images.length}`}
+                                        aria-label={t(`Photo ${index + 1} of ${images.length}`, `ছবি ${formatNumber(index + 1)} / ${formatNumber(images.length)}`)}
                                         aria-pressed={index === shownIndex}
                                     >
                                         <img src={imageSrc(img)} alt="" loading="lazy" decoding="async" />
@@ -435,31 +443,38 @@ export default function BookView() {
                     <div className="book-details">
                         <div className="card book-summary">
                             {book.category?.length > 0 && (
-                                <p className="book-kicker">{book.category.join(' · ')}</p>
+                                <p className="book-kicker">{book.category.map(categoryLabel).join(' · ')}</p>
                             )}
                             <h1 className="book-title">{book.title}</h1>
-                            <p className="book-author">By {book.author}</p>
+                            <p className="book-author">{t(`By ${book.author}`, `লেখক: ${book.author}`)}</p>
                             {(book.ratingCount ?? 0) > 0 ? (
                                 <a href="#reviews" className="book-rating">
                                     <Stars value={book.ratingAverage ?? 0} size={18} />
                                     <span style={{ fontWeight: 700, color: 'var(--color-ink)' }}>
-                                        {(book.ratingAverage ?? 0).toFixed(1)}
+                                        {digits((book.ratingAverage ?? 0).toFixed(1))}
                                     </span>
                                     <span style={{ color: 'var(--color-ink-muted)' }}>
-                                        ({book.ratingCount} {book.ratingCount === 1 ? 'review' : 'reviews'})
+                                        {t(
+                                            `(${book.ratingCount} ${book.ratingCount === 1 ? 'review' : 'reviews'})`,
+                                            `(${formatNumber(book.ratingCount ?? 0)}টি রিভিউ)`
+                                        )}
                                     </span>
                                 </a>
                             ) : (
-                                <p className="book-rating" style={{ color: 'var(--color-ink-muted)' }}>No reviews yet</p>
+                                <p className="book-rating" style={{ color: 'var(--color-ink-muted)' }}>{t('No reviews yet', 'এখনো কোনো রিভিউ নেই')}</p>
                             )}
 
                             {/* How wanted it is: views and wishlists. */}
-                            <ul className="book-demand" aria-label="Demand for this book">
+                            <ul className="book-demand" aria-label={t('Demand for this book', 'বইটির চাহিদা')}>
                                 <li>
-                                    <FaEye aria-hidden="true" /> {countLabel(book.viewCount, 'view', 'views')}
+                                    <FaEye aria-hidden="true" /> {countLabel(book.viewCount, 'view', 'views', 'বার দেখা হয়েছে')}
                                 </li>
                                 <li>
-                                    <FaHeart aria-hidden="true" /> On {countLabel(book.wishlistCount, 'wishlist', 'wishlists')}
+                                    <FaHeart aria-hidden="true" />{' '}
+                                    {t(
+                                        `On ${countLabel(book.wishlistCount, 'wishlist', 'wishlists')}`,
+                                        countLabel(book.wishlistCount, 'wishlist', 'wishlists', 'জনের উইশলিস্টে')
+                                    )}
                                 </li>
                             </ul>
 
@@ -476,10 +491,10 @@ export default function BookView() {
                                     }
                                 >
                                     {book.stock <= 0
-                                        ? 'Out of Stock'
+                                        ? t('Out of Stock', 'স্টক শেষ')
                                         : book.stock <= 5
-                                          ? `Only ${book.stock} left`
-                                          : `${book.stock} copies available`}
+                                          ? t(`Only ${book.stock} left`, `মাত্র ${formatNumber(book.stock)}টি বাকি`)
+                                          : t(`${book.stock} copies available`, `${formatNumber(book.stock)}টি কপি আছে`)}
                                 </span>
                             </div>
 
@@ -487,12 +502,12 @@ export default function BookView() {
                                 after, what the cart holds - changed in place. */}
                             {book.stock > 1 && (
                                 <div className="book-qty">
-                                    <span className="book-qty-label">{inCart ? 'In your cart' : 'Quantity'}</span>
+                                    <span className="book-qty-label">{inCart ? t('In your cart', 'আপনার কার্টে') : t('Quantity', 'পরিমাণ')}</span>
                                     <QuantityStepper
                                         value={inCart ? Math.min(cartCopies[book._id] ?? 1, book.stock) : Math.min(copies, book.stock)}
                                         max={book.stock}
                                         disabled={savingQuantity}
-                                        label={`Copies of ${book.title}`}
+                                        label={t(`Copies of ${book.title}`, `${book.title}-এর কপি`)}
                                         onChange={(value) => {
                                             if (!inCart) {
                                                 setCopies(value);
@@ -500,7 +515,7 @@ export default function BookView() {
                                             }
                                             setCartQuantity(
                                                 { bookId: book._id, quantity: value },
-                                                { onError: (err) => toast.error(messageOf(err) || 'Could not change the quantity.') }
+                                                { onError: (err) => toast.error(messageOf(err) || t('Could not change the quantity.', 'পরিমাণ বদলানো যায়নি।')) }
                                             );
                                         }}
                                     />
@@ -510,7 +525,7 @@ export default function BookView() {
                             <div className="book-actions">
                                 {userEmail && userEmail === book.sellerEmail ? (
                                     // A seller cannot buy their own book; the shop refuses it too.
-                                    <Link to="/seller-books" className="btn btn-primary">Your listing: manage it</Link>
+                                    <Link to="/seller-books" className="btn btn-primary">{t('Your listing: manage it', 'আপনার তালিকা: পরিচালনা করুন')}</Link>
                                 ) : book.stock <= 0 ? (
                                     <RequestBookButton bookId={book._id} sellerEmail={book.sellerEmail} className="btn btn-accent" />
                                 ) : (
@@ -527,23 +542,27 @@ export default function BookView() {
                                     }
                                 >
                                     {book.stock > 0 && <FaShoppingBag aria-hidden="true" />}
-                                    {book.stock === 0 ? 'Out of Stock' : (inCart ? 'Remove from Cart' : 'Add to Cart')}
+                                    {book.stock === 0
+                                        ? t('Out of Stock', 'স্টক শেষ')
+                                        : inCart
+                                          ? t('Remove from Cart', 'কার্ট থেকে সরান')
+                                          : t('Add to Cart', 'কার্টে যোগ করুন')}
                                 </button>
                                 )}
                                 <button
                                     type="button"
                                     onClick={() => toggleWishlist(book._id)}
                                     className="btn btn-ghost book-wish"
-                                    aria-label={inWishlist ? 'Remove from wishlist' : 'Add to wishlist'}
+                                    aria-label={inWishlist ? t('Remove from wishlist', 'উইশলিস্ট থেকে সরান') : t('Add to wishlist', 'উইশলিস্টে যোগ করুন')}
                                     aria-pressed={inWishlist}
-                                    title={inWishlist ? 'Remove from wishlist' : 'Add to wishlist'}
+                                    title={inWishlist ? t('Remove from wishlist', 'উইশলিস্ট থেকে সরান') : t('Add to wishlist', 'উইশলিস্টে যোগ করুন')}
                                 >
                                     {inWishlist ? (
                                         <FaHeart aria-hidden="true" style={{ color: 'var(--color-accent)' }} />
                                     ) : (
                                         <FaRegHeart aria-hidden="true" />
                                     )}
-                                    <span className="book-wish-text">Wishlist</span>
+                                    <span className="book-wish-text">{t('Wishlist', 'উইশলিস্ট')}</span>
                                 </button>
                             </div>
 
@@ -551,10 +570,19 @@ export default function BookView() {
                                 <ShareBook bookId={book._id} title={book.title} author={book.author} />
                             </div>
 
-                            <ul className="book-perks" aria-label="Buying here">
-                                <li>💵 {site.payment}</li>
-                                <li>↩️ {site.returns.windowDays}-day returns if not as described</li>
-                                <li>🚚 From {site.delivery.insideDhaka} Tk delivery</li>
+                            <ul className="book-perks" aria-label={t('Buying here', 'এখানে কেনা')}>
+                                <li>💵 {sitePayment()}</li>
+                                <li>
+                                    ↩️{' '}
+                                    {t(
+                                        `${site.returns.windowDays}-day returns if not as described`,
+                                        `বর্ণনার সঙ্গে না মিললে ${digits(site.returns.windowDays)} দিনে ফেরত`
+                                    )}
+                                </li>
+                                <li>
+                                    🚚{' '}
+                                    {t(`From ${site.delivery.insideDhaka} Tk delivery`, `ডেলিভারি ${digits(site.delivery.insideDhaka)} টাকা থেকে`)}
+                                </li>
                             </ul>
                         </div>
 
@@ -564,7 +592,7 @@ export default function BookView() {
                                 {(sellerName || '?').charAt(0).toUpperCase()}
                             </span>
                             <div className="book-seller-who">
-                                <p className="book-seller-label">Seller:</p>
+                                <p className="book-seller-label">{t('Seller:', 'বিক্রেতা:')}</p>
                                 <p className="book-seller-name">
                                     {sellerInfo?.username ? (
                                         <Link to={`/shop/${encodeURIComponent(sellerInfo.username)}`}>{sellerName}</Link>
@@ -578,17 +606,19 @@ export default function BookView() {
                                         className="book-seller-rating"
                                     >
                                         <Stars value={sellerInfo.sellerRating?.average ?? 0} size={13} />
-                                        <span style={{ color: 'var(--color-ink)' }}>{(sellerInfo.sellerRating?.average ?? 0).toFixed(1)}</span>
+                                        <span style={{ color: 'var(--color-ink)' }}>{digits((sellerInfo.sellerRating?.average ?? 0).toFixed(1))}</span>
                                         <span>
-                                            ({sellerInfo.sellerRating?.count}{' '}
-                                            {sellerInfo.sellerRating?.count === 1 ? 'rating' : 'ratings'})
+                                            {t(
+                                                `(${sellerInfo.sellerRating?.count} ${sellerInfo.sellerRating?.count === 1 ? 'rating' : 'ratings'})`,
+                                                `(${formatNumber(sellerInfo.sellerRating?.count ?? 0)}টি রেটিং)`
+                                            )}
                                         </span>
                                     </Link>
                                 )}
                             </div>
                             {sellerInfo?.username && (
                                 <Link to={`/shop/${encodeURIComponent(sellerInfo.username)}`} className="btn btn-ghost">
-                                    <FaStore aria-hidden="true" /> Visit shop
+                                    <FaStore aria-hidden="true" /> {t('Visit shop', 'দোকানে যান')}
                                 </Link>
                             )}
                             {userEmail !== book?.sellerEmail && (
@@ -600,9 +630,9 @@ export default function BookView() {
                                     // offered a sign-in instead.
                                     onClick={() => {
                                         if (!userEmail) {
-                                            toast.info('Sign in to message the seller.', {
+                                            toast.info(t('Sign in to message the seller.', 'বিক্রেতাকে মেসেজ দিতে সাইন ইন করুন।'), {
                                                 action: {
-                                                    label: 'Sign in',
+                                                    label: t('Sign in', 'সাইন ইন'),
                                                     onClick: () => navigate('/sign-in'),
                                                 },
                                             });
@@ -611,27 +641,27 @@ export default function BookView() {
                                         setShowChat(true);
                                     }}
                                 >
-                                    <FaComments aria-hidden="true" /> Chat with Seller
+                                    <FaComments aria-hidden="true" /> {t('Chat with Seller', 'বিক্রেতার সঙ্গে চ্যাট')}
                                 </button>
                             )}
                         </div>
 
                         <div className="card book-section">
-                            <h2>Book Details</h2>
+                            <h2>{t('Book Details', 'বইয়ের বিবরণ')}</h2>
                             <dl className="book-facts">
                                 {/* Only what the seller filled in: a blank field is left out
                                     rather than shown as "N/A". */}
-                                <div><dt>Category</dt><dd>{book.category.join(', ')}</dd></div>
-                                {given(book.publisher) && <div><dt>Publisher</dt><dd>{given(book.publisher)}</dd></div>}
-                                {given(book.isbn) && <div><dt>ISBN</dt><dd>{given(book.isbn)}</dd></div>}
-                                {given(book.language) && <div><dt>Language</dt><dd>{given(book.language)}</dd></div>}
-                                {Number(book.pages) > 0 && <div><dt>Pages</dt><dd>{book.pages}</dd></div>}
+                                <div><dt>{t('Category', 'বিষয়')}</dt><dd>{book.category.map(categoryLabel).join(', ')}</dd></div>
+                                {given(book.publisher) && <div><dt>{t('Publisher', 'প্রকাশক')}</dt><dd>{given(book.publisher)}</dd></div>}
+                                {given(book.isbn) && <div><dt>{t('ISBN', 'আইএসবিএন')}</dt><dd>{given(book.isbn)}</dd></div>}
+                                {given(book.language) && <div><dt>{t('Language', 'ভাষা')}</dt><dd>{given(book.language)}</dd></div>}
+                                {Number(book.pages) > 0 && <div><dt>{t('Pages', 'পৃষ্ঠা')}</dt><dd>{digits(book.pages ?? 0)}</dd></div>}
                                 {isOld && given(book.condition) && (
-                                    <div><dt>Condition</dt><dd>{capitalise(given(book.condition))}</dd></div>
+                                    <div><dt>{t('Condition', 'অবস্থা')}</dt><dd>{t(capitalise(given(book.condition)), conditionLabel(given(book.condition)))}</dd></div>
                                 )}
                                 {isOld && given(book.conditionDetails) && (
                                     <div className="book-facts-wide">
-                                        <dt>Condition Details</dt>
+                                        <dt>{t('Condition Details', 'অবস্থার বিস্তারিত')}</dt>
                                         <dd>{given(book.conditionDetails)}</dd>
                                     </div>
                                 )}
@@ -640,7 +670,7 @@ export default function BookView() {
 
                         {given(book.desc) && (
                             <div className="card book-section">
-                                <h2>Description</h2>
+                                <h2>{t('Description', 'বিবরণ')}</h2>
                                 <p className="book-desc">{given(book.desc)}</p>
                             </div>
                         )}
@@ -653,14 +683,14 @@ export default function BookView() {
 
                 {book.relatedBooks?.length > 0 && (
                     <section className="popular-section book-similar">
-                        <h2>Similar Books</h2>
+                        <h2>{t('Similar Books', 'একই ধরনের বই')}</h2>
                         <div style={{ position: 'relative' }}>
                             <button
                                 type="button"
                                 onClick={handleScrollLeft}
                                 className="scroll-button"
                                 style={{ left: 0 }}
-                                aria-label="Scroll left"
+                                aria-label={t('Scroll left', 'বাঁয়ে সরান')}
                             >
                                 <FaChevronLeft />
                             </button>
@@ -691,7 +721,7 @@ export default function BookView() {
                                                     boxShadow: '0 2px 8px rgba(30,27,75,0.18)',
                                                 }}
                                             >
-                                                {relatedBook.bookType === 'old' ? 'Used' : 'New'}
+                                                {relatedBook.bookType === 'old' ? t('Used', 'পুরোনো') : t('New', 'নতুন')}
                                             </span>
                                         </div>
                                         <div className="book-info">
@@ -709,7 +739,7 @@ export default function BookView() {
                                 onClick={handleScrollRight}
                                 className="scroll-button"
                                 style={{ right: 0 }}
-                                aria-label="Scroll right"
+                                aria-label={t('Scroll right', 'ডানে সরান')}
                             >
                                 <FaChevronRight />
                             </button>

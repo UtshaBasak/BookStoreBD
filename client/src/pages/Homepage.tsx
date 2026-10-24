@@ -15,7 +15,7 @@ import {
 } from '../hooks/queries.js';
 import { promptSignIn, useToast } from '../hooks/useToast.js';
 import { useSeo } from '../hooks/useSeo.js';
-import { site } from '../config/site.js';
+import { site, sitePayment, siteTagline } from '../config/site.js';
 import NotificationBell from '../components/NotificationBell.js';
 import { ThemeToggle } from '../components/ThemeToggle.js';
 import { LanguageToggle } from '../components/LanguageToggle.js';
@@ -26,7 +26,8 @@ import SearchField from '../components/SearchField.js';
 import { getUserEmail } from '../utils/auth.js';
 import { subscribeToMessages } from '../utils/socket.js';
 import { flagsFor } from '../utils/bookFlags.js';
-import { CATEGORY_GROUPS, categoryLink } from '../config/categories.js';
+import { CATEGORY_GROUPS, categoryLabel, categoryLink } from '../config/categories.js';
+import { digits, pick, t } from '../utils/language.js';
 
 export default function Homepage() {
   const [showDropdown, setShowDropdown] = useState<'category' | false>(false);
@@ -56,13 +57,15 @@ export default function Homepage() {
    * can give a site a search box of its own in the results page.
    */
   useSeo({
-    description:
+    description: t(
       'Buy and sell new and second-hand books across Bangladesh. Wishlists, order tracking and a direct line to the seller.',
+      'সারা বাংলাদেশে নতুন ও পুরোনো বই কিনুন ও বিক্রি করুন। উইশলিস্ট, অর্ডার ট্র্যাকিং আর বিক্রেতার সঙ্গে সরাসরি কথা।'
+    ),
     jsonLd: {
       '@context': 'https://schema.org',
       '@type': 'WebSite',
       name: site.name,
-      description: site.tagline,
+      description: siteTagline(),
       url: window.location.origin,
       potentialAction: {
         '@type': 'SearchAction',
@@ -121,7 +124,7 @@ export default function Homepage() {
     }
     toggleCartMutation(
       { bookId, inCart: Boolean(cart[bookId]) },
-      { onError: () => toast.error('Could not update your cart. Please try again.') }
+      { onError: () => toast.error(t('Could not update your cart. Please try again.', 'কার্ট আপডেট করা যায়নি। আবার চেষ্টা করুন।')) }
     );
   };
 
@@ -141,7 +144,7 @@ export default function Homepage() {
               own, so going home never flashes a white screen. */}
           <Link to="/"
             className="logo-button"
-            aria-label="BookStoreBD home"
+            aria-label={t('BookStoreBD home', 'BookStoreBD হোম')}
           >
             <Logo size={38} />
           </Link>
@@ -152,9 +155,13 @@ export default function Homepage() {
             value={searchInput}
             onChange={setSearchInput}
             onSubmit={handleHomepageSearch}
-            inputProps={{ name: 'search', 'aria-label': 'Search books', placeholder: 'Search by title, author or ISBN' }}
+            inputProps={{
+              name: 'search',
+              'aria-label': t('Search books', 'বই খুঁজুন'),
+              placeholder: t('Search by title, author or ISBN', 'বইয়ের নাম, লেখক বা আইএসবিএন দিয়ে খুঁজুন'),
+            }}
           />
-          <button onClick={() => handleHomepageSearch()}>Search</button>
+          <button onClick={() => handleHomepageSearch()}>{t('Search', 'খুঁজুন')}</button>
         </div>
         <div className="user-options" style={{ position: 'relative' }}>
 
@@ -162,8 +169,8 @@ export default function Homepage() {
             <Link to="/chat"
               className="chat-icon icon-button"
               style={{ color: 'var(--color-brand)' }}
-              title="Chat"
-              aria-label="Chat"
+              title={t('Chat', 'চ্যাট')}
+              aria-label={t('Chat', 'চ্যাট')}
             >
               <FaComments />
               {unreadCount > 0 && (
@@ -182,7 +189,7 @@ export default function Homepage() {
                   alignItems: 'center',
                   justifyContent: 'center'
                 }}>
-                  {unreadCount > 99 ? '99+' : unreadCount}
+                  {unreadCount > 99 ? digits('99+') : digits(unreadCount)}
                 </span>
               )}
             </Link>
@@ -196,18 +203,18 @@ export default function Homepage() {
           <Link to="/wishlist"
             className="wishlist-icon icon-button"
             style={{ color: 'var(--color-accent)' }}
-            title="Wishlist"
-            aria-label="Wishlist"
+            title={t('Wishlist', 'উইশলিস্ট')}
+            aria-label={t('Wishlist', 'উইশলিস্ট')}
           >
             <FaHeart />
           </Link>
-          <Link to="/cart" className="icon-link" style={{ color: 'var(--color-brand)' }} title="Cart" aria-label="Cart">
+          <Link to="/cart" className="icon-link" style={{ color: 'var(--color-brand)' }} title={t('Cart', 'কার্ট')} aria-label={t('Cart', 'কার্ট')}>
             <FaShoppingBag />
           </Link>
           {user ? (
             // A plain link to the profile, with no hover menu: hover does not
             // exist on a touch screen, and Sign Out lives on the profile page.
-            <Link to="/profile" className="profile-link" title="Your profile" aria-label="Your profile">
+            <Link to="/profile" className="profile-link" title={t('Your profile', 'আপনার প্রোফাইল')} aria-label={t('Your profile', 'আপনার প্রোফাইল')}>
               <img
                 src={
                   profilePic ||
@@ -230,7 +237,7 @@ export default function Homepage() {
               className="btn btn-primary"
               style={{ minHeight: 40, padding: '0 1.1rem' }}
             >
-              Sign in
+              {t('Sign in', 'সাইন ইন')}
             </Link>
           )}
         </div>
@@ -240,7 +247,7 @@ export default function Homepage() {
         Real links and a real button, so a screen reader announces them
         correctly and they can be opened in a new tab or followed by a crawler.
       */}
-      <nav className="nav-bar" aria-label="Browse books">
+      <nav className="nav-bar" aria-label={t('Browse books', 'বই দেখুন')}>
         <div
           className="dropdown dropdown-categories"
           onMouseEnter={openMenu}
@@ -263,7 +270,7 @@ export default function Homepage() {
             // mouseenter, which has opened it already.
             onClick={() => setShowDropdown('category')}
           >
-            Categories <span aria-hidden="true">▾</span>
+            {t('Categories', 'বিষয়')} <span aria-hidden="true">▾</span>
           </button>
           {showDropdown === 'category' && (
             // Grouped: a hundred subjects in one list would be a wall.
@@ -271,13 +278,13 @@ export default function Homepage() {
               {CATEGORY_GROUPS.map((group) => (
                 <div key={group.name} className={`categories-group${group.items.length > 12 ? ' is-wide' : ''}`}>
                   <p className="categories-group-name">
-                    <span aria-hidden="true">{group.emoji}</span> {group.name}
+                    <span aria-hidden="true">{group.emoji}</span> {categoryLabel(group.name)}
                   </p>
                   <ul>
                     {group.items.map((category) => (
                       <li key={category}>
                         <Link to={categoryLink(category)} onClick={() => setShowDropdown(false)}>
-                          {category}
+                          {categoryLabel(category)}
                         </Link>
                       </li>
                     ))}
@@ -288,19 +295,19 @@ export default function Homepage() {
           )}
         </div>
         <Link className="chip" to="/filter?bookType=new">
-          <span aria-hidden="true">✨</span>&nbsp;New books
+          <span aria-hidden="true">✨</span>&nbsp;{t('New books', 'নতুন বই')}
         </Link>
         <Link className="chip" to="/filter?bookType=old">
-          <span aria-hidden="true">♻️</span>&nbsp;Second-hand
+          <span aria-hidden="true">♻️</span>&nbsp;{t('Second-hand', 'পুরোনো বই')}
         </Link>
         <Link className="chip chip-deals" to="/filter?deals=1&sort=dealPercent">
-          <span aria-hidden="true">⚡</span>&nbsp;Quick deals
+          <span aria-hidden="true">⚡</span>&nbsp;{t('Quick deals', 'চটজলদি ছাড়')}
         </Link>
         <Link className="chip" to="/filter?inStock=1">
-          In stock now
+          {t('In stock now', 'এখন স্টকে আছে')}
         </Link>
         <Link className="chip" to="/wanted">
-          <span aria-hidden="true">🎯</span>&nbsp;Wanted board
+          <span aria-hidden="true">🎯</span>&nbsp;{t('Wanted board', 'চাহিদার বোর্ড')}
         </Link>
       </nav>
 
@@ -312,12 +319,22 @@ export default function Homepage() {
       */}
       <section className="hero">
         <div className="hero-inner">
-          <p className="hero-kicker">📚 New & second-hand books across Bangladesh</p>
+          <p className="hero-kicker">📚 {t('New & second-hand books across Bangladesh', 'সারা বাংলাদেশে নতুন ও পুরোনো বই')}</p>
           <h1 className="hero-title">
-            Your next favourite book is <span className="hero-highlight">one tap</span> away.
+            {pick(
+              <>
+                Your next favourite book is <span className="hero-highlight">one tap</span> away.
+              </>,
+              <>
+                আপনার পরের প্রিয় বইটি মাত্র <span className="hero-highlight">এক ট্যাপ</span> দূরে।
+              </>
+            )}
           </h1>
           <p className="hero-sub">
-            Buy for less, sell the ones you have finished, and keep good books moving.
+            {t(
+              'Buy for less, sell the ones you have finished, and keep good books moving.',
+              'কম দামে কিনুন, পড়া শেষ হলে বিক্রি করুন, ভালো বই হাতে হাতে ঘুরুক।'
+            )}
           </p>
           <form
             className="hero-search"
@@ -332,18 +349,31 @@ export default function Homepage() {
               value={searchInput}
               onChange={setSearchInput}
               onSubmit={handleHomepageSearch}
-              inputProps={{ name: 'q', 'aria-label': 'Search books', placeholder: 'Try “Humayun Ahmed” or “physics”' }}
+              inputProps={{
+                name: 'q',
+                'aria-label': t('Search books', 'বই খুঁজুন'),
+                placeholder: t('Try “Humayun Ahmed” or “physics”', 'যেমন “হুমায়ূন আহমেদ” বা “পদার্থবিজ্ঞান”'),
+              }}
             />
-            <button type="submit" className="btn btn-accent">Search</button>
+            <button type="submit" className="btn btn-accent">{t('Search', 'খুঁজুন')}</button>
           </form>
           <div className="hero-actions">
-            <Link to="/filter" className="btn btn-primary">Browse all books</Link>
-            <Link to="/add-book" className="btn btn-ghost">Sell a book</Link>
+            <Link to="/filter" className="btn btn-primary">{t('Browse all books', 'সব বই দেখুন')}</Link>
+            <Link to="/add-book" className="btn btn-ghost">{t('Sell a book', 'বই বিক্রি করুন')}</Link>
           </div>
-          <ul className="hero-perks" aria-label="Why buy here">
-            <li>💵 {site.payment}</li>
-            <li>↩️ {site.returns.windowDays}-day returns if not as described</li>
-            <li>🚚 From {site.delivery.insideDhaka} Tk delivery</li>
+          <ul className="hero-perks" aria-label={t('Why buy here', 'কেন এখানে কিনবেন')}>
+            <li>💵 {sitePayment()}</li>
+            <li>
+              ↩️{' '}
+              {t(
+                `${site.returns.windowDays}-day returns if not as described`,
+                `বর্ণনার সঙ্গে না মিললে ${digits(site.returns.windowDays)} দিনে ফেরত`
+              )}
+            </li>
+            <li>
+              🚚{' '}
+              {t(`From ${site.delivery.insideDhaka} Tk delivery`, `ডেলিভারি ${digits(site.delivery.insideDhaka)} টাকা থেকে`)}
+            </li>
           </ul>
         </div>
         {/* Book spines, drawn: colour and movement without a photograph. */}

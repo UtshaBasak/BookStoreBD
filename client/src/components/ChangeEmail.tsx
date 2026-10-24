@@ -13,6 +13,7 @@ import type {
 import { API_BASE_URL, apiFetch } from '../config/api.js';
 import { useToast } from '../hooks/useToast.js';
 import { getToken, getUserRole, setSession } from '../utils/auth.js';
+import { pick, t } from '../utils/language.js';
 
 const post = (path: string, body: unknown) =>
   apiFetch(`${API_BASE_URL}${path}`, {
@@ -54,14 +55,14 @@ export default function ChangeEmail({
       const res = await post('/user/me/email', { newEmail: newEmail.trim(), password } satisfies EmailChangeRequest);
       const data = (await res.json()) as EmailChangeResponse & ApiError;
       if (!res.ok) {
-        setProblem(data.errors?.[0]?.message || data.message || 'Could not start the change.');
+        setProblem(data.errors?.[0]?.message || data.message || t('Could not start the change.', 'পরিবর্তন শুরু করা যায়নি।'));
         return;
       }
       setWaitingFor(data.pendingEmail);
       setPassword('');
       toast.success(data.message);
     } catch {
-      setProblem('Could not reach the server. Please try again.');
+      setProblem(t('Could not reach the server. Please try again.', 'সার্ভারে পৌঁছানো যায়নি। আবার চেষ্টা করুন।'));
     } finally {
       setBusy(false);
     }
@@ -74,7 +75,7 @@ export default function ChangeEmail({
       const res = await post('/user/me/email/confirm', { code: code.trim() } satisfies EmailConfirmRequest);
       const data = (await res.json()) as EmailConfirmResponse & ApiError;
       if (!res.ok) {
-        setProblem(data.errors?.[0]?.message || data.message || 'Could not confirm the new address.');
+        setProblem(data.errors?.[0]?.message || data.message || t('Could not confirm the new address.', 'নতুন ঠিকানা নিশ্চিত করা যায়নি।'));
         return;
       }
       // Signed in as before, under the new address.
@@ -85,7 +86,7 @@ export default function ChangeEmail({
       setCode('');
       toast.success(data.message);
     } catch {
-      setProblem('Could not reach the server. Please try again.');
+      setProblem(t('Could not reach the server. Please try again.', 'সার্ভারে পৌঁছানো যায়নি। আবার চেষ্টা করুন।'));
     } finally {
       setBusy(false);
     }
@@ -94,28 +95,38 @@ export default function ChangeEmail({
   if (!open) {
     return (
       <p className="m-0 mt-1 text-xs text-ink-muted">
-        {waitingFor ? `Waiting for the code sent to ${waitingFor}. ` : ''}
+        {waitingFor ? t(`Waiting for the code sent to ${waitingFor}. `, `${waitingFor} ঠিকানায় পাঠানো কোডের অপেক্ষায়। `) : ''}
         <button type="button" className="font-semibold text-brand underline" onClick={() => setOpen(true)}>
-          {waitingFor ? 'Enter the code' : 'Change e-mail address'}
+          {waitingFor ? t('Enter the code', 'কোডটি লিখুন') : t('Change e-mail address', 'ই-মেইল ঠিকানা বদলান')}
         </button>
       </p>
     );
   }
 
   return (
-    <div className="mt-2 flex flex-col gap-2 rounded-xl border border-line p-3" aria-label="Change e-mail address" role="group">
+    <div className="mt-2 flex flex-col gap-2 rounded-xl border border-line p-3" aria-label={t('Change e-mail address', 'ই-মেইল ঠিকানা বদলান')} role="group">
       {!passwordSet ? (
         <p className="m-0 text-sm text-ink-soft">
-          Your account signs in with Google, so it has no password yet. Choose a password below and save, so you can
-          sign in with your new address; then change it here.
+          {t(
+            'Your account signs in with Google, so it has no password yet. Choose a password below and save, so you can sign in with your new address; then change it here.',
+            'আপনার অ্যাকাউন্ট Google দিয়ে সাইন ইন করে, তাই এখনো কোনো পাসওয়ার্ড নেই। নতুন ঠিকানায় সাইন ইন করতে আগে নিচে একটি পাসওয়ার্ড বেছে নিয়ে সংরক্ষণ করুন; তারপর এখানে ঠিকানা বদলান।'
+          )}
         </p>
       ) : waitingFor ? (
         <>
           <p className="m-0 text-sm text-ink-soft">
-            We have e-mailed a 6-digit code to <strong>{waitingFor}</strong>. Enter it to move your account from{' '}
-            {currentEmail}.
+            {pick(
+              <>
+                We have e-mailed a 6-digit code to <strong>{waitingFor}</strong>. Enter it to move your account from{' '}
+                {currentEmail}.
+              </>,
+              <>
+                <strong>{waitingFor}</strong> ঠিকানায় ৬ সংখ্যার একটি কোড পাঠানো হয়েছে। আপনার অ্যাকাউন্ট {currentEmail} থেকে
+                সরাতে কোডটি লিখুন।
+              </>
+            )}
           </p>
-          <label htmlFor="up-email-code" className="pf-label">Code</label>
+          <label htmlFor="up-email-code" className="pf-label">{t('Code', 'কোড')}</label>
           <input
             id="up-email-code"
             inputMode="numeric"
@@ -127,16 +138,16 @@ export default function ChangeEmail({
           />
           <div className="flex flex-wrap gap-2">
             <button type="button" className="btn btn-primary" disabled={busy || !/^\d{6}$/.test(code.trim())} onClick={() => void confirm()}>
-              Confirm new address
+              {t('Confirm new address', 'নতুন ঠিকানা নিশ্চিত করুন')}
             </button>
             <button type="button" className="btn btn-ghost" onClick={() => { setWaitingFor(null); setCode(''); setProblem(''); }}>
-              Use a different address
+              {t('Use a different address', 'অন্য ঠিকানা ব্যবহার করুন')}
             </button>
           </div>
         </>
       ) : (
         <>
-          <label htmlFor="up-new-email" className="pf-label">New e-mail address</label>
+          <label htmlFor="up-new-email" className="pf-label">{t('New e-mail address', 'নতুন ই-মেইল ঠিকানা')}</label>
           <input
             id="up-new-email"
             type="email"
@@ -145,7 +156,7 @@ export default function ChangeEmail({
             onChange={(event) => setNewEmail(event.target.value)}
             className="field"
           />
-          <label htmlFor="up-email-password" className="pf-label">Your password</label>
+          <label htmlFor="up-email-password" className="pf-label">{t('Your password', 'আপনার পাসওয়ার্ড')}</label>
           <input
             id="up-email-password"
             type="password"
@@ -156,10 +167,10 @@ export default function ChangeEmail({
           />
           <div className="flex flex-wrap gap-2">
             <button type="button" className="btn btn-primary" disabled={busy || !newEmail.trim() || !password} onClick={() => void start()}>
-              Send a code to the new address
+              {t('Send a code to the new address', 'নতুন ঠিকানায় কোড পাঠান')}
             </button>
             <button type="button" className="btn btn-ghost" onClick={() => { setOpen(false); setProblem(''); }}>
-              Cancel
+              {t('Cancel', 'বাতিল')}
             </button>
           </div>
         </>

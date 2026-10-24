@@ -7,6 +7,7 @@ import type { NotificationCategory } from '@shared/api.js';
 import { useNotificationSettings, useSaveNotificationSettings } from '../hooks/queries.js';
 import { useToast } from '../hooks/useToast.js';
 import { messageOf } from '../utils/apiError.js';
+import { t } from '../utils/language.js';
 import './NotificationSettings.css';
 
 /** A switch that reads as one to a screen reader. */
@@ -48,25 +49,27 @@ export default function NotificationSettings() {
     if (!current) return;
     save(
       { [id]: { inApp: current.inApp, email: current.email, [channel]: on } },
-      { onError: (error) => toast.error(messageOf(error) || 'Could not save that choice.') }
+      { onError: (error) => toast.error(messageOf(error) || t('Could not save that choice.', 'আপনার পছন্দটি সংরক্ষণ করা যায়নি।')) }
     );
   };
 
   return (
     <section id="notification-settings" className="card mt-6 w-full scroll-mt-24 p-5 text-left text-ink sm:p-6" aria-labelledby="ns-title">
       <h2 id="ns-title" className="mt-0 mb-1 flex items-center gap-2 text-lg">
-        <FaBell aria-hidden="true" className="text-brand" /> Notifications
+        <FaBell aria-hidden="true" className="text-brand" /> {t('Notifications', 'নোটিফিকেশন')}
       </h2>
       <p className="mb-4 text-sm text-ink-muted">
-        Choose what you hear about, in the app and by e-mail. Sign-in codes, security alerts and changes to your
-        account are always sent.
+        {t(
+          'Choose what you hear about, in the app and by e-mail. Sign-in codes, security alerts and changes to your account are always sent.',
+          'অ্যাপে ও ই-মেইলে কোন খবর পাবেন, বেছে নিন। সাইন-ইন কোড, নিরাপত্তা সতর্কতা ও অ্যাকাউন্টের পরিবর্তনের খবর সবসময় পাঠানো হয়।'
+        )}
       </p>
 
-      <div className="ns-table" role="table" aria-label="Notification choices">
+      <div className="ns-table" role="table" aria-label={t('Notification choices', 'নোটিফিকেশনের পছন্দ')}>
         <div className="ns-row ns-head" role="row">
-          <span role="columnheader">Topic</span>
-          <span role="columnheader">In the app</span>
-          <span role="columnheader">By e-mail</span>
+          <span role="columnheader">{t('Topic', 'বিষয়')}</span>
+          <span role="columnheader">{t('In the app', 'অ্যাপে')}</span>
+          <span role="columnheader">{t('By e-mail', 'ই-মেইলে')}</span>
         </div>
         {data.categories.map((category) => (
           <div key={category.id} className="ns-row" role="row">
@@ -78,7 +81,7 @@ export default function NotificationSettings() {
               <Switch
                 on={category.inApp}
                 disabled={isPending}
-                label={`${category.label} in the app`}
+                label={t(`${category.label} in the app`, `${category.label}: অ্যাপে`)}
                 onChange={(on) => change(category.id, 'inApp', on)}
               />
             </span>
@@ -87,11 +90,11 @@ export default function NotificationSettings() {
                 <Switch
                   on={category.email}
                   disabled={isPending}
-                  label={`${category.label} by e-mail`}
+                  label={t(`${category.label} by e-mail`, `${category.label}: ই-মেইলে`)}
                   onChange={(on) => change(category.id, 'email', on)}
                 />
               ) : (
-                <span className="ns-none" title="Nothing in this topic is e-mailed">—</span>
+                <span className="ns-none" title={t('Nothing in this topic is e-mailed', 'এই বিষয়ের কিছুই ই-মেইলে পাঠানো হয় না')}>—</span>
               )}
             </span>
           </div>

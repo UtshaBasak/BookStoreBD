@@ -1,6 +1,7 @@
 import { useEffect, useId, useRef, useState, type ReactNode } from 'react';
 import { FaArrowDown, FaArrowUp, FaMinus } from 'react-icons/fa';
 
+import { formatNumber, t } from '../../utils/language.js';
 import { dayName, hourLabel } from './chartLabels.js';
 
 /**
@@ -108,11 +109,11 @@ export function TrendChart({
             <stop offset="100%" stopColor="var(--color-brand)" stopOpacity="0" />
           </linearGradient>
         </defs>
-        {ticks.map((t) => (
-          <g key={t}>
-            <line x1={pad.left} x2={width - pad.right} y1={y(t)} y2={y(t)} className="sa-gridline" />
-            <text x={pad.left - 8} y={y(t)} className="sa-axis" textAnchor="end" dominantBaseline="middle">
-              {format(t)}
+        {ticks.map((tick) => (
+          <g key={tick}>
+            <line x1={pad.left} x2={width - pad.right} y1={y(tick)} y2={y(tick)} className="sa-gridline" />
+            <text x={pad.left - 8} y={y(tick)} className="sa-axis" textAnchor="end" dominantBaseline="middle">
+              {format(tick)}
             </text>
           </g>
         ))}
@@ -174,6 +175,7 @@ export function BarList({ bars, format, empty }: { bars: Bar[]; format: (value: 
 }
 
 const DAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+const DAYS_BN = ['সোম', 'মঙ্গল', 'বুধ', 'বৃহঃ', 'শুক্র', 'শনি', 'রবি'];
 
 /**
  * Orders by weekday and hour, darker for busier: one hue from pale to deep,
@@ -183,19 +185,19 @@ export function Heatmap({ grid, label }: { grid: number[][]; label: string }) {
   const [active, setActive] = useState<{ day: number; hour: number } | null>(null);
   const max = Math.max(1, ...grid.flat());
   const shown = active ? (grid[active.day]?.[active.hour] ?? 0) : null;
-  const orders = (count: number) => `${count} ${count === 1 ? 'order' : 'orders'}`;
+  const orders = (count: number) => t(`${count} ${count === 1 ? 'order' : 'orders'}`, `${formatNumber(count)}টি অর্ডার`);
   return (
     <div className="sa-heat">
       <div className="sa-heat-grid" role="img" aria-label={label} onPointerLeave={() => setActive(null)}>
         <span />
         {Array.from({ length: 24 }, (_, hour) => (
           <span key={`h${hour}`} className="sa-heat-hour">
-            {hour % 3 === 0 ? hourLabel(hour).replace(' ', '') : ''}
+            {hour % 3 === 0 ? t(hourLabel(hour).replace(' ', ''), hourLabel(hour)) : ''}
           </span>
         ))}
         {grid.flatMap((row, day) => [
           <span key={`d${day}`} className="sa-heat-day">
-            {DAYS[day]}
+            {t(DAYS[day], DAYS_BN[day])}
           </span>,
           ...row.map((count, hour) => (
             <span
@@ -215,14 +217,14 @@ export function Heatmap({ grid, label }: { grid: number[][]; label: string }) {
       </div>
       <div className="sa-heat-foot">
         <span className="sa-heat-readout">
-          {active && shown !== null ? `${dayName(active.day)}, ${hourLabel(active.hour)}: ${orders(shown)}` : 'Point at a square for its count.'}
+          {active && shown !== null ? `${dayName(active.day)}, ${hourLabel(active.hour)}: ${orders(shown)}` : t('Point at a square for its count.', 'সংখ্যা দেখতে একটি ঘরের ওপর পয়েন্টার রাখুন।')}
         </span>
         <span className="sa-heat-scale" aria-hidden="true">
-          Fewer
+          {t('Fewer', 'কম')}
           {[18, 45, 72, 100].map((mix) => (
             <span key={mix} style={{ background: `color-mix(in oklab, var(--color-brand) ${mix}%, var(--color-surface))` }} />
           ))}
-          More
+          {t('More', 'বেশি')}
         </span>
       </div>
     </div>
@@ -238,7 +240,7 @@ export function SplitBar({
   format: (value: number) => string;
 }) {
   const total = parts.reduce((sum, part) => sum + part.value, 0);
-  if (!total) return <p className="sa-empty">No sales in this period.</p>;
+  if (!total) return <p className="sa-empty">{t('No sales in this period.', 'এই সময়ে কোনো বিক্রি হয়নি।')}</p>;
   return (
     <div>
       <div className="sa-split" aria-hidden="true">
@@ -251,7 +253,7 @@ export function SplitBar({
           <li key={part.key}>
             <span className="sa-swatch" style={{ background: part.color }} aria-hidden="true" />
             {part.label}
-            <strong>{Math.round((part.value / total) * 100)}%</strong>
+            <strong>{formatNumber(Math.round((part.value / total) * 100))}%</strong>
             <span className="sa-muted">{format(part.value)}</span>
           </li>
         ))}
@@ -267,7 +269,7 @@ export function Meter({ label, value, hint }: { label: string; value: number; hi
     <div className="sa-meter">
       <div className="sa-meter-head">
         <span>{label}</span>
-        <strong>{percent}%</strong>
+        <strong>{formatNumber(percent)}%</strong>
       </div>
       <span className="sa-meter-track" role="meter" aria-label={label} aria-valuemin={0} aria-valuemax={100} aria-valuenow={percent}>
         <span style={{ width: `${Math.min(100, percent)}%` }} />
@@ -283,11 +285,11 @@ export function Change({ value, previous }: { value: number; previous: number | 
   if (previous === 0) {
     return value > 0 ? (
       <span className="sa-change is-up">
-        <FaArrowUp aria-hidden="true" /> Up from none the period before
+        <FaArrowUp aria-hidden="true" /> {t('Up from none the period before', 'আগের সময়ে কিছুই ছিল না, এবার বেড়েছে')}
       </span>
     ) : (
       <span className="sa-change">
-        <FaMinus aria-hidden="true" /> No change
+        <FaMinus aria-hidden="true" /> {t('No change', 'কোনো পরিবর্তন নেই')}
       </span>
     );
   }
@@ -295,14 +297,17 @@ export function Change({ value, previous }: { value: number; previous: number | 
   if (change === 0) {
     return (
       <span className="sa-change">
-        <FaMinus aria-hidden="true" /> Level with the period before
+        <FaMinus aria-hidden="true" /> {t('Level with the period before', 'আগের সময়ের সমান')}
       </span>
     );
   }
   return (
     <span className={`sa-change ${change > 0 ? 'is-up' : 'is-down'}`}>
       {change > 0 ? <FaArrowUp aria-hidden="true" /> : <FaArrowDown aria-hidden="true" />}
-      {change > 0 ? 'Up' : 'Down'} {Math.abs(change)}% on the period before
+      {t(
+        `${change > 0 ? 'Up' : 'Down'} ${Math.abs(change)}% on the period before`,
+        `আগের সময়ের চেয়ে ${formatNumber(Math.abs(change))}% ${change > 0 ? 'বেশি' : 'কম'}`
+      )}
     </span>
   );
 }
