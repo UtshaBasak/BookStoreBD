@@ -18,6 +18,10 @@ const NotificationSchema = new Schema({
   type: { type: String, required: true },
   title: { type: String, required: true },
   body: { type: String, default: '' },
+  // The same in Bangla, when it was written in both. Empty for a message an
+  // administrator wrote in one language, which is shown as written.
+  titleBn: { type: String, default: '' },
+  bodyBn: { type: String, default: '' },
   /** Where tapping it goes: a path inside the site. */
   link: { type: String, default: '' },
   read: { type: Boolean, default: false },

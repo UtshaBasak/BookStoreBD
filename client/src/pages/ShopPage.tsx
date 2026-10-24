@@ -11,6 +11,7 @@ import ChatWindow from '../components/ChatWindow';
 import Logo from '../components/Logo.js';
 import NotificationBell from '../components/NotificationBell.js';
 import { ThemeToggle } from '../components/ThemeToggle.js';
+import { LanguageToggle } from '../components/LanguageToggle.js';
 import Pager from '../components/Pager.js';
 import SellerReviews from '../components/SellerReviews.js';
 import { useCart, useCatalogue, useShop, useToggleCart, useToggleWishlist, useWishlist } from '../hooks/queries.js';
@@ -112,6 +113,7 @@ export default function ShopPage() {
         </Link>
       </div>
       <div className="user-options">
+        <LanguageToggle />
         <ThemeToggle className="icon-button theme-toggle header-theme-toggle" />
         <NotificationBell />
         <Link to="/wishlist" className="icon-link" style={{ color: 'var(--color-accent)' }} title="Wishlist" aria-label="Wishlist">

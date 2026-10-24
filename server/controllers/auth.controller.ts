@@ -41,6 +41,7 @@ import { creditInvites } from '../utils/invites.js';
 import { clearFailures, minutesLocked, recordFailure } from '../utils/loginLock.js';
 import { noteDevice, type DeviceRequest } from '../utils/deviceAlert.js';
 import { securityEvent, type SecurityRequest } from '../utils/securityLog.js';
+import { requestedLanguage } from '../utils/language.js';
 import { actingUser } from '../middleware/auth.js';
 import { newPasswordProblem } from '../utils/breachedPassword.js';
 import { passwordProblems } from '../utils/passwordPolicy.js';
@@ -133,6 +134,13 @@ export const startSession = async (
       email: user.email,
       extra: { method, new_browser: newBrowser },
     });
+  // The language the site was being read in, for what is sent to this account
+  // later. Only when the request names one: the app does not, yet.
+  const language = requestedLanguage(req);
+  if (language && user.language !== language) {
+    await User.updateOne({ _id: user._id }, { $set: { language } });
+    user.language = language;
+  }
   const device = appDeviceOf(res);
   if (device) {
     const issued = await issueRefreshToken(user._id, undefined, {

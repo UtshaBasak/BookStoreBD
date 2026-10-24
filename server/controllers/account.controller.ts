@@ -44,6 +44,7 @@ import type {
   InviteBody,
   NotificationSettingsBody,
   TwoFactorBody,
+  LanguageBody,
 } from '../schemas/index.js';
 import Invite from '../models/Invite.model.js';
 import { inviteEmail } from '../utils/shopMail.js';
@@ -316,6 +317,21 @@ export const sendConfirmCode: RequestHandler = async (req, res, next) => {
  * with no password - so a session left open on a shared computer cannot be
  * used to remove the protection. Either way the owner is told by e-mail.
  */
+/**
+ * The language the site is being read in, kept on the account so what is sent
+ * later - e-mails, notifications - arrives in it. The website calls this when
+ * the language is switched while signed in.
+ */
+export const setLanguage: RequestHandler = async (req, res, next) => {
+  try {
+    const { language } = req.body as LanguageBody;
+    await User.updateOne({ _id: actingUser(req).id }, { $set: { language } });
+    res.status(200).json({ language });
+  } catch (error) {
+    next(error);
+  }
+};
+
 export const setTwoFactor: RequestHandler = async (req, res, next) => {
   try {
     const actor = actingUser(req);

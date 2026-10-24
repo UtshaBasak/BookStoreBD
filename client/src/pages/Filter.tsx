@@ -33,6 +33,7 @@ import Logo from '../components/Logo.js';
 import SearchField from '../components/SearchField.js';
 import NotificationBell from '../components/NotificationBell.js';
 import { ThemeToggle } from '../components/ThemeToggle.js';
+import { LanguageToggle } from '../components/LanguageToggle.js';
 import { allowed } from '../utils/consent.js';
 
 interface FilterState {
@@ -334,6 +335,7 @@ export default function BookFilter() {
         </div>
 
         <div className="user-options">
+          <LanguageToggle />
           <ThemeToggle className="icon-button theme-toggle header-theme-toggle" />
           <NotificationBell />
           <Link to="/wishlist"

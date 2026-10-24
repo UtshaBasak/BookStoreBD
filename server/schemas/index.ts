@@ -556,6 +556,10 @@ export const userSchemas = {
       prefs: z.record(z.string().max(30), z.object({ inApp: z.boolean(), email: z.boolean() })),
     }),
   },
+  /** The language the account's e-mails and notifications are written in. */
+  language: {
+    body: z.object({ language: z.enum(['en', 'bn']) }),
+  },
   /** Two-step sign-in on or off. The password is checked when turning it off. */
   twoFactor: {
     body: z.object({
@@ -719,6 +723,7 @@ export const auditSchemas = {
 
 export type DeleteMeBody = z.infer<typeof userSchemas.deleteMe.body>;
 export type TwoFactorBody = z.infer<typeof userSchemas.twoFactor.body>;
+export type LanguageBody = z.infer<typeof userSchemas.language.body>;
 export type ConfirmCodeBody = z.infer<typeof userSchemas.confirmCode.body>;
 export type EmailChangeBody = z.infer<typeof userSchemas.emailChange.body>;
 export type EmailConfirmBody = z.infer<typeof userSchemas.emailConfirm.body>;

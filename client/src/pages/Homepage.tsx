@@ -18,6 +18,7 @@ import { useSeo } from '../hooks/useSeo.js';
 import { site } from '../config/site.js';
 import NotificationBell from '../components/NotificationBell.js';
 import { ThemeToggle } from '../components/ThemeToggle.js';
+import { LanguageToggle } from '../components/LanguageToggle.js';
 import Footer from '../components/Footer.js';
 import HomeShelves from '../components/HomeShelves.js';
 import Logo from '../components/Logo.js';
@@ -187,6 +188,7 @@ export default function Homepage() {
             </Link>
           )}
 
+          <LanguageToggle />
           <ThemeToggle className="icon-button theme-toggle header-theme-toggle" />
 
           <NotificationBell />

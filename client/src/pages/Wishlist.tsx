@@ -12,6 +12,7 @@ import { promptSignIn, useToast } from '../hooks/useToast.js';
 import Logo from '../components/Logo.js';
 import NotificationBell from '../components/NotificationBell.js';
 import { ThemeToggle } from '../components/ThemeToggle.js';
+import { LanguageToggle } from '../components/LanguageToggle.js';
 import RequestBookButton from '../components/RequestBookButton.js';
 import PriceTag from '../components/PriceTag.js';
 import { getUserEmail } from '../utils/auth.js';
@@ -117,6 +118,7 @@ export default function Wishlist() {
         </Link>
       </div>
       <div className="user-options">
+        <LanguageToggle />
         <ThemeToggle className="icon-button theme-toggle header-theme-toggle" />
         <NotificationBell />
         <Link

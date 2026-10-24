@@ -12,6 +12,7 @@ import {
   listInvites,
   sendInvites,
   setTwoFactor,
+  setLanguage,
   updateNotificationSettings,
   sendConfirmCode,
   requestEmailChange,
@@ -291,6 +292,7 @@ router.post('/me/email', requireAuth, validate(userSchemas.emailChange), request
 router.post('/me/email/confirm', requireAuth, validate(userSchemas.emailConfirm), confirmEmailChange);
 
 router.put('/me/two-factor', requireAuth, validate(userSchemas.twoFactor), setTwoFactor);
+router.put('/me/language', requireAuth, validate(userSchemas.language), setLanguage);
 
 router.get('/me/notifications', requireAuth, getNotificationSettings);
 router.put('/me/notifications', requireAuth, validate(userSchemas.notifications), updateNotificationSettings);

@@ -8,6 +8,7 @@ import Logo from '../components/Logo.js';
 import NotificationBell from '../components/NotificationBell.js';
 import Pager from '../components/Pager.js';
 import { ThemeToggle } from '../components/ThemeToggle.js';
+import { LanguageToggle } from '../components/LanguageToggle.js';
 import { useCreateWanted, useRemoveWanted, useToggleWanted, useWanted } from '../hooks/queries.js';
 import { useDebounced } from '../hooks/useDebounced.js';
 import { useSeo } from '../hooks/useSeo.js';
@@ -98,6 +99,7 @@ export default function WantedBoard() {
           <Logo size={38} />
         </Link>
         <div className="user-options">
+          <LanguageToggle />
           <ThemeToggle />
           {signedIn ? (
             <NotificationBell />

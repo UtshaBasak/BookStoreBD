@@ -36,6 +36,19 @@
   unicode-range: U+09F3;
 }
 
+/* Bangla, for the Bangla interface: Noto Sans Bengali (SIL Open Font
+   License), the Bengali block only, 108 KB. Its unicode-range means a page in
+   English never downloads it - the Taka sign above is matched first. */
+@font-face {
+  font-family: 'Noto Sans Bengali Variable';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 100 900;
+  src: url('./fonts/noto-sans-bengali.woff2') format('woff2-variations');
+  unicode-range: U+0951-0952, U+0964-0965, U+0980-09FE, U+1CD0, U+1CD2, U+1CD5-1CD6, U+1CD8, U+1CE1, U+1CEA,
+    U+1CED, U+1CF2, U+1CF5-1CF7, U+200C-200D, U+20B9, U+25CC, U+A8F1;
+}
+
 /* ------------------------------------------------------------------ theme
    The look, in one place: electric violet for the brand, a sunset orange for
    prices and calls to action, a sunny yellow for highlights, and clean
@@ -47,7 +60,7 @@
    Pages that style inline use the same values. To re-colour the site, change
    them here and in the few literals that mirror them. */
 @theme {
-  --font-sans: 'Taka', 'Plus Jakarta Sans Variable', 'Plus Jakarta Sans', system-ui, -apple-system,
+  --font-sans: 'Taka', 'Plus Jakarta Sans Variable', 'Noto Sans Bengali Variable', 'Plus Jakarta Sans', system-ui, -apple-system,
     'Segoe UI', Roboto, 'Noto Sans Bengali', 'Hind Siliguri', sans-serif;
 
   --color-brand: #6d28d9;
@@ -299,6 +312,17 @@ button:focus-visible {
   cursor: pointer;
   text-decoration: none;
 }
+/* The language switch names a language rather than drawing an icon. */
+.language-toggle-text {
+  font-size: 0.95rem;
+  font-weight: 700;
+  line-height: 1;
+}
+.icon-button.language-toggle {
+  min-width: 40px;
+  color: var(--color-brand);
+}
+
 .icon-button:hover,
 .icon-link:hover {
   background: var(--color-brand-tint);
