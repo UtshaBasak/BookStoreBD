@@ -1,6 +1,7 @@
 import type { RequestHandler } from 'express';
 
 import { createLogger } from '../config/logger.js';
+import { securityEvent } from './securityLog.js';
 
 const log = createLogger('captcha');
 
@@ -43,5 +44,6 @@ export const requireCaptcha: RequestHandler = async (req, res, next) => {
     next();
     return;
   }
+  securityEvent(req, 'turnstile.failed', { reason: token ? 'refused' : 'missing' });
   res.status(400).json({ code: 'captcha', message: 'Please complete the security check and try again.' });
 };
