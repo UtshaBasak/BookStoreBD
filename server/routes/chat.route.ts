@@ -20,6 +20,7 @@ import {
   type MarkReadBody,
   type SendChatBody,
 } from '../schemas/index.js';
+import { securityEvent } from '../utils/securityLog.js';
 
 const log = createLogger('chat');
 
@@ -43,6 +44,7 @@ router.get(
     try {
         const { sender, receiver, page, limit } = validatedQuery<ChatMessagesQuery>(req);
         if (!isParticipant(req, sender, receiver)) {
+            securityEvent(req, 'authz.denied', { reason: 'not_owner', extra: { resource_type: 'chat' } });
             res.status(403).json({ message: 'Not a participant in this conversation' });
             return;
         }
@@ -102,6 +104,7 @@ router.get(
         }
 
         if (!isParticipant(req, message.sender, message.receiver)) {
+            securityEvent(req, 'authz.denied', { reason: 'not_owner', extra: { resource_type: 'chat' } });
             res.status(403).json({ message: 'Not a participant in this conversation' });
             return;
         }
@@ -262,6 +265,7 @@ router.delete(
     try {
         const { user1, user2 } = req.body;
         if (!isParticipant(req, user1, user2)) {
+            securityEvent(req, 'authz.denied', { reason: 'not_owner', extra: { resource_type: 'chat' } });
             res.status(403).json({ message: 'Not a participant in this conversation' });
             return;
         }

@@ -32,17 +32,28 @@ export const signAccessToken = (user: AccessTokenSubject): string =>
     { expiresIn: config.jwt.expiresIn as SignOptions['expiresIn'] }
   );
 
-/** Returns the decoded payload, or null when the token is missing or invalid. */
-export const verifyAccessToken = (token: string): AccessTokenPayload | null => {
+/**
+ * The payload, or why there is none. An expired token is the normal end of a
+ * session; any other failure - a bad signature, a malformed token - is one
+ * this server did not issue, which is worth a security event.
+ */
+export type AccessTokenCheck =
+  | { payload: AccessTokenPayload; problem?: undefined }
+  | { payload: null; problem: 'expired' | 'invalid' };
+
+export const checkAccessToken = (token: string): AccessTokenCheck => {
   try {
     const decoded = jwt.verify(token, jwtSecret());
     // A token signed with a string payload decodes to a string; ours never is,
     // so anything that shape is not one of ours.
-    return typeof decoded === 'string' ? null : (decoded as AccessTokenPayload);
-  } catch {
-    return null;
+    return typeof decoded === 'string' ? { payload: null, problem: 'invalid' } : { payload: decoded as AccessTokenPayload };
+  } catch (error) {
+    return { payload: null, problem: error instanceof jwt.TokenExpiredError ? 'expired' : 'invalid' };
   }
 };
+
+/** Returns the decoded payload, or null when the token is missing or invalid. */
+export const verifyAccessToken = (token: string): AccessTokenPayload | null => checkAccessToken(token).payload;
 
 /** Pulls the bearer token out of an Authorization header. */
 export const extractBearerToken = (header: unknown): string | null => {

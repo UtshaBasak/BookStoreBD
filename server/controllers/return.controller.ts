@@ -19,6 +19,7 @@ import { isDuplicateKeyError } from '../utils/error.js';
 import { RETURN_WINDOW_DAYS, returnDeadline } from '../config/commerce.js';
 import { adminEmails, notify } from '../utils/notify.js';
 import { dispatchShopMail, returnDecidedEmail, returnRequestedSellerEmail } from '../utils/shopMail.js';
+import { securityEvent } from '../utils/securityLog.js';
 
 const log = createLogger('return');
 
@@ -235,6 +236,7 @@ export const getReturnImage: RequestHandler<{ id: string; index?: string }> = as
     }
 
     if (actor.role !== 'admin' && request.userEmail !== actor.email) {
+      securityEvent(req, 'authz.denied', { reason: 'not_owner', extra: { resource_type: 'return_request' } });
       res.status(403).json({ message: 'That return request is not yours' });
       return;
     }

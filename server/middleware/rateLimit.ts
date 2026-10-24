@@ -1,4 +1,6 @@
-import rateLimit from 'express-rate-limit';
+import rateLimit, { type Options } from 'express-rate-limit';
+
+import { securityEvent } from '../utils/securityLog.js';
 
 /**
  * Limits are keyed by client IP. Users on a shared campus or office NAT all
@@ -15,11 +17,23 @@ const common = {
   message: { message: 'Too many requests, please try again later.' },
 } as const;
 
+/**
+ * The library's own answer - its status and message - with a security event
+ * first, naming the limiter that fired.
+ */
+const reporting = (limiter: string): Pick<Options, 'handler'> => ({
+  handler: (req, res, _next, options) => {
+    securityEvent(req, 'ratelimit.exceeded', { extra: { limiter } });
+    res.status(options.statusCode).send(options.message);
+  },
+});
+
 /** Broad ceiling applied to every route. */
 export const apiLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 2000,
   ...common,
+  ...reporting('general'),
 });
 
 /**
@@ -31,6 +45,7 @@ export const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 50,
   ...common,
+  ...reporting('auth'),
 });
 
 /**
@@ -47,6 +62,7 @@ export const crawlerLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 120,
   ...common,
+  ...reporting('crawler'),
 });
 
 /**
@@ -60,6 +76,7 @@ export const clientErrorLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 60,
   ...common,
+  ...reporting('client_error'),
 });
 
 /** Routes that accept uploads or write chat, profile and return data. */
@@ -67,4 +84,5 @@ export const writeLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 500,
   ...common,
+  ...reporting('write'),
 });

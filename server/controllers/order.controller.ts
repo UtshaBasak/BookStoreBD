@@ -51,6 +51,7 @@ import {
 import { applyPromotion, findPromotion } from '../config/promotions.js';
 import { dropUnbackedReviews } from './review.controller.js';
 import { unitPriceOf } from '../config/pricing.js';
+import { securityEvent } from '../utils/securityLog.js';
 
 const log = createLogger('order');
 
@@ -745,6 +746,7 @@ export const getOrderByOrderNumber = async (
     const { email: actor, role } = actingUser(req);
     const involved = orders.some((o) => o.buyerEmail === actor || o.sellerEmail === actor);
     if (role !== 'admin' && !involved) {
+      securityEvent(req, 'authz.denied', { reason: 'not_owner', extra: { resource_type: 'order' } });
       res.status(403).json({ message: 'You do not have access to this order' });
       return;
     }
@@ -846,6 +848,7 @@ export const updateOrderStatusByOrderNumber = async (
     const { email: actor, role } = actingUser(req);
     const who = viewerRole(existing, actor, role);
     if (who !== 'admin' && who !== 'seller') {
+      securityEvent(req, 'authz.denied', { reason: 'not_owner', extra: { resource_type: 'order' } });
       res.status(403).json({ message: 'Only the seller or an administrator can change this' });
       return;
     }
@@ -1058,6 +1061,7 @@ export const cancelOrder = async (
     const { email: actor, role } = actingUser(req);
     const who = viewerRole(existing, actor, role);
     if (!who) {
+      securityEvent(req, 'authz.denied', { reason: 'not_owner', extra: { resource_type: 'order' } });
       res.status(403).json({ message: 'You do not have access to this order' });
       return;
     }

@@ -29,6 +29,7 @@ import { actingUser } from '../middleware/auth.js';
 import { revokeAllForUser } from '../utils/refreshToken.js';
 import { clearRefreshCookie } from '../utils/authCookies.js';
 import { recordAudit } from '../utils/audit.js';
+import { hmacEmail, securityEvent } from '../utils/securityLog.js';
 import { anonymousEmail, DELETED_USER_NAME } from '../utils/anonymous.js';
 import { createLogger } from '../config/logger.js';
 import { destroyAssets } from '../config/cloudinary.js';
@@ -85,6 +86,7 @@ export const exportMyData: RequestHandler = async (req, res, next) => {
 
     const filename = `bookstorebd-export-${new Date().toISOString().slice(0, 10)}.json`;
     res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    securityEvent(req, 'account.data_exported');
 
     res.status(200).json({
       exportedAt: new Date().toISOString(),
@@ -332,6 +334,7 @@ export const setTwoFactor: RequestHandler = async (req, res, next) => {
     if (!enabled && user.twoFactor) {
       const check = await confirmedBy(user, { password, code }, 'two-factor-off');
       if (!check.ok) {
+        securityEvent(req, 'account.reauth.failure', { extra: { change: '2fa_off' } });
         // 403 rather than 401, as for deleting the account: the session is fine.
         res.status(403).json({ message: check.message });
         return;
@@ -346,6 +349,7 @@ export const setTwoFactor: RequestHandler = async (req, res, next) => {
         targetType: 'user',
         targetId: String(user._id),
       });
+      securityEvent(req, enabled ? 'account.2fa.enabled' : 'account.2fa.disabled');
       dispatchShopMail(user.email, twoFactorChangedEmail(enabled));
     }
 
@@ -577,6 +581,7 @@ export const deleteMyAccount: RequestHandler = async (req, res, next) => {
 
     const check = await confirmedBy(user, { password, code }, 'delete-account');
     if (!check.ok) {
+      securityEvent(req, 'account.reauth.failure', { extra: { change: 'delete_account' } });
       // 403, not 401. The client treats a 401 as an expired session: it tries a
       // refresh and then signs the caller out, so a mistyped password would
       // sign somebody out of the page they were on. They are authenticated;
@@ -593,6 +598,7 @@ export const deleteMyAccount: RequestHandler = async (req, res, next) => {
     // The actor was read when the request was signed in, so the record can
     // still name them once the account has gone.
     await recordAudit(req, { action: 'account.delete', targetType: 'user', targetId: String(user._id), details: result.summary });
+    securityEvent(req, 'account.deleted');
     clearRefreshCookie(res);
 
     log.info({ ...result.summary }, 'Account deleted at the owner’s request');
@@ -628,6 +634,7 @@ export const requestEmailChange: RequestHandler = async (req, res, next) => {
       return;
     }
     if (!bcryptjs.compareSync(password, user.password)) {
+      securityEvent(req, 'account.reauth.failure', { extra: { change: 'email' } });
       res.status(403).json({ code: 'current-password', message: 'That password is not correct' });
       return;
     }
@@ -721,6 +728,8 @@ export const confirmEmailChange: RequestHandler = async (req, res, next) => {
     ]);
 
     await recordAudit(req, { action: 'account.email', targetType: 'user', targetId: String(user._id), details: { from, to } });
+    // Hashes of both, so the change can be followed from either address.
+    securityEvent(req, 'account.email.changed', { email: from, extra: { new_email_hash: hmacEmail(to) } });
     dispatchShopMail(from, emailChangedEmail(to));
 
     res.status(200).json({ message: `Your account now uses ${to}.`, email: to });

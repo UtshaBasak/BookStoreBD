@@ -11,6 +11,7 @@ import { creditInvites } from '../utils/invites.js';
 import { welcomeNewMember } from '../utils/welcome.js';
 import { applyAdminBootstrap, beginTwoStep, startSession } from './auth.controller.js';
 import { hashPassword } from '../utils/passwordHash.js';
+import { securityEvent, type SecurityRequest } from '../utils/securityLog.js';
 
 const log = createLogger('google');
 
@@ -81,8 +82,12 @@ const cookieOptions = () => ({
   path: STATE_PATH,
 });
 
-/** Back to the sign-in page with a reason, after the hash so it is never logged. */
-const fail = (res: Response, reason: string): void => {
+/**
+ * Back to the sign-in page with a reason, after the hash so it is never logged.
+ * Every reason but the person's own "cancel" is a security event.
+ */
+const fail = (req: Request, res: Response, reason: string): void => {
+  if (reason !== 'cancelled' && reason !== 'unavailable') securityEvent(req, 'auth.google.failure', { reason });
   res.clearCookie(STATE_COOKIE, cookieOptions());
   res.redirect(303, `/sign-in#google-error=${encodeURIComponent(reason)}`);
 };
@@ -145,7 +150,7 @@ export interface GoogleIdentity {
  * the same welcome as any other and no password until its owner sets one.
  * Shared by the website's redirect and the Android app.
  */
-export const googleAccountFor = async (identity: GoogleIdentity): Promise<UserDocument> => {
+export const googleAccountFor = async (identity: GoogleIdentity, req?: SecurityRequest): Promise<UserDocument> => {
   let user = await User.findOne({ email: identity.email });
   if (!user) {
     user = await User.create({
@@ -156,7 +161,7 @@ export const googleAccountFor = async (identity: GoogleIdentity): Promise<UserDo
       passwordSet: false,
       googleId: identity.sub,
     });
-    await applyAdminBootstrap(user);
+    await applyAdminBootstrap(user, req);
     await welcomeNewMember(user);
     await creditInvites(user);
     log.info('New account through Google');
@@ -193,12 +198,12 @@ const identityFrom = (idToken: string): GoogleIdentity | null => {
 /** GET /auth/google/callback - back from Google with a code, or a refusal. */
 export const finishGoogleSignIn: RequestHandler = async (req, res) => {
   try {
-    if (!googleConfigured()) return fail(res, 'unavailable');
-    if (req.query.error) return fail(res, 'cancelled');
+    if (!googleConfigured()) return fail(req, res, 'unavailable');
+    if (req.query.error) return fail(req, res, 'cancelled');
 
     const saved = unseal((req.cookies as Record<string, string> | undefined)?.[STATE_COOKIE]);
-    if (!saved || typeof req.query.state !== 'string' || req.query.state !== saved.state) return fail(res, 'expired');
-    if (typeof req.query.code !== 'string') return fail(res, 'failed');
+    if (!saved || typeof req.query.state !== 'string' || req.query.state !== saved.state) return fail(req, res, 'expired');
+    if (typeof req.query.code !== 'string') return fail(req, res, 'failed');
 
     const exchange = await fetch(TOKEN_URL, {
       method: 'POST',
@@ -217,28 +222,28 @@ export const finishGoogleSignIn: RequestHandler = async (req, res) => {
     const identity = tokens.id_token ? identityFrom(tokens.id_token) : null;
     if (!exchange.ok || !identity?.email) {
       log.warn({ status: exchange.status }, 'Google sign-in exchange failed');
-      return fail(res, 'failed');
+      return fail(req, res, 'failed');
     }
-    if (!identity.emailVerified) return fail(res, 'unverified');
+    if (!identity.emailVerified) return fail(req, res, 'unverified');
 
-    const user = await googleAccountFor(identity);
+    const user = await googleAccountFor(identity, req);
 
     res.clearCookie(STATE_COOKIE, cookieOptions());
 
     if (user.twoFactor) {
       const challenge = await beginTwoStep(user);
-      if (!challenge) return fail(res, 'codes');
+      if (!challenge) return fail(req, res, 'codes');
       // The address the code completes, in the hash: it never reaches a log.
       res.redirect(303, `/sign-in?next=${encodeURIComponent(saved.next)}#google-2fa=${encodeURIComponent(user.email)}`);
       return;
     }
 
-    await applyAdminBootstrap(user);
-    await startSession(req, res, user);
+    await applyAdminBootstrap(user, req);
+    await startSession(req, res, user, 'google');
     // The page picks the session up from the refresh cookie just set.
     res.redirect(303, `/sign-in?google=done&next=${encodeURIComponent(saved.next)}`);
   } catch (error) {
     log.error({ err: error }, 'Google sign-in failed');
-    fail(res, 'failed');
+    fail(req, res, 'failed');
   }
 };
