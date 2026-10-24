@@ -18,6 +18,7 @@ import {
   revokeAllForUser,
   revokeOtherSessions,
   hashToken,
+  type RotationFailureReason,
 } from '../utils/refreshToken.js';
 import {
   setRefreshCookie,
@@ -39,6 +40,7 @@ import { welcomeNewMember } from '../utils/welcome.js';
 import { creditInvites } from '../utils/invites.js';
 import { clearFailures, minutesLocked, recordFailure } from '../utils/loginLock.js';
 import { noteDevice, type DeviceRequest } from '../utils/deviceAlert.js';
+import { securityEvent, type SecurityRequest } from '../utils/securityLog.js';
 import { actingUser } from '../middleware/auth.js';
 import { newPasswordProblem } from '../utils/breachedPassword.js';
 import { passwordProblems } from '../utils/passwordPolicy.js';
@@ -109,6 +111,9 @@ const appSessionBody = (user: UserDocument, issued: { token: string; expiresAt: 
   refreshExpiresAt: issued.expiresAt.toISOString(),
 });
 
+/** How a session came to be started, for its security event. */
+export type SignInMethod = 'password' | 'google' | 'two_step' | 'signup';
+
 /**
  * Starts a session: a new refresh family plus a fresh access token.
  *
@@ -117,10 +122,17 @@ const appSessionBody = (user: UserDocument, issued: { token: string; expiresAt: 
  * app keeps it encrypted with the Android keystore.
  */
 export const startSession = async (
-  req: DeviceRequest,
+  req: DeviceRequest & SecurityRequest,
   res: Response,
-  user: UserDocument
+  user: UserDocument,
+  method: SignInMethod
 ): Promise<SessionResponse | AppSessionResponse> => {
+  const signedIn = (newBrowser: boolean): void =>
+    securityEvent(req, 'auth.signin.success', {
+      userId: String(user._id),
+      email: user.email,
+      extra: { method, new_browser: newBrowser },
+    });
   const device = appDeviceOf(res);
   if (device) {
     const issued = await issueRefreshToken(user._id, undefined, {
@@ -128,21 +140,22 @@ export const startSession = async (
       deviceKey: device.publicKey,
       deviceName: device.name,
     });
-    await noteDevice(req, res, user, { installId: device.installId, deviceName: device.name });
+    signedIn(await noteDevice(req, res, user, { installId: device.installId, deviceName: device.name }));
     return appSessionBody(user, issued);
   }
   const { token: refresh } = await issueRefreshToken(user._id);
   setRefreshCookie(res, refresh);
   // A browser this account has not been signed in from: its owner is told.
-  await noteDevice(req, res, user);
+  signedIn(await noteDevice(req, res, user));
   return sessionBody(user);
 };
 
 /** Promotes accounts listed in ADMIN_EMAILS, so the deployment keeps its admin. */
-export const applyAdminBootstrap = async (user: UserDocument): Promise<UserDocument> => {
+export const applyAdminBootstrap = async (user: UserDocument, req?: SecurityRequest): Promise<UserDocument> => {
   if (user.role !== 'admin' && config.adminEmails.includes(user.email.toLowerCase())) {
     user.role = 'admin';
     await user.save();
+    securityEvent(req, 'admin.role.granted', { userId: String(user._id), email: user.email, reason: 'admin_emails' });
   }
   return user;
 };
@@ -256,6 +269,7 @@ export const sendOtp = async (
         const code = generateOTP();
         await issueCode(email, code);
         dispatchEmail(email, codeEmail(purpose === 'register' ? 'register' : 'reset', code));
+        securityEvent(req, 'auth.otp.sent', { email, extra: { purpose: purpose === 'register' ? 'register' : 'reset' } });
 
         res.json({ message: purpose === 'register' ? REGISTER_CODE_SENT : RESET_CODE_SENT });
     } catch (error) {
@@ -279,6 +293,7 @@ export const verifyOtp = async (
         // One message for a wrong code, an expired one, an address that was
         // never issued one, and one guessed at too many times.
         if (!(await consumeOtpAttempt(email, code))) {
+            securityEvent(req, 'auth.otp.failure', { email, reason: 'invalid_code', extra: { step: 'verify' } });
             res.status(400).json({ message: INVALID_CODE });
             return;
         }
@@ -328,11 +343,11 @@ export const signup = async (
         const hashedPassword = hashPassword(password);
         const newUser = new User ({username,email,password:hashedPassword});
         await newUser.save();
-        await applyAdminBootstrap(newUser);
+        await applyAdminBootstrap(newUser, req);
         await clearCode(email);
         await welcomeNewMember(newUser);
         await creditInvites(newUser);
-        res.status(201).json(await startSession(req, res, newUser));
+        res.status(201).json(await startSession(req, res, newUser, 'signup'));
     } catch (error) {
         // Handle duplicate key error (in case of race condition)
         if (isDuplicateKeyError(error)) {
@@ -375,6 +390,7 @@ export const signin = async (
         // Locked after too many wrong passwords, whatever the password now.
         const wait = await minutesLocked(String(email));
         if (wait) {
+            securityEvent(req, 'auth.lockout', { email, reason: 'locked' });
             res.status(429).json({
                 message: `Too many wrong passwords. Try again in ${wait} ${wait === 1 ? 'minute' : 'minutes'}, or reset your password.`,
             });
@@ -391,7 +407,14 @@ export const signin = async (
         const validPassword = bcryptjs.compareSync(password, storedHash);
 
         if (!validUser || !validPassword) {
-            await recordFailure(String(email));
+            // The reason stays in the log; the caller gets the one message.
+            securityEvent(req, 'auth.signin.failure', {
+                email,
+                ...(validUser ? { userId: String(validUser._id), reason: 'bad_password' } : { reason: 'unknown_user' }),
+            });
+            if (await recordFailure(String(email))) {
+                securityEvent(req, 'auth.lockout', { email, reason: 'too_many_failures' });
+            }
             next(errorHandler(401, INVALID_CREDENTIALS));
             return;
         }
@@ -414,8 +437,8 @@ export const signin = async (
             return;
         }
 
-        await applyAdminBootstrap(validUser);
-        res.status(200).json(await startSession(req, res, validUser));
+        await applyAdminBootstrap(validUser, req);
+        res.status(200).json(await startSession(req, res, validUser, 'password'));
     } catch (error){
         next(error);
     }
@@ -461,6 +484,9 @@ export const verifySignin = async (
     const { email, code } = req.body;
     try {
         if (!(await consumeOtpAttempt(email, code, 'signin'))) {
+            // The password was right, or there would be no code: a wrong one
+            // here may be somebody holding a stolen password.
+            securityEvent(req, 'auth.2fa.failure', { email, reason: 'invalid_code' });
             res.status(400).json({ message: INVALID_CODE });
             return;
         }
@@ -468,11 +494,13 @@ export const verifySignin = async (
 
         const user = await User.findOne({ email: String(email) });
         if (!user) {
+            securityEvent(req, 'auth.2fa.failure', { email, reason: 'unknown_user' });
             res.status(400).json({ message: INVALID_CODE });
             return;
         }
-        await applyAdminBootstrap(user);
-        res.status(200).json(await startSession(req, res, user));
+        securityEvent(req, 'auth.2fa.success', { userId: String(user._id), email });
+        await applyAdminBootstrap(user, req);
+        res.status(200).json(await startSession(req, res, user, 'two_step'));
     } catch (error) {
         next(error);
     }
@@ -513,6 +541,7 @@ export const resetPassword = async (
     // Counted against the same record as `verifyOtp`: the two endpoints check
     // one code between them, so five tries is five tries whichever is used.
     if (!(await consumeOtpAttempt(email, otp))) {
+        securityEvent(req, 'auth.otp.failure', { email, reason: 'invalid_code', extra: { step: 'reset' } });
         res.status(400).json({ message: INVALID_CODE });
         return;
     }
@@ -532,10 +561,21 @@ export const resetPassword = async (
 
     // Anyone already signed in with the old password is signed out: a reset is
     // the usual response to a suspected compromise.
-    await revokeAllForUser(user._id);
+    const ended = await revokeAllForUser(user._id);
     clearRefreshCookie(res);
+    securityEvent(req, 'auth.password.reset', { userId: String(user._id), email, extra: { sessions_ended: ended } });
 
     res.json({ message: "Password reset successful" });
+};
+
+/**
+ * The two refusals worth an event: a token used twice, which revokes its whole
+ * family, and an Android token presented without its phone's signature. An
+ * expired or unknown one is how sessions normally end.
+ */
+const refreshRejected = (req: Request, reason: RotationFailureReason): void => {
+  if (reason === 'reused') securityEvent(req, 'session.refresh.reuse_detected', { reason });
+  else if (reason === 'device') securityEvent(req, 'session.refresh.device_mismatch', { reason });
 };
 
 /**
@@ -551,6 +591,7 @@ export const refresh: RequestHandler = async (req, res, next) => {
     if (!result.ok) {
       clearRefreshCookie(res);
       log.info({ reason: result.reason }, 'Refresh rejected');
+      refreshRejected(req, result.reason);
       res.status(401).json({ message: 'Session expired, please sign in again' });
       return;
     }
@@ -583,6 +624,7 @@ export const logoutOthers: RequestHandler = async (req, res, next) => {
       return;
     }
     const ended = await revokeOtherSessions(user._id, readRefreshCookie(req));
+    securityEvent(req, 'session.logout_others', { extra: { sessions_ended: ended } });
     res.status(200).json({
       message: ended ? 'Signed out everywhere else.' : 'You were not signed in anywhere else.',
       ended,
@@ -640,6 +682,7 @@ export const appRefresh: RequestHandler = async (req, res, next) => {
 
     if (!result.ok) {
       log.info({ reason: result.reason }, 'App refresh rejected');
+      refreshRejected(req, result.reason);
       res.status(401).json({ message: SESSION_EXPIRED });
       return;
     }
@@ -679,6 +722,7 @@ export const appLogoutOthers: RequestHandler = async (req, res, next) => {
     }
     const { refreshToken } = req.body as AppRefreshBody;
     const ended = await revokeOtherSessions(user._id, refreshToken);
+    securityEvent(req, 'session.logout_others', { extra: { sessions_ended: ended } });
     res.status(200).json({
       message: ended ? 'Signed out everywhere else.' : 'You were not signed in anywhere else.',
       ended,

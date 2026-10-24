@@ -3,7 +3,8 @@ import type { Request, RequestHandler } from 'express';
 import type { SessionUser } from '@shared/api.js';
 
 import User from '../models/user.model.js';
-import { extractBearerToken, verifyAccessToken } from '../utils/jwt.js';
+import { checkAccessToken, extractBearerToken } from '../utils/jwt.js';
+import { securityEvent } from '../utils/securityLog.js';
 
 /**
  * Resolves the caller from the bearer token and hangs it on `req.user`.
@@ -16,7 +17,10 @@ const resolveUser = async (req: Request): Promise<SessionUser | null> => {
   const token = extractBearerToken(req.headers.authorization);
   if (!token) return null;
 
-  const payload = verifyAccessToken(token);
+  const { payload, problem } = checkAccessToken(token);
+  // Expiry is how every session ends; only a token this server did not sign
+  // as it stands is news.
+  if (problem === 'invalid') securityEvent(req, 'auth.token.invalid');
   if (!payload?.sub) return null;
 
   // Read the user back so a deleted or demoted account cannot keep acting on
@@ -82,6 +86,7 @@ export const bestEffortAuth: RequestHandler = async (req, res, next) => {
 /** Requires an authenticated administrator. Use after `requireAuth`. */
 export const requireAdmin: RequestHandler = (req, res, next) => {
   if (req.user?.role !== 'admin') {
+    securityEvent(req, 'authz.denied', { reason: 'not_admin', extra: { required_role: 'admin' } });
     res.status(403).json({ message: 'Administrator access required' });
     return;
   }

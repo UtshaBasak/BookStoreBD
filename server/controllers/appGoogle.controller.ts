@@ -10,6 +10,7 @@ import { createLogger } from '../config/logger.js';
 import type { AppGoogleBody } from '../schemas/index.js';
 import { applyAdminBootstrap, beginTwoStep, startSession } from './auth.controller.js';
 import { googleAccountFor, type GoogleIdentity } from './google.controller.js';
+import { securityEvent } from '../utils/securityLog.js';
 
 const log = createLogger('app-google');
 
@@ -89,16 +90,23 @@ export const appGoogleSignIn: RequestHandler = async (req, res, next) => {
     }
     const { idToken, nonce } = req.body as AppGoogleBody;
     const identity = await verifyIdToken(idToken);
-    if (!identity?.email || !identity.sub || identity.nonce !== nonce || !(await consumeNonce(nonce))) {
+    if (!identity?.email || !identity.sub) {
+      securityEvent(req, 'auth.google.failure', { reason: 'bad_id_token' });
+      res.status(401).json({ message: NOT_COMPLETED });
+      return;
+    }
+    if (identity.nonce !== nonce || !(await consumeNonce(nonce))) {
+      securityEvent(req, 'auth.google.failure', { reason: 'bad_nonce' });
       res.status(401).json({ message: NOT_COMPLETED });
       return;
     }
     if (!identity.emailVerified) {
+      securityEvent(req, 'auth.google.failure', { reason: 'unverified' });
       res.status(401).json({ code: 'google-unverified', message: 'That Google account has no verified e-mail address.' });
       return;
     }
 
-    const user = await googleAccountFor(identity);
+    const user = await googleAccountFor(identity, req);
 
     // Two-step sign-in still asks for its code, as it does on the website.
     if (user.twoFactor) {
@@ -112,8 +120,8 @@ export const appGoogleSignIn: RequestHandler = async (req, res, next) => {
       return;
     }
 
-    await applyAdminBootstrap(user);
-    res.status(200).json(await startSession(req, res, user));
+    await applyAdminBootstrap(user, req);
+    res.status(200).json(await startSession(req, res, user, 'google'));
   } catch (error) {
     next(error);
   }
