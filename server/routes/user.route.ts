@@ -29,6 +29,7 @@ import { config } from '../config/env.js';
 import { actingUser, requireAuth, requireAdmin, optionalAuth } from '../middleware/auth.js';
 import { imageUpload, verifyImageBytes } from '../middleware/imageUpload.js';
 import { recordAudit } from '../utils/audit.js';
+import { securityEvent } from '../utils/securityLog.js';
 import { collectImages } from '../utils/uploadedImages.js';
 import { serveStoredImage } from '../utils/serveImage.js';
 import { createLogger } from '../config/logger.js';
@@ -410,6 +411,7 @@ router.delete(
         // account it names no longer exists.
         details: { email, role, ...result.summary },
       });
+      securityEvent(req, 'admin.user.deleted', { extra: { target_user_id: id, target_role: role } });
 
       res.status(200).json({ message: 'User deleted successfully', ...result.summary });
     } catch (error) {
