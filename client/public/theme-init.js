@@ -11,3 +11,25 @@
     document.documentElement.dataset.theme = 'light';
   }
 })();
+
+// The page's language too, before the first paint, so a Bangla reader's
+// screen reader and fonts are right from the start. See src/utils/language.ts.
+(function () {
+  try {
+    var chosen = localStorage.getItem('language');
+    var lang = chosen === 'bn' || chosen === 'en' ? chosen : 'en';
+    if (chosen !== 'bn' && chosen !== 'en') {
+      var listed = navigator.languages && navigator.languages.length ? navigator.languages : [navigator.language];
+      for (var i = 0; i < listed.length; i += 1) {
+        var base = String(listed[i]).toLowerCase().split('-')[0];
+        if (base === 'bn' || base === 'en') {
+          lang = base;
+          break;
+        }
+      }
+    }
+    document.documentElement.lang = lang;
+  } catch (e) {
+    /* stays as the HTML says */
+  }
+})();

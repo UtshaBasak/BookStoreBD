@@ -9,11 +9,32 @@ import ErrorBoundary from './components/ErrorBoundary.js';
 import { queryClient } from './config/queryClient.js';
 import { installErrorReporting } from './utils/report.js';
 import { applyTheme, watchSystemTheme } from './utils/theme.js';
+import { applyLanguage, onLanguageChange, watchSystemLanguage } from './utils/language.js';
+import { apiFetch, API_BASE_URL } from './config/api.js';
+import { isAuthenticated } from './utils/auth.js';
 
 // Before anything renders, so a failure during the first render is caught too.
 installErrorReporting();
 applyTheme();
 watchSystemTheme();
+applyLanguage();
+watchSystemLanguage();
+
+/*
+ * A new language: what came from the server - notifications, order histories,
+ * any message - is fetched again in it, and a signed-in account keeps it, so
+ * its e-mails and notifications arrive in it too.
+ */
+onLanguageChange((language) => {
+  void queryClient.invalidateQueries();
+  if (isAuthenticated()) {
+    void apiFetch(`${API_BASE_URL}/user/me/language`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ language }),
+    }).catch(() => undefined);
+  }
+});
 
 const container = document.getElementById('root');
 if (!container) throw new Error('No #root element to mount into');

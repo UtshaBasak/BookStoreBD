@@ -41,6 +41,7 @@ import RequestBookButton from '../components/RequestBookButton.js';
 import ShareBook from '../components/ShareBook.js';
 import NotificationBell from '../components/NotificationBell.js';
 import { ThemeToggle } from '../components/ThemeToggle.js';
+import { LanguageToggle } from '../components/LanguageToggle.js';
 import QuantityStepper from '../components/QuantityStepper.js';
 import { getUserEmail } from '../utils/auth.js';
 import { flagsFor } from '../utils/bookFlags.js';
@@ -338,6 +339,7 @@ export default function BookView() {
                         </Link>
                     )}
 
+                    <LanguageToggle />
                     <ThemeToggle className="icon-button theme-toggle header-theme-toggle" />
 
                     <NotificationBell />

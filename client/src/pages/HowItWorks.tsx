@@ -5,6 +5,7 @@ import { FaArrowLeft, FaArrowRight, FaChevronDown } from 'react-icons/fa';
 import Logo from '../components/Logo.js';
 import Footer from '../components/Footer.js';
 import { ThemeToggle } from '../components/ThemeToggle.js';
+import { LanguageToggle } from '../components/LanguageToggle.js';
 import { site } from '../config/site.js';
 import { useSeo } from '../hooks/useSeo.js';
 import { isAuthenticated } from '../utils/auth.js';
@@ -218,6 +219,7 @@ export default function HowItWorks() {
           <Logo size={38} />
         </Link>
         <div className="user-options">
+          <LanguageToggle />
           <ThemeToggle />
           {!signedIn && (
             <Link to="/sign-in" className="btn btn-primary" style={{ minHeight: 40, padding: '0 1.1rem' }}>

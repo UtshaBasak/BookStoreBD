@@ -16,6 +16,7 @@ import FilePreview from '../components/FilePreview.js';
 import Logo from '../components/Logo.js';
 import NotificationBell from '../components/NotificationBell.js';
 import { ThemeToggle } from '../components/ThemeToggle.js';
+import { LanguageToggle } from '../components/LanguageToggle.js';
 import './Homepage.css';
 import '../components/Chat.css';
 
@@ -255,6 +256,7 @@ export default function ChatPage() {
                     <h1>Messages</h1>
                 </div>
                 <div className="user-options">
+                    <LanguageToggle />
                     <ThemeToggle className="icon-button theme-toggle header-theme-toggle" />
                     <NotificationBell />
                 </div>

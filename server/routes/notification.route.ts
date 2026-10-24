@@ -7,6 +7,17 @@ import { actingUser, requireAuth } from '../middleware/auth.js';
 import { validate, validatedQuery } from '../middleware/validate.js';
 import { notificationSchemas, type IdParams, type MarkNotificationsBody, type NotificationListQuery } from '../schemas/index.js';
 import { toWire } from '../utils/notify.js';
+import User from '../models/user.model.js';
+import { asLanguage, requestedLanguage, type Language } from '../utils/language.js';
+
+/**
+ * The language the request asks for, or failing that the account's own: the
+ * Android app fetches a notification by id when its push arrives, without
+ * naming one.
+ */
+const languageFor = async (req: express.Request): Promise<Language> =>
+  requestedLanguage(req) ??
+  asLanguage((await User.findById(actingUser(req).id, { language: 1 }).lean())?.language);
 
 const router = express.Router();
 
@@ -30,8 +41,9 @@ router.get('/', validate(notificationSchemas.list), async (req, res, next) => {
       Notification.countDocuments({ recipient: email, read: false }),
     ]);
 
+    const language = await languageFor(req);
     const body: NotificationPage = {
-      items: items.map(toWire),
+      items: items.map((item) => toWire(item, language)),
       unread,
       total,
       page,
@@ -57,7 +69,7 @@ router.get('/:id', validate(notificationSchemas.byId), async (req, res, next) =>
       res.status(404).json({ message: 'Notification not found' });
       return;
     }
-    res.json(toWire(doc));
+    res.json(toWire(doc, await languageFor(req)));
   } catch (error) {
     next(error);
   }

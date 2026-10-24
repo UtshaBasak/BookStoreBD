@@ -29,6 +29,7 @@ import InviteFriends from '../components/InviteFriends.js';
 import Logo from '../components/Logo.js';
 import NotificationBell from '../components/NotificationBell.js';
 import { ThemeSetting, ThemeToggle } from '../components/ThemeToggle.js';
+import { LanguageSetting, LanguageToggle } from '../components/LanguageToggle.js';
 import { signOut } from '../config/api.js';
 import { useProfile } from '../hooks/queries.js';
 import { getUserEmail, isAdmin } from '../utils/auth.js';
@@ -159,6 +160,7 @@ export default function Profile() {
                     <Logo size={38} />
                 </Link>
                 <div className="user-options">
+                    <LanguageToggle />
                     <ThemeToggle className="icon-button theme-toggle header-theme-toggle" />
                     <NotificationBell />
                     {/* Cart and wishlist on the buyer side only. */}
@@ -313,6 +315,7 @@ export default function Profile() {
                 <TwoStepSetting />
                 <SessionsSetting />
                 <ThemeSetting />
+                <LanguageSetting />
                 <AccountData />
             </main>
         </div>

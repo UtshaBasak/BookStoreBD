@@ -26,6 +26,7 @@ import {
 } from 'react-icons/fa';
 import Logo from '../components/Logo.js';
 import { ThemeToggle } from '../components/ThemeToggle.js';
+import { LanguageToggle } from '../components/LanguageToggle.js';
 import NotificationSettings from '../components/NotificationSettings.js';
 import TwoStepSetting from '../components/TwoStepSetting.js';
 import SessionsSetting from '../components/SessionsSetting.js';
@@ -127,6 +128,7 @@ export default function AdminPanel() {
             <h2>Admin Panel</h2>
           </div>
           <div className="admin-sidebar-actions">
+            <LanguageToggle className="admin-side-button admin-language-toggle" withLabel />
             <ThemeToggle className="admin-side-button admin-theme-toggle" withLabel />
             <button type="button" className="admin-side-button is-danger" onClick={handleSignOut}>
               <FaSignOutAlt aria-hidden="true" />
@@ -149,6 +151,7 @@ export default function AdminPanel() {
         </nav>
 
         <div className="admin-sidebar-foot">
+          <LanguageToggle className="admin-side-button admin-language-toggle" withLabel />
           <ThemeToggle className="admin-side-button admin-theme-toggle" withLabel />
           <button type="button" className="admin-side-button is-danger" onClick={handleSignOut}>
             <FaSignOutAlt aria-hidden="true" />
