@@ -1,5 +1,3 @@
-import { useSyncExternalStore } from 'react';
-
 /**
  * English or Bangla. "system" follows the browser's own language list, and is
  * where everyone starts: someone whose browser prefers Bangla gets Bangla.
@@ -131,20 +129,4 @@ export const watchSystemLanguage = (): void => {
       for (const listener of listeners) listener(currentLanguage());
     }
   });
-};
-
-const subscribe = (onChange: () => void) => {
-  window.addEventListener(EVENT, onChange);
-  window.addEventListener('storage', onChange);
-  return () => {
-    window.removeEventListener(EVENT, onChange);
-    window.removeEventListener('storage', onChange);
-  };
-};
-
-/** The choice, and the language it comes to, kept current. */
-export const useLanguage = (): { choice: LanguageChoice; language: Language; setLanguage: (choice: LanguageChoice) => void } => {
-  const choice = useSyncExternalStore(subscribe, readLanguageChoice, () => 'system' as LanguageChoice);
-  const language = useSyncExternalStore(subscribe, currentLanguage, () => 'en' as Language);
-  return { choice, language, setLanguage };
 };

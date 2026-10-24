@@ -47,7 +47,8 @@ const WantedBoard = lazy(() => import('./pages/WantedBoard'));
 import './styles/orderTracking.css';
 import { isAdmin, isAuthenticated } from './utils/auth.js';
 import { useSeo } from './hooks/useSeo.js';
-import { t, useLanguage } from './utils/language.js';
+import { t } from './utils/language.js';
+import { useLanguage } from './utils/useLanguage.js';
 import Spinner from './components/Spinner.js';
 
 /** Every guard below takes the subtree it protects and returns it, or a redirect. */
