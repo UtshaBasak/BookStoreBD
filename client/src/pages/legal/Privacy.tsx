@@ -46,7 +46,15 @@ export default function Privacy() {
           only in a hashed form and are deleted once they expire.</li>
         <li>Standard technical data in our server logs: the request path, status,
           timestamp and IP address. Authorisation headers, cookies, passwords and
-          one-time codes are removed before anything is written to a log.</li>
+          one-time codes are removed before anything is written to a log, and so
+          are e-mail addresses and anything after a "?" in a page address.</li>
+        <li>A security record of sign-ins and other protective checks: whether
+          they passed or failed, when, the IP address and the browser's
+          description of itself. It names your account only by its internal id
+          or a scrambled code made from your e-mail address, never the address
+          itself, and never holds a password, a code, a phone number, a postal
+          address or a bKash number. We use it to spot and stop attacks on
+          accounts.</li>
         <li>If a page breaks in your browser, and you allow error reports, a short
           report: what failed, the page address and your browser's name. It does
           not include what you typed or anything you were shown.</li>
