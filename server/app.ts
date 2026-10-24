@@ -1,7 +1,7 @@
 import path from 'path';
 import { existsSync } from 'fs';
 
-import express, { type Express } from 'express';
+import express, { type Express, type RequestHandler } from 'express';
 import type { Logger } from 'pino';
 import cors from 'cors';
 import cookieParser from 'cookie-parser';
@@ -58,6 +58,8 @@ export interface CreateAppOptions {
   logger?: Logger;
   /** Overrides SERVE_CLIENT, so a test can serve a bundle and use the database. */
   serveClient?: boolean;
+  /** Overridden in tests, so the request log lines can be read back. */
+  requestLogger?: RequestHandler;
 }
 
 /**
@@ -68,6 +70,7 @@ export const createApp = ({
   clientDist = CLIENT_DIST,
   logger: appLog = log,
   serveClient = config.serveClient,
+  requestLogger: logRequests = requestLogger,
 }: CreateAppOptions = {}): Express => {
   const app = express();
 
@@ -87,7 +90,7 @@ export const createApp = ({
 
   // First, so every downstream log line carries the request id and a failure
   // during body parsing is still recorded.
-  app.use(requestLogger);
+  app.use(logRequests);
 
   // Before any route, so an error response carries the same protections as a
   // successful one.
