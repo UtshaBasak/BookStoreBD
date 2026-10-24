@@ -74,10 +74,13 @@ export const describeAppDevice = (deviceName: string): string =>
 /**
  * Notes the browser - or, for the app, the installation - a session is
  * starting in, and e-mails the owner if it is new. Never throws.
+ *
+ * True when this account had not been signed in from it before, for the
+ * sign-in's security event.
  */
-export const noteDevice = async (req: DeviceRequest, res: Response, user: UserDocument, app?: AppDevice): Promise<void> => {
+export const noteDevice = async (req: DeviceRequest, res: Response, user: UserDocument, app?: AppDevice): Promise<boolean> => {
   try {
-    if (app && !/^[\w-]{20,64}$/.test(app.installId)) return;
+    if (app && !/^[\w-]{20,64}$/.test(app.installId)) return false;
     let deviceId = app ? app.installId : (req.cookies as Record<string, string> | undefined)?.[DEVICE_COOKIE];
     if (!app && (!deviceId || !/^[\w-]{20,64}$/.test(deviceId))) {
       deviceId = randomBytes(24).toString('base64url');
@@ -91,7 +94,7 @@ export const noteDevice = async (req: DeviceRequest, res: Response, user: UserDo
     }
     const print = fingerprint(app ? `app:${deviceId}` : String(deviceId));
     const known = (user.knownDevices ?? []) as string[];
-    if (known.includes(print)) return;
+    if (known.includes(print)) return false;
 
     await User.updateOne({ _id: user._id }, { $push: { knownDevices: { $each: [print], $slice: -MAX_KNOWN } } });
     if (known.length) {
@@ -103,7 +106,9 @@ export const noteDevice = async (req: DeviceRequest, res: Response, user: UserDo
           : newSignInEmail(describeBrowser(String(req.get('user-agent') ?? '')), `${when} (Dhaka time)`)
       );
     }
+    return true;
   } catch (error) {
     log.warn({ err: error }, 'Could not check the device');
+    return false;
   }
 };

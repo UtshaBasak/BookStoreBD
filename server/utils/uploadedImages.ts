@@ -1,6 +1,7 @@
 import type { Request } from 'express';
 
 import { isOwnedCloudinaryUrl } from '../config/cloudinary.js';
+import { securityEvent, type SecurityRequest } from './securityLog.js';
 
 /** Whatever a multipart form may carry alongside its files. */
 interface HostedFields {
@@ -9,7 +10,7 @@ interface HostedFields {
 }
 
 /** Only the two parts of a request this reads, so any handler's shape fits. */
-type RequestWithImages = Pick<Request, 'files'> & { body?: unknown };
+type RequestWithImages = Pick<Request, 'files'> & { body?: unknown } & SecurityRequest;
 
 export interface CollectedImages {
   images: string[];
@@ -31,7 +32,11 @@ export interface CollectedImages {
 export const collectImages = (req: RequestWithImages): CollectedImages => {
   const body = (req.body ?? {}) as HostedFields;
 
-  const urls = (body.images ?? []).filter(isOwnedCloudinaryUrl);
+  const given = body.images ?? [];
+  const urls = given.filter(isOwnedCloudinaryUrl);
+  // Dropped, not refused, as before - but a URL that is not ours was put there
+  // by hand, which is worth knowing.
+  if (urls.length < given.length) securityEvent(req, 'upload.url_rejected', { extra: { dropped: given.length - urls.length } });
   if (urls.length) {
     const ids = (body.imagePublicIds ?? []).filter((id) => id.length > 0);
     return { images: urls, publicIds: ids.slice(0, urls.length) };

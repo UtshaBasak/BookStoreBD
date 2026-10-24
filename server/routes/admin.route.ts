@@ -11,6 +11,7 @@ import { notify } from '../utils/notify.js';
 import { recipientsWanting } from '../utils/notificationPrefs.js';
 import { adminMessageEmail, sendShopMailNow } from '../utils/shopMail.js';
 import { recordAudit } from '../utils/audit.js';
+import { securityEvent } from '../utils/securityLog.js';
 import { createLogger } from '../config/logger.js';
 
 /**
@@ -104,6 +105,7 @@ router.post('/message', validate(adminSchemas.message), async (req: Request, res
       details: { channel, recipients: recipients.length, notified, emailed, failed, title },
     });
     log.info({ channel, audience, recipients: recipients.length, emailed, failed }, 'Admin message sent');
+    securityEvent(req, 'admin.message.sent', { extra: { audience, channel, recipient_count: recipients.length } });
 
     const parts = [
       notified ? `${notified} notified` : '',

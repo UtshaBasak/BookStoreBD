@@ -27,8 +27,11 @@ export const minutesLocked = async (email: string): Promise<number> => {
   return until > Date.now() ? Math.ceil((until - Date.now()) / 60000) : 0;
 };
 
-/** A wrong password: counted, and the address locked once there are too many. */
-export const recordFailure = async (email: string): Promise<void> => {
+/**
+ * A wrong password: counted, and the address locked once there are too many.
+ * True when this one started the lock.
+ */
+export const recordFailure = async (email: string): Promise<boolean> => {
   const record = await LoginAttempt.findOneAndUpdate(
     { key: keyFor(email) },
     { $inc: { failures: 1 }, $set: { expiresAt: new Date(Date.now() + FORGET_AFTER_MS) } },
@@ -37,7 +40,9 @@ export const recordFailure = async (email: string): Promise<void> => {
   if (record && record.failures >= MAX_FAILURES) {
     await LoginAttempt.updateOne({ key: keyFor(email) }, { failures: 0, lockedUntil: new Date(Date.now() + LOCK_MS) });
     log.warn('Sign-in locked after repeated wrong passwords');
+    return true;
   }
+  return false;
 };
 
 /** The right password: the count starts again. */

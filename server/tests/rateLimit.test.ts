@@ -6,6 +6,7 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 
 import { createTestContext, closeTestContext, type PrefixedRequest } from './helpers/testApp.js';
+import { captureSecurityEvents } from './helpers/securityEvents.js';
 
 let request: PrefixedRequest;
 
@@ -38,7 +39,8 @@ describe('rate limiting', () => {
     }
   });
 
-  it('returns 429 once the auth bucket is exhausted', async () => {
+  it('returns 429 once the auth bucket is exhausted, and logs which limiter fired', async () => {
+    const events = captureSecurityEvents();
     const attempts = [];
     // The auth ceiling is 50 per window; 60 guarantees it is crossed.
     for (let i = 0; i < 60; i += 1) {
@@ -50,7 +52,14 @@ describe('rate limiting', () => {
     const limited = attempts.filter((r) => r.status === 429);
 
     expect(limited.length).toBeGreaterThan(0);
-    expect(limited[0].body.message).toMatch(/too many requests/i);
+    // The limiter's own answer, unchanged by the event that goes with it.
+    expect(limited[0].body).toEqual({ message: 'Too many requests, please try again later.' });
+    expect(limited[0].headers.ratelimit ?? limited[0].headers['ratelimit-limit']).toBeDefined();
+
+    const exceeded = events.of('ratelimit.exceeded');
+    events.stop();
+    expect(exceeded).toHaveLength(limited.length);
+    expect(exceeded[0]).toMatchObject({ extra: { limiter: 'auth' }, http: { method: 'POST', route: '/api/auth/signin' } });
   });
 
   it('does not rate limit the health check', async () => {

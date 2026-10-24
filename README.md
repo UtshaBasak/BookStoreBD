@@ -560,7 +560,12 @@ npm run lint && npm run typecheck && npm test && npm run build
   development and JSON in production
 - A correlation id on every request, returned as `X-Request-Id` and attached to
   every line logged while handling it
-- Passwords, tokens, cookies and one-time codes redacted before anything is written
+- Passwords, tokens, cookies and one-time codes redacted before anything is
+  written; query strings and e-mail addresses are left out of logged paths
+- Security events: one typed JSON line for each decision a security control
+  makes (a wrong password, a lock, a reused refresh token, a refused request,
+  a changed bKash number), with addresses only as a keyed hash. The catalogue
+  and schema are in [`docs/SECURITY-EVENTS.md`](docs/SECURITY-EVENTS.md)
 - Unhandled server errors reported to [Sentry](https://sentry.io) when `SENTRY_DSN`
   is set; browser errors reported to `/client-error`
 - A client error boundary that shows a recovery screen

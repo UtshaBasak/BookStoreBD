@@ -10,6 +10,7 @@ import User from '../models/user.model.js';
 import type { MarkPaidBody, PayoutsQuery } from '../schemas/index.js';
 import { validatedQuery } from '../middleware/validate.js';
 import { recordAudit } from '../utils/audit.js';
+import { securityEvent } from '../utils/securityLog.js';
 import { createLogger } from '../config/logger.js';
 import { RETURN_WINDOW_DAYS, returnWindowClosedBefore, sellerFeeFor, sellerPayoutFor } from '../config/commerce.js';
 import { contains } from '../utils/regex.js';
@@ -214,6 +215,7 @@ export const markPayoutPaid = async (
       targetId: orderNumber,
       details: { sellerEmail, reference, amount, lines: paid.length },
     });
+    securityEvent(req, 'admin.payout.recorded', { extra: { order_number: String(orderNumber), lines: paid.length, amount } });
 
     await notify([String(sellerEmail)], {
       type: 'payout',
