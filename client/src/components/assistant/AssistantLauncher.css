@@ -1,0 +1,39 @@
+/*
+ * Sits just above the back-to-top button (same right edge, 48px tall), so both
+ * stay reachable on a phone.
+ */
+.assistant-launcher {
+  position: fixed;
+  right: clamp(14px, 3vw, 28px);
+  bottom: calc(clamp(14px, 3vw, 28px) + 60px + env(safe-area-inset-bottom, 0px));
+  z-index: 91;
+  display: grid;
+  place-items: center;
+  width: 52px;
+  height: 52px;
+  min-height: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--color-brand-fill), var(--color-brand-fill-light));
+  color: #fff;
+  font-size: 1.25rem;
+  box-shadow: 0 10px 24px rgba(109, 40, 217, 0.35);
+  transition: box-shadow 0.2s, transform 0.2s;
+}
+.assistant-launcher:hover {
+  box-shadow: 0 14px 30px rgba(109, 40, 217, 0.45);
+  transform: translateY(-2px);
+}
+.assistant-launcher:focus-visible {
+  outline: 3px solid var(--color-accent);
+  outline-offset: 3px;
+}
+@media (prefers-reduced-motion: reduce) {
+  .assistant-launcher {
+    transition: none;
+  }
+  .assistant-launcher:hover {
+    transform: none;
+  }
+}

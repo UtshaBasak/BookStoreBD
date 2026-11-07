@@ -59,6 +59,10 @@ import type {
   InviteRequest,
   PopularSearchesResponse,
   AuthConfig,
+  AssistantConfig,
+  AssistantRequest,
+  AssistantReply,
+  AssistantFeedbackRequest,
 } from '@shared/api.js';
 
 import { apiFetch, apiUrl } from '../config/api.js';
@@ -942,4 +946,26 @@ export const useAuthConfig = (): UseQueryResult<AuthConfig> =>
     queryKey: keys.authConfig,
     queryFn: () => request<AuthConfig>('/auth/config'),
     staleTime: 5 * 60 * 1000,
+  });
+
+/** Whether to offer the shopping assistant at all. Fetched by the launcher once the page is idle. */
+export const useAssistantConfig = (enabled = true): UseQueryResult<AssistantConfig> =>
+  useQuery({
+    queryKey: ['assistant', 'config'] as const,
+    queryFn: () => request<AssistantConfig>('/assistant/config'),
+    staleTime: 5 * 60 * 1000,
+    retry: false,
+    enabled,
+  });
+
+/** One question to the assistant. */
+export const useAskAssistant = (): UseMutationResult<AssistantReply, Error, AssistantRequest> =>
+  useMutation({
+    mutationFn: (body: AssistantRequest) => request<AssistantReply>('/assistant/chat', json('POST', body)),
+  });
+
+/** A thumbs up or down on one answer. */
+export const useAssistantFeedback = (): UseMutationResult<unknown, Error, AssistantFeedbackRequest> =>
+  useMutation({
+    mutationFn: (body: AssistantFeedbackRequest) => request('/assistant/feedback', json('POST', body)),
   });
