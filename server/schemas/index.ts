@@ -636,6 +636,32 @@ export const wantedSchemas = {
   byId: { params: objectIdParam },
 };
 
+// ------------------------------------------------------------ assistant
+/**
+ * The shopping assistant. Short on purpose: a question, the last few turns as
+ * the browser kept them, and - only with the visitor's consent - the books
+ * they viewed recently.
+ */
+export const assistantSchemas = {
+  chat: {
+    body: z.object({
+      message: z.string().trim().min(1, 'Type a question').max(500, 'Keep the question to 500 characters'),
+      history: z
+        .array(z.object({ role: z.enum(['user', 'assistant']), text: z.string().trim().max(1500) }))
+        .max(10)
+        .default([]),
+      seen: z.array(objectId).max(20).default([]),
+    }),
+  },
+  feedback: {
+    body: z.object({
+      requestId: z.string().trim().min(1).max(100),
+      helpful: z.boolean(),
+      reason: z.enum(['wrong', 'unhelpful', 'off-topic', 'slow', 'other']).optional(),
+    }),
+  },
+};
+
 /** The bell: a page of a person's notifications, and marking them read. */
 // ---------------------------------------------------------------- admin messages
 const audience = z.enum(['users', 'buyers', 'sellers', 'all']);
@@ -790,3 +816,5 @@ export type UpdateProfileBody = z.infer<typeof userSchemas.updateProfile.body>;
 export type AdminMessageBody = z.infer<typeof adminSchemas.message.body>;
 export type AudienceQuery = z.infer<typeof adminSchemas.audience.query>;
 export type AnalyticsQuery = z.infer<typeof adminSchemas.analytics.query>;
+export type AssistantChatBody = z.infer<typeof assistantSchemas.chat.body>;
+export type AssistantFeedbackBody = z.infer<typeof assistantSchemas.feedback.body>;

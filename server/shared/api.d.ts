@@ -1508,3 +1508,94 @@ export type AppSignInResponse = AppSessionResponse | AppTwoFactorChallenge;
 export interface AppRefreshRequest {
   refreshToken: string;
 }
+
+// ======================================================= shopping assistant
+
+/** GET /assistant/config - whether to offer the assistant at all. */
+export interface AssistantConfig {
+  /** On when the Gemini key is set and the assistant is not switched off. */
+  enabled: boolean;
+}
+
+/** One earlier turn, as the browser kept it. Text only, and only the last few. */
+export interface AssistantTurn {
+  role: 'user' | 'assistant';
+  text: string;
+}
+
+/** POST /assistant/chat. */
+export interface AssistantRequest {
+  message: string;
+  history?: AssistantTurn[];
+  /**
+   * Books viewed recently, from the browser - sent only while the visitor
+   * allows personalisation, the same choice that keeps Recently viewed.
+   */
+  seen?: Id[];
+}
+
+/** A page on this site. Always a relative path: the assistant never links away. */
+export interface AssistantLink {
+  href: string;
+  label: string;
+}
+
+/** One of the person's own orders, with only what explains it: no address, phone or payment number. */
+export interface AssistantOrder {
+  orderNumber: string;
+  placedAt: IsoDate;
+  /** The stored status, e.g. 'Shipped' or 'Cancelled'. */
+  status: string;
+  /** The status in the language asked for. */
+  statusLabel: string;
+  /** 0-4 along Order Confirmed → Delivered; -1 when cancelled. */
+  stage: number;
+  explanation: string;
+  books: { title: string; quantity: number }[];
+  total: number;
+  canCancel: boolean;
+  returnableUntil: IsoDate | null;
+  link: string;
+}
+
+/** Someone to talk to: a book's seller, or the shop. Nothing is sent until the person chooses. */
+export interface AssistantHandover {
+  kind: 'seller' | 'shop';
+  /** The account to open a chat with; null when there is no chat account to reach. */
+  chatWith: string | null;
+  name: string;
+  bookTitle: string | null;
+  /** The shop's e-mail address, for the shop. */
+  email: string | null;
+}
+
+/** A book the shop does not have, offered for the Wanted board. Posted only if the person confirms. */
+export interface AssistantWantedOffer {
+  title: string;
+  author: string;
+}
+
+export interface AssistantReply {
+  /** Quoted back with feedback; ties it to the log line, not to any text. */
+  requestId: string;
+  /** Plain text. */
+  reply: string;
+  language: 'en' | 'bn';
+  /** Real books from the catalogue, shown as cards. Never from the model's own text. */
+  books: Book[];
+  links: AssistantLink[];
+  orders: AssistantOrder[];
+  handover: AssistantHandover | null;
+  wanted: AssistantWantedOffer | null;
+  /** True when the answer was given without the model (unavailable, busy or over budget). */
+  fallback: boolean;
+  /** True when the question was not about the shop. */
+  outOfScope: boolean;
+}
+
+/** POST /assistant/feedback - a thumbs up or down. No message text is stored. */
+export interface AssistantFeedbackRequest {
+  requestId: string;
+  helpful: boolean;
+  reason?: 'wrong' | 'unhelpful' | 'off-topic' | 'slow' | 'other';
+}
