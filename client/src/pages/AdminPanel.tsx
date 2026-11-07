@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { Suspense, lazy, useEffect, useRef } from 'react';
 import { Link, NavLink, Navigate, Routes, Route, useLocation, useNavigate } from 'react-router-dom';
 import type { IconType } from 'react-icons';
 import './AdminPanel.css';
@@ -11,11 +11,13 @@ import SellerPayouts from './admin/SellerPayouts';
 import AllReviews from './admin/AllReviews';
 import AdminMessages from './admin/AdminMessages';
 import ShopAnalytics from './admin/ShopAnalytics';
+const SystemFlags = lazy(() => import('./admin/SystemFlags'));
 import {
   FaBook,
   FaChartLine,
   FaCog,
   FaFlag,
+  FaShieldAlt,
   FaMoneyBillWave,
   FaPaperPlane,
   FaStar,
@@ -51,6 +53,7 @@ const SECTIONS: Section[] = [
   { to: '/admin/payouts', label: () => t('Seller Payouts', 'বিক্রেতার পেমেন্ট'), icon: FaMoneyBillWave },
   { to: '/admin/all-reviews', label: () => t('Reviews', 'রিভিউ'), icon: FaStar },
   { to: '/admin/reviews', label: () => t('Reported Reviews', 'রিপোর্ট করা রিভিউ'), icon: FaFlag },
+  { to: '/admin/flags', label: () => t('Flagged by system', 'সিস্টেমের ফ্ল্যাগ'), icon: FaShieldAlt },
   { to: '/admin/messages', label: () => t('Messages', 'বার্তা'), icon: FaPaperPlane },
   { to: '/admin/settings', label: () => t('Settings', 'সেটিংস'), icon: FaCog },
 ];
@@ -180,6 +183,14 @@ export default function AdminPanel() {
           <Route path="/payouts" element={<SellerPayouts />} />
           <Route path="/all-reviews" element={<AllReviews />} />
           <Route path="/reviews" element={<ReviewModeration />} />
+          <Route
+            path="/flags"
+            element={
+              <Suspense fallback={<div className="admin-loading">{t('Loading...', 'লোড হচ্ছে...')}</div>}>
+                <SystemFlags />
+              </Suspense>
+            }
+          />
           <Route path="/messages" element={<AdminMessages />} />
           <Route path="/settings" element={<AdminSettings />} />
         </Routes>

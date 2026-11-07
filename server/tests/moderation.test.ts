@@ -15,6 +15,7 @@ import ModerationFlag from '../models/ModerationFlag.model.js';
 import ModerationJob from '../models/ModerationJob.model.js';
 import Notification from '../models/Notification.model.js';
 import Review from '../models/Review.model.js';
+import SellerReview from '../models/SellerReview.model.js';
 import { resetGeminiBudgetForTesting, setGeminiTransportForTesting } from '../utils/gemini.js';
 import { abuseReasons, bannedItemReasons, contactReasons } from '../utils/moderation/rules.js';
 import { enqueueModeration, runModerationOnce, scanContent } from '../utils/moderation/queue.js';
@@ -290,6 +291,26 @@ describe('the admin queue', () => {
     const notice = await Notification.findOne({ recipient: 'author@test.com' }).lean();
     expect(notice?.type).toBe('shop-message');
     expect(JSON.stringify(notice)).toContain('Contact details are not allowed');
+  });
+
+  it('names what the usual delete takes: the book for a review, the seller for a rating', async () => {
+    const { admin, flagId, book } = await setUp();
+    expect((await request.get(`/moderation/flags/${flagId}`).set('Authorization', admin.auth)).body.subjectId).toBe(String(book._id));
+
+    const seller = await createUserWithToken({ email: 'seller2@test.com', username: 'seller2' });
+    const rating = await SellerReview.create({
+      seller: seller.user._id,
+      sellerEmail: seller.user.email,
+      reviewerEmail: 'author@test.com',
+      reviewerName: 'author',
+      rating: 1,
+      title: 'Bad',
+      body: 'Call me on 01712345678 instead',
+    });
+    await scanContent('seller-review', rating._id);
+    const flag = await ModerationFlag.findOne({ targetId: rating._id }).lean();
+    const detail = await request.get(`/moderation/flags/${String(flag?._id)}`).set('Authorization', admin.auth);
+    expect(detail.body.subjectId).toBe(String(seller.user._id));
   });
 
   it('clears many flags at once', async () => {

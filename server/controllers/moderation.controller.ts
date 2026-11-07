@@ -150,14 +150,14 @@ export const getFlag: RequestHandler<{ id: string }> = async (req, res, next) =>
     }
     let content: ModerationFlagDetail['content'] = null;
     let messages: ModerationChatMessage[] = [];
-    let bookId: string | null = null;
+    let subjectId: string | null = null;
     if (flag.targetType === 'review' || flag.targetType === 'seller-review') {
       const review =
         flag.targetType === 'review'
           ? await Review.findById(flag.targetId).lean()
           : await SellerReview.findById(flag.targetId).lean();
       if (review) content = { title: review.title ?? '', body: review.body ?? '', rating: Number(review.rating), price: null };
-      if (review && flag.targetType === 'review') bookId = String((review as { book: unknown }).book);
+      if (review) subjectId = String(flag.targetType === 'review' ? (review as { book: unknown }).book : (review as { seller: unknown }).seller);
     } else if (flag.targetType === 'listing') {
       const book = await AddBook.findById(flag.targetId, { title: 1, author: 1, desc: 1, salePrice: 1, price: 1 }).lean();
       if (book) content = { title: `${book.title} — ${book.author}`, body: book.desc ?? '', rating: null, price: Number(book.salePrice ?? book.price) };
@@ -180,7 +180,7 @@ export const getFlag: RequestHandler<{ id: string }> = async (req, res, next) =>
       ...toItem(flag, alive.has(String(flag.targetId)), await linkFor(flag)),
       content,
       messages,
-      bookId,
+      subjectId,
     };
     res.json(body);
   } catch (error) {

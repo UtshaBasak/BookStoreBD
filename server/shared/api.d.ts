@@ -1667,8 +1667,12 @@ export interface ModerationFlagDetail extends ModerationFlagItem {
   content: { title: string; body: string; rating: number | null; price: number | null } | null;
   /** For chat: the messages the rules pointed at. */
   messages: ModerationChatMessage[];
-  /** For a review: the book's id, which the existing delete endpoint takes. */
-  bookId: Id | null;
+  /**
+   * What the existing delete endpoint takes: the book's id for a review
+   * (DELETE /review/:id), the seller's account id for a seller rating
+   * (DELETE /seller-review/:id). Null otherwise.
+   */
+  subjectId: Id | null;
 }
 
 /** POST /moderation/flags/:id/decision */
