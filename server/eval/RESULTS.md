@@ -1,5 +1,17 @@
 # Evaluation results: shopping assistant and automatic moderation
 
+> **Update, 2026-11-08 (after the first run):** three findings were fixed.
+> English author names now also search each longer word of the name, so
+> find-07 (Tagore) and find-12 (Gangopadhyay) pass. "taka" and "dam" no
+> longer mark an English question as Banglish. Five listing and review false
+> positives (ls-21, ls-28, ls-30, ls-31, rv-36) are gone: bare words such as
+> "firearms", "prescription drugs", "pdf file", হুইস্কি and নগ্ন were removed
+> from the policy lists. Remaining known issues: pol-20, pol-23 (help
+> retrieval wording), rv-23, rv-27, rv-40, ch-04, ch-06 (rule false
+> positives) and rv-33 (a number written in words). The tables below are from
+> the first run.
+
+
 Date: 2026-11-08
 
 **Offline, recorded responses: a regression baseline. Live numbers come from `npm run eval:assistant:live` and `npm run eval:moderation:live`.**

@@ -176,6 +176,22 @@ const searchBooks = async (raw: unknown, context: ToolContext, collected: Collec
     total = found.total;
   }
 
+  // A writer's name in one script often misses the other's spelling of the
+  // surname ("Tagore" and ঠাকুর): try each longer word of the name on its own.
+  if (args.author && !args.query && books.length < 3) {
+    const known = new Set(books.map((book) => String(book._id)));
+    for (const word of args.author.split(/\s+/).filter((part) => part.length >= 4)) {
+      const more = await findCatalogue(catalogueQuery(args, word, MAX_BOOKS_SHOWN));
+      for (const book of more.items) {
+        if (!known.has(String(book._id)) && books.length < MAX_BOOKS_SHOWN) {
+          known.add(String(book._id));
+          books.push(book);
+        }
+      }
+    }
+    total = Math.max(total, books.length);
+  }
+
   // A description of what a book is about, or a search that found nothing:
   // look by meaning too, within the same filters.
   if (args.description || (!books.length && args.query)) {

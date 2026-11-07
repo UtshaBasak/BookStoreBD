@@ -52,7 +52,7 @@ const MAX_REPLY_CHARS = 1500;
 // --------------------------------------------------------------- language
 
 const BANGLA = /[ঀ-৿]/;
-const BANGLISH = /\b(ami|amar|apni|apnar|koto|kivabe|kemne|ache|achhe|nai|boi|bai|kinbo|kinte|chai|lagbe|dam|takay|taka|kobe|kothay|keno|hobe|korbo|kori|valo|bhalo|dhonnobad|ki)\b/i;
+const BANGLISH = /\b(ami|amar|apni|apnar|koto|kivabe|kemne|ache|achhe|nai|boi|bai|kinbo|kinte|chai|lagbe|takay|kobe|kothay|keno|hobe|korbo|kori|valo|bhalo|dhonnobad|ki)\b/i;
 
 /** Bangla for Bangla script or Banglish, English for English, the site's language when it cannot tell. */
 export const languageOfQuestion = (message: string, siteLanguage: Language): Language => {

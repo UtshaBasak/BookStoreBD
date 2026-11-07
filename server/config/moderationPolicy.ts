@@ -94,7 +94,7 @@ export const ABUSIVE_TERMS: readonly AbusiveTerm[] = [
 
   // Bangla script sexual
   ...group('bn', 'sexual', 'severe', [
-    'পর্ন', 'পর্নো', 'পর্নোগ্রাফি', 'নগ্ন', 'ন্যাংটা', 'উলঙ্গ', 'সেক্স ভিডিও', 'সেক্স চ্যাট',
+    'পর্ন', 'পর্নো', 'পর্নোগ্রাফি', 'ন্যাংটা', 'উলঙ্গ', 'সেক্স ভিডিও', 'সেক্স চ্যাট',
     'যৌনতা ভিডিও', 'ধর্ষণ', 'ধর্ষক', 'দেহব্যবসা', 'কলগার্ল', 'নষ্টা মেয়ে', 'চটি বই',
   ]),
 
@@ -161,8 +161,7 @@ export const BANNED_ITEMS: readonly BannedItemRule[] = [
     label: { en: 'Pirated, photocopied or PDF copies', bn: 'পাইরেটেড, ফটোকপি বা পিডিএফ কপি' },
     phrases: [
       'photocopy', 'photocopied', 'photo copy', 'xerox copy', 'pirated', 'pirated copy',
-      'nilkhet print', 'nilkhet copy', 'neelkhet print', 'scan copy', 'scanned copy', 'pdf copy',
-      'pdf file', 'pdf book', 'soft copy', 'softcopy', 'e-book download link', 'ebook download link',
+      'nilkhet print', 'nilkhet copy', 'neelkhet print', 'scan copy', 'scanned copy', 'pdf copy', 'pdf book', 'soft copy', 'softcopy', 'e-book download link', 'ebook download link',
       'free pdf download', 'download link', 'duplicate print', 'fotocopy', 'fotokopi',
       'ফটোকপি', 'জেরক্স', 'জেরক্স কপি', 'পাইরেটেড', 'নীলক্ষেত প্রিন্ট', 'নীলক্ষেতের প্রিন্ট', 'স্ক্যান কপি',
       'পিডিএফ', 'পিডিএফ কপি', 'পিডিএফ ফাইল', 'সফট কপি', 'ডাউনলোড লিংক', 'ডুপ্লিকেট প্রিন্ট',
@@ -219,8 +218,8 @@ export const BANNED_ITEMS: readonly BannedItemRule[] = [
     id: 'weapons',
     label: { en: 'Weapons', bn: 'অস্ত্র' },
     phrases: [
-      'gun for sale', 'pistol for sale', 'revolver for sale', 'rifle for sale', 'firearm', 'firearms',
-      'ammunition', 'bullets for sale', 'bomb making', 'explosive', 'explosives', 'grenade',
+      'gun for sale', 'pistol for sale', 'revolver for sale', 'rifle for sale',
+      'ammunition', 'bullets for sale', 'bomb making', 'grenade',
       'knife for sale', 'machete for sale', 'dagger for sale', 'sword for sale', 'airgun for sale',
       'bondook bikri', 'pistol bikri', 'goli bikri', 'ostro bikri', 'chura bikri',
       'বন্দুক বিক্রি', 'পিস্তল বিক্রি', 'রিভলবার', 'গুলি বিক্রি', 'অস্ত্র বিক্রি', 'বোমা তৈরি',
@@ -236,7 +235,7 @@ export const BANNED_ITEMS: readonly BannedItemRule[] = [
       'wine for sale', 'liquor', 'cigarette for sale', 'cigarettes for sale', 'tobacco for sale',
       'cigar for sale', 'vape for sale', 'e-cigarette', 'hookah for sale', 'shisha for sale',
       'gul for sale', 'jorda for sale', 'mod bikri', 'madh bikri', 'cigarette bikri', 'biri bikri',
-      'মদ বিক্রি', 'বিয়ার বিক্রি', 'হুইস্কি', 'ভদকা', 'সিগারেট বিক্রি', 'বিড়ি বিক্রি',
+      'মদ বিক্রি', 'বিয়ার বিক্রি', 'সিগারেট বিক্রি', 'বিড়ি বিক্রি',
       'তামাক বিক্রি', 'জর্দা বিক্রি', 'ভেপ বিক্রি', 'হুক্কা বিক্রি',
     ],
     severity: 'severe',
@@ -330,8 +329,7 @@ export const BANNED_ITEMS: readonly BannedItemRule[] = [
   {
     id: 'medicines',
     label: { en: 'Medicines or prescription drugs', bn: 'ওষুধ বা প্রেসক্রিপশনের ওষুধ' },
-    phrases: [
-      'prescription drug', 'prescription drugs', 'prescription medicine', 'medicine for sale',
+    phrases: [ 'prescription medicine', 'medicine for sale',
       'medicines for sale', 'tablets for sale', 'pills for sale', 'sleeping pills', 'sleeping tablet',
       'abortion pill', 'abortion pills', 'antibiotic for sale', 'steroid for sale', 'steroids',
       'viagra', 'tramadol', 'diazepam', 'codeine', 'painkiller for sale', 'oushudh bikri',
