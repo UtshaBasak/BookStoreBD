@@ -10,6 +10,8 @@ import Order from '../models/Order.model.js';
 import AssistantFeedback from '../models/AssistantFeedback.model.js';
 import { resetGeminiBudgetForTesting, setGeminiTransportForTesting, type GeminiPart } from '../utils/gemini.js';
 import { resetAssistantStateForTesting } from '../utils/assistant/engine.js';
+import { embedListing, forgetEmbeddingCache } from '../utils/assistant/semantic.js';
+import BookEmbedding from '../models/BookEmbedding.model.js';
 
 let request: PrefixedRequest;
 beforeAll(async () => {
@@ -248,6 +250,35 @@ describe('the shopping assistant', () => {
     const stats = await request.get('/assistant/stats').set('Authorization', admin.auth);
     expect(stats.body.totals.questions).toBe(1);
     expect(stats.body.geminiToday.assistant).toBe(1);
+  });
+
+  it('finds a book by what it is about, through the listings’ embeddings', async () => {
+    const war = await createBook({ title: 'Ekattorer Dinguli', author: 'Jahanara Imam', desc: 'A mother’s diary of 1971.', category: ['History'] });
+    const cook = await createBook({ title: 'Ranna Khaddo Pushti', author: 'Siddika Kabir', desc: 'Recipes.', category: ['Cooking'] });
+    // Vectors by text: the war book and the question point the same way.
+    setGeminiTransportForTesting(async (_url, body) => {
+      const requests = (body as { requests: { content: { parts: { text: string }[] } }[] }).requests;
+      return {
+        status: 200,
+        body: { embeddings: requests.map((r) => ({ values: /1971|liberation/i.test(r.content.parts[0]?.text ?? '') ? [1, 0] : [0, 1] })) },
+      };
+    });
+    await embedListing(war._id);
+    await embedListing(cook._id);
+    expect(await BookEmbedding.countDocuments()).toBe(2);
+    expect(await embedListing(war._id)).toBe(false); // unchanged, not embedded again
+    forgetEmbeddingCache();
+
+    const steps: GeminiPart[][] = [call('search_books', { description: 'a sad book about the liberation war' }), say('Here is one.')];
+    setGeminiTransportForTesting(async (url, body) => {
+      if (url.endsWith(':batchEmbedContents')) {
+        const requests = (body as { requests: unknown[] }).requests;
+        return { status: 200, body: { embeddings: requests.map(() => ({ values: [1, 0] })) } };
+      }
+      return { status: 200, body: { candidates: [{ content: { parts: steps.shift() ?? say('Done.') } }] } };
+    });
+    const res = await ask('a sad book about the liberation war');
+    expect(res.body.books.map((book: { title: string }) => book.title)).toEqual(['Ekattorer Dinguli']);
   });
 
   it('refuses an over-long question', async () => {

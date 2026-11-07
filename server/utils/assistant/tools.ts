@@ -6,7 +6,7 @@ import AddBook, { type LeanBook } from '../../models/AddBook.model.js';
 import Order, { type LeanOrder } from '../../models/Order.model.js';
 import ReturnRequest from '../../models/ReturnRequest.model.js';
 import User from '../../models/user.model.js';
-import { findCatalogue, homeSections, personalPicks, sellerHits } from '../../controllers/filter.controller.js';
+import { buildFilter, findCatalogue, homeSections, personalPicks, sellerHits } from '../../controllers/filter.controller.js';
 import { STATUS_BN } from '../../controllers/order.controller.js';
 import {
   CANCELLED,
@@ -25,6 +25,7 @@ import { withCoverUrls } from '../projections.js';
 import type { GeminiFunctionDeclaration } from '../gemini.js';
 import { helpAsData, searchKnowledge } from './retrieval.js';
 import { SITE_PAGES } from './knowledge.js';
+import { searchByMeaning } from './semantic.js';
 
 /**
  * What the shopping assistant can do, as tools the model may ask for.
@@ -122,6 +123,7 @@ const money = z.coerce.number().min(0).max(1_000_000);
 
 const searchArgs = z.object({
   query: text(100).optional(),
+  description: text(300).optional(),
   author: text(80).optional(),
   category: text(60).optional(),
   type: z.enum(['new', 'second-hand']).optional(),
@@ -172,6 +174,22 @@ const searchBooks = async (raw: unknown, context: ToolContext, collected: Collec
     const found = await findCatalogue(catalogueQuery(args, args.author ?? args.query, MAX_BOOKS_SHOWN));
     books = found.items;
     total = found.total;
+  }
+
+  // A description of what a book is about, or a search that found nothing:
+  // look by meaning too, within the same filters.
+  if (args.description || (!books.length && args.query)) {
+    const filter = buildFilter({ ...catalogueQuery(args, undefined, MAX_BOOKS_SHOWN) });
+    const byMeaning = await searchByMeaning(args.description ?? args.query ?? '', filter, MAX_BOOKS_SHOWN);
+    // Described, not named: what matches the description, or - with nothing
+    // embedded yet - the filtered catalogue as before.
+    const named = Boolean(args.query || args.author);
+    if (byMeaning.length || named) {
+      const kept = named ? books : [];
+      const known = new Set(kept.map((book) => String(book._id)));
+      books = [...kept, ...byMeaning.filter((book) => !known.has(String(book._id)))].slice(0, MAX_BOOKS_SHOWN);
+      total = named ? Math.max(total, books.length) : books.length;
+    }
   }
 
   const search = args.author ?? args.query;
@@ -416,7 +434,11 @@ const TOOLS: Record<string, ToolDefinition> = {
       parameters: {
         type: 'object',
         properties: {
-          query: { type: 'string', description: 'Title words, ISBN or a topic, as the user wrote them.' },
+          query: { type: 'string', description: 'Title words or ISBN, as the user wrote them.' },
+          description: {
+            type: 'string',
+            description: 'What the book is about or its mood, when the user describes rather than names it, e.g. "a sad novel about the liberation war".',
+          },
           author: { type: 'string', description: 'The author, as the user wrote the name.' },
           category: { type: 'string', description: 'A category name, e.g. Novel, Academic, Children.' },
           type: { type: 'string', enum: ['new', 'second-hand'] },

@@ -288,7 +288,7 @@ export const moderationStats: RequestHandler = async (_req, res, next) => {
         { $group: { _id: '$targetType', count: { $sum: 1 } } },
       ]),
       ModerationFlag.countDocuments({ status: 'open', shadow: true }),
-      ModerationJob.countDocuments({ status: 'pending' }),
+      ModerationJob.countDocuments({ status: 'pending', kind: { $ne: 'embed' } }),
       ModerationFlag.aggregate<{ _id: string; open: number; actioned: number; cleared: number }>([
         { $unwind: '$reasons' },
         {

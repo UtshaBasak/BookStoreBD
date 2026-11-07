@@ -22,6 +22,7 @@
     "cleanup:data:dry": "tsx scripts/cleanUpData.ts --dry-run",
     "moderation:scan": "tsx scripts/moderationScan.ts",
     "moderation:scan:dry": "tsx scripts/moderationScan.ts --dry-run",
+    "assistant:embed": "tsx scripts/assistantEmbed.ts",
     "lint": "eslint .",
     "test": "vitest run",
     "test:watch": "vitest"

@@ -12,7 +12,8 @@ import { defineModel } from './defineModel.js';
  * before the check runs finds the job already pending. Finished jobs remove
  * themselves after a week.
  */
-export const JOB_KINDS = ['review', 'seller-review', 'listing', 'chat'] as const;
+/** `embed` is the assistant's: a listing's text turned into a vector for search by meaning. */
+export const JOB_KINDS = ['review', 'seller-review', 'listing', 'chat', 'embed'] as const;
 export type JobKind = (typeof JOB_KINDS)[number];
 
 const ModerationJobSchema = new Schema({

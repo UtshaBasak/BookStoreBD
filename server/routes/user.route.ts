@@ -273,6 +273,7 @@ router.post(
       await newBook.save();
       // Checked for problems in the background; never delays or blocks the write.
       void enqueueModeration('listing', newBook._id);
+      void enqueueModeration('embed', newBook._id);
       // Anyone waiting for it on the Wanted board hears straight away.
       const waiting = await fulfilWanted(newBook);
       res.status(201).json({ message: t(req, 'Book added successfully!', 'বইটি যোগ করা হয়েছে!'), book: newBook, waiting });

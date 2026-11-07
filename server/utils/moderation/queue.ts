@@ -8,13 +8,14 @@ import Review from '../../models/Review.model.js';
 import SellerReview from '../../models/SellerReview.model.js';
 import User from '../../models/user.model.js';
 import { createLogger } from '../../config/logger.js';
-import { moderationMode } from '../../config/env.js';
+import { assistantSettings, moderationMode } from '../../config/env.js';
 import { GeminiError, geminiEnabled } from '../gemini.js';
 import { isDuplicateKeyError } from '../error.js';
 import { saveFlag, type SaveOutcome } from './flags.js';
 import { modelReasons } from './model.js';
 import { chatReasons, listingReasons, reviewReasons, type Reason } from './rules.js';
 import { textHash } from './text.js';
+import { embedListing } from '../assistant/semantic.js';
 
 const log = createLogger('moderation');
 
@@ -32,7 +33,9 @@ const log = createLogger('moderation');
 
 /** Adds content to the queue. Never throws, never blocks the caller. */
 export const enqueueModeration = async (kind: JobKind, targetId: Types.ObjectId | string | null | undefined): Promise<void> => {
-  if (moderationMode() === 'off' || !targetId) return;
+  if (!targetId) return;
+  // Embedding is the assistant's and needs the model; everything else is moderation's.
+  if (kind === 'embed' ? !geminiEnabled() || !assistantSettings().enabled : moderationMode() === 'off') return;
   try {
     await ModerationJob.create({ kind, targetId, status: 'pending', runAfter: new Date() });
   } catch (error) {
@@ -155,6 +158,14 @@ export const scanContent = async (kind: JobKind, id: Types.ObjectId): Promise<Sc
       return scanListing(id);
     case 'chat':
       return scanChat(id);
+    case 'embed':
+      try {
+        await embedListing(id);
+        return { outcome: 'none' };
+      } catch (error) {
+        if (error instanceof GeminiError) return { outcome: 'none', retry: error.kind !== 'invalid' && error.kind !== 'disabled' };
+        throw error;
+      }
     default:
       return { outcome: 'none' };
   }
@@ -228,9 +239,9 @@ export const runModerationOnce = async (limit = 5): Promise<number> => {
 let timer: NodeJS.Timeout | null = null;
 let busy = false;
 
-/** Starts the worker. Off while MODERATION_MODE is off. */
+/** Starts the worker. Off while MODERATION_MODE is off and the Gemini key is unset: there is nothing to do. */
 export const startModerationWorker = (intervalMs = 20_000): void => {
-  if (timer || moderationMode() === 'off') return;
+  if (timer || (moderationMode() === 'off' && !geminiEnabled())) return;
   timer = setInterval(() => {
     if (busy) return;
     busy = true;
