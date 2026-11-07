@@ -57,8 +57,7 @@ export const ABUSIVE_TERMS: readonly AbusiveTerm[] = [
 
   // English sexual
   ...group('en', 'sexual', 'severe', [
-    'porn', 'porno', 'pornography', 'blowjob', 'handjob', 'dick', 'cock', 'pussy', 'boobs',
-    'nude', 'nudes', 'naked', 'sex chat', 'sex video', 'horny', 'slut', 'whore', 'hooker',
+    'porn', 'porno', 'pornography', 'blowjob', 'handjob', 'dick', 'cock', 'pussy', 'boobs', 'nudes', 'sex chat', 'sex video', 'horny', 'slut', 'whore', 'hooker',
     'prostitute', 'escort service', 'call girl', 'rape', 'rapist', 'masturbate',
   ]),
 
@@ -113,7 +112,7 @@ export const ABUSIVE_TERMS: readonly AbusiveTerm[] = [
     'khanki', 'khankir pola', 'khankir chele', 'khankirpola', 'magi', 'maagi', 'magir pola', 'beshya',
     'harami', 'haramjada', 'haramzada', 'haramjadi', 'haramir bachcha', 'shuorer bachcha', 'suorer bacha',
     'shuor', 'kuttar bachcha', 'kuttar bacha', 'kutta', 'kuttar baccha', 'gandu', 'gaandu', 'gand marani',
-    'ganmara', 'gar mara', 'bal', 'baler', 'baal', 'bhoda', 'voda', 'putki', 'pod', 'dhon', 'lawra',
+    'ganmara', 'gar mara', 'bhoda', 'voda', 'putki', 'lawra',
     'lauda', 'loda', 'tor mayer', 'tor mar', 'tor baper', 'hijra', 'hijda',
   ]),
 
@@ -121,7 +120,7 @@ export const ABUSIVE_TERMS: readonly AbusiveTerm[] = [
   ...group('banglish', 'personal-attack', 'mild', [
     'batpar', 'batpaar', 'bathpar', 'botpar', 'chor', 'chour', 'chur', 'thog', 'protarok', 'dhandabaz',
     'dhandaabaj', 'jocchor', 'jochchor', 'mithuk', 'mithyuk', 'beadob', 'beyadob', 'behaya', 'gadha',
-    'boka', 'bokachoda seller', 'bolod', 'baldh', 'ullu', 'ulluk', 'chagol', 'nirbodh', 'kulangar',
+    'boka', 'bokachoda seller', 'bolod', 'baldh', 'ullu', 'ulluk', 'nirbodh', 'kulangar',
     'bodmash', 'bodmaish', 'shoytan', 'shaitan', 'paji', 'faltu seller', 'bhondo', 'lucha', 'luccha',
     'lompot', 'bejonma', 'jarj', 'ferebbaz',
   ]),
@@ -161,7 +160,7 @@ export const BANNED_ITEMS: readonly BannedItemRule[] = [
     id: 'pirated-copies',
     label: { en: 'Pirated, photocopied or PDF copies', bn: 'পাইরেটেড, ফটোকপি বা পিডিএফ কপি' },
     phrases: [
-      'photocopy', 'photocopied', 'photo copy', 'xerox copy', 'xerox', 'pirated', 'pirated copy',
+      'photocopy', 'photocopied', 'photo copy', 'xerox copy', 'pirated', 'pirated copy',
       'nilkhet print', 'nilkhet copy', 'neelkhet print', 'scan copy', 'scanned copy', 'pdf copy',
       'pdf file', 'pdf book', 'soft copy', 'softcopy', 'e-book download link', 'ebook download link',
       'free pdf download', 'download link', 'duplicate print', 'fotocopy', 'fotokopi',
@@ -210,10 +209,9 @@ export const BANNED_ITEMS: readonly BannedItemRule[] = [
     label: { en: 'Illegal drugs', bn: 'অবৈধ মাদক' },
     phrases: [
       'yaba', 'yaa baa', 'ya ba', 'ganja', 'ganjha', 'weed for sale', 'marijuana', 'cannabis',
-      'phensedyl', 'fensidil', 'phensidyl', 'heroin', 'cocaine', 'cocain', 'meth', 'crystal meth',
-      'lsd', 'opium', 'afim', 'charas', 'hashish', 'hash for sale', 'madok', 'mada dravya',
+      'phensedyl', 'fensidil', 'phensidyl', 'crystal meth', 'hash for sale', 'madok', 'mada dravya',
       'ইয়াবা', 'ইয়া বা', 'গাঁজা', 'গাজা', 'ফেনসিডিল', 'ফেন্সিডিল', 'হেরোইন', 'কোকেন', 'আফিম',
-      'চরস', 'মাদক', 'মাদক বিক্রি', 'মাদকদ্রব্য', 'ক্রিস্টাল মেথ',
+      'চরস', 'মাদক বিক্রি', 'মাদকদ্রব্য', 'ক্রিস্টাল মেথ',
     ],
     severity: 'severe',
   },
@@ -238,7 +236,7 @@ export const BANNED_ITEMS: readonly BannedItemRule[] = [
       'wine for sale', 'liquor', 'cigarette for sale', 'cigarettes for sale', 'tobacco for sale',
       'cigar for sale', 'vape for sale', 'e-cigarette', 'hookah for sale', 'shisha for sale',
       'gul for sale', 'jorda for sale', 'mod bikri', 'madh bikri', 'cigarette bikri', 'biri bikri',
-      'মদ বিক্রি', 'মদ', 'বিয়ার বিক্রি', 'হুইস্কি', 'ভদকা', 'সিগারেট বিক্রি', 'বিড়ি বিক্রি',
+      'মদ বিক্রি', 'বিয়ার বিক্রি', 'হুইস্কি', 'ভদকা', 'সিগারেট বিক্রি', 'বিড়ি বিক্রি',
       'তামাক বিক্রি', 'জর্দা বিক্রি', 'ভেপ বিক্রি', 'হুক্কা বিক্রি',
     ],
     severity: 'severe',
@@ -259,9 +257,9 @@ export const BANNED_ITEMS: readonly BannedItemRule[] = [
     id: 'gambling-betting',
     label: { en: 'Gambling or betting', bn: 'জুয়া বা বেটিং' },
     phrases: [
-      'bet365', 'bet 365', '1xbet', '1x bet', 'melbet', 'betway', 'parimatch', 'casino', 'online casino',
+      'bet365', 'bet 365', '1xbet', '1x bet', 'melbet', 'betway', 'parimatch', 'online casino',
       'betting', 'betting tips', 'betting id', 'online betting', 'sports betting', 'gambling', 'jackpot',
-      'lottery ticket', 'teen patti', 'poker', 'slot machine', 'satta', 'juya', 'juwa', 'juya khela',
+      'lottery ticket', 'teen patti', 'slot machine', 'satta', 'juya', 'juwa', 'juya khela',
       'betting site', 'betting app',
       'জুয়া', 'জুয়া খেলা', 'অনলাইন জুয়া', 'বেটিং', 'বেটিং আইডি', 'ক্যাসিনো', 'অনলাইন ক্যাসিনো',
       'লটারি টিকিট', 'তিন পাত্তি', 'সাট্টা', 'বেটিং সাইট', 'বেটিং অ্যাপ',
@@ -383,3 +381,39 @@ export const PROMOTION_PHRASES: readonly string[] = [
   'লিংকে ক্লিক করুন', 'সবচেয়ে কম দাম', 'এখনই অর্ডার করুন', 'সীমিত অফার', 'বিশাল ডিসকাউন্ট',
   'আমার গ্রুপে জয়েন করুন', 'আমার কাছ থেকে কিনুন',
 ];
+
+/**
+ * The numbers the rules work to. Raise one to make its rule quieter, or list
+ * the rule's code in MODERATION_DISABLED_RULES to switch it off.
+ */
+export const MODERATION_THRESHOLDS = {
+  /** Mild words in one text before they are worth a look on their own. */
+  mildWordsToFlag: 3,
+  /** Reviews on one book or seller within the window that make a burst. */
+  reviewBurstCount: 5,
+  reviewBurstWindowMinutes: 60,
+  /** An account younger than this, with an extreme one-line rating, is worth a look. */
+  newAccountDays: 2,
+  shortReviewChars: 15,
+  /** Near-duplicate text: share of three-word runs in common (0-1). */
+  nearDuplicateSimilarity: 0.8,
+  /** Texts shorter than this are too ordinary to count as copies ("Good book"). */
+  duplicateMinChars: 30,
+  /** Similar listings needed before a price can be called unusual. */
+  priceComparables: 3,
+  /** A price below this share of the median, or above this many times it. */
+  priceLowShare: 0.2,
+  priceHighMultiple: 5,
+  /** A price at or below this many taka is a placeholder. */
+  placeholderPrice: 5,
+  /** Perceptual hashes this close (bits) are the same photograph. */
+  photoHashDistance: 6,
+  /** Chat: messages from one sender in ten minutes. */
+  chatBurstCount: 20,
+  /** Chat: the same text sent to this many different people in a day. */
+  chatBroadcastRecipients: 5,
+  /** Chat: different people one sender writes to in a day. */
+  chatManyRecipients: 25,
+  /** The model's label counts only at or above this confidence. */
+  modelConfidence: 0.7,
+} as const;

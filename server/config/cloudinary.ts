@@ -126,3 +126,33 @@ export const uploadImage = async (
 };
 
 export default cloudinary;
+
+/**
+ * The public id of an image this account hosts, read from its delivery URL
+ * (…/image/upload/v123/bookstorebd/books/abc.jpg → bookstorebd/books/abc).
+ * Read from the URL the server has already checked, never from a list the
+ * browser sent alongside it.
+ */
+export const publicIdFromUrl = (url: string): string | null => {
+  if (!isOwnedCloudinaryUrl(url)) return null;
+  const match = /\/image\/upload\/(?:[^/]+\/)*?(?:v\d+\/)?(bookstorebd\/[^.?#]+)/.exec(url);
+  return match?.[1] ?? null;
+};
+
+/**
+ * The perceptual hash Cloudinary keeps for an image, for finding the same
+ * photograph on two listings. One Admin API call (500 an hour on the free
+ * plan), made by the moderation worker in the background. Null when it cannot
+ * be had; never throws.
+ */
+export const fetchPerceptualHash = async (publicId: string): Promise<string | null> => {
+  if (!isCloudinaryConfigured()) return null;
+  try {
+    ensureConfigured();
+    const resource = (await cloudinary.api.resource(publicId, { phash: true })) as { phash?: string };
+    return typeof resource.phash === 'string' && resource.phash ? resource.phash : null;
+  } catch (error) {
+    log.warn({ err: error }, 'Could not read an image hash');
+    return null;
+  }
+};

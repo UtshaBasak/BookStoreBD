@@ -169,6 +169,15 @@ export const assistantSettings = () => ({
  * admins, for a trial) or `on`. Off unless set, so nothing changes until the
  * owner turns it on; render.yaml starts it in shadow.
  */
+/** Rule codes switched off, from MODERATION_DISABLED_RULES (comma-separated). */
+export const disabledModerationRules = (): Set<string> =>
+  new Set(
+    (process.env.MODERATION_DISABLED_RULES ?? '')
+      .split(',')
+      .map((code) => code.trim())
+      .filter(Boolean)
+  );
+
 export const moderationMode = (): ModerationMode => {
   const mode = (process.env.MODERATION_MODE ?? 'off').trim().toLowerCase();
   return mode === 'on' || mode === 'shadow' ? mode : 'off';

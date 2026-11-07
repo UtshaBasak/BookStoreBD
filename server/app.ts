@@ -45,6 +45,7 @@ import wishlistRouter from './routes/wishlist.route.js';
 import notificationRouter from './routes/notification.route.js';
 import adminRouter from './routes/admin.route.js';
 import assistantRouter from './routes/assistant.route.js';
+import moderationRouter from './routes/moderation.route.js';
 
 const log = createLogger('app');
 
@@ -150,6 +151,7 @@ export const createApp = ({
   api.use('/chat', writeLimiter, chatRouter);
   api.use('/client-error', clientErrorRouter);
   api.use('/filter', filterRouter);
+  api.use('/moderation', writeLimiter, moderationRouter);
   api.use('/notification', notificationRouter);
   api.use('/order', orderRouter);
   api.use('/purchase', purchaseRouter);

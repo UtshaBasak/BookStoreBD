@@ -1599,3 +1599,95 @@ export interface AssistantFeedbackRequest {
   helpful: boolean;
   reason?: 'wrong' | 'unhelpful' | 'off-topic' | 'slow' | 'other';
 }
+
+// ====================================================== automatic moderation
+
+export type ModerationTarget = 'review' | 'seller-review' | 'listing' | 'chat';
+export type ModerationStatus = 'open' | 'cleared' | 'actioned';
+
+/** Why a flag was raised: a rule or a model label, how strongly, and why in words. */
+export interface ModerationReason {
+  code: string;
+  source: 'rule' | 'model';
+  score: number;
+  detail: string;
+}
+
+/** One flag in the admin list. A flag never hides anything: the content is unchanged until an administrator acts. */
+export interface ModerationFlagItem {
+  _id: Id;
+  targetType: ModerationTarget;
+  targetId: Id;
+  authorEmail: string;
+  label: string;
+  /** The start of public text; empty for chat. */
+  excerpt: string;
+  messageCount: number;
+  reasons: ModerationReason[];
+  score: number;
+  severity: 'low' | 'medium' | 'high';
+  status: ModerationStatus;
+  /** Raised during the shadow-mode trial. */
+  shadow: boolean;
+  decision: 'cleared' | 'removed' | 'messaged' | null;
+  decidedBy: string;
+  decidedAt: IsoDate | null;
+  note: string;
+  createdAt: IsoDate;
+  updatedAt: IsoDate;
+  /** Where the content can be seen on the site, when it has a page. */
+  link: string | null;
+  /** Whether the content still exists. */
+  exists: boolean;
+}
+
+/** GET /moderation/flags */
+export interface ModerationFlagList {
+  items: ModerationFlagItem[];
+  total: number;
+  page: number;
+  pageSize: number;
+  pageCount: number;
+  /** MODERATION_MODE on the server. */
+  mode: 'off' | 'shadow' | 'on';
+}
+
+/** A chat message shown to an administrator because a spam rule pointed at it. */
+export interface ModerationChatMessage {
+  _id: Id;
+  receiver: string;
+  message: string;
+  hasImage: boolean;
+  timestamp: IsoDate;
+}
+
+/** GET /moderation/flags/:id - the flag with its content in context. */
+export interface ModerationFlagDetail extends ModerationFlagItem {
+  /** For a review or a listing: the whole public text. */
+  content: { title: string; body: string; rating: number | null; price: number | null } | null;
+  /** For chat: the messages the rules pointed at. */
+  messages: ModerationChatMessage[];
+  /** For a review: the book's id, which the existing delete endpoint takes. */
+  bookId: Id | null;
+}
+
+/** POST /moderation/flags/:id/decision */
+export interface ModerationDecisionRequest {
+  /** `removed` once the content has been deleted through its usual delete; the author is told why. */
+  decision: 'cleared' | 'removed' | 'messaged';
+  /** Shown to the author when content was removed. */
+  reason?: string;
+  /** For administrators only. */
+  note?: string;
+}
+
+/** GET /moderation/stats */
+export interface ModerationStats {
+  mode: 'off' | 'shadow' | 'on';
+  open: Record<ModerationTarget, number>;
+  /** Open flags raised during the shadow trial, not shown in the queue. */
+  shadowOpen: number;
+  pendingJobs: number;
+  /** Per rule: how many flags admins decided, and the share they acted on. */
+  rules: { code: string; decided: number; actioned: number; cleared: number; precision: number | null; open: number }[];
+}

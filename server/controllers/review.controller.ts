@@ -17,6 +17,7 @@ import { validatedQuery } from '../middleware/validate.js';
 import type { AdminReviewQuery, FlaggedReviewQuery } from '../schemas/index.js';
 import { securityEvent } from '../utils/securityLog.js';
 import { bnDigits, t, type Bilingual } from '../utils/language.js';
+import { enqueueModeration } from '../utils/moderation/queue.js';
 
 const log = createLogger('review');
 
@@ -191,6 +192,8 @@ export const upsertReview: RequestHandler<{ id: string }> = async (req, res, nex
     );
 
     await recomputeBookRating(bookId);
+    // Checked for problems in the background; never delays or blocks the write.
+    void enqueueModeration('review', review?._id);
 
     // A new review, not an edit of one, is news to the seller.
     const isNew = review && Math.abs(new Date(review.createdAt).getTime() - new Date(review.updatedAt).getTime()) < 1000;

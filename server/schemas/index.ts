@@ -662,6 +662,37 @@ export const assistantSchemas = {
   },
 };
 
+// ------------------------------------------------------------ moderation
+/** The administrators' queue of what automatic moderation raised. */
+export const moderationSchemas = {
+  list: {
+    query: pagedList(100).query.extend({
+      status: z.enum(['open', 'cleared', 'actioned', 'all']).default('open'),
+      type: z.enum(['review', 'seller-review', 'listing', 'chat']).optional(),
+      source: z.enum(['rule', 'model']).optional(),
+      severity: z.enum(['low', 'medium', 'high']).optional(),
+      /** The shadow-mode trial's flags instead of the live queue. */
+      shadow: z.enum(['1']).optional(),
+      sort: z.enum(['newest', 'oldest', 'score']).default('newest'),
+    }),
+  },
+  byId: { params: objectIdParam },
+  decision: {
+    params: objectIdParam,
+    body: z.object({
+      decision: z.enum(['cleared', 'removed', 'messaged']),
+      reason: z.string().trim().max(500).optional(),
+      note: z.string().trim().max(1000).optional(),
+    }),
+  },
+  bulkClear: {
+    body: z.object({
+      ids: z.array(objectId).min(1).max(100),
+      note: z.string().trim().max(1000).optional(),
+    }),
+  },
+};
+
 /** The bell: a page of a person's notifications, and marking them read. */
 // ---------------------------------------------------------------- admin messages
 const audience = z.enum(['users', 'buyers', 'sellers', 'all']);
@@ -818,3 +849,6 @@ export type AudienceQuery = z.infer<typeof adminSchemas.audience.query>;
 export type AnalyticsQuery = z.infer<typeof adminSchemas.analytics.query>;
 export type AssistantChatBody = z.infer<typeof assistantSchemas.chat.body>;
 export type AssistantFeedbackBody = z.infer<typeof assistantSchemas.feedback.body>;
+export type ModerationListQuery = z.infer<typeof moderationSchemas.list.query>;
+export type ModerationDecisionBody = z.infer<typeof moderationSchemas.decision.body>;
+export type ModerationBulkClearBody = z.infer<typeof moderationSchemas.bulkClear.body>;
