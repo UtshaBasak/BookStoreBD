@@ -2,14 +2,15 @@ import { createHmac } from 'crypto';
 
 import type { RequestHandler } from 'express';
 
-import type { AssistantConfig } from '@shared/api.js';
+import type { AssistantConfig, AssistantStats } from '@shared/api.js';
 
 import AssistantFeedback from '../models/AssistantFeedback.model.js';
+import AssistantStat from '../models/AssistantStat.model.js';
 import { assistantSettings, jwtSecret } from '../config/env.js';
 import { createLogger } from '../config/logger.js';
 import type { AssistantChatBody, AssistantFeedbackBody } from '../schemas/index.js';
 import { answerQuestion, countFeedback } from '../utils/assistant/engine.js';
-import { geminiEnabled } from '../utils/gemini.js';
+import { geminiEnabled, geminiUsageToday } from '../utils/gemini.js';
 import { isDuplicateKeyError } from '../utils/error.js';
 import { languageOf, t } from '../utils/language.js';
 import { securityEvent } from '../utils/securityLog.js';
@@ -88,5 +89,37 @@ export const feedback: RequestHandler = async (req, res) => {
     }
     log.error({ err: error }, 'Assistant feedback failed');
     res.status(500).json({ message: t(req, 'Could not save that.', 'এটি সংরক্ষণ করা যায়নি।') });
+  }
+};
+
+/** GET /assistant/stats - the last 30 days in counts, for administrators. */
+export const assistantStats: RequestHandler = async (_req, res, next) => {
+  try {
+    const since = dhakaDay(Date.now() - 29 * 24 * 60 * 60 * 1000);
+    const rows = await AssistantStat.find({ day: { $gte: since } }).sort({ day: 1 }).lean();
+    const days = rows.map((row) => ({
+      day: row.day,
+      questions: row.questions ?? 0,
+      fallbacks: row.fallbacks ?? 0,
+      handovers: row.handovers ?? 0,
+      outOfScope: row.outOfScope ?? 0,
+      helpful: row.helpful ?? 0,
+      unhelpful: row.unhelpful ?? 0,
+    }));
+    const totals = days.reduce(
+      (sum, day) => ({
+        questions: sum.questions + day.questions,
+        fallbacks: sum.fallbacks + day.fallbacks,
+        handovers: sum.handovers + day.handovers,
+        outOfScope: sum.outOfScope + day.outOfScope,
+        helpful: sum.helpful + day.helpful,
+        unhelpful: sum.unhelpful + day.unhelpful,
+      }),
+      { questions: 0, fallbacks: 0, handovers: 0, outOfScope: 0, helpful: 0, unhelpful: 0 }
+    );
+    const body: AssistantStats = { enabled: assistantOn(), days, totals, geminiToday: await geminiUsageToday() };
+    res.json(body);
+  } catch (error) {
+    next(error);
   }
 };

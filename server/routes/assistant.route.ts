@@ -1,7 +1,7 @@
 import express from 'express';
 
-import { assistantConfig, chat, feedback } from '../controllers/assistant.controller.js';
-import { optionalAuth } from '../middleware/auth.js';
+import { assistantConfig, assistantStats, chat, feedback } from '../controllers/assistant.controller.js';
+import { optionalAuth, requireAdmin, requireAuth } from '../middleware/auth.js';
 import { assistantLimiter } from '../middleware/rateLimit.js';
 import { validate } from '../middleware/validate.js';
 import { assistantSchemas } from '../schemas/index.js';
@@ -14,6 +14,7 @@ import { assistantSchemas } from '../schemas/index.js';
 const router = express.Router();
 
 router.get('/config', assistantConfig);
+router.get('/stats', requireAuth, requireAdmin, assistantStats);
 router.post('/chat', assistantLimiter, optionalAuth, validate(assistantSchemas.chat), chat);
 router.post('/feedback', assistantLimiter, optionalAuth, validate(assistantSchemas.feedback), feedback);
 

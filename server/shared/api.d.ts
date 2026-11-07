@@ -1691,3 +1691,12 @@ export interface ModerationStats {
   /** Per rule: how many flags admins decided, and the share they acted on. */
   rules: { code: string; decided: number; actioned: number; cleared: number; precision: number | null; open: number }[];
 }
+
+/** GET /assistant/stats - the assistant's usage, for administrators. Counts only. */
+export interface AssistantStats {
+  enabled: boolean;
+  days: { day: string; questions: number; fallbacks: number; handovers: number; outOfScope: number; helpful: number; unhelpful: number }[];
+  totals: { questions: number; fallbacks: number; handovers: number; outOfScope: number; helpful: number; unhelpful: number };
+  /** Gemini calls made today, by feature, against the daily budget. */
+  geminiToday: { assistant: number; moderation: number; limit: number };
+}

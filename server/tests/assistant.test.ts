@@ -239,6 +239,17 @@ describe('the shopping assistant', () => {
     expect((await ask('second question about books')).status).toBe(429);
   });
 
+  it('counts questions for administrators, and only for them', async () => {
+    script(say('Hello.'));
+    await ask('hello, any books?');
+    const admin = await createUserWithToken({ email: 'admin@test.com', username: 'admin', role: 'admin' });
+    const user = await createUserWithToken({ email: 'u@test.com', username: 'someone' });
+    expect((await request.get('/assistant/stats').set('Authorization', user.auth)).status).toBe(403);
+    const stats = await request.get('/assistant/stats').set('Authorization', admin.auth);
+    expect(stats.body.totals.questions).toBe(1);
+    expect(stats.body.geminiToday.assistant).toBe(1);
+  });
+
   it('refuses an over-long question', async () => {
     const res = await ask('x'.repeat(501));
     expect(res.status).toBe(400);
