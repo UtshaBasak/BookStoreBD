@@ -76,8 +76,8 @@ const MODE_TEXT = (mode: 'off' | 'shadow' | 'on'): string =>
   ({
     off: t('Automatic checks are off. Nothing new is being flagged.', 'স্বয়ংক্রিয় যাচাই বন্ধ। নতুন কিছু ফ্ল্যাগ হচ্ছে না।'),
     shadow: t(
-      'Trial mode: checks run and record flags, but the live queue stays empty until the mode is switched on.',
-      'পরীক্ষামূলক অবস্থা: যাচাই চলছে ও ফ্ল্যাগ জমছে, তবে চালু না করা পর্যন্ত মূল তালিকা ফাঁকা থাকে।'
+      'Trial mode: checks run and record flags, but the live queue stays empty until the mode is switched on; then the open ones join it.',
+      'পরীক্ষামূলক অবস্থা: যাচাই চলছে ও ফ্ল্যাগ জমছে, তবে চালু না করা পর্যন্ত মূল তালিকা ফাঁকা থাকে; চালু হলে খোলা ফ্ল্যাগগুলো তাতে যোগ হয়।'
     ),
     on: t(
       'Checks are on. A flag only asks you to take a look; nothing is hidden or removed until you decide.',

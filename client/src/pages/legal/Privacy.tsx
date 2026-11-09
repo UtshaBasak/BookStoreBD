@@ -372,13 +372,13 @@ export default function Privacy() {
             <><strong>Google Gemini</strong> powers the shopping assistant and
               part of our automated review checks. It receives the questions you
               ask the assistant, with phone numbers, e-mail addresses and links
-              taken out, and the public text of reviews, ratings and listings. It
+              taken out, your public username if you are signed in, and the public text of reviews, ratings and listings. It
               never receives your orders' details, your address, your payment
               numbers or any chat message. Google may use what it receives to
               improve its services, so please do not type personal details into
               the assistant.</>,
             <><strong>Google Gemini</strong> শপিং সহকারী ও আমাদের স্বয়ংক্রিয় রিভিউ যাচাইয়ের একটি অংশ
-              চালায়। এটি পায় সহকারীকে করা আপনার প্রশ্ন, ফোন নম্বর, ই-মেইল ঠিকানা ও লিংক সরিয়ে, আর রিভিউ,
+              চালায়। এটি পায় সহকারীকে করা আপনার প্রশ্ন, ফোন নম্বর, ই-মেইল ঠিকানা ও লিংক সরিয়ে, সাইন ইন করা থাকলে আপনার প্রকাশ্য ইউজারনেম, আর রিভিউ,
               রেটিং ও লিস্টিংয়ের প্রকাশ্য লেখা। আপনার অর্ডারের বিবরণ, ঠিকানা, পেমেন্টের নম্বর বা কোনো চ্যাট
               মেসেজ এটি কখনো পায় না। Google পাওয়া তথ্য তাদের সেবা উন্নত করতে ব্যবহার করতে পারে, তাই সহকারীকে
               ব্যক্তিগত তথ্য লিখবেন না।</>

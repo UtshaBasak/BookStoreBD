@@ -268,6 +268,11 @@ describe('the admin queue', () => {
     expect((await request.get('/moderation/flags').set('Authorization', admin.auth)).body.items).toHaveLength(0);
     expect((await request.get('/moderation/flags?shadow=1').set('Authorization', admin.auth)).body.items).toHaveLength(1);
     expect((await request.get('/moderation/stats').set('Authorization', admin.auth)).body.shadowOpen).toBe(1);
+
+    // Switching moderation on brings the trial's open flags into the queue.
+    process.env.MODERATION_MODE = 'on';
+    expect((await request.get('/moderation/flags').set('Authorization', admin.auth)).body.items).toHaveLength(1);
+    expect((await request.get('/moderation/stats').set('Authorization', admin.auth)).body.open.review).toBe(1);
   });
 
   it('clears a flag, and counts it against the rule’s precision', async () => {

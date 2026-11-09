@@ -103,7 +103,9 @@ export const listFlags: RequestHandler = async (req, res, next) => {
   try {
     const query = validatedQuery<ModerationListQuery>(req);
     const filter: Record<string, unknown> = {
-      shadow: query.shadow === '1',
+      // Trial flags stay out of the queue while the trial runs; once moderation
+      // is on, everything still open is in the queue, trial flags included.
+      ...(query.shadow === '1' ? { shadow: true } : moderationMode() === 'on' ? {} : { shadow: false }),
       ...(query.status !== 'all' ? { status: query.status } : {}),
       ...(query.type ? { targetType: query.type } : {}),
       ...(query.source ? { 'reasons.source': query.source } : {}),
@@ -284,10 +286,10 @@ export const moderationStats: RequestHandler = async (_req, res, next) => {
   try {
     const [open, shadowOpen, pendingJobs, perRule] = await Promise.all([
       ModerationFlag.aggregate<{ _id: ModerationTarget; count: number }>([
-        { $match: { status: 'open', shadow: false } },
+        { $match: { status: 'open', ...(moderationMode() === 'on' ? {} : { shadow: false }) } },
         { $group: { _id: '$targetType', count: { $sum: 1 } } },
       ]),
-      ModerationFlag.countDocuments({ status: 'open', shadow: true }),
+      moderationMode() === 'on' ? Promise.resolve(0) : ModerationFlag.countDocuments({ status: 'open', shadow: true }),
       ModerationJob.countDocuments({ status: 'pending', kind: { $ne: 'embed' } }),
       ModerationFlag.aggregate<{ _id: string; open: number; actioned: number; cleared: number }>([
         { $unwind: '$reasons' },
