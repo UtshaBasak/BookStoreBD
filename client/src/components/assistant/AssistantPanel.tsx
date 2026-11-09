@@ -398,7 +398,12 @@ export default function AssistantPanel({ onClose }: AssistantPanelProps) {
           <h2 id={titleId} className="as-title">
             {t('BookStoreBD assistant', 'BookStoreBD সহকারী')}
           </h2>
-          <p className="as-note">{t('AI assistant – may make mistakes', 'এআই সহকারী – ভুল হতে পারে')}</p>
+          <p className="as-note">
+            {t('AI assistant – may make mistakes.', 'এআই সহকারী – ভুল হতে পারে।')}{' '}
+            <Link to="/privacy#assistant" onClick={onClose}>
+              {t('What is shared', 'কী শেয়ার হয়')}
+            </Link>
+          </p>
         </div>
         <button type="button" className="as-head-btn" onClick={newChat} aria-label={t('New chat', 'নতুন চ্যাট')} title={t('New chat', 'নতুন চ্যাট')}>
           <FaPlus aria-hidden="true" />

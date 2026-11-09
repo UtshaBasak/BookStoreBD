@@ -66,7 +66,8 @@ describe('the assistant panel', () => {
   it('renders in English, with the AI note, and focuses the box', () => {
     renderPanel();
     expect(screen.getByRole('dialog', { name: 'BookStoreBD assistant' })).toBeInTheDocument();
-    expect(screen.getByText('AI assistant – may make mistakes')).toBeInTheDocument();
+    expect(screen.getByText(/AI assistant – may make mistakes/)).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'What is shared' })).toHaveAttribute('href', '/privacy#assistant');
     expect(screen.getByRole('textbox', { name: 'Your question' })).toHaveFocus();
     expect(screen.getByRole('button', { name: 'How do returns work?' })).toBeInTheDocument();
   });
@@ -75,7 +76,7 @@ describe('the assistant panel', () => {
     localStorage.setItem('language', 'bn');
     renderPanel();
     expect(screen.getByRole('dialog', { name: 'BookStoreBD সহকারী' })).toBeInTheDocument();
-    expect(screen.getByText('এআই সহকারী – ভুল হতে পারে')).toBeInTheDocument();
+    expect(screen.getByText(/এআই সহকারী – ভুল হতে পারে/)).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'রিটার্ন কীভাবে কাজ করে?' })).toBeInTheDocument();
   });
 
