@@ -88,6 +88,31 @@ describe('the shopping assistant', () => {
     expect(JSON.stringify(second)).toContain('data_from_bookstorebd');
   });
 
+  describe('a title written in the other script, with or without its writer', () => {
+    // However the model splits "Sunil er Sei Somoy", the Bangla listing is found.
+    for (const args of [
+      { author: 'Sunil Gangopadhyay', query: 'Sei Somoy' },
+      { author: 'Sunil', query: 'Sei Somoy' },
+      { query: 'Sei Somoy' },
+    ]) {
+      it(`finds সেই সময় from ${JSON.stringify(args)}`, async () => {
+        await createBook({ title: 'সেই সময়', author: 'সুনীল গঙ্গোপাধ্যায়', price: 900, stock: 3 });
+        await createBook({ title: 'Pratham Alo', author: 'Sunil Gangopadhyay', price: 800, stock: 2 });
+        script(call('search_books', args), say('Here it is.'));
+        const res = await ask('Sunil er Sei Somoy boi ta ki stock e ache?');
+        expect(res.body.books.map((book: { title: string }) => book.title)).toEqual(['সেই সময়']);
+      });
+    }
+
+    it('still lists all of a writer’s books when no title of theirs matches', async () => {
+      await createBook({ title: 'সেই সময়', author: 'সুনীল গঙ্গোপাধ্যায়', price: 900, stock: 3 });
+      await createBook({ title: 'Pratham Alo', author: 'Sunil Gangopadhyay', price: 800, stock: 2 });
+      script(call('search_books', { author: 'Sunil Gangopadhyay', query: 'Nonexistent Title' }), say('Here are his books.'));
+      const res = await ask('Sunil Gangopadhyay er Nonexistent Title ache?');
+      expect(res.body.books.map((book: { title: string }) => book.title).sort()).toEqual(['Pratham Alo', 'সেই সময়'].sort());
+    });
+  });
+
   it('never shows a book or an address the model made up', async () => {
     script(say('Try <b>Fake Book</b> <scr<script>ipt>x at https://evil.example/buy or [here](http://evil.example).'));
     const res = await ask('any good novels?');
