@@ -33,7 +33,7 @@ beforeEach(() => {
     vi.fn(async (input: RequestInfo | URL) =>
       String(input).endsWith('/cart')
         ? json([book('a', 'Deyal', 5, 2), book('b', 'Sapiens', 4, 1), book('c', 'Aranyak', 0, 1)])
-        : json({})
+        : json([])
     )
   );
 });
