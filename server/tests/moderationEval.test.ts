@@ -124,7 +124,8 @@ describe('the model layer, offline against recorded labels', () => {
 
   it('records its false positives and mislabels as examples', () => {
     expect(model.falsePositives.map((example) => example.id)).toEqual(['ls-31']);
-    expect(model.mislabelled.map((example) => example.id)).toEqual(['rv-07']);
+    // ls-20 insults its readers, a personal attack; the model called it abuse when this was recorded.
+    expect(model.mislabelled.map((example) => example.id)).toEqual(['ls-20']);
   });
 });
 
