@@ -59,7 +59,7 @@ export interface RuleLayerResult {
 
 const ratio = (num: number, den: number): number | null => (den ? num / den : null);
 const fmt = (value: number | null): string => (value === null ? 'n/a' : `${(value * 100).toFixed(0)}%`);
-const excerpt = (text: string, length = 90): string => (text.length > length ? `${text.slice(0, length - 1)}…` : text).replace(/\s+/g, ' ').replace(/\|/g, '\\|');
+const excerpt = (text: string, length = 90): string => (text.length > length ? `${text.slice(0, length - 1)}…` : text).replace(/\s+/g, ' ').replace(/\\/g, '\\\\').replace(/\|/g, '\\|');
 
 const describe = (item: ModerationCase): string => {
   if (item.kind === 'review') return item.text;

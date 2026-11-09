@@ -179,6 +179,12 @@ describe('contact details', () => {
     expect(stripContactDetails('call zero one eight one two three four five six seven eight now')).toBe('call [number] now');
   });
 
+  it('stays fast on a long run of odd characters', () => {
+    const started = Date.now();
+    findContactDetails(`${'%'.repeat(5000)}@${'a.'.repeat(2000)}`);
+    expect(Date.now() - started).toBeLessThan(500);
+  });
+
   it('replaces them with placeholders for the model', () => {
     expect(stripContactDetails('bkash 01712345678 or a@b.com')).toBe('bkash [number] or [email]');
   });

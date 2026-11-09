@@ -141,6 +141,8 @@ export const resetAssistantStateForTesting = (): void => {
 export const cleanReply = (text: string): string =>
   text
     .replace(/<[^>]*>/g, '')
+    // Whatever is left of a broken or nested tag: no angle bracket survives.
+    .replace(/[<>]/g, '')
     // [label](address) keeps the label; the address is dropped.
     .replace(/\[([^\]]{1,200})\]\([^)]*\)/g, '$1')
     .replace(/\b(?:https?:\/\/|www\.)\S+/gi, '')

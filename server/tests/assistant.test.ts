@@ -89,7 +89,7 @@ describe('the shopping assistant', () => {
   });
 
   it('never shows a book or an address the model made up', async () => {
-    script(say('Try <b>Fake Book</b> at https://evil.example/buy or [here](http://evil.example).'));
+    script(say('Try <b>Fake Book</b> <scr<script>ipt>x at https://evil.example/buy or [here](http://evil.example).'));
     const res = await ask('any good novels?');
     expect(res.body.books).toEqual([]);
     expect(res.body.reply).not.toMatch(/<|https?:|evil\.example/);

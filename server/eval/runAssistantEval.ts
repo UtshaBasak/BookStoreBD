@@ -344,7 +344,8 @@ export const computeMetrics = (results: CaseResult[]): AssistantMetrics => {
 // ---------------------------------------------------------------- markdown
 
 const pct = (value: Ratio): string => `${(value.rate * 100).toFixed(1)}%`;
-const cell = (text: string): string => text.replace(/\|/g, '\\|').replace(/\s+/g, ' ');
+// Backslashes first, so a bar escaped here cannot be undone by one already in the text.
+const cell = (text: string): string => text.replace(/\\/g, '\\\\').replace(/\|/g, '\\|').replace(/\s+/g, ' ');
 
 export const assistantMarkdown = (mode: 'offline' | 'live', results: CaseResult[], metrics: AssistantMetrics): string => {
   const rows: [string, Ratio, string][] = [

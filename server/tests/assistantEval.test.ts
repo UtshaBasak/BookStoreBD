@@ -28,7 +28,8 @@ beforeAll(async () => {
   const realFetch = globalThis.fetch;
   globalThis.fetch = (async (...args: Parameters<typeof fetch>) => {
     const url = String(args[0]);
-    if (url.includes('googleapis.com')) networkCalls += 1;
+    const host = URL.canParse(url) ? new URL(url).hostname : '';
+    if (host === 'googleapis.com' || host.endsWith('.googleapis.com')) networkCalls += 1;
     return realFetch(...args);
   }) as typeof fetch;
   setGeminiTransportForTesting(null);

@@ -71,7 +71,9 @@ export const spelledDigits = (text: string): string => {
   return out + text.slice(last);
 };
 
-const EMAIL = /[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}/gi;
+// Bounded parts, and a domain of labels that cannot overlap, so a long run
+// of odd characters cannot make the match slow.
+const EMAIL = /[a-z0-9._%+-]{1,64}@(?:[a-z0-9-]{1,63}\.){1,8}[a-z]{2,24}\b/gi;
 const URL = /\b(?:https?:\/\/|www\.)[^\s<>"']+|\b[a-z0-9-]+\.(?:com|net|org|xyz|info|bd|io|me|link|shop|top|site|online)(?:\/[^\s<>"']*)?/gi;
 /*
  * A run of digits with the separators people put in numbers. Ten or more
