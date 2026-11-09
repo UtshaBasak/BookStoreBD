@@ -140,7 +140,7 @@ anything; a match only raises a flag.
 
 | List | What it holds |
 | --- | --- |
-| `ABUSIVE_TERMS` | Words in Bangla script, English and Banglish, each with a kind and a severity: `severe` flags on its own, `mild` only in numbers |
+| `ABUSIVE_TERMS` | Words in Bangla script, English and Banglish, each with a kind and a severity: `severe` flags on its own, `mild` only in numbers and aimed at a person. Everyday slang (shit, damn, sucks, ধুর, faltu, pagol) is left out on purpose, and common insults such as হারামি or kutta are only `mild`; a single one aimed at someone is left to the model check |
 | `BANNED_ITEMS` | Things the shop does not allow, each with an id, a label and its phrases. Severe: `pirated-copies`, `exam-leaks`, `fake-documents`, `counterfeit-currency`, `illegal-drugs`, `weapons`, `alcohol-tobacco`, `adult-material`, `gambling-betting`, `account-selling`, `exam-proxy`. Review: `non-book-goods`, `live-animals`, `medicines` |
 | `OFF_SITE_PHRASES` | Phrases that move a sale off the site |
 | `PROMOTION_PHRASES` | Phrases typical of promotional spam |

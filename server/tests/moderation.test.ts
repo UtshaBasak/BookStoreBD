@@ -61,6 +61,19 @@ describe('the rules', () => {
     expect(abuseReasons('idiot, stupid, liar seller')).toHaveLength(1);
   });
 
+  it('spare everyday slang, and words that name a book’s subject or an author', () => {
+    for (const text of [
+      'Holy shit this book was good, the ending is bullshit though',
+      'Damn, the delivery sucked but what a bloody good read',
+      'ধুর, ডেলিভারি ফালতু দেরি করেছে',
+      'dhur bhai, faltu packaging, pagol kora ending',
+      'Do Androids Dream of Electric Sheep? by Philip K. Dick',
+      'A novel about survivors of rape and war, 1971',
+    ]) {
+      expect(abuseReasons(text), text).toEqual([]);
+    }
+  });
+
   it('leave honest reviews and ordinary book titles alone', () => {
     for (const text of ['Great book, fast delivery!', 'The Naked Sun by Isaac Asimov', 'Hell Bent — a thriller', 'বইটি খুব ভালো, ধন্যবাদ']) {
       expect(abuseReasons(text)).toEqual([]);

@@ -34,18 +34,25 @@ const group = (
 export const ABUSIVE_TERMS: readonly AbusiveTerm[] = [
   // English profanity
   ...group('en', 'profanity', 'severe', [
-    'fuck', 'fucking', 'fucker', 'motherfucker', 'fuck off', 'fuck you', 'shit', 'bullshit',
+    'fuck', 'fucking', 'fucker', 'motherfucker', 'fuck off', 'fuck you',
     'asshole', 'bastard', 'bitch', 'son of a bitch', 'dickhead', 'cunt', 'wanker', 'bollocks',
-    'piss off', 'jackass', 'dumbass', 'shithead',
+    'piss off', 'shithead',
   ]),
-  ...group('en', 'profanity', 'mild', ['damn', 'hell', 'bloody', 'crap', 'piss', 'suck', 'sucks', 'screw you']),
+  /*
+   * Everyday slang is left alone on purpose: shit, bullshit, crap, damn, hell,
+   * bloody, piss, sucks, wtf, dude, bro - in English - and ধুর, ফালতু, বেকার,
+   * পাগল, dhur, faltu, bekar, pagol, shala in Bangla and Banglish. People write
+   * them about a late parcel or a gripping plot without attacking anyone, and
+   * flagging them would bury the real problems. Add a word back here only if
+   * it turns up in real abuse.
+   */
 
   // English personal attacks
   ...group('en', 'personal-attack', 'mild', [
     'idiot', 'stupid', 'stupid seller', 'moron', 'imbecile', 'dumb', 'fool', 'loser', 'scumbag',
     'trash', 'garbage seller', 'pathetic', 'useless', 'liar', 'cheat', 'cheater', 'fraud',
     'fraudster', 'scam', 'scammer', 'thief', 'crook', 'conman', 'swindler', 'shameless',
-    'worthless', 'brainless', 'clown', 'creep', 'dirty seller',
+    'worthless', 'brainless', 'clown', 'creep', 'dirty seller', 'screw you', 'jackass', 'dumbass',
   ]),
 
   // English threats
@@ -57,24 +64,23 @@ export const ABUSIVE_TERMS: readonly AbusiveTerm[] = [
 
   // English sexual
   ...group('en', 'sexual', 'severe', [
-    'porn', 'porno', 'pornography', 'blowjob', 'handjob', 'dick', 'cock', 'pussy', 'boobs', 'nudes', 'sex chat', 'sex video', 'horny', 'slut', 'whore', 'hooker',
-    'prostitute', 'escort service', 'call girl', 'rape', 'rapist', 'masturbate',
+    'porn', 'porno', 'pornography', 'blowjob', 'handjob', 'pussy', 'boobs', 'nudes', 'sex chat', 'sex video', 'horny', 'slut', 'whore', 'hooker', 'escort service', 'call girl', 'masturbate',
   ]),
 
   // English slurs
   ...group('en', 'slur', 'severe', [
     'faggot', 'fag', 'dyke', 'tranny', 'retard', 'retarded', 'nigger', 'nigga', 'paki', 'coolie',
-    'chink', 'kike', 'terrorist muslim', 'dirty hindu', 'dirty muslim', 'kafir', 'mlechha',
+    'chink', 'kike', 'terrorist muslim', 'dirty hindu', 'dirty muslim', 'mlechha',
     'chamar', 'bhangi',
   ]),
 
   // Bangla script profanity
   ...group('bn', 'profanity', 'severe', [
     'চোদ', 'চুদি', 'চুদা', 'চুদির ভাই', 'চোদনা', 'চোদন', 'চোদা', 'মাদারচোদ', 'বাপচোদা', 'বোনচোদ',
-    'খানকি', 'খানকির পোলা', 'খানকির ছেলে', 'মাগি', 'মাগী', 'বেশ্যা', 'বেশ্যার ছেলে', 'হারামি',
-    'হারামজাদা', 'হারামজাদি', 'শুয়োরের বাচ্চা', 'শুয়োর', 'কুত্তার বাচ্চা', 'কুত্তা', 'কুকুরের বাচ্চা',
-    'গাঁড়মারা', 'গান্ডু', 'গাণ্ডু', 'বাল', 'বালের', 'তোর মায়ের', 'মা চুদা', 'মাথা মোটা', 'পুটকি',
-    'পোঁদ', 'ধোন', 'ধন চোষ', 'লেওড়া', 'লুতফর', 'হিজড়া',
+    'খানকি', 'খানকির পোলা', 'খানকির ছেলে', 'মাগি', 'মাগী', 'বেশ্যা', 'বেশ্যার ছেলে',
+    'হারামজাদা', 'হারামজাদি', 'শুয়োরের বাচ্চা', 'কুত্তার বাচ্চা', 'কুকুরের বাচ্চা',
+    'গাঁড়মারা', 'গান্ডু', 'গাণ্ডু', 'বালের', 'তোর মায়ের', 'মা চুদা', 'পুটকি',
+    'পোঁদ', 'ধোন', 'ধন চোষ', 'লেওড়া',
   ]),
 
   // Bangla script personal attacks and insults
@@ -83,6 +89,7 @@ export const ABUSIVE_TERMS: readonly AbusiveTerm[] = [
     'বেয়াদব', 'বেহায়া', 'বোকাচোদা', 'গাধা', 'বলদ', 'হাঁদারাম', 'উল্লুক', 'ছাগল', 'পাগল ছাগল',
     'নির্বোধ', 'কুলাঙ্গার', 'অপদার্থ', 'বদমাশ', 'বদমাইশ', 'শয়তান', 'পাজি', 'ফালতু বিক্রেতা', 'ভণ্ড',
     'লুচ্চা', 'লম্পট', 'বেজন্মা', 'জারজ', 'নরকের কীট', 'ফেরেব্বাজ',
+    'বাল', 'মাথা মোটা', 'কুত্তা', 'শুয়োর', 'হারামি', 'ছোটলোক',
   ]),
 
   // Bangla script threats
@@ -95,13 +102,12 @@ export const ABUSIVE_TERMS: readonly AbusiveTerm[] = [
   // Bangla script sexual
   ...group('bn', 'sexual', 'severe', [
     'পর্ন', 'পর্নো', 'পর্নোগ্রাফি', 'ন্যাংটা', 'উলঙ্গ', 'সেক্স ভিডিও', 'সেক্স চ্যাট',
-    'যৌনতা ভিডিও', 'ধর্ষণ', 'ধর্ষক', 'দেহব্যবসা', 'কলগার্ল', 'নষ্টা মেয়ে', 'চটি বই',
+    'যৌনতা ভিডিও', 'দেহব্যবসা', 'কলগার্ল', 'নষ্টা মেয়ে', 'চটি বই',
   ]),
 
   // Bangla script slurs
   ...group('bn', 'slur', 'severe', [
-    'মালু', 'মালাউন', 'নেড়ে', 'নেড়ে মুসলমান', 'কাফের', 'জঙ্গি মুসলিম', 'শালা মালু', 'ম্লেচ্ছ',
-    'ছোটলোক', 'নিচু জাত', 'চামার', 'ভাঙ্গি', 'পাহাড়ি বান্দর', 'চাকমা বান্দর', 'বিহারি ছাগল', 'হিজড়ার বাচ্চা',
+    'মালু', 'মালাউন', 'নেড়ে', 'নেড়ে মুসলমান', 'জঙ্গি মুসলিম', 'শালা মালু', 'ম্লেচ্ছ', 'নিচু জাত', 'চামার', 'ভাঙ্গি', 'পাহাড়ি বান্দর', 'চাকমা বান্দর', 'বিহারি ছাগল', 'হিজড়ার বাচ্চা',
     'মেয়েলি পুরুষ', 'সমকামী কুত্তা',
   ]),
 
@@ -109,11 +115,9 @@ export const ABUSIVE_TERMS: readonly AbusiveTerm[] = [
   ...group('banglish', 'profanity', 'severe', [
     'chuda', 'chudi', 'chudir bhai', 'chudirbhai', 'chudirvai', 'chodna', 'chodon', 'chod', 'chodis',
     'madarchod', 'madarchud', 'madarchoda', 'maderchod', 'bapchoda', 'bopchoda', 'bonchoda', 'bokachoda',
-    'khanki', 'khankir pola', 'khankir chele', 'khankirpola', 'magi', 'maagi', 'magir pola', 'beshya',
-    'harami', 'haramjada', 'haramzada', 'haramjadi', 'haramir bachcha', 'shuorer bachcha', 'suorer bacha',
-    'shuor', 'kuttar bachcha', 'kuttar bacha', 'kutta', 'kuttar baccha', 'gandu', 'gaandu', 'gand marani',
+    'khanki', 'khankir pola', 'khankir chele', 'khankirpola', 'magi', 'maagi', 'magir pola', 'beshya', 'haramjada', 'haramzada', 'haramjadi', 'haramir bachcha', 'shuorer bachcha', 'suorer bacha', 'kuttar bachcha', 'kuttar bacha', 'kuttar baccha', 'gandu', 'gaandu', 'gand marani',
     'ganmara', 'gar mara', 'bhoda', 'voda', 'putki', 'lawra',
-    'lauda', 'loda', 'tor mayer', 'tor mar', 'tor baper', 'hijra', 'hijda',
+    'lauda', 'loda', 'tor mayer', 'tor mar', 'tor baper',
   ]),
 
   // Banglish personal attacks
@@ -122,7 +126,7 @@ export const ABUSIVE_TERMS: readonly AbusiveTerm[] = [
     'dhandaabaj', 'jocchor', 'jochchor', 'mithuk', 'mithyuk', 'beadob', 'beyadob', 'behaya', 'gadha',
     'boka', 'bokachoda seller', 'bolod', 'baldh', 'ullu', 'ulluk', 'nirbodh', 'kulangar',
     'bodmash', 'bodmaish', 'shoytan', 'shaitan', 'paji', 'faltu seller', 'bhondo', 'lucha', 'luccha',
-    'lompot', 'bejonma', 'jarj', 'ferebbaz',
+    'lompot', 'bejonma', 'jarj', 'ferebbaz', 'harami', 'kutta', 'shuor',
   ]),
 
   // Banglish threats
@@ -134,7 +138,7 @@ export const ABUSIVE_TERMS: readonly AbusiveTerm[] = [
 
   // Banglish sexual
   ...group('banglish', 'sexual', 'severe', [
-    'porn video', 'sex video', 'sex chat', 'nongra', 'nyangta', 'ulongo', 'dhorshon', 'dhorshok',
+    'porn video', 'sex video', 'sex chat', 'nongra', 'nyangta', 'ulongo',
     'deho bebsha', 'call girl', 'choti boi', 'nongra chobi', 'nude chobi',
   ]),
 

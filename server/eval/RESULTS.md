@@ -16,6 +16,14 @@
 > - Numbers spelled out in words (English, Bangla, Banglish) are read as
 >   numbers (rv-33).
 
+> **Also 2026-11-09:** everyday slang is now spared by the word rules -
+> shit, bullshit, crap, damn, hell, bloody, sucks, and the commonest Bangla and
+> Banglish insults (বাল, হারামি, কুত্তা, ছোটলোক, harami, kutta) count only as
+> mild words, which flag in numbers and aimed at a person. Words that name a
+> book's subject or an author (rape, prostitute, dick, hijra, kafir) are off
+> the lists. Four cases (rv-11, rv-29, rv-34, ls-20) are now left to the model
+> layer, which is told to treat slang that is not aimed at anyone as ok.
+
 ## Current results (offline, 2026-11-09)
 
 ### Assistant
@@ -52,8 +60,8 @@
 
 | Rule | TP | FP | FN | Precision | Recall |
 | --- | ---: | ---: | ---: | ---: | ---: |
-| abuse | 4 | 0 | 0 | 100% | 100% |
-| abuse-mild | 3 | 0 | 0 | 100% | 100% |
+| abuse | 1 | 0 | 0 | 100% | 100% |
+| abuse-mild | 2 | 0 | 0 | 100% | 100% |
 | banned:account-selling | 1 | 0 | 0 | 100% | 100% |
 | banned:alcohol-tobacco | 1 | 0 | 0 | 100% | 100% |
 | banned:exam-leaks | 1 | 0 | 0 | 100% | 100% |
@@ -78,7 +86,7 @@
 | review-burst | 1 | 0 | 0 | 100% | 100% |
 | threat | 2 | 0 | 0 | 100% | 100% |
 
-Item level (flagged by any rule vs. should be flagged): precision 100%, recall 100% (TP 44, FP 0, FN 0, TN 39).
+Item level (flagged by any rule vs. should be flagged): precision 100%, recall 100% (TP 40, FP 0, FN 0, TN 43).
 
 The model layer's offline numbers are unchanged: they replay recorded labels.
 
