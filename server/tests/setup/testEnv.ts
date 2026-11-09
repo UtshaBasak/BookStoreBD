@@ -29,6 +29,17 @@ const OPTIONAL_INTEGRATION_VARS = [
   'SMTP_PASS',
   'SERVE_CLIENT',
   'LOG_LEVEL',
+  // The assistant and moderation: off unless a test turns them on, and never
+  // a real key - the Gemini client is replaced in every test that uses it.
+  'GEMINI_API_KEY',
+  'GEMINI_MODEL',
+  'GEMINI_RPM',
+  'GEMINI_RPD',
+  'ASSISTANT_ENABLED',
+  'ASSISTANT_PER_MINUTE',
+  'ASSISTANT_IP_DAILY',
+  'ASSISTANT_USER_DAILY',
+  'MODERATION_MODE',
 ];
 
 for (const name of OPTIONAL_INTEGRATION_VARS) {

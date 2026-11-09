@@ -22,6 +22,7 @@ import {
 } from '../schemas/index.js';
 import { securityEvent } from '../utils/securityLog.js';
 import { t } from '../utils/language.js';
+import { enqueueChatModeration } from '../utils/moderation/queue.js';
 
 const log = createLogger('chat');
 
@@ -252,6 +253,8 @@ router.post(
         deliverChatMessage(wire);
         // The receiver's phones get the message's id; the app fetches the thread.
         push([{ email: receiver, data: { kind: 'chat', id: wire._id } }]);
+        // Spam patterns across the sender's messages, checked in the background by rules only.
+        void enqueueChatModeration(sender);
     } catch (error) {
         log.error({ err: error }, 'Chat message error');
         res.status(500).json({ message: errorMessage(error) });

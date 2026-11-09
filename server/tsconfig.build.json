@@ -7,5 +7,5 @@
     "sourceMap": false,
     "removeComments": false
   },
-  "exclude": ["node_modules", "dist", "tests", "vitest.config.ts", "types/contracts.ts"]
+  "exclude": ["node_modules", "dist", "tests", "eval", "scripts/*EvalLive.ts", "scripts/evalDb.ts", "vitest.config.ts", "types/contracts.ts"]
 }

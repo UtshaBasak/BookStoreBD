@@ -14,6 +14,7 @@ import { validatedQuery } from '../middleware/validate.js';
 import type { AdminReviewQuery, FlaggedReviewQuery } from '../schemas/index.js';
 import { securityEvent } from '../utils/securityLog.js';
 import { bnDigits, t, type Bilingual } from '../utils/language.js';
+import { enqueueModeration } from '../utils/moderation/queue.js';
 
 const log = createLogger('seller-review');
 
@@ -163,6 +164,9 @@ export const upsertSellerReview: RequestHandler<{ id: string }> = async (req, re
       },
       { returnDocument: 'after', upsert: true, setDefaultsOnInsert: true }
     );
+
+    // Checked for problems in the background; never delays or blocks the write.
+    void enqueueModeration('seller-review', review?._id);
 
     const isNew = review && Math.abs(new Date(review.createdAt).getTime() - new Date(review.updatedAt).getTime()) < 1000;
     if (isNew) {

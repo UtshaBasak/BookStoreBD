@@ -57,7 +57,7 @@ import { bnDigits, languageOf, t, type Language } from '../utils/language.js';
 const log = createLogger('order');
 
 /** An order status as a person reads it in Bangla; the stored value stays English. */
-const STATUS_BN: Record<string, string> = {
+export const STATUS_BN: Record<string, string> = {
   'Order Confirmed': 'অর্ডার নিশ্চিত',
   Processing: 'প্রস্তুত হচ্ছে',
   Shipped: 'পাঠানো হয়েছে',

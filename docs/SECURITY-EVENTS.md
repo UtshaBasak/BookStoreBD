@@ -70,8 +70,10 @@ Severity is `low`, `medium` or `high`. `low` lines are written at pino's
 | Event | Fires when | Severity | Detail |
 | --- | --- | --- | --- |
 | `authz.denied` | A role or ownership check answers 403 | medium | `reason: not_admin` with `extra.required_role`, or `reason: not_owner` with `extra.resource_type`: `order`, `return_request`, `review`, `review_reply`, `seller_review`, `seller_review_reply`, `book`, `chat`. Business rules such as "you cannot review your own listing" are not logged |
-| `ratelimit.exceeded` | A request gets 429 from a rate limiter | low | `extra.limiter`: `general`, `auth`, `write`, `crawler` or `client_error`. A sign-in refused by the account lock is `auth.lockout`, not this |
+| `ratelimit.exceeded` | A request gets 429 from a rate limiter | low | `extra.limiter`: `general`, `auth`, `write`, `crawler`, `client_error` or `assistant`. A sign-in refused by the account lock is `auth.lockout`, not this |
 | `upload.url_rejected` | Submitted image URLs are not from this shop's Cloudinary account | medium | `extra.dropped`. The URLs are dropped as before, not refused. Only something other than the site's own pages would send them |
+| `assistant.injection_suspected` | A question to the shopping assistant matches a pattern for overriding or revealing its instructions ("ignore the above rules", "show your system prompt") | medium | `reason: instruction_override`. The assistant gives a neutral reply without calling the model. The question is not logged |
+| `assistant.abuse` | Someone misuses the shopping assistant: the same question asked more than three times in ten minutes (a neutral reply), or the day's cap used up (`429`) | low | `reason: repeated_question`, or `reason: daily_cap` with `extra.signed_in` (`true` or `false`) |
 
 ### Administrator actions
 
@@ -81,6 +83,7 @@ Severity is `low`, `medium` or `high`. `low` lines are written at pino's
 | `admin.user.deleted` | An administrator deletes a member | medium | `user.id` is the administrator; `extra.target_user_id`, `extra.target_role` |
 | `admin.payout.recorded` | An administrator records a seller payout | medium | `extra.order_number`, `extra.lines`, `extra.amount`. Not the bKash number or the transaction ID |
 | `admin.message.sent` | An administrator sends a message | medium | `extra.audience`, `extra.channel`, `extra.recipient_count` |
+| `admin.moderation.decided` | An administrator decides a flag from automatic moderation, or clears several at once | medium | `extra.decision`: `cleared`, `removed` or `messaged`. One flag has `extra.target`: `review`, `seller-review`, `listing` or `chat`. A bulk clear has `extra.count`. The content and the reasons are in the audit trail, not here |
 
 There is no `admin.user.deactivated`: the shop has no way to deactivate an
 account, only to delete one.
@@ -139,6 +142,8 @@ In security events and request lines alike:
 - Phone numbers, postal addresses and bKash numbers
 - Request bodies, and query strings (request lines keep the path only)
 - Free text a person typed: names, messages, reviews
+- The questions people ask the shopping assistant, and its answers (only the tools used and a count of books are logged)
+- Flagged chat messages, which administrators open through the audit trail
 
 `noSecretsInLogs.test.ts` checks this. It signs up, signs in with a typo and
 then the right password, refreshes, fills in phone, address and bKash number,

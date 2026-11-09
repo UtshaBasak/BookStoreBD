@@ -86,3 +86,9 @@ services:
       # Push notifications to the Android app: a Firebase service-account key.
       - key: FIREBASE_SERVICE_ACCOUNT
         sync: false
+      # The shopping assistant and moderation's model layer: off until the key is set.
+      - key: GEMINI_API_KEY
+        sync: false
+      # Automatic moderation starts as a trial: flags recorded, not shown.
+      - key: MODERATION_MODE
+        value: shadow

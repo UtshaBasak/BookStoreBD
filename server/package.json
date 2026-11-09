@@ -20,6 +20,13 @@
     "encrypt:existing": "tsx scripts/encryptExisting.ts",
     "cleanup:data": "tsx scripts/cleanUpData.ts",
     "cleanup:data:dry": "tsx scripts/cleanUpData.ts --dry-run",
+    "moderation:scan": "tsx scripts/moderationScan.ts",
+    "moderation:scan:dry": "tsx scripts/moderationScan.ts --dry-run",
+    "eval:assistant": "vitest run tests/assistantEval.test.ts",
+    "eval:assistant:live": "tsx scripts/assistantEvalLive.ts",
+    "eval:moderation": "vitest run tests/moderationEval.test.ts",
+    "eval:moderation:live": "tsx scripts/moderationEvalLive.ts",
+    "assistant:embed": "tsx scripts/assistantEmbed.ts",
     "lint": "eslint .",
     "test": "vitest run",
     "test:watch": "vitest"

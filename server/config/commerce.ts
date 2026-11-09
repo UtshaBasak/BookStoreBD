@@ -21,8 +21,20 @@ export const DELIVERY = {
 // Free delivery on a large order is the "FreeDelivery" promo code in
 // promotions.ts, rather than automatic.
 
+/**
+ * Working days a delivery usually takes, from the order. Promised, not
+ * enforced: quoted on the policy pages and by the shopping assistant.
+ */
+export const DELIVERY_DAYS = {
+  insideDhaka: 3,
+  outsideDhaka: 5,
+} as const;
+
 /** Days a buyer has to ask for a return, counted from delivery. */
 export const RETURN_WINDOW_DAYS = 7;
+
+/** Working days to refund an approved return by bKash, from when the book reaches the shop. */
+export const REFUND_WORKING_DAYS = 15;
 
 /** The shop's share of a sale's book total. Listing is free; delivery is not included. */
 export const SELLER_FEE_PERCENT = 5;

@@ -94,7 +94,7 @@ export const site = {
 
   /** The date the policy pages were last reviewed. */
   // Shown through formatDate, which writes it in Bangla when the site is.
-  policiesUpdated: '24 October 2026',
+  policiesUpdated: '9 November 2026',
 } as const;
 
 /**

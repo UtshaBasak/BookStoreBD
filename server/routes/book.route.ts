@@ -22,6 +22,7 @@ import {
 } from '../schemas/index.js';
 import { securityEvent } from '../utils/securityLog.js';
 import { bnDigits, languageOf, t } from '../utils/language.js';
+import { enqueueModeration } from '../utils/moderation/queue.js';
 
 const router = express.Router();
 
@@ -143,6 +144,8 @@ router.put(
       const before = Number(book.salePrice ?? book.price);
       book.price = price;
       await book.save();
+      void enqueueModeration('listing', book._id);
+      void enqueueModeration('embed', book._id);
       await priceChanged(book, before, Number(book.salePrice ?? book.price), { actor: actingUser(req).email });
 
       res.status(200).json({ message: t(req, 'Price updated', 'দাম আপডেট হয়েছে'), book });
@@ -177,6 +180,8 @@ router.put(
       book.discountType = discount.type;
       book.discountValue = discount.value;
       await book.save();
+      void enqueueModeration('listing', book._id);
+      void enqueueModeration('embed', book._id);
 
       // A deal, or a better one, is a price drop: everyone with the book in a
       // cart or on a wishlist hears of it, if it beats what they saw.

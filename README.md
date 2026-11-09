@@ -154,6 +154,14 @@ User guides for each role are in the [wiki](https://github.com/UtshaBasak/BookSt
   joins the first, matched by ISBN or by a sound-alike title and author. When
   the book is listed, everyone who asked gets a notification and an e-mail
   with its link, and the seller sees how many readers were waiting
+- **Shopping assistant:** a chat button that answers in Bangla, English or
+  Banglish. It finds books by title, author, price or what they are about,
+  explains delivery, payment and returns from the shop's own help text, shows
+  a signed-in reader their orders, and hands over to a seller or the shop. It
+  only reads the shop's data through fixed tools, never sends order details,
+  chat or contact details to the model, and falls back to plain search when
+  the model is busy. Optional: it needs a Gemini key
+  ([`docs/ASSISTANT.md`](docs/ASSISTANT.md))
 - Homepage shelves: Quick deals, Latest, Trending, Top picks for you, Shop by
   category, Bestsellers, Popular writers, Top rated, Under ৳300 and Recently viewed
 
@@ -230,6 +238,13 @@ User guides for each role are in the [wiki](https://github.com/UtshaBasak/BookSt
 - Full control of order stages and cancellation
 - **Messages:** a notification, a branded e-mail or both, to chosen people or
   to every buyer, every seller, or everyone
+- **Flagged by system:** automatic moderation checks reviews, seller ratings,
+  listings and chat patterns for spam, abuse, copied photos, odd prices and
+  banned items, and queues what it finds for an administrator. A flag never
+  hides or removes anything; the administrator clears it, removes the content
+  (the author is told why) or messages the author. It starts in a trial mode,
+  and flagged chat is opened only by administrators and is audited
+  ([`docs/MODERATION.md`](docs/MODERATION.md))
 
 ### Profiles, chat and discovery
 
@@ -346,7 +361,7 @@ BookStoreBD/
 │   └── index.ts                 # Start-up and graceful shutdown
 │
 ├── .github/                     # CI, Docker publishing, Dependabot, templates
-├── docs/                        # Engineering roadmap and production review
+├── docs/                        # Roadmap, audit, security events, API versioning, assistant, moderation
 ├── Dockerfile                   # The single image published to GitHub Packages
 ├── docker-compose.yml           # Development stack: MongoDB + API + Vite
 ├── docker-compose.prod.yml      # Production-like stack: MongoDB + API + nginx
@@ -506,6 +521,22 @@ unprivileged with `NODE_ENV=production` and a health check.
 | `ANDROID_CERT_SHA256` | | the release certificate | Signing-certificate fingerprints for App Links, comma-separated |
 | `ANDROID_PACKAGE_NAME` | | `io.github.utshabasak.bookstorebd` | The Android app's package name |
 | `ANDROID_RELEASES_REPO` | | `UtshaBasak/BookStoreBD-Android` | Where the app's update check looks for releases |
+| `GEMINI_API_KEY` | | — | A Google AI Studio key; turns on the shopping assistant and moderation's model check. Without it the assistant is hidden and moderation uses its rules only. Keep it secret |
+| `GEMINI_MODEL` | | `gemini-3.5-flash-lite` | The assistant's model |
+| `GEMINI_MODERATION_MODEL` | | `GEMINI_MODEL` | The model for moderation, if different |
+| `GEMINI_EMBEDDING_MODEL` | | `gemini-embedding-001` | The model for finding books by what they are about |
+| `GEMINI_THINKING_LEVEL` | | `minimal` | `minimal`, `low`, `medium` or `high`; empty for the model's default |
+| `GEMINI_RPM` | | `10` | The shop's own ceiling on model calls a minute, kept under the key's limit |
+| `GEMINI_RPD` | | `500` | The same, a day (a day starts at midnight in Dhaka) |
+| `GEMINI_MODERATION_SHARE` | | `0.2` | The share of both ceilings moderation may use; the assistant has the rest |
+| `GEMINI_TIMEOUT_MS` | | `20000` | Time allowed for one model call |
+| `GEMINI_MAX_CONCURRENT` | | `4` | Model calls in flight at once |
+| `ASSISTANT_ENABLED` | | on | `false` hides the assistant with the key still set |
+| `ASSISTANT_USER_DAILY` | | `60` | Questions a signed-in person may ask in a day |
+| `ASSISTANT_IP_DAILY` | | `30` | Questions a visitor may ask in a day, per address |
+| `ASSISTANT_PER_MINUTE` | | `12` | Questions a minute from one address |
+| `MODERATION_MODE` | | `off` | `off`, `shadow` (flags recorded but kept out of the admin queue, for a trial) or `on`. `render.yaml` starts at `shadow` |
+| `MODERATION_DISABLED_RULES` | | — | Comma-separated rule codes to switch off, e.g. `review-burst,missing-details` |
 | `FIREBASE_SERVICE_ACCOUNT` | | — | A Firebase service-account key (the JSON, as the value), for push notifications to the Android app. Keep it secret |
 | `LOG_LEVEL` | | `debug` dev / `info` prod | pino level |
 | `SENTRY_DSN` | | — | Enables error reporting |
@@ -545,6 +576,22 @@ Run from the repository root:
 | `npm run seed` | Seeds demo data (`-- --reset` empties it first) |
 | `npm run migrate:images` | Moves inline covers to Cloudinary |
 | `npm run gmail:token` | Obtains the Gmail API refresh token |
+
+These run from `server/` (or with `npm --prefix server run <script>` from the root):
+
+| Script | What it does |
+| --- | --- |
+| `npm run moderation:scan` | Queues existing reviews, ratings, listings and recent chat senders for automatic moderation; `-- --now` also checks them there and then. Needs `MODERATION_MODE` set to `shadow` or `on` |
+| `npm run moderation:scan:dry` | Counts what `moderation:scan` would queue |
+| `npm run assistant:embed` | Queues every listing for the assistant's search by meaning; `-- --now` embeds them there and then, paced to the free tier |
+| `npm run eval:assistant` | The assistant's 105 labelled cases, with recorded model replies; no network. Also part of `npm test` |
+| `npm run eval:assistant:live` | The same cases against the real Gemini model. Needs `-- --yes`; `--pace=ms`, `--only=id` and `--write` are optional |
+| `npm run eval:moderation` | Moderation's labelled items: the rules for real, the model's labels recorded; no network. Also part of `npm test` |
+| `npm run eval:moderation:live` | The same against the real model. Needs `-- --yes`; `--pace=ms` and `--write` are optional |
+
+The live evaluations spend free-tier quota, use a separate `<db>_eval` database
+and refuse to run in production. Results are in
+[`server/eval/RESULTS.md`](server/eval/RESULTS.md).
 
 Before opening a pull request:
 
@@ -854,6 +901,31 @@ profile.
 | `POST` / `DELETE` | `/wanted/:id/join` | Add or remove your name |
 | `DELETE` | `/wanted/:id` | Remove a request (admin) |
 
+### Shopping assistant — `/assistant`
+
+Strictly rate-limited on top of the general limit, with a daily cap per person.
+See [`docs/ASSISTANT.md`](docs/ASSISTANT.md).
+
+| Method | Endpoint | Description |
+| --- | --- | --- |
+| `GET` | `/assistant/config` | `{ enabled }`: whether the assistant is offered |
+| `POST` | `/assistant/chat` | Ask: `{ message, history?, seen? }`. Open to visitors; a signed-in reader's orders come from the session. `503` when it is off, `429` over a limit |
+| `POST` | `/assistant/feedback` | A thumbs up or down on an answer: `{ requestId, helpful, reason? }` |
+| `GET` | `/assistant/stats` | The last 30 days in counts, and today's model use (admin) |
+
+### Automatic moderation — `/moderation`
+
+All admin only. Every decision is written to the audit trail. See
+[`docs/MODERATION.md`](docs/MODERATION.md).
+
+| Method | Endpoint | Description |
+| --- | --- | --- |
+| `GET` | `/moderation/stats` | Open flags by type, trial flags, queued jobs, and each rule's precision (admin) |
+| `GET` | `/moderation/flags` | One page of flags: `status`, `type`, `source`, `severity`, `shadow=1` for the trial, `search`, `sort`, paging (admin) |
+| `GET` | `/moderation/flags/:id` | One flag with its content in context; opening flagged chat is audited (admin) |
+| `POST` | `/moderation/flags/:id/decision` | `{ decision: cleared \| removed \| messaged, reason?, note? }`. `removed` needs the content gone first, and tells the author why (admin) |
+| `POST` | `/moderation/flags/clear` | Mark up to 100 open flags fine: `{ ids, note? }` (admin) |
+
 ### Messages, notifications and more
 
 | Method | Endpoint | Description |
@@ -988,6 +1060,11 @@ completed so far — automated tests, Docker, structured logging, validation,
 refresh tokens, image hosting, TanStack Query and the TypeScript migration.
 [`docs/AUDIT.md`](docs/AUDIT.md) is the production-readiness review, including
 the hardening planned next.
+[`docs/SECURITY-EVENTS.md`](docs/SECURITY-EVENTS.md) lists the security events,
+[`docs/API-VERSIONING.md`](docs/API-VERSIONING.md) the rules for the app's API,
+[`docs/ASSISTANT.md`](docs/ASSISTANT.md) the shopping assistant (privacy, limits,
+free-tier operations) and [`docs/MODERATION.md`](docs/MODERATION.md) automatic
+moderation (rules, modes, the admin workflow).
 
 ---
 

@@ -22,6 +22,12 @@ const REDACTED_PATHS = [
   'CLOUDINARY_API_SECRET',
   'apiSecret',
   'api_secret',
+  'GEMINI_API_KEY',
+  'apiKey',
+  'req.headers["x-goog-api-key"]',
+  // The assistant's question: logged as a length, never as text.
+  'req.body.message',
+  'req.body.history',
 ];
 
 const isTest = config.env === 'test';

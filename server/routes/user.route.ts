@@ -21,6 +21,7 @@ import {
 } from '../controllers/account.controller.js';
 import { sellerRatingOf } from '../controllers/sellerReview.controller.js';
 import { fulfilWanted } from '../utils/wanted.js';
+import { enqueueModeration } from '../utils/moderation/queue.js';
 import { requireCaptcha } from '../utils/captcha.js';
 import AddBook from '../models/AddBook.model.js';
 import Order from '../models/Order.model.js';
@@ -270,6 +271,9 @@ router.post(
       });
 
       await newBook.save();
+      // Checked for problems in the background; never delays or blocks the write.
+      void enqueueModeration('listing', newBook._id);
+      void enqueueModeration('embed', newBook._id);
       // Anyone waiting for it on the Wanted board hears straight away.
       const waiting = await fulfilWanted(newBook);
       res.status(201).json({ message: t(req, 'Book added successfully!', 'বইটি যোগ করা হয়েছে!'), book: newBook, waiting });

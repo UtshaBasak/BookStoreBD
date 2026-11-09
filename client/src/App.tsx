@@ -3,6 +3,7 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 
 import HomePage from './pages/Homepage';
 import BackToTop from './components/BackToTop.js';
+import AssistantLauncher from './components/assistant/AssistantLauncher.js';
 import ConsentBanner from './components/ConsentBanner.js';
 
 /*
@@ -282,6 +283,7 @@ export default function App() {
         </Routes>
       </Suspense>
       <BackToTop />
+      <AssistantLauncher />
       <ConsentBanner />
     </BrowserRouter>
   );

@@ -1508,3 +1508,199 @@ export type AppSignInResponse = AppSessionResponse | AppTwoFactorChallenge;
 export interface AppRefreshRequest {
   refreshToken: string;
 }
+
+// ======================================================= shopping assistant
+
+/** GET /assistant/config - whether to offer the assistant at all. */
+export interface AssistantConfig {
+  /** On when the Gemini key is set and the assistant is not switched off. */
+  enabled: boolean;
+}
+
+/** One earlier turn, as the browser kept it. Text only, and only the last few. */
+export interface AssistantTurn {
+  role: 'user' | 'assistant';
+  text: string;
+}
+
+/** POST /assistant/chat. */
+export interface AssistantRequest {
+  message: string;
+  history?: AssistantTurn[];
+  /**
+   * Books viewed recently, from the browser - sent only while the visitor
+   * allows personalisation, the same choice that keeps Recently viewed.
+   */
+  seen?: Id[];
+}
+
+/** A page on this site. Always a relative path: the assistant never links away. */
+export interface AssistantLink {
+  href: string;
+  label: string;
+}
+
+/** One of the person's own orders, with only what explains it: no address, phone or payment number. */
+export interface AssistantOrder {
+  orderNumber: string;
+  placedAt: IsoDate;
+  /** The stored status, e.g. 'Shipped' or 'Cancelled'. */
+  status: string;
+  /** The status in the language asked for. */
+  statusLabel: string;
+  /** 0-4 along Order Confirmed → Delivered; -1 when cancelled. */
+  stage: number;
+  explanation: string;
+  books: { title: string; quantity: number }[];
+  total: number;
+  canCancel: boolean;
+  returnableUntil: IsoDate | null;
+  link: string;
+}
+
+/** Someone to talk to: a book's seller, or the shop. Nothing is sent until the person chooses. */
+export interface AssistantHandover {
+  kind: 'seller' | 'shop';
+  /** The account to open a chat with; null when there is no chat account to reach. */
+  chatWith: string | null;
+  name: string;
+  bookTitle: string | null;
+  /** The shop's e-mail address, for the shop. */
+  email: string | null;
+}
+
+/** A book the shop does not have, offered for the Wanted board. Posted only if the person confirms. */
+export interface AssistantWantedOffer {
+  title: string;
+  author: string;
+}
+
+export interface AssistantReply {
+  /** Quoted back with feedback; ties it to the log line, not to any text. */
+  requestId: string;
+  /** Plain text. */
+  reply: string;
+  language: 'en' | 'bn';
+  /** Real books from the catalogue, shown as cards. Never from the model's own text. */
+  books: Book[];
+  links: AssistantLink[];
+  orders: AssistantOrder[];
+  handover: AssistantHandover | null;
+  wanted: AssistantWantedOffer | null;
+  /** True when the answer was given without the model (unavailable, busy or over budget). */
+  fallback: boolean;
+  /** True when the question was not about the shop. */
+  outOfScope: boolean;
+}
+
+/** POST /assistant/feedback - a thumbs up or down. No message text is stored. */
+export interface AssistantFeedbackRequest {
+  requestId: string;
+  helpful: boolean;
+  reason?: 'wrong' | 'unhelpful' | 'off-topic' | 'slow' | 'other';
+}
+
+// ====================================================== automatic moderation
+
+export type ModerationTarget = 'review' | 'seller-review' | 'listing' | 'chat';
+export type ModerationStatus = 'open' | 'cleared' | 'actioned';
+
+/** Why a flag was raised: a rule or a model label, how strongly, and why in words. */
+export interface ModerationReason {
+  code: string;
+  source: 'rule' | 'model';
+  score: number;
+  detail: string;
+}
+
+/** One flag in the admin list. A flag never hides anything: the content is unchanged until an administrator acts. */
+export interface ModerationFlagItem {
+  _id: Id;
+  targetType: ModerationTarget;
+  targetId: Id;
+  authorEmail: string;
+  label: string;
+  /** The start of public text; empty for chat. */
+  excerpt: string;
+  messageCount: number;
+  reasons: ModerationReason[];
+  score: number;
+  severity: 'low' | 'medium' | 'high';
+  status: ModerationStatus;
+  /** Raised during the shadow-mode trial. */
+  shadow: boolean;
+  decision: 'cleared' | 'removed' | 'messaged' | null;
+  decidedBy: string;
+  decidedAt: IsoDate | null;
+  note: string;
+  createdAt: IsoDate;
+  updatedAt: IsoDate;
+  /** Where the content can be seen on the site, when it has a page. */
+  link: string | null;
+  /** Whether the content still exists. */
+  exists: boolean;
+}
+
+/** GET /moderation/flags */
+export interface ModerationFlagList {
+  items: ModerationFlagItem[];
+  total: number;
+  page: number;
+  pageSize: number;
+  pageCount: number;
+  /** MODERATION_MODE on the server. */
+  mode: 'off' | 'shadow' | 'on';
+}
+
+/** A chat message shown to an administrator because a spam rule pointed at it. */
+export interface ModerationChatMessage {
+  _id: Id;
+  receiver: string;
+  message: string;
+  hasImage: boolean;
+  timestamp: IsoDate;
+}
+
+/** GET /moderation/flags/:id - the flag with its content in context. */
+export interface ModerationFlagDetail extends ModerationFlagItem {
+  /** For a review or a listing: the whole public text. */
+  content: { title: string; body: string; rating: number | null; price: number | null } | null;
+  /** For chat: the messages the rules pointed at. */
+  messages: ModerationChatMessage[];
+  /**
+   * What the existing delete endpoint takes: the book's id for a review
+   * (DELETE /review/:id), the seller's account id for a seller rating
+   * (DELETE /seller-review/:id). Null otherwise.
+   */
+  subjectId: Id | null;
+}
+
+/** POST /moderation/flags/:id/decision */
+export interface ModerationDecisionRequest {
+  /** `removed` once the content has been deleted through its usual delete; the author is told why. */
+  decision: 'cleared' | 'removed' | 'messaged';
+  /** Shown to the author when content was removed. */
+  reason?: string;
+  /** For administrators only. */
+  note?: string;
+}
+
+/** GET /moderation/stats */
+export interface ModerationStats {
+  mode: 'off' | 'shadow' | 'on';
+  open: Record<ModerationTarget, number>;
+  /** Open flags raised during the shadow trial, not shown in the queue. */
+  shadowOpen: number;
+  pendingJobs: number;
+  /** Per rule: how many flags admins decided, and the share they acted on. */
+  rules: { code: string; decided: number; actioned: number; cleared: number; precision: number | null; open: number }[];
+}
+
+/** GET /assistant/stats - the assistant's usage, for administrators. Counts only. */
+export interface AssistantStats {
+  enabled: boolean;
+  days: { day: string; questions: number; fallbacks: number; handovers: number; outOfScope: number; helpful: number; unhelpful: number }[];
+  totals: { questions: number; fallbacks: number; handovers: number; outOfScope: number; helpful: number; unhelpful: number };
+  /** Gemini calls made today, by feature, against the daily budget. */
+  geminiToday: { assistant: number; moderation: number; limit: number };
+}

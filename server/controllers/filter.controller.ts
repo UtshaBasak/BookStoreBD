@@ -32,7 +32,7 @@ export const searchClauses = (search: string): Record<string, unknown>[] => {
   return clauses;
 };
 
-const SORTS = {
+export const SORTS = {
   // The default: Quick deals first, the biggest share off leading, and the
   // newest after them - which, with no deals running, is simply the newest.
   relevant: { discountPercent: -1, createdAt: -1 },
@@ -50,7 +50,7 @@ const SORTS = {
 } as const satisfies Record<CatalogueQuery['sort'], Record<string, 1 | -1>>;
 
 /** Builds the query from parameters the schema has already narrowed. */
-const buildFilter = (q: CatalogueQuery): Record<string, unknown> => {
+export const buildFilter = (q: CatalogueQuery): Record<string, unknown> => {
   const filter: Record<string, unknown> = {};
 
   if (q.search) {
@@ -86,29 +86,42 @@ const buildFilter = (q: CatalogueQuery): Record<string, unknown> => {
  * indexes, so a visitor downloads only the books on screen and the cost does
  * not grow with the catalogue.
  */
+/** One page of the catalogue, as `Booklist` answers it. Reused by the shopping assistant. */
+export const findCatalogue = async (
+  q: CatalogueQuery
+): Promise<{ items: LeanBook[]; total: number; filter: Record<string, unknown> }> => {
+  const filter = buildFilter(q);
+  // A seller's shop: their books only. An unknown name finds nothing.
+  if (q.seller) {
+    // `String()` at the sink, as everywhere else: the schema already made it
+    // text, and this says so where the query is built.
+    const seller = await User.findOne({ username: String(q.seller) }, { email: 1 }).lean();
+    filter.sellerEmail = seller?.email ?? '\u0000';
+  }
+
+  const [items, total] = await Promise.all([
+    AddBook.find(filter, LIST_IMAGE_PROJECTION)
+      // `_id` breaks ties, so a book cannot appear on two pages or none:
+      // documents that compare equal on `price` have no inherent order.
+      .sort({ ...SORTS[q.sort], _id: -1 })
+      .skip((q.page - 1) * q.pageSize)
+      .limit(q.pageSize)
+      .lean<LeanBook[]>(),
+    AddBook.countDocuments(filter),
+  ]);
+  return { items, total, filter };
+};
+
+/**
+ * One page of the catalogue, filtered, sorted and paged by MongoDB against
+ * indexes, so a visitor downloads only the books on screen and the cost does
+ * not grow with the catalogue.
+ */
 export const Booklist: RequestHandler = async (req, res) => {
   const q = validatedQuery<CatalogueQuery>(req);
-  const filter = buildFilter(q);
 
   try {
-    // A seller's shop: their books only. An unknown name finds nothing.
-    if (q.seller) {
-      // `String()` at the sink, as everywhere else: the schema already made it
-      // text, and this says so where the query is built.
-      const seller = await User.findOne({ username: String(q.seller) }, { email: 1 }).lean();
-      filter.sellerEmail = seller?.email ?? '\u0000';
-    }
-
-    const [items, total] = await Promise.all([
-      AddBook.find(filter, LIST_IMAGE_PROJECTION)
-        // `_id` breaks ties, so a book cannot appear on two pages or none:
-        // documents that compare equal on `price` have no inherent order.
-        .sort({ ...SORTS[q.sort], _id: -1 })
-        .skip((q.page - 1) * q.pageSize)
-        .limit(q.pageSize)
-        .lean(),
-      AddBook.countDocuments(filter),
-    ]);
+    const { items, total } = await findCatalogue(q);
 
     // What people search the whole catalogue for - not a shop's own box -
     // counted once per search, on its first page.
@@ -314,12 +327,17 @@ export const BUDGET_PRICE = 300;
 const SECTIONS_TTL_MS = config.env === 'test' ? 0 : 60_000;
 let sectionsCache: { at: number; body: StoredSections } | null = null;
 
+/** Every homepage shelf, from the minute-long cache. Reused by the shopping assistant. */
+export const homeSections = async (): Promise<StoredSections> => {
+  if (!sectionsCache || Date.now() - sectionsCache.at >= SECTIONS_TTL_MS) {
+    sectionsCache = { at: Date.now(), body: await buildSections() };
+  }
+  return sectionsCache.body;
+};
+
 export const Sections: RequestHandler = async (_req, res) => {
   try {
-    if (!sectionsCache || Date.now() - sectionsCache.at >= SECTIONS_TTL_MS) {
-      sectionsCache = { at: Date.now(), body: await buildSections() };
-    }
-    res.status(200).json(sectionsCache.body);
+    res.status(200).json(await homeSections());
   } catch (error) {
     res.status(500).json({ message: errorMessage(error) });
   }
@@ -340,52 +358,63 @@ export const ByIds: RequestHandler = async (req, res) => {
  * person has bought, saved, put in their cart or recently looked at - none of
  * which they are shown again, and none of their own listings. With nothing to
  * go on, the best-rated books in stock.
+ *
+ * Whether they are personal comes back too. Reused by the shopping assistant,
+ * which passes the signed-in person's address from the session, never from
+ * anything the model said.
  */
+export const personalPicks = async (
+  email: string | undefined,
+  seen: readonly string[] = []
+): Promise<{ items: LeanBook[]; personal: boolean }> => {
+  const account = email ? await User.findOne({ email }, { _id: 1 }).lean() : null;
+
+  const [ordered, wished, carted] = await Promise.all([
+    email ? Order.distinct('bookId', { buyerEmail: email }) : [],
+    account ? Wishlist.distinct('book', { user: account._id }) : [],
+    account ? Cart.distinct('book', { user: account._id }) : [],
+  ]);
+  const known = [...ordered, ...wished, ...carted, ...seen].map(String);
+
+  const tastes = await AddBook.find({ _id: { $in: known } }, { category: 1, author: 1 }).lean();
+  const categories = [...new Set(tastes.flatMap((book) => book.category ?? []))];
+  const authors = [...new Set(tastes.map((book) => book.author).filter(Boolean))];
+
+  const notThese = {
+    _id: { $nin: known },
+    ...(email ? { sellerEmail: { $ne: email } } : {}),
+    ...inStock,
+  };
+
+  let picks: LeanBook[] = [];
+  if (categories.length || authors.length) {
+    picks = await AddBook.find(
+      { ...notThese, $or: [{ category: { $in: categories } }, { author: { $in: authors } }] },
+      LIST_IMAGE_PROJECTION
+    )
+      .sort({ ratingAverage: -1, discountPercent: -1, createdAt: -1, _id: -1 })
+      .limit(SHELF)
+      .lean<LeanBook[]>();
+  }
+  if (picks.length < SHELF) {
+    const more = await AddBook.find(
+      { ...notThese, _id: { $nin: [...known, ...picks.map((book) => String(book._id))] } },
+      LIST_IMAGE_PROJECTION
+    )
+      .sort({ ratingAverage: -1, ratingCount: -1, createdAt: -1, _id: -1 })
+      .limit(SHELF - picks.length)
+      .lean<LeanBook[]>();
+    picks = [...picks, ...more];
+  }
+
+  return { items: picks, personal: Boolean(categories.length || authors.length) };
+};
+
 export const ForYou: RequestHandler = async (req, res) => {
   const { seen = [] } = validatedQuery<ForYouQuery>(req);
   try {
-    const email = req.user?.email;
-    const account = email ? await User.findOne({ email }, { _id: 1 }).lean() : null;
-
-    const [ordered, wished, carted] = await Promise.all([
-      email ? Order.distinct('bookId', { buyerEmail: email }) : [],
-      account ? Wishlist.distinct('book', { user: account._id }) : [],
-      account ? Cart.distinct('book', { user: account._id }) : [],
-    ]);
-    const known = [...ordered, ...wished, ...carted, ...seen].map(String);
-
-    const tastes = await AddBook.find({ _id: { $in: known } }, { category: 1, author: 1 }).lean();
-    const categories = [...new Set(tastes.flatMap((book) => book.category ?? []))];
-    const authors = [...new Set(tastes.map((book) => book.author).filter(Boolean))];
-
-    const notThese = {
-      _id: { $nin: known },
-      ...(email ? { sellerEmail: { $ne: email } } : {}),
-      ...inStock,
-    };
-
-    let picks: LeanBook[] = [];
-    if (categories.length || authors.length) {
-      picks = await AddBook.find(
-        { ...notThese, $or: [{ category: { $in: categories } }, { author: { $in: authors } }] },
-        LIST_IMAGE_PROJECTION
-      )
-        .sort({ ratingAverage: -1, discountPercent: -1, createdAt: -1, _id: -1 })
-        .limit(SHELF)
-        .lean<LeanBook[]>();
-    }
-    if (picks.length < SHELF) {
-      const more = await AddBook.find(
-        { ...notThese, _id: { $nin: [...known, ...picks.map((book) => String(book._id))] } },
-        LIST_IMAGE_PROJECTION
-      )
-        .sort({ ratingAverage: -1, ratingCount: -1, createdAt: -1, _id: -1 })
-        .limit(SHELF - picks.length)
-        .lean<LeanBook[]>();
-      picks = [...picks, ...more];
-    }
-
-    res.status(200).json({ items: picks.map(withCoverUrls), personal: Boolean(categories.length || authors.length) });
+    const { items, personal } = await personalPicks(req.user?.email, seen);
+    res.status(200).json({ items: items.map(withCoverUrls), personal });
   } catch (error) {
     res.status(500).json({ message: errorMessage(error) });
   }

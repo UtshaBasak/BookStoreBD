@@ -28,6 +28,8 @@ export const MESSAGES_BN: Readonly<Record<string, string>> = {
   'Must be an installation id': 'সঠিক ইনস্টলেশন আইডি দিন',
   'Not a push token': 'এটি পুশ টোকেন নয়',
   'Type something to search for': 'খোঁজার জন্য কিছু লিখুন',
+  'Type a question': 'একটি প্রশ্ন লিখুন',
+  'Keep the question to 500 characters': 'প্রশ্নটি ৫০০ অক্ষরের মধ্যে রাখুন',
   'At least one item is required': 'অন্তত একটি বই লাগবে',
   'Must be 8-64 letters, digits, - or _': '৮-৬৪টি অক্ষর, সংখ্যা, - বা _ হতে হবে',
   'Cash on Delivery is the only payment method': 'ক্যাশ অন ডেলিভারিই একমাত্র পেমেন্ট পদ্ধতি',

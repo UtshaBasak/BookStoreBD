@@ -2,6 +2,7 @@ import rateLimit, { type Options } from 'express-rate-limit';
 
 import { securityEvent } from '../utils/securityLog.js';
 import { languageOf } from '../utils/language.js';
+import { assistantSettings } from '../config/env.js';
 
 /**
  * Limits are keyed by client IP. Users on a shared campus or office NAT all
@@ -83,6 +84,19 @@ export const clientErrorLimiter = rateLimit({
   max: 60,
   ...common,
   ...reporting('client_error'),
+});
+
+/**
+ * The shopping assistant. Each question can cost a call to a paid-for (or
+ * tightly rationed free) model, so this is far stricter than the rest: about
+ * one question every few seconds, sustained. A person typing never meets it;
+ * a script does. Each person also has a daily cap (controllers/assistant).
+ */
+export const assistantLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: () => assistantSettings().perMinute,
+  ...common,
+  ...reporting('assistant'),
 });
 
 /** Routes that accept uploads or write chat, profile and return data. */

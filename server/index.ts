@@ -5,6 +5,7 @@ import { registerChatSocket } from './sockets/chatSocket.js';
 import { logger } from './config/logger.js';
 import { initErrorTracking } from './config/sentry.js';
 import { mailTransport } from './utils/mailer.js';
+import { startModerationWorker, stopModerationWorker } from './utils/moderation/queue.js';
 
 const start = async () => {
   assertRequiredEnv();
@@ -19,9 +20,12 @@ const start = async () => {
   });
 
   registerChatSocket(server);
+  // Automatic moderation's background checks; does nothing while MODERATION_MODE is off.
+  startModerationWorker();
 
   const shutdown = (signal: NodeJS.Signals): void => {
     logger.info({ signal }, 'Shutting down gracefully');
+    stopModerationWorker();
     server.close(async () => {
       await disconnectDatabase();
       process.exit(0);

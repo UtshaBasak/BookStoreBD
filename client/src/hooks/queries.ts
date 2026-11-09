@@ -59,6 +59,15 @@ import type {
   InviteRequest,
   PopularSearchesResponse,
   AuthConfig,
+  AssistantConfig,
+  AssistantRequest,
+  AssistantReply,
+  AssistantFeedbackRequest,
+  ModerationFlagList,
+  ModerationFlagDetail,
+  ModerationDecisionRequest,
+  ModerationStats,
+  AssistantStats,
 } from '@shared/api.js';
 
 import { apiFetch, apiUrl } from '../config/api.js';
@@ -942,4 +951,123 @@ export const useAuthConfig = (): UseQueryResult<AuthConfig> =>
     queryKey: keys.authConfig,
     queryFn: () => request<AuthConfig>('/auth/config'),
     staleTime: 5 * 60 * 1000,
+  });
+
+/** Whether to offer the shopping assistant at all. Fetched by the launcher once the page is idle. */
+export const useAssistantConfig = (enabled = true): UseQueryResult<AssistantConfig> =>
+  useQuery({
+    queryKey: ['assistant', 'config'] as const,
+    queryFn: () => request<AssistantConfig>('/assistant/config'),
+    staleTime: 5 * 60 * 1000,
+    retry: false,
+    enabled,
+  });
+
+/** One question to the assistant. */
+export const useAskAssistant = (): UseMutationResult<AssistantReply, Error, AssistantRequest> =>
+  useMutation({
+    mutationFn: (body: AssistantRequest) => request<AssistantReply>('/assistant/chat', json('POST', body)),
+  });
+
+/** A thumbs up or down on one answer. */
+export const useAssistantFeedback = (): UseMutationResult<unknown, Error, AssistantFeedbackRequest> =>
+  useMutation({
+    mutationFn: (body: AssistantFeedbackRequest) => request('/assistant/feedback', json('POST', body)),
+  });
+
+// ---------------------------------------------------------------------------
+// Automatic moderation: what the system flagged, for an administrator
+// ---------------------------------------------------------------------------
+/** The filters of the flagged list, as the API takes them. */
+export interface ModerationFlagParams {
+  status?: string;
+  type?: string;
+  source?: string;
+  severity?: string;
+  shadow?: boolean;
+  search?: string;
+  sort?: string;
+  page?: number;
+  pageSize?: number;
+}
+
+const moderationSearch = (params: ModerationFlagParams): string => {
+  const query = new URLSearchParams();
+  for (const [name, value] of Object.entries(params)) {
+    if (value === undefined || value === '' || value === false) continue;
+    query.set(name, value === true ? '1' : String(value));
+  }
+  return query.toString();
+};
+
+export const useModerationFlags = (
+  params: ModerationFlagParams,
+  options: Partial<QueryOptions<ModerationFlagList>> = {}
+): UseQueryResult<ModerationFlagList> => {
+  const search = moderationSearch(params);
+  return useQuery<ModerationFlagList, Error, ModerationFlagList>({
+    queryKey: ['moderation', 'flags', search],
+    queryFn: () => request<ModerationFlagList>(`/moderation/flags${search ? `?${search}` : ''}`),
+    placeholderData: keepPreviousData,
+    ...options,
+  });
+};
+
+/** One flag with its content in context. Opening a chat flag is recorded in the audit log. */
+export const useModerationFlag = (id: Id | null): UseQueryResult<ModerationFlagDetail> =>
+  useQuery<ModerationFlagDetail, Error, ModerationFlagDetail>({
+    queryKey: ['moderation', 'flag', id],
+    queryFn: () => request<ModerationFlagDetail>(`/moderation/flags/${id}`),
+    enabled: Boolean(id),
+    // Each fetch of a chat flag is an audit row: do not repeat it on focus.
+    staleTime: 60 * 1000,
+    refetchOnWindowFocus: false,
+  });
+
+export const useModerationStats = (): UseQueryResult<ModerationStats> =>
+  useQuery<ModerationStats, Error, ModerationStats>({
+    queryKey: ['moderation', 'stats'],
+    queryFn: () => request<ModerationStats>('/moderation/stats'),
+    staleTime: 30 * 1000,
+  });
+
+/** The list and the counts, not an open flag: refetching a chat flag would add another audit row. */
+const refreshModeration = (client: ReturnType<typeof useQueryClient>) =>
+  Promise.all([
+    client.invalidateQueries({ queryKey: ['moderation', 'flags'] }),
+    client.invalidateQueries({ queryKey: ['moderation', 'stats'] }),
+  ]);
+
+export const useDecideFlag = (): UseMutationResult<unknown, Error, { id: Id } & ModerationDecisionRequest> => {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, ...body }: { id: Id } & ModerationDecisionRequest) =>
+      request<unknown>(`/moderation/flags/${id}/decision`, json('POST', body)),
+    onSuccess: () => refreshModeration(client),
+  });
+};
+
+export const useClearFlags = (): UseMutationResult<{ cleared: number }, Error, { ids: Id[]; note?: string }> => {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: (body: { ids: Id[]; note?: string }) =>
+      request<{ cleared: number }>('/moderation/flags/clear', json('POST', body)),
+    onSuccess: () => refreshModeration(client),
+  });
+};
+
+/** Removes a listing (the administrator's existing delete). */
+export const useDeleteListing = (): UseMutationResult<unknown, Error, Id> => {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: (id: Id) => request<unknown>(`/book/${id}`, json('DELETE')),
+    onSuccess: () => client.invalidateQueries({ queryKey: ['catalogue'] }),
+  });
+};
+
+export const useAssistantStats = (): UseQueryResult<AssistantStats> =>
+  useQuery<AssistantStats, Error, AssistantStats>({
+    queryKey: ['admin', 'assistant-stats'],
+    queryFn: () => request<AssistantStats>('/assistant/stats'),
+    staleTime: 60 * 1000,
   });

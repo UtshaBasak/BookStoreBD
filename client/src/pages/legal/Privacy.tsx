@@ -367,11 +367,65 @@ export default function Privacy() {
               কাছ থেকে বিস্তারিত নিয়ে আসে। অ্যাপ থেকে সাইন আউট করলে এটি বন্ধ হয়ে যায়।</>
           )}
         </li>
+        <li>
+          {pick(
+            <><strong>Google Gemini</strong> powers the shopping assistant and
+              part of our automated review checks. It receives the questions you
+              ask the assistant, with phone numbers, e-mail addresses and links
+              taken out, your public username if you are signed in, and the public text of reviews, ratings and listings. It
+              never receives your orders' details, your address, your payment
+              numbers or any chat message. Google may use what it receives to
+              improve its services, so please do not type personal details into
+              the assistant.</>,
+            <><strong>Google Gemini</strong> শপিং সহকারী ও আমাদের স্বয়ংক্রিয় রিভিউ যাচাইয়ের একটি অংশ
+              চালায়। এটি পায় সহকারীকে করা আপনার প্রশ্ন, ফোন নম্বর, ই-মেইল ঠিকানা ও লিংক সরিয়ে, সাইন ইন করা থাকলে আপনার প্রকাশ্য ইউজারনেম, আর রিভিউ,
+              রেটিং ও লিস্টিংয়ের প্রকাশ্য লেখা। আপনার অর্ডারের বিবরণ, ঠিকানা, পেমেন্টের নম্বর বা কোনো চ্যাট
+              মেসেজ এটি কখনো পায় না। Google পাওয়া তথ্য তাদের সেবা উন্নত করতে ব্যবহার করতে পারে, তাই সহকারীকে
+              ব্যক্তিগত তথ্য লিখবেন না।</>
+          )}
+        </li>
       </ul>
       <p>
         {t(
           'We do not sell personal data, and we do not share it for advertising.',
           'আমরা ব্যক্তিগত তথ্য বিক্রি করি না, এবং বিজ্ঞাপনের জন্য কারও সঙ্গে শেয়ারও করি না।'
+        )}
+      </p>
+
+      <h2 id="assistant">{t('The shopping assistant and automated checks', 'শপিং সহকারী ও স্বয়ংক্রিয় যাচাই')}</h2>
+      <p>
+        {pick(
+          <>The shopping assistant is an AI helper and can make mistakes. When you
+            are signed in it can show your own orders and suggest books from what
+            you bought, saved or put in your cart and, if you allow personalisation, recently viewed;
+            those details are shown to you by our own server and are not sent to
+            Google. We do not keep your conversation: it stays in your browser tab
+            and is gone when you close it. A thumbs up or down is stored without
+            the question or the answer.</>,
+          <>শপিং সহকারী একটি AI সহায়ক এবং ভুল করতে পারে। সাইন ইন করা থাকলে এটি আপনার নিজের অর্ডার দেখাতে
+            পারে এবং আপনার কেনা, সংরক্ষিত বা কার্টে রাখা এবং, পার্সোনালাইজেশনের অনুমতি দিলে, সম্প্রতি দেখা বই থেকে বই সাজেস্ট
+            করতে পারে; এসব তথ্য আমাদের নিজস্ব সার্ভার আপনাকে দেখায়, Google-এ পাঠানো হয় না। আমরা আপনার
+            কথোপকথন রাখি না: তা আপনার ব্রাউজারের ট্যাবেই থাকে এবং বন্ধ করলে মুছে যায়। থাম্বস আপ বা ডাউন
+            প্রশ্ন বা উত্তর ছাড়া সংরক্ষিত হয়।</>
+        )}
+      </p>
+      <p>
+        {pick(
+          <>To find spam, abuse and prohibited listings sooner, reviews, ratings,
+            listings and chat messages are checked automatically. A check never
+            removes or hides anything: it only asks an administrator to look, and
+            a person always decides. Chat messages are checked by fixed rules on
+            our own server and are never sent to an AI; when those rules point at
+            messages that look like spam, an administrator may read those
+            messages to decide, and each time they do it is recorded. If an
+            administrator removes something of yours, we tell you why, and you can
+            reply through the Contact page.</>,
+          <>স্প্যাম, গালাগাল ও নিষিদ্ধ লিস্টিং আগে খুঁজে পেতে রিভিউ, রেটিং, লিস্টিং ও চ্যাট মেসেজ
+            স্বয়ংক্রিয়ভাবে যাচাই করা হয়। এই যাচাই কখনো কিছু সরায় বা লুকায় না: এটি শুধু একজন অ্যাডমিনকে
+            দেখতে বলে, আর সিদ্ধান্ত সবসময় একজন মানুষ নেন। চ্যাট মেসেজ আমাদের নিজস্ব সার্ভারে নির্দিষ্ট নিয়মে
+            যাচাই হয় এবং কখনো কোনো AI-তে পাঠানো হয় না; নিয়মগুলো স্প্যামের মতো মেসেজ দেখালে সিদ্ধান্ত নিতে
+            একজন অ্যাডমিন সেই মেসেজগুলো পড়তে পারেন, এবং প্রতিবার তা রেকর্ড করা হয়। অ্যাডমিন আপনার কিছু সরালে
+            আমরা কারণ জানাই, এবং আপনি যোগাযোগ পাতার মাধ্যমে উত্তর দিতে পারেন।</>
         )}
       </p>
 

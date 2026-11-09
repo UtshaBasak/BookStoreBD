@@ -114,6 +114,75 @@ export const config = {
 
 export type AppConfig = typeof config;
 
+const numberFrom = (value: string | undefined, fallback: number, { min = 0, max = Number.MAX_SAFE_INTEGER } = {}): number => {
+  const parsed = Number(value);
+  return value !== undefined && value.trim() !== '' && Number.isFinite(parsed) ? Math.min(max, Math.max(min, parsed)) : fallback;
+};
+
+export type ModerationMode = 'off' | 'shadow' | 'on';
+export type ThinkingLevel = 'minimal' | 'low' | 'medium' | 'high';
+
+/**
+ * The Gemini API (Google AI Studio), behind the shopping assistant and the
+ * model layer of moderation.
+ *
+ * Off until GEMINI_API_KEY is set, like the bot check: without it the
+ * assistant is hidden and moderation runs its rules only. Model names and
+ * budgets change over time, so every one is a variable, and none of them is
+ * needed. Read when used, not at start-up, so a key can be added without a
+ * code change and a test can set one for itself.
+ */
+export const geminiSettings = () => {
+  const thinking = (process.env.GEMINI_THINKING_LEVEL ?? 'minimal').trim().toLowerCase();
+  return {
+    apiKey: process.env.GEMINI_API_KEY?.trim() || null,
+    model: process.env.GEMINI_MODEL?.trim() || 'gemini-3.5-flash-lite',
+    moderationModel: process.env.GEMINI_MODERATION_MODEL?.trim() || process.env.GEMINI_MODEL?.trim() || 'gemini-3.5-flash-lite',
+    embeddingModel: process.env.GEMINI_EMBEDDING_MODEL?.trim() || 'gemini-embedding-001',
+    /** Empty to leave thinking at the model's default (older models refuse the setting). */
+    thinkingLevel: (['minimal', 'low', 'medium', 'high'].includes(thinking) ? thinking : null) as ThinkingLevel | null,
+    /** The shop-wide ceilings, kept under the key's free-tier limits. */
+    requestsPerMinute: numberFrom(process.env.GEMINI_RPM, 10, { min: 1 }),
+    requestsPerDay: numberFrom(process.env.GEMINI_RPD, 500, { min: 1 }),
+    /** The part of both ceilings moderation may use; the assistant has the rest, and priority. */
+    moderationShare: numberFrom(process.env.GEMINI_MODERATION_SHARE, 0.2, { min: 0, max: 1 }),
+    timeoutMs: numberFrom(process.env.GEMINI_TIMEOUT_MS, 20_000, { min: 1000 }),
+    maxConcurrent: numberFrom(process.env.GEMINI_MAX_CONCURRENT, 4, { min: 1 }),
+  };
+};
+
+export type GeminiSettings = ReturnType<typeof geminiSettings>;
+
+/** The shopping assistant's own switch and limits. It also needs the Gemini key. */
+export const assistantSettings = () => ({
+  enabled: process.env.ASSISTANT_ENABLED !== 'false',
+  /** Questions a signed-in person may ask in a day. */
+  perUserDaily: numberFrom(process.env.ASSISTANT_USER_DAILY, 60, { min: 1 }),
+  /** Questions a visitor who is not signed in may ask in a day, per address. */
+  perIpDaily: numberFrom(process.env.ASSISTANT_IP_DAILY, 30, { min: 1 }),
+  /** Questions a minute from one address, before the limiter answers 429. */
+  perMinute: numberFrom(process.env.ASSISTANT_PER_MINUTE, 12, { min: 1 }),
+});
+
+/**
+ * Automatic moderation: `off`, `shadow` (flags recorded but not shown to
+ * admins, for a trial) or `on`. Off unless set, so nothing changes until the
+ * owner turns it on; render.yaml starts it in shadow.
+ */
+/** Rule codes switched off, from MODERATION_DISABLED_RULES (comma-separated). */
+export const disabledModerationRules = (): Set<string> =>
+  new Set(
+    (process.env.MODERATION_DISABLED_RULES ?? '')
+      .split(',')
+      .map((code) => code.trim())
+      .filter(Boolean)
+  );
+
+export const moderationMode = (): ModerationMode => {
+  const mode = (process.env.MODERATION_MODE ?? 'off').trim().toLowerCase();
+  return mode === 'on' || mode === 'shadow' ? mode : 'off';
+};
+
 export const assertRequiredEnv = (): void => {
   const missing: string[] = [];
   if (!config.mongoUri) missing.push('MONGO');

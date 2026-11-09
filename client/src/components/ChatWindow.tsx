@@ -17,10 +17,12 @@ interface ChatWindowProps {
   receiver: string;
   receiverName: string;
   onClose: () => void;
+  /** Words to start the message box with; the person still presses Send. */
+  initialDraft?: string;
 }
 
-export default function ChatWindow({ receiver, receiverName, onClose }: ChatWindowProps) {
-  const [message, setMessage] = useState('');
+export default function ChatWindow({ receiver, receiverName, onClose, initialDraft }: ChatWindowProps) {
+  const [message, setMessage] = useState(initialDraft ?? '');
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [selectedImage, setSelectedImage] = useState<File | null>(null);
   const messagesEndRef = useRef<HTMLDivElement | null>(null);

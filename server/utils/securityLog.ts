@@ -61,11 +61,14 @@ export const SECURITY_ACTIONS = {
   'authz.denied': { category: 'authorization', severity: 'medium', outcome: 'failure' },
   'ratelimit.exceeded': { category: 'abuse', severity: 'low', outcome: 'failure' },
   'upload.url_rejected': { category: 'abuse', severity: 'medium', outcome: 'failure' },
+  'assistant.injection_suspected': { category: 'abuse', severity: 'medium', outcome: 'failure' },
+  'assistant.abuse': { category: 'abuse', severity: 'low', outcome: 'failure' },
 
   'admin.role.granted': { category: 'admin', severity: 'high', outcome: 'success' },
   'admin.user.deleted': { category: 'admin', severity: 'medium', outcome: 'success' },
   'admin.payout.recorded': { category: 'admin', severity: 'medium', outcome: 'success' },
   'admin.message.sent': { category: 'admin', severity: 'medium', outcome: 'success' },
+  'admin.moderation.decided': { category: 'admin', severity: 'medium', outcome: 'success' },
 } as const satisfies Record<string, ActionDefinition>;
 
 export type SecurityAction = keyof typeof SECURITY_ACTIONS;
