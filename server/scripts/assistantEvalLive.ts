@@ -27,13 +27,13 @@ import { geminiSettings } from '../config/env.js';
 import { ASSISTANT_CASES } from '../eval/assistantCases.js';
 import { DEFAULT_PACE_MS } from '../eval/liveTransport.js';
 import { runAssistantEval } from '../eval/runAssistantEval.js';
-import { assertMayRun, openScratchDatabase, parseEvalArgs } from './evalDb.js';
+import { assertMayRun, openScratchDatabase, parseEvalArgs, pickCases } from './evalDb.js';
 
 const run = async (): Promise<void> => {
   const args = parseEvalArgs(process.argv.slice(2));
   assertMayRun(args, 'Live evaluation of the shopping assistant (real Gemini calls).');
   const paceMs = args.paceMs ?? DEFAULT_PACE_MS;
-  const cases = args.only ? ASSISTANT_CASES.filter((item) => item.id.startsWith(args.only as string)) : ASSISTANT_CASES;
+  const cases = pickCases(ASSISTANT_CASES, args.only);
   if (!cases.length) throw new Error(`No case id starts with "${args.only}".`);
 
   const settings = geminiSettings();

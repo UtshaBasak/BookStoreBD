@@ -431,7 +431,8 @@ export const runAssistantEval = async (options: RunAssistantEvalOptions): Promis
       const inspected: Inspected = { tools: [], helpTexts: [], helpTopics: [] };
       current = inspected;
       const state = { steps: [...(item.recorded ?? RECORDED[item.id] ?? [])], gaps: 0, requests: 0, inspected };
-      if (live) {
+      // An outage cannot be asked of the real API: those cases play their scripted failure in live mode too.
+      if (live && !item.expect.fallback) {
         let requests = 0;
         setGeminiTransportForTesting(async (url, body, init) => {
           requests += 1;
