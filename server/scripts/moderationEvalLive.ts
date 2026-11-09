@@ -25,7 +25,8 @@ import { fileURLToPath } from 'url';
 import { geminiSettings } from '../config/env.js';
 import { DEFAULT_PACE_MS } from '../eval/liveTransport.js';
 import { runModelLayer, runRuleLayer } from '../eval/runModerationEval.js';
-import { assertMayRun, openScratchDatabase, parseEvalArgs } from './evalDb.js';
+import { assertMayRun, openScratchDatabase, parseEvalArgs, pickCases } from './evalDb.js';
+import { MODERATION_CASES } from '../eval/moderationCases.js';
 
 const run = async (): Promise<void> => {
   const args = parseEvalArgs(process.argv.slice(2));
@@ -37,12 +38,15 @@ const run = async (): Promise<void> => {
   const scratch = await openScratchDatabase();
   try {
     const rules = await runRuleLayer();
-    const model = await runModelLayer({ mode: 'live', paceMs, onProgress: (line) => console.log(line) });
+    const cases = pickCases(MODERATION_CASES, args.only);
+    if (!cases.length) throw new Error(`No case id starts with "${args.only}".`);
+    const model = await runModelLayer({ mode: 'live', paceMs, cases, onProgress: (line) => console.log(line) });
     const date = new Date().toISOString().slice(0, 10);
     const document = [
       `# Automatic moderation, live evaluation, ${date}`,
       '',
       `Model: ${settings.moderationModel}. Real Gemini responses for ${model.items} invented public-text items, paced at ${paceMs} ms. Chat is rules only and never sent.`,
+      args.only ? `Model layer: only cases starting with "${args.only}". The rule layer always runs in full.` : 'All cases.',
       '',
       '## Rule layer',
       '',

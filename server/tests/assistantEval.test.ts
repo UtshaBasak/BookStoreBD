@@ -96,14 +96,13 @@ describe('offline assistant evaluation (recorded model responses)', () => {
 
   it('gives the model the facts a policy answer needs, and the reply holds them', () => {
     expect(result.metrics.policyToolResultFacts.total).toBeGreaterThanOrEqual(15);
-    // One miss, a documented one (pol-20): the help does not surface the figure for that wording.
-    expect(result.metrics.policyToolResultFacts.rate).toBeGreaterThanOrEqual(0.95);
+    // Help is looked up with the person's own words as well as the model's, so a rewording cannot lose the figure.
+    expect(result.metrics.policyToolResultFacts.rate).toBe(1);
     expect(result.metrics.policyAnswerFacts.rate).toBe(1);
   });
 
   it('finds the books and the orders it should, and never another person’s', () => {
-    // Two misses, both documented (find-07, find-12): an English author name against a Bangla-script listing.
-    expect(result.metrics.bookHit.rate).toBeGreaterThanOrEqual(0.93);
+    expect(result.metrics.bookHit.rate).toBe(1);
     expect(result.metrics.orderGrounding.rate).toBe(1);
   });
 

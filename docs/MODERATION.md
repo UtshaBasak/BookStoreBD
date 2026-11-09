@@ -292,8 +292,10 @@ model.
   runs for real. The model's labels are played back from hand-written
   recordings, so that part only tests the plumbing.
 - **Live, by hand:** `npm --prefix server run eval:moderation:live -- --yes`,
-  with `--pace=ms` (default 6500) and `--write` (saves the tables to
-  `docs/eval/moderation-live-<date>.md`). About 70 requests. It needs
+  with `--pace=ms` (default 6500), `--only=rv-,ls-07` (only those cases in the
+  model layer; the rule layer always runs in full) and `--write` (saves the
+  tables to `docs/eval/moderation-live-<date>.md`). About 70 requests. The
+  database and PowerShell notes in `docs/ASSISTANT.md` apply here too. It needs
   `GEMINI_API_KEY` and `MONGO`, seeds a separate `<db>_eval` database and drops
   it afterwards, and refuses to run in production.
 

@@ -254,7 +254,7 @@ export const answerQuestion = async (input: AskInput): Promise<AssistantReply> =
   const cached = personal ? undefined : cache.get(key);
   if (cached && Date.now() - cached.at < CACHE_MS) return { ...cached.reply, requestId: input.requestId };
 
-  const context: ToolContext = { language, email: input.email, seen: input.seen };
+  const context: ToolContext = { language, email: input.email, seen: input.seen, question: input.message };
   const system = assistantSystemPrompt({
     language,
     signedIn: Boolean(input.email),

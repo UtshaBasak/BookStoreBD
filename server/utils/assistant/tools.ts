@@ -26,6 +26,7 @@ import type { GeminiFunctionDeclaration } from '../gemini.js';
 import { helpAsData, searchKnowledge } from './retrieval.js';
 import { SITE_PAGES } from './knowledge.js';
 import { searchByMeaning } from './semantic.js';
+import { bookSearchKey, phoneticPattern } from '../phonetic.js';
 
 /**
  * What the shopping assistant can do, as tools the model may ask for.
@@ -48,6 +49,8 @@ export interface ToolContext {
   email?: string;
   /** Books the visitor viewed recently, sent by the browser only when they allow it. */
   seen: string[];
+  /** The person's own words this turn. Help is looked up with them too, not only with the model's rewording. */
+  question?: string;
 }
 
 /** What the tools found for the person, shown under the answer. */
@@ -156,6 +159,32 @@ const catalogueQuery = (args: z.infer<typeof searchArgs>, search: string | undef
   pageSize,
 });
 
+/**
+ * A writer's name in one script often misses the other's spelling of the
+ * surname ("Tagore" and ঠাকুর, "Gangopadhyay" and গঙ্গোপাধ্যায়): with few
+ * books found, each longer word of the name is searched on its own as well.
+ */
+const widenByAuthorWords = async (
+  args: z.infer<typeof searchArgs>,
+  author: string,
+  found: LeanBook[],
+  limit: number
+): Promise<LeanBook[]> => {
+  if (found.length >= 3) return found;
+  const books = [...found];
+  const known = new Set(books.map((book) => String(book._id)));
+  for (const word of author.split(/\s+/).filter((part) => part.length >= 4)) {
+    const more = await findCatalogue(catalogueQuery(args, word, MAX_BOOKS_SHOWN));
+    for (const book of more.items) {
+      if (!known.has(String(book._id)) && books.length < limit) {
+        known.add(String(book._id));
+        books.push(book);
+      }
+    }
+  }
+  return books;
+};
+
 const searchBooks = async (raw: unknown, context: ToolContext, collected: Collected) => {
   const args = searchArgs.parse(raw);
   const words = (value: string) => value.toLowerCase().split(/\s+/).filter((word) => word.length > 1);
@@ -164,32 +193,27 @@ const searchBooks = async (raw: unknown, context: ToolContext, collected: Collec
   let total: number;
   if (args.author && args.query) {
     // There is no author filter: search the author, then keep the titles that
-    // match - and fall back to all of the author's books if none does.
+    // match. A title may be in the other script ("Sei Somoy" and সেই সময়), so
+    // it is matched by sound as well as by letters.
     const byAuthor = await findCatalogue(catalogueQuery(args, args.author, 50));
+    const pool = await widenByAuthorWords(args, args.author, byAuthor.items, 50);
     const wanted = words(args.query);
-    const titled = byAuthor.items.filter((book) => wanted.some((word) => book.title.toLowerCase().includes(word)));
-    books = (titled.length ? titled : byAuthor.items).slice(0, MAX_BOOKS_SHOWN);
-    total = titled.length || byAuthor.total;
+    const sound = phoneticPattern(args.query);
+    let titled = pool.filter(
+      (book) => wanted.some((word) => book.title.toLowerCase().includes(word)) || Boolean(sound?.test(bookSearchKey({ title: book.title })))
+    );
+    // None of the author's books has that title: the title alone, whoever wrote it.
+    if (!titled.length) titled = (await findCatalogue(catalogueQuery(args, args.query, MAX_BOOKS_SHOWN))).items;
+    books = (titled.length ? titled : pool).slice(0, MAX_BOOKS_SHOWN);
+    total = titled.length || Math.max(byAuthor.total, pool.length);
   } else {
     const found = await findCatalogue(catalogueQuery(args, args.author ?? args.query, MAX_BOOKS_SHOWN));
     books = found.items;
     total = found.total;
-  }
-
-  // A writer's name in one script often misses the other's spelling of the
-  // surname ("Tagore" and ঠাকুর): try each longer word of the name on its own.
-  if (args.author && !args.query && books.length < 3) {
-    const known = new Set(books.map((book) => String(book._id)));
-    for (const word of args.author.split(/\s+/).filter((part) => part.length >= 4)) {
-      const more = await findCatalogue(catalogueQuery(args, word, MAX_BOOKS_SHOWN));
-      for (const book of more.items) {
-        if (!known.has(String(book._id)) && books.length < MAX_BOOKS_SHOWN) {
-          known.add(String(book._id));
-          books.push(book);
-        }
-      }
+    if (args.author && !args.query) {
+      books = await widenByAuthorWords(args, args.author, books, MAX_BOOKS_SHOWN);
+      total = Math.max(total, books.length);
     }
-    total = Math.max(total, books.length);
   }
 
   // A description of what a book is about, or a search that found nothing:
@@ -251,10 +275,23 @@ const helpArgs = z.object({ question: text(300) });
 
 const shopHelp = (raw: unknown, context: ToolContext, collected: Collected) => {
   const { question } = helpArgs.parse(raw);
-  const matches = searchKnowledge(question, 3);
+  // The model's wording and the person's own: a rewording such as "seller
+  // payment schedule" must not lose the topic the question named. The best
+  // match of each comes first, then the rest by score.
+  const byModel = searchKnowledge(question, 3);
+  const byPerson = context.question ? searchKnowledge(context.question, 3) : [];
+  const rest = [...byModel.slice(1), ...byPerson.slice(1)].sort((a, b) => b.score - a.score);
+  const seen = new Set<string>();
+  const matches = [byModel[0], byPerson[0], ...rest]
+    .filter((match): match is NonNullable<typeof match> => match !== undefined)
+    .filter(({ chunk }) => !seen.has(chunk.id) && Boolean(seen.add(chunk.id)))
+    .slice(0, 3);
   for (const { chunk } of matches) addLink(collected, { href: chunk.link, label: pageName(chunk.link, context.language) });
   return matches.length
-    ? { help: matches.map(({ chunk }) => helpAsData(chunk, context.language)) }
+    ? {
+        help: matches.map(({ chunk }) => helpAsData(chunk, context.language)),
+        note: 'If this help does not settle the exact question - a place, a case or an option it does not name - say what it does cover, say you are not sure about the rest, and call talk_to_person.',
+      }
     : { help: [], note: 'Nothing in the shop help matches. Say you are not sure and offer talk_to_person.' };
 };
 

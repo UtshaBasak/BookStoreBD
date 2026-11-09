@@ -16,9 +16,16 @@ export interface EvalArgs {
   yes: boolean;
   write: boolean;
   paceMs: number | null;
-  /** Run only the cases whose id starts with this, to spend less of the quota. */
+  /** Run only the cases whose id starts with this (or with any of a comma-separated list), to spend less of the quota. */
   only: string | null;
 }
+
+/** The cases `--only` picks: every case when it is not given. */
+export const pickCases = <T extends { id: string }>(cases: readonly T[], only: string | null): T[] => {
+  if (!only) return [...cases];
+  const prefixes = only.split(',').map((part) => part.trim()).filter(Boolean);
+  return cases.filter((item) => prefixes.some((prefix) => item.id.startsWith(prefix)));
+};
 
 export const parseEvalArgs = (argv: string[]): EvalArgs => {
   const pace = argv.find((arg) => arg.startsWith('--pace='));

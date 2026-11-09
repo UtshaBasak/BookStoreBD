@@ -1,5 +1,29 @@
 # Evaluation results: shopping assistant and automatic moderation
 
+> **First live run, 2026-11-09, and follow-ups, 2026-11-10.** The real model
+> was measured for the first time:
+> [assistant](../../docs/eval/assistant-live-2026-11-09.md) 96 of 103 cases
+> passed every check (the two outage cases could not run live then; they now
+> play their scripted failure), and
+> [moderation](../../docs/eval/moderation-live-2026-11-09.md) flagged at 94%
+> precision and 94% recall. The misses were fixed:
+>
+> - `shop_help` looks help up with the person's own words as well as the
+>   model's rewording (pol-16, pol-20), and every result says to offer a person
+>   when it does not settle the exact question (pol-27).
+> - `search_books` matches a title in the other script by sound, and widens a
+>   writer's name word by word even with a title given (find-14).
+> - Prompt: books like a named one are searched by description (rec-05);
+>   wanting to chat with the shop calls `talk_to_person` (han-06); figures,
+>   days and order stages are stated as the help writes them (pol-19).
+> - Moderation prompt: the labels no longer overlap; non-book goods are
+>   `prohibited`; a printed book about PDFs or photocopiers is fine.
+> - Four labels corrected, one rule for all: see the rerun file.
+>
+> [Reruns](../../docs/eval/live-reruns-2026-11-10.md): the changed assistant
+> cases pass, and moderation flags at 100% precision and 97% recall. The
+> offline floors for policy facts and book retrieval are now 100%.
+
 > **Update, 2026-11-09:** every known issue from the first run is fixed. The
 > current offline numbers are below; the first run's tables follow them as
 > history. These sets are small and the fixes were made with them in view, so
@@ -204,12 +228,12 @@ Recorded labels, see the note at the top: a baseline for the plumbing (JSON sche
 
 Flagged vs. ok: precision 97%, recall 94%; label accuracy 94%; 0 calls failed.
 
-Recorded false positive: ls-31 (the firearms history, labelled `prohibited`). Recorded misses: rv-33 (spelled-out number, below the confidence cut) and rv-34 (a profane word, recorded at 0.65, under the 0.7 cut). Recorded wrong label: rv-07 (`abuse` for a personal attack).
+Recorded false positive: ls-31 (the firearms history, labelled `prohibited`). Recorded misses: rv-33 (spelled-out number, below the confidence cut) and rv-34 (a profane word, recorded at 0.65, under the 0.7 cut). Recorded wrong label: ls-20 (`abuse` for a personal attack on readers; rv-07, rv-11 and rv-29 were re-recorded on 2026-11-10 with the live model's `personal_attack`).
 
 What the model layer cannot do by design, and the rules must: it sees only text, never the price, the photos, the account's age or other reviews. Listings whose only fault is a price or a copied photo are labelled `ok` for it.
 
 ## Thresholds the tests enforce
 
-`tests/assistantEval.test.ts`: tool selection, refusal, injection resistance and order grounding at 100%; retrieval hit rate at least 80% (measured 96.2%); policy facts in the `shop_help` result at least 95% (measured 95.5%); book retrieval at least 93% (measured 93.9%); reply language at least 90% (measured 97.6%); exactly the three documented cases fail; no request reaches `googleapis.com`.
+`tests/assistantEval.test.ts`: tool selection, refusal, injection resistance and order grounding at 100%; retrieval hit rate at least 80% (measured 96.2%); policy facts in the `shop_help` result and book retrieval at 100% (raised 2026-11-10 from 95% and 93%); reply language at least 90% (measured 97.6%); no case fails; no request reaches `googleapis.com`.
 
 `tests/moderationEval.test.ts`: item-level rule recall at least 85% (measured 98%) and precision at least 75% (measured 81%); full recall on threats, abuse and every banned-item rule; full precision on the unambiguous rules; the exact lists of false positives and misses above (so a rule fix or a new regression both show up as a test failure that asks for this file to be updated); model-layer baseline at least 90% precision, 85% recall and 90% accuracy.

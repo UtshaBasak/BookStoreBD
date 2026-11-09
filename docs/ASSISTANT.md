@@ -274,13 +274,25 @@ npm --prefix server run eval:assistant:live -- --yes --pace=8000 --only=pol --wr
 | --- | --- |
 | `--yes` | Required. Without it nothing runs |
 | `--pace=ms` | Milliseconds between requests. Default 6500, under ten a minute |
-| `--only=id` | Only cases whose id starts with this: `find`, `pol`, `ord`, `rec`, `oos`, `inj`, `han` |
+| `--only=id` | Only cases whose id starts with this: `find`, `pol`, `ord`, `rec`, `oos`, `inj`, `han`, or several, comma-separated (`--only=pol-,find-14`) |
 | `--write` | Also saves the table to `docs/eval/assistant-live-<date>.md` |
 
 It needs `GEMINI_API_KEY` and `MONGO`. It seeds its fixtures into a separate
 `<db>_eval` database and drops that afterwards, and never touches the real
-one. It refuses to run when `NODE_ENV` is `production`. A full run is about 160
-requests, a third of a day's default budget.
+one. It refuses to run when `NODE_ENV` is `production`. A full run is about 190
+requests, well over a third of a day's default budget. The two outage cases
+(`find-31`, `find-32`) play a scripted failure even in a live run, since a real
+outage cannot be asked for.
+
+`--write` names the file by the date in UTC, so a second run on the same date
+replaces the first. The database user needs the right to drop `<db>_eval`; an
+app-only Atlas user does not have it. Point `MONGO` at a local MongoDB for the
+run instead, in that shell only (`$env:MONGO = "mongodb://127.0.0.1:27017/"`
+in PowerShell): the fixtures are invented, so nothing real is needed.
+
+On Windows PowerShell, `npm run ... -- --yes` may hand the flags to npm instead
+of the script. Call the script directly then:
+`npx tsx scripts/assistantEvalLive.ts --yes --write`, from `server`.
 
 The numbers so far, the known issues and the thresholds the tests enforce are
 in [`server/eval/RESULTS.md`](../server/eval/RESULTS.md).
