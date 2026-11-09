@@ -172,6 +172,13 @@ describe('contact details', () => {
     expect(stripContactDetails(text)).toBe(text);
   });
 
+  it('reads a number spelled out in words, in either language, and leaves short runs alone', () => {
+    expect(findContactDetails('Reach me on zero one seven one two three four five six seven eight').phones).toHaveLength(1);
+    expect(findContactDetails('শূন্য এক সাত এক দুই তিন চার পাঁচ ছয় সাত আট এ ফোন দিন').phones).toHaveLength(1);
+    expect(findContactDetails('one or two copies, at eight o’clock, seven of nine').phones).toEqual([]);
+    expect(stripContactDetails('call zero one eight one two three four five six seven eight now')).toBe('call [number] now');
+  });
+
   it('replaces them with placeholders for the model', () => {
     expect(stripContactDetails('bkash 01712345678 or a@b.com')).toBe('bkash [number] or [email]');
   });

@@ -15,6 +15,62 @@ const BANGLA_ZERO = 0x09e6;
 export const toAsciiDigits = (text: string): string =>
   text.replace(/[০-৯]/g, (digit) => String(digit.charCodeAt(0) - BANGLA_ZERO));
 
+/** Digits as words, in English, Bangla and Banglish: how a number is hidden from a simple check. */
+const NUMBER_WORDS: Record<string, string> = Object.fromEntries(
+  (
+    [
+      ['zero', '0'], ['oh', '0'], ['one', '1'], ['two', '2'], ['three', '3'], ['four', '4'],
+      ['five', '5'], ['six', '6'], ['seven', '7'], ['eight', '8'], ['nine', '9'],
+      ['shunno', '0'], ['shunyo', '0'], ['ek', '1'], ['dui', '2'], ['tin', '3'], ['char', '4'], ['pach', '5'],
+      ['panch', '5'], ['choy', '6'], ['chhoy', '6'], ['sat', '7'], ['saat', '7'], ['at', '8'], ['aat', '8'], ['noy', '9'], ['noi', '9'],
+      ['শূন্য', '0'], ['এক', '1'], ['দুই', '2'], ['তিন', '3'], ['চার', '4'], ['পাঁচ', '5'], ['ছয়', '6'], ['সাত', '7'], ['আট', '8'], ['নয়', '9'],
+    ] as const
+  ).map(([word, digit]) => [word.normalize('NFC'), digit])
+);
+
+const digitOf = (word: string): string | undefined => NUMBER_WORDS[word.toLowerCase().normalize('NFC')];
+
+const WORD = /[\p{L}\p{M}]+/gu;
+
+/**
+ * Runs of eight or more digit-words ("zero one seven one ...") written as
+ * digits, so a number spelled out is still a number. Shorter runs - "one or
+ * two", "at eight" - are ordinary words and stay as they are.
+ */
+export const spelledDigits = (text: string): string => {
+  const words = [...text.matchAll(WORD)];
+  let out = '';
+  let last = 0;
+  let i = 0;
+  while (i < words.length) {
+    let j = i;
+    while (j < words.length) {
+      const word = words[j];
+      const digit = word ? digitOf(word[0]) : undefined;
+      if (digit === undefined) break;
+      const next = words[j + 1];
+      // Only spaces, hyphens or commas between the words of one number.
+      if (next && word && !/^[\s,-]*$/.test(text.slice((word.index ?? 0) + word[0].length, next.index))) {
+        j += 1;
+        break;
+      }
+      j += 1;
+    }
+    if (j - i >= 8) {
+      const first = words[i];
+      const end = words[j - 1];
+      if (first && end) {
+        out += text.slice(last, first.index) + words.slice(i, j).map((word) => digitOf(word[0])).join('');
+        last = (end.index ?? 0) + end[0].length;
+      }
+      i = j;
+    } else {
+      i += 1;
+    }
+  }
+  return out + text.slice(last);
+};
+
 const EMAIL = /[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}/gi;
 const URL = /\b(?:https?:\/\/|www\.)[^\s<>"']+|\b[a-z0-9-]+\.(?:com|net|org|xyz|info|bd|io|me|link|shop|top|site|online)(?:\/[^\s<>"']*)?/gi;
 /*
@@ -43,7 +99,7 @@ const isPhoneLike = (run: string): boolean => {
 
 /** The contact details in a text. */
 export const findContactDetails = (text: string): ContactDetails => {
-  const ascii = toAsciiDigits(text);
+  const ascii = spelledDigits(toAsciiDigits(text));
   const emails = ascii.match(EMAIL) ?? [];
   const withoutEmails = ascii.replace(EMAIL, ' ');
   const links = (withoutEmails.match(URL) ?? []).filter((link) => !/^\d/.test(link));
@@ -61,7 +117,7 @@ export const hasContactDetails = (text: string): boolean => {
  * the model. Bangla digits are converted first so none slips through.
  */
 export const stripContactDetails = (text: string): string =>
-  toAsciiDigits(text)
+  spelledDigits(toAsciiDigits(text))
     .replace(EMAIL, '[email]')
     .replace(URL, (link) => (/^\d/.test(link) ? link : '[link]'))
     .replace(DIGIT_RUN, (run) => (isPhoneLike(run) ? '[number]' : run));

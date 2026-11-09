@@ -13,13 +13,14 @@ import {
   BANNED_ITEMS,
   MODERATION_THRESHOLDS as LIMITS,
   OFF_SITE_PHRASES,
+  PERSON_REFERENCES,
   PROMOTION_PHRASES,
 } from '../../config/moderationPolicy.js';
 import { fetchPerceptualHash, publicIdFromUrl } from '../../config/cloudinary.js';
 import { escapeRegex } from '../regex.js';
 import { findContactDetails, toAsciiDigits } from '../contactDetails.js';
 import { normaliseIsbn, keyOf } from '../wanted.js';
-import { hammingDistance, median, normalise, phrasesIn, shingles, similarity, textHash } from './text.js';
+import { hammingDistance, hasPhrase, median, normalise, phrasesIn, shingles, similarity, textHash } from './text.js';
 
 /**
  * The deterministic checks: free, fast, and explainable. Each returns zero or
@@ -56,8 +57,11 @@ export const abuseReasons = (text: string): Reason[] => {
     reasons.push(reason(threat ? 'threat' : 'abuse', threat ? 0.95 : 0.85, `Contains ${kinds.join(', ')} language (${severe.length} term${severe.length > 1 ? 's' : ''}).`));
   }
   const mild = hits.filter((entry) => entry.severity === 'mild');
-  if (!severe.length && mild.length >= LIMITS.mildWordsToFlag) {
-    reasons.push(reason('abuse-mild', 0.45, `Several harsh words (${mild.length}), possibly a personal attack.`));
+  // Harsh words about a parcel or a plot are a complaint or a figure of
+  // speech; they count only when the text also points at a person.
+  const aimed = PERSON_REFERENCES.some((word) => hasPhrase(haystack, word));
+  if (!severe.length && aimed && mild.length >= LIMITS.mildWordsToFlag) {
+    reasons.push(reason('abuse-mild', 0.45, `Several harsh words (${mild.length}) aimed at a person, possibly a personal attack.`));
   }
   return reasons;
 };
@@ -113,7 +117,13 @@ export const reviewReasons = async (input: ReviewInput): Promise<Reason[]> => {
       }
     }
     accounts = new Set([...accounts].filter((email) => email !== input.authorEmail));
-    if (copies) {
+    // Two buyers can honestly write the same short praise. Copies count when
+    // several accounts share them, when one person pastes the same text
+    // again and again, or when the copied text also advertises or carries
+    // contact details.
+    const selling = reasons.some((item) => ['contact-details', 'off-site', 'promotion'].includes(item.code));
+    const ownCopies = copies - [...accounts].length;
+    if (accounts.size >= LIMITS.duplicateAccounts || ownCopies >= 2 || (copies && selling)) {
       reasons.push(
         reason(
           'duplicate-text',
@@ -291,7 +301,8 @@ export const chatReasons = async (senderEmail: string, now: Date = new Date()): 
 
   const tenMinutesAgo = now.getTime() - 10 * 60 * 1000;
   const burst = recent.filter((message) => new Date(message.timestamp).getTime() >= tenMinutesAgo);
-  if (burst.length >= LIMITS.chatBurstCount) {
+  // Many quick messages to one person is a conversation; to several, a blast.
+  if (burst.length >= LIMITS.chatBurstCount && new Set(burst.map((message) => String(message.receiver))).size >= LIMITS.chatBurstRecipients) {
     reasons.push(reason('chat-burst', 0.45, `${burst.length} messages in ten minutes.`));
     burst.slice(0, 10).forEach((message) => evidence.add(String(message._id)));
   }
@@ -324,9 +335,17 @@ export const chatReasons = async (senderEmail: string, now: Date = new Date()): 
     withContact.slice(0, 10).forEach((message) => evidence.add(String(message._id)));
   }
 
+  // Writing to many people first is how spam looks; answering many people
+  // who asked is a busy seller.
   const receivers = new Set(recent.map((message) => String(message.receiver)));
   if (receivers.size >= LIMITS.chatManyRecipients) {
-    reasons.push(reason('chat-many-recipients', 0.4, `Wrote to ${receivers.size} different people today.`));
+    const askedFirst = new Set(
+      (await ChatMessage.distinct('sender', { receiver: senderEmail, sender: { $in: [...receivers] } })).map(String)
+    );
+    const unasked = [...receivers].filter((person) => !askedFirst.has(person)).length;
+    if (unasked >= LIMITS.chatManyRecipients) {
+      reasons.push(reason('chat-many-recipients', 0.4, `Wrote first to ${unasked} different people today.`));
+    }
   }
 
   return {

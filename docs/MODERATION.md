@@ -75,8 +75,8 @@ The numbers come from `MODERATION_THRESHOLDS` in
 | --- | --- | --- |
 | `threat` | A severe term of kind threat is in the text | 0.95 |
 | `abuse` | A severe abusive term (profanity, slur, personal attack, sexual) is in the text | 0.85 |
-| `abuse-mild` | No severe term, and at least 3 mild words (`mildWordsToFlag`) | 0.45 |
-| `contact-details` | A phone or bKash number, an e-mail address or a link | 0.6 |
+| `abuse-mild` | No severe term, at least 3 mild words (`mildWordsToFlag`), and a word that points at a person (`PERSON_REFERENCES`: seller, you, আপনি, tumi...). "Stupid packaging" is a complaint, "stupid seller" is aimed at someone | 0.45 |
+| `contact-details` | A phone or bKash number (also in Bangla digits, or spelled out in words in English, Bangla or Banglish), an e-mail address or a link | 0.6 |
 | `off-site` | A phrase that pushes a deal off the site ("whatsapp me", "inbox koren") | 0.6 |
 | `promotion` | A phrase typical of an advertisement ("visit my page") | 0.5 |
 
@@ -86,7 +86,7 @@ The reasons name the kinds of word found, never the words themselves.
 
 | Code | Fires when | Score |
 | --- | --- | --- |
-| `duplicate-text` | The same or nearly the same text (80% of three-word runs in common, `nearDuplicateSimilarity`) is in another review of a book or a seller. Texts under 30 characters are too ordinary to count (`duplicateMinChars`). Compares with the latest 300 of each kind | 0.7 if another account wrote a copy, 0.5 if only the same account |
+| `duplicate-text` | The same or nearly the same text (80% of three-word runs in common, `nearDuplicateSimilarity`) is in another review of a book or a seller. Texts under 30 characters are too ordinary to count (`duplicateMinChars`). Compares with the latest 300 of each kind. Flags when 2 or more other accounts wrote a copy (`duplicateAccounts`), when the same account pasted it 2 or more times, or when one copy also advertises or carries contact details: two buyers can honestly write the same short praise | 0.7 if another account wrote a copy, 0.5 if only the same account |
 | `review-burst` | 5 or more reviews on one book or seller within 60 minutes (`reviewBurstCount`, `reviewBurstWindowMinutes`) | 0.4 |
 | `new-account-extreme` | A 1 or 5 star rating, under 15 characters of text (`shortReviewChars`), from an account under 2 days old (`newAccountDays`) | 0.35 |
 
@@ -108,10 +108,10 @@ Abuse, contact and off-site rules also run on listings.
 
 | Code | Fires when | Score |
 | --- | --- | --- |
-| `chat-burst` | 20 or more messages in ten minutes (`chatBurstCount`) | 0.45 |
+| `chat-burst` | 20 or more messages in ten minutes (`chatBurstCount`) to at least 3 people (`chatBurstRecipients`); a quick conversation with one person does not count | 0.45 |
 | `chat-broadcast` | The same text (10 or more characters) went to 5 or more different people (`chatBroadcastRecipients`) | 0.75 |
 | `chat-contact-spam` | Phone numbers, e-mail addresses or links went to 3 or more people | 0.55 |
-| `chat-many-recipients` | The sender wrote to 25 or more different people (`chatManyRecipients`) | 0.4 |
+| `chat-many-recipients` | The sender wrote first to 25 or more different people today (`chatManyRecipients`); replies to people who wrote first do not count, so a busy seller is not flagged | 0.4 |
 
 The flag points at the messages that fired a rule (up to 20) and never keeps a
 copy of their text.
@@ -297,6 +297,8 @@ model.
   `GEMINI_API_KEY` and `MONGO`, seeds a separate `<db>_eval` database and drops
   it afterwards, and refuses to run in production.
 
-The first run's numbers, the false positives it found and the thresholds the
-tests enforce are in [`server/eval/RESULTS.md`](../server/eval/RESULTS.md).
-Those false positives are the rules to tune first.
+The current numbers, the first run's false positives and how they were fixed,
+and the thresholds the tests enforce are in
+[`server/eval/RESULTS.md`](../server/eval/RESULTS.md). The set is small: watch
+the precision table on `/admin/flags` during the shadow trial for the rules
+real content trips.

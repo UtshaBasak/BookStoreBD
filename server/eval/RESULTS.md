@@ -1,15 +1,88 @@
 # Evaluation results: shopping assistant and automatic moderation
 
-> **Update, 2026-11-08 (after the first run):** three findings were fixed.
-> English author names now also search each longer word of the name, so
-> find-07 (Tagore) and find-12 (Gangopadhyay) pass. "taka" and "dam" no
-> longer mark an English question as Banglish. Five listing and review false
-> positives (ls-21, ls-28, ls-30, ls-31, rv-36) are gone: bare words such as
-> "firearms", "prescription drugs", "pdf file", হুইস্কি and নগ্ন were removed
-> from the policy lists. Remaining known issues: pol-20, pol-23 (help
-> retrieval wording), rv-23, rv-27, rv-40, ch-04, ch-06 (rule false
-> positives) and rv-33 (a number written in words). The tables below are from
-> the first run.
+> **Update, 2026-11-09:** every known issue from the first run is fixed. The
+> current offline numbers are below; the first run's tables follow them as
+> history. These sets are small and the fixes were made with them in view, so
+> treat 100% as "no known failures on this set", not as proof - the live
+> evaluations and real flags in shadow mode are the real test.
+>
+> - Help retrieval: keywords added for a seller's maximum discount (pol-20)
+>   and for what a return needs, in Bangla (pol-23).
+> - Harsh but mild words flag only when aimed at a person (rv-27, rv-40).
+> - Copied review text flags with two other accounts, repeated pasting by one,
+>   or one copy that also advertises or carries contact details (rv-23).
+> - Chat bursts need at least three recipients (ch-04), and "many recipients"
+>   counts only people the sender wrote to first (ch-06).
+> - Numbers spelled out in words (English, Bangla, Banglish) are read as
+>   numbers (rv-33).
+
+## Current results (offline, 2026-11-09)
+
+### Assistant
+
+| Metric | Result | n | Note |
+| --- | ---: | ---: | --- |
+| Tool selection (expected tools all called) | 100.0% (101/101) | 101 | higher is better |
+| Tool selection, exact (no extra tools) | 100.0% (101/101) | 101 | higher is better |
+| Policy answer correctness (reply holds the facts) | 100.0% (22/22) | 22 | scripted reply text |
+| Policy retrieval as sent to the model (shop_help result holds the facts) | 100.0% (22/22) | 22 | higher is better |
+| Retrieval hit rate (expected topic in top 3 of searchKnowledge) | 100.0% (26/26) | 26 | no model involved |
+| Book retrieval (expected titles shown) | 100.0% (33/33) | 33 | higher is better |
+| Order grounding (right orders, never someone else’s) | 100.0% (11/11) | 11 | higher is better |
+| Refusal correctness (out-of-scope refused) | 100.0% (12/12) | 12 | higher is better |
+|   of which refused without the model | 100.0% (7/7) | 7 | higher is better |
+| False refusals (in-scope question refused) | 0.0% (0/82) | 82 | lower is better |
+| Injection resistance (no forbidden tool, no leak, nothing obeyed) | 100.0% (11/11) | 11 | higher is better |
+| Fallback rate (model failed on a question that should succeed) | 0.0% (0/91) | 91 | lower is better |
+| Fallback path works when the model is down | 100.0% (2/2) | 2 | higher is better |
+| Reply language matches the question (en / bn / banglish) | 100.0% (85/85) | 85 | higher is better |
+| Every check on every case passed | 100.0% (105/105) | 105 | higher is better |
+
+| Category | Cases | All checks passed |
+| --- | ---: | ---: |
+| find | 32 | 32/32 |
+| policy | 27 | 27/27 |
+| orders | 9 | 9/9 |
+| recommend | 8 | 8/8 |
+| out-of-scope | 12 | 12/12 |
+| injection | 11 | 11/11 |
+| handover | 6 | 6/6 |
+
+### Moderation rules
+
+| Rule | TP | FP | FN | Precision | Recall |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| abuse | 4 | 0 | 0 | 100% | 100% |
+| abuse-mild | 3 | 0 | 0 | 100% | 100% |
+| banned:account-selling | 1 | 0 | 0 | 100% | 100% |
+| banned:alcohol-tobacco | 1 | 0 | 0 | 100% | 100% |
+| banned:exam-leaks | 1 | 0 | 0 | 100% | 100% |
+| banned:fake-documents | 1 | 0 | 0 | 100% | 100% |
+| banned:non-book-goods | 1 | 0 | 0 | 100% | 100% |
+| banned:pirated-copies | 3 | 0 | 0 | 100% | 100% |
+| banned:weapons | 1 | 0 | 0 | 100% | 100% |
+| chat-broadcast | 3 | 0 | 0 | 100% | 100% |
+| chat-burst | 1 | 0 | 0 | 100% | 100% |
+| chat-contact-spam | 3 | 0 | 0 | 100% | 100% |
+| chat-many-recipients | 1 | 0 | 0 | 100% | 100% |
+| contact-details | 7 | 0 | 0 | 100% | 100% |
+| discount-claim | 1 | 0 | 0 | 100% | 100% |
+| duplicate-photo | 1 | 0 | 0 | 100% | 100% |
+| duplicate-text | 1 | 0 | 0 | 100% | 100% |
+| missing-details | 1 | 0 | 0 | 100% | 100% |
+| new-account-extreme | 1 | 0 | 0 | 100% | 100% |
+| off-site | 4 | 0 | 0 | 100% | 100% |
+| placeholder-price | 1 | 0 | 0 | 100% | 100% |
+| price-outlier | 2 | 0 | 0 | 100% | 100% |
+| promotion | 4 | 0 | 0 | 100% | 100% |
+| review-burst | 1 | 0 | 0 | 100% | 100% |
+| threat | 2 | 0 | 0 | 100% | 100% |
+
+Item level (flagged by any rule vs. should be flagged): precision 100%, recall 100% (TP 44, FP 0, FN 0, TN 39).
+
+The model layer's offline numbers are unchanged: they replay recorded labels.
+
+## First run (2026-11-08)
 
 
 Date: 2026-11-08

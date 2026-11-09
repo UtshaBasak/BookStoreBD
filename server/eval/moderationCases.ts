@@ -65,6 +65,8 @@ export interface ChatSeed {
 export interface ChatCase extends Common {
   kind: 'chat';
   messages: ChatSeed[];
+  /** Each recipient wrote to the sender first: these are replies. */
+  asked?: boolean;
 }
 
 export type ModerationCase = ReviewCase | ListingCase | ChatCase;
@@ -181,7 +183,7 @@ export const MODERATION_CASES: ModerationCase[] = [
   { id: 'ch-03', kind: 'chat', language: 'en', expect: ['chat-broadcast', 'chat-contact-spam'], messages: messages(6, (index) => index, () => 'Order from me: call 01712345678 for cheap books', SLOW) },
   { id: 'ch-04', kind: 'chat', language: 'en', expect: [], messages: messages(22, () => 0, (index) => `Quick question number ${index}: is the second edition still there?`, FAST) },
   { id: 'ch-05', kind: 'chat', language: 'en', expect: ['chat-burst'], messages: messages(22, (index) => index % 4, (index) => `Buy now, offer ${index} ends tonight for readers`, FAST) },
-  { id: 'ch-06', kind: 'chat', language: 'en', expect: [], messages: messages(26, (index) => index, (index) => `Yes, that copy is available, thanks for asking (#${index})`, SLOW) },
+  { id: 'ch-06', kind: 'chat', language: 'en', expect: [], messages: messages(26, (index) => index, (index) => `Yes, that copy is available, thanks for asking (#${index})`, SLOW), asked: true },
   { id: 'ch-07', kind: 'chat', language: 'en', expect: ['chat-many-recipients', 'chat-contact-spam'], messages: messages(26, (index) => index, (index) => `Cheap books at https://cheapbooks.example/${index}`, SLOW) },
   { id: 'ch-08', kind: 'chat', language: 'en', expect: [], messages: messages(6, (index) => index, () => 'ok thanks', SLOW) },
   { id: 'ch-09', kind: 'chat', language: 'en', expect: ['chat-contact-spam'], messages: messages(3, (index) => index, () => 'Call me on 01712345678 about the book', SLOW) },

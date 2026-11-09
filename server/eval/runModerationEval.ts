@@ -146,6 +146,17 @@ const rulesForListing = async (item: ListingCase): Promise<string[]> => {
 const rulesForChat = async (item: ChatCase): Promise<string[]> => {
   const sender = 'sender@eval.test';
   const now = new Date();
+  if (item.asked) {
+    // The questions that came first, an hour before the replies.
+    await ChatMessage.insertMany(
+      [...new Set(item.messages.map((message) => message.to))].map((to) => ({
+        sender: `person${to}@eval.test`,
+        receiver: sender,
+        message: 'Is this book still available?',
+        timestamp: new Date(now.getTime() - 24 * 60 * 60 * 1000 + 60 * 1000),
+      }))
+    );
+  }
   await ChatMessage.insertMany(
     item.messages.map((message) => ({
       sender,

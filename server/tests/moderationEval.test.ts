@@ -16,8 +16,8 @@ import { RECORDED_LABELS } from '../eval/moderationRecorded.js';
 import { runModelLayer, runRuleLayer, type ModelLayerResult, type RuleLayerResult, type RuleStat } from '../eval/runModerationEval.js';
 
 // Measured when the set was written (see eval/RESULTS.md); each is a weakness the set was built to expose.
-const KNOWN_FALSE_POSITIVES = ['ch-04', 'ch-06', 'rv-23', 'rv-27', 'rv-40'];
-const KNOWN_MISSES = ['rv-33'];
+const KNOWN_FALSE_POSITIVES: string[] = [];
+const KNOWN_MISSES: string[] = [];
 
 let rules: RuleLayerResult;
 let model: ModelLayerResult;

@@ -381,6 +381,17 @@ export const PROMOTION_PHRASES: readonly string[] = [
 ];
 
 /**
+ * Words that point at a person. Harsh but mild words count as a possible
+ * personal attack only beside one of these: "stupid packaging" is a complaint
+ * about a parcel, "stupid seller" is about someone.
+ */
+export const PERSON_REFERENCES: readonly string[] = [
+  'you', 'your', 'u', 'he', 'she', 'him', 'her', 'they', 'seller', 'owner', 'guy', 'man', 'woman', 'person',
+  'apni', 'apnar', 'tumi', 'tomar', 'tui', 'tor', 'uni', 'tini', 'se', 'bikreta', 'lok', 'loke', 'lokta', 'beta', 'mohila',
+  'আপনি', 'আপনার', 'তুমি', 'তোমার', 'তুই', 'তোর', 'উনি', 'তিনি', 'সে', 'বিক্রেতা', 'লোক', 'লোকটা', 'বেটা', 'মহিলা',
+];
+
+/**
  * The numbers the rules work to. Raise one to make its rule quieter, or list
  * the rule's code in MODERATION_DISABLED_RULES to switch it off.
  */
@@ -406,12 +417,15 @@ export const MODERATION_THRESHOLDS = {
   placeholderPrice: 5,
   /** Perceptual hashes this close (bits) are the same photograph. */
   photoHashDistance: 6,
-  /** Chat: messages from one sender in ten minutes. */
+  /** Chat: messages from one sender in ten minutes, to at least `chatBurstRecipients` people. */
   chatBurstCount: 20,
+  chatBurstRecipients: 3,
   /** Chat: the same text sent to this many different people in a day. */
   chatBroadcastRecipients: 5,
-  /** Chat: different people one sender writes to in a day. */
+  /** Chat: different people one sender writes to first in a day (replies to people who wrote first do not count). */
   chatManyRecipients: 25,
+  /** Copied review text: this many other accounts, or one other account plus advertising or contact details. */
+  duplicateAccounts: 2,
   /** The model's label counts only at or above this confidence. */
   modelConfidence: 0.7,
 } as const;

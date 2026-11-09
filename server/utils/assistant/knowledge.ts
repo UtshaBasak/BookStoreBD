@@ -273,7 +273,8 @@ export const knowledgeBase = (): KnowledgeChunk[] => {
       link: '/filter?deals=1&sort=dealPercent',
       keywords: [
         'quick deals', 'deals', 'discount', 'offer', 'sale', 'cheap books', 'চটজলদি ছাড়', 'ছাড়', 'অফার',
-        'chhar', 'offer ache', 'discount book', 'max discount',
+        'chhar', 'offer ache', 'discount book', 'max discount', 'maximum discount', 'seller discount',
+        'discount limit', 'how much discount', 'set a discount', 'সর্বোচ্চ ছাড়', 'কত ছাড়', 'ছাড় দিতে', 'koto chhar',
       ],
     },
 
@@ -363,7 +364,8 @@ export const knowledgeBase = (): KnowledgeChunk[] => {
       link: '/returns',
       keywords: [
         'request a return', 'how to return', 'return a book', 'return request', 'return photo', 'রিটার্নের অনুরোধ',
-        'কীভাবে ফেরত', 'ferot korbo', 'return korbo', 'book ferot', 'ferot kivabe',
+        'কীভাবে ফেরত', 'ferot korbo', 'return korbo', 'book ferot', 'ferot kivabe', 'রিটার্ন করতে', 'রিটার্ন',
+        'ফেরত দিতে', 'কী লাগবে', 'what do i need to return', 'return korte', 'return er jonno',
       ],
     },
     {
