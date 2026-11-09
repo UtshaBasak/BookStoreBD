@@ -137,12 +137,23 @@ export const resetAssistantStateForTesting = (): void => {
 
 // ----------------------------------------------------------- the answer
 
+/**
+ * Tags taken out until none is left - one pass would turn `<scr<b>ipt>` into
+ * `<script>` - and then any stray angle bracket.
+ */
+const withoutTags = (text: string): string => {
+  let previous: string;
+  let current = text;
+  do {
+    previous = current;
+    current = current.replace(/<[^<>]*>/g, '');
+  } while (current !== previous);
+  return current.replace(/[<>]/g, '');
+};
+
 /** Model text made safe to show: plain text, no markup, no addresses, no runaway length. */
 export const cleanReply = (text: string): string =>
-  text
-    .replace(/<[^>]*>/g, '')
-    // Whatever is left of a broken or nested tag: no angle bracket survives.
-    .replace(/[<>]/g, '')
+  withoutTags(text)
     // [label](address) keeps the label; the address is dropped.
     .replace(/\[([^\]]{1,200})\]\([^)]*\)/g, '$1')
     .replace(/\b(?:https?:\/\/|www\.)\S+/gi, '')
