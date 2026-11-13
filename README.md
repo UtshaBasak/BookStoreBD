@@ -6,6 +6,12 @@
 
 🌐 **Live site:** [bookstorebd-loum.onrender.com](https://bookstorebd-loum.onrender.com)
 
+[![XERJ Corpus Hub contributor](https://hub.xerj.org/contributors/UtshaBasak/badge.svg)](https://hub.xerj.org/contributors/UtshaBasak)
+
+🏆 **Selected for the [XERJ Corpus Hub](https://hub.xerj.org/corpus/utshabasak--bookstorebd)**, an open index of reference code that AI coding agents search before they write their own. The hub picked the account-closing and verified e-mail change work ([`6cd226e`](https://github.com/UtshaBasak/BookStoreBD/commit/6cd226e46d39e4fbf642c7db2ab72b86012936ff): 33 files, about 2,060 lines of TypeScript, with its tests) as a worked example.
+
+[Contributor page](https://hub.xerj.org/contributors/UtshaBasak) · [BookStoreBD on the hub](https://hub.xerj.org/corpus/utshabasak--bookstorebd)
+
 [![CI](https://github.com/UtshaBasak/BookStoreBD/actions/workflows/ci.yml/badge.svg)](https://github.com/UtshaBasak/BookStoreBD/actions/workflows/ci.yml)
 [![CodeQL](https://github.com/UtshaBasak/BookStoreBD/actions/workflows/github-code-scanning/codeql/badge.svg)](https://github.com/UtshaBasak/BookStoreBD/actions/workflows/github-code-scanning/codeql)
 [![Docker image](https://github.com/UtshaBasak/BookStoreBD/actions/workflows/docker.yml/badge.svg)](https://github.com/UtshaBasak/BookStoreBD/actions/workflows/docker.yml)
