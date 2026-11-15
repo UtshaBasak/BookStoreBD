@@ -1,0 +1,46 @@
+# CircleCI runs the client and server test suites with Smarter Testing (`circleci testsuite`).
+# Each suite is described in <package>/.circleci/test-suites.yml. GitHub Actions stays the main
+# CI (lint, type-check, build); these jobs only run the tests.
+# See: https://circleci.com/docs/guides/test/getting-started-with-smarter-testing/
+version: 2.1
+
+executors:
+  node:
+    docker:
+      - image: cimg/node:24.22@sha256:88cf1a521455f70a79b81fd46bd4e51ebdae03dfae34b85d13f21d868960bee3
+
+jobs:
+  test:
+    parameters:
+      package:
+        type: enum
+        enum: [client, server]
+    executor: node
+    working_directory: ~/project
+    steps:
+      - checkout
+      - restore_cache:
+          keys:
+            - npm-<< parameters.package >>-{{ checksum "<< parameters.package >>/package-lock.json" }}
+      - run:
+          name: Install dependencies
+          command: npm ci
+          working_directory: << parameters.package >>
+      - save_cache:
+          key: npm-<< parameters.package >>-{{ checksum "<< parameters.package >>/package-lock.json" }}
+          paths:
+            - ~/.npm
+            - ~/.cache/mongodb-binaries
+      - run:
+          name: Run the test suite
+          command: circleci testsuite run "<< parameters.package >>"
+          working_directory: << parameters.package >>
+
+workflows:
+  test:
+    jobs:
+      - test:
+          name: test-<< matrix.package >>
+          matrix:
+            parameters:
+              package: [client, server]

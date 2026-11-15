@@ -1,0 +1,8 @@
+---
+# CircleCI Smarter Testing for the client: the CircleCI job runs `circleci testsuite run "client"`
+# from client/. Test atoms are the Vitest test files; results go to the job's Tests tab.
+name: client
+discover: npx vitest list --filesOnly
+run: npx vitest run --reporter=junit --outputFile="<< outputs.junit >>" --bail 0 << test.atoms >>
+options:
+  store-test-results: true
