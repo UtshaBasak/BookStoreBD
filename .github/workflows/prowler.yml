@@ -27,7 +27,7 @@ jobs:
         with:
           persist-credentials: false
       - name: Prowler Security Scan
-        uses: prowler-cloud/prowler@9cd1a8ee450049195b1484e274fa626b72bd26e7 # 5.49.0
+        uses: prowler-cloud/prowler@d9559745c7ca0d836a8cab9da3529f919456f394 # 5.51.0
         with:
           provider: iac
           image-tag: 5.49.0
